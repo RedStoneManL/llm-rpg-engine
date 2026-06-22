@@ -178,7 +178,7 @@ def rewind(engine: Engine, turn: int) -> dict:
     return {"retracted": n, "turn": turn}
 
 
-def new_game(engine: Engine, pitch: str = "") -> dict:
+def new_game(engine: Engine, pitch: str = "", *, progress=None) -> dict:
     """Seed genesis via the real bootstrap pipeline.
 
     Delegates entirely to ``loop.bootstrap.bootstrap_world``, which runs the
@@ -186,10 +186,12 @@ def new_game(engine: Engine, pitch: str = "") -> dict:
     protagonist → factions → NPCs → threads → opening narration).
 
     Args:
-        engine: The wired engine (from build_engine).
-        pitch:  Optional world-background keyword(s) / theme string supplied by
-                the player.  Defaults to empty string (bootstrap falls back to
-                its own oracle-rolled genre).
+        engine:   The wired engine (from build_engine).
+        pitch:    Optional world-background keyword(s) / theme string supplied by
+                  the player.  Defaults to empty string (bootstrap falls back to
+                  its own oracle-rolled genre).
+        progress: Optional callback(step_index, total_steps, label) forwarded to
+                  bootstrap_world.  Default None → no-op (existing callers unaffected).
 
     Returns:
         The dict returned by bootstrap_world:
@@ -203,6 +205,6 @@ def new_game(engine: Engine, pitch: str = "") -> dict:
     """
     from loop.bootstrap import bootstrap_world
     log.debug("new_game: delegating to bootstrap_world pitch=%r", pitch)
-    result = bootstrap_world(engine, pitch)
+    result = bootstrap_world(engine, pitch, progress=progress)
     log.debug("new_game: bootstrap complete, world reprojected")
     return result

@@ -503,9 +503,16 @@ def gen_local_map(
             "name": obj["neighbors"][i]["name"].strip(),
         })
 
+    # Build venue_names: {venue_id -> venue_name} so downstream callers (gen_protagonist,
+    # gen_opening, _build_world_summary, _print_intro) can reference names, not raw ids.
+    venue_names: dict[str, str] = {}
+    for i, v in enumerate(obj["venues"]):
+        venue_names[f"venue_{i}"] = v["name"].strip()
+
     summary = {
         "start_town": "town_0",
         "venues": venue_ids,
+        "venue_names": venue_names,
         "l2": l2_summary,
     }
 
@@ -583,6 +590,119 @@ def gen_local_map(
         ))
 
     return events, summary
+
+
+# ---------------------------------------------------------------------------
+# gen_protagonist — Task 4b: author the protagonist to fit the generated world
+# ---------------------------------------------------------------------------
+
+_SYSTEM_GEN_PROTAGONIST = (
+    "你是 TRPG 主角背景生成器，只返回严格符合字段规范的 JSON，所有故事文本用中文。"
+)
+
+
+def _validate_protagonist(obj) -> list[str]:
+    """Return human-readable problems naming missing/empty required protagonist fields."""
+    errs = []
+    for field in ("name", "origin", "goal", "objective"):
+        if not isinstance(obj.get(field), str) or not obj[field].strip():
+            errs.append(f'missing or empty string field "{field}"')
+    return errs
+
+
+def gen_protagonist(
+    provider,
+    oracle: Oracle,
+    frame: dict,
+    local_map: dict,
+) -> tuple[list, dict]:
+    """Author a protagonist that fits the generated world frame.
+
+    Engine context: world frame (tone/conflict/world_name) + local_map (first venue).
+    LLM writes: name, origin (身世/background 1-3 sentences), goal (driving goal),
+                objective (concrete starting quest — "what I'm doing right now").
+
+    On LLM error or provider=None → deterministic stub values; NEVER raises.
+
+    Returns:
+        (events, authored)
+        events = []   (no events emitted here; bootstrap_world emits them directly)
+        authored = {"name": str, "origin": str, "goal": str, "objective": str}
+    """
+    # Use oracle to anchor the call into the attempt-seed scheme (no rolls needed)
+    _ = oracle.random()   # consume one draw so seed participates in attempt space
+
+    start_town = local_map.get("start_town", "town_0")
+    venues = local_map.get("venues", [])
+    venue_names = local_map.get("venue_names", {})
+
+    # Resolve town name from l2 list
+    town_name = start_town
+    for entry in local_map.get("l2", []):
+        if entry.get("id") == start_town:
+            town_name = entry.get("name", start_town)
+            break
+
+    # Resolve first venue name (prefer name, fall back to id)
+    first_venue_id = venues[0] if venues else None
+    first_venue_name = (
+        venue_names.get(first_venue_id, first_venue_id)
+        if first_venue_id else "起始场所"
+    )
+
+    # All venue names for context (comma-joined)
+    all_venue_names = "、".join(
+        venue_names.get(vid, vid) for vid in venues
+    ) if venues else "（无场所）"
+
+    user = (
+        f"世界名称：{frame.get('world_name', '未名之地')}\n"
+        f"世界基调：{frame.get('tone', '冒险')}\n"
+        f"核心冲突：{frame.get('central_conflict', '未知冲突')}\n"
+        f"起始小镇：{town_name}，起始场所：{first_venue_name}\n"
+        f"镇内所有场所：{all_venue_names}\n\n"
+        f"请为这个世界创作一位主角，以纯 JSON 对象返回，"
+        f"不含 Markdown 代码块、不含任何额外说明。\n"
+        f"对象 MUST 含有 EXACTLY 下列四个字段（不多不少）：\n"
+        f"  \"name\"      — 符合世界风格的主角姓名（中文字符串，非空）\n"
+        f"  \"origin\"    — 主角的身世背景，1-3句话（中文字符串，非空）\n"
+        f"  \"goal\"      — 驱动主角行动的核心目标（中文字符串，非空）\n"
+        f"  \"objective\" — 主角当前具体的任务或行动目标，即「我现在正在做什么」（中文字符串，非空）；"
+        f"用地点的名字（如「{first_venue_name}」「{town_name}」）指代地点，"
+        f"绝不要在面向玩家的文本里出现 town_0 / venue_0 这类内部 id\n"
+        f"示例：{{\"name\": \"沈云舟\", \"origin\": \"出身江南小镇的落魄秀才，父亲死于一场离奇大火。\","
+        f" \"goal\": \"查明父亲死因，为家族翻案\","
+        f" \"objective\": \"前往{town_name}的{first_venue_name}寻找据说见过那场大火的老掌柜\"}}"
+    )
+
+    obj, errors = complete_structured(
+        provider,
+        system=_SYSTEM_GEN_PROTAGONIST,
+        user=user,
+        validate=_validate_protagonist,
+        max_repairs=2,
+        log_label="gen_protagonist",
+    )
+
+    if errors or obj is None:
+        if errors != ["no provider"]:
+            log.warning("gen_protagonist: LLM step failed (%s); using stub protagonist",
+                        "; ".join(errors) or "provider is None")
+        authored = {
+            "name": "无名旅者",
+            "origin": "来历不明的旅人，只知道自己踏上了这条路。",
+            "goal": "找到属于自己的答案",
+            "objective": "在起始小镇打听线索，寻找下一步的方向",
+        }
+    else:
+        authored = {
+            "name": obj["name"].strip(),
+            "origin": obj["origin"].strip(),
+            "goal": obj["goal"].strip(),
+            "objective": obj["objective"].strip(),
+        }
+
+    return [], authored
 
 
 # ---------------------------------------------------------------------------
@@ -1259,6 +1379,7 @@ _SYSTEM_GEN_OPENING = (
     "用具体可感的细节描绘环境氛围与周遭人物，给玩家留下可回应的钩子，"
     "但绝不替玩家决定下一步行动。"
     "只输出叙事散文本身，不要任何 JSON / 结构化数据 / 元说明。"
+    "重要：用地点的名字指代地点，绝不要在面向玩家的文本里出现 town_0 / venue_0 这类内部 id。"
 )
 
 
@@ -1268,6 +1389,7 @@ def gen_opening(
     world_summary: str,
     *,
     scene_loc: str,
+    scene_loc_name: str | None = None,
 ) -> tuple[list[dict], str]:
     """Write the opening-scene narration (protagonist POV, landing in the start town).
 
@@ -1276,10 +1398,12 @@ def gen_opening(
     frame['world_name']; NEVER raises.
 
     Args:
-        provider:      LLMProvider with a .complete(system, user) method, or None.
-        frame:         World frame dict (must contain 'world_name').
-        world_summary: Compact textual summary of the world (regions/town/venues/NPCs).
-        scene_loc:     The specific L3 venue id where the protagonist lands.
+        provider:       LLMProvider with a .complete(system, user) method, or None.
+        frame:          World frame dict (must contain 'world_name').
+        world_summary:  Compact textual summary of the world (regions/town/venues/NPCs).
+        scene_loc:      The internal L3 venue id where the protagonist lands.
+        scene_loc_name: Human-readable name for scene_loc (falls back to scene_loc if None).
+                        Passed to the LLM prompt so the narration uses names, not ids.
 
     Returns:
         (events, narration)
@@ -1288,13 +1412,16 @@ def gen_opening(
     """
     world_name = frame.get("world_name", "未名之地")
     narration: str | None = None
+    # Use the human-readable name in the prompt; fall back to id only as last resort
+    scene_display = scene_loc_name if scene_loc_name else scene_loc
 
     if provider is not None:
         try:
             user = (
                 f"{world_summary}\n\n"
-                f"主角当前所在地点：{scene_loc}\n"
-                f"请写一段开场叙事，以主角视角落脚于起始镇，给玩家留下可回应的钩子。"
+                f"主角当前所在地点：{scene_display}\n"
+                f"请写一段开场叙事，以主角视角落脚于起始镇，给玩家留下可回应的钩子。\n"
+                f"重要：用地点的名字指代地点，绝不要在面向玩家的文本里出现 town_0 / venue_0 这类内部 id。"
             )
             narration = provider.complete(_SYSTEM_GEN_OPENING, user)
         except Exception:
@@ -1322,26 +1449,34 @@ def gen_opening(
 # bootstrap_world — Task 9: orchestrator (steps 1-9) + reroll helpers
 # ---------------------------------------------------------------------------
 
-def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
-    """Run all 7 generation steps + protagonist creation; return a rich result dict.
+def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> dict:
+    """Run all generation steps + protagonist creation; return a rich result dict.
 
     Orchestration order (all genesis events: turn=0, day=1, scene="genesis"):
         1. campaign_seeded
         2. gen_frame
         3. gen_regions
         4. gen_local_map
-        5. protagonist created + moved to first venue
-        6. gen_factions
-        7. gen_npcs
-        8. gen_threads  → create_lore_line per skeleton
-        9. gen_opening
+        5. gen_protagonist  (authored protagonist to fit world)
+        6. protagonist character_created + fact_asserted events + entity_moved
+        7. gen_factions
+        8. gen_npcs
+        9. gen_threads  → create_lore_line per skeleton
+        10. gen_opening
         then project
+
+    Args:
+        engine:   The wired engine.
+        pitch:    The world background keyword string.
+        attempt:  Reroll attempt counter (0 for first run).
+        progress: Optional callback(step_index, total_steps, label) called before
+                  each generation step. Default None → no-op (existing callers unaffected).
 
     Returns:
         {
           "summary": {...display fields...},
           "_state": {frame, regions_summary, local_map, factions_summary, protagonist,
-                     pitch, attempts:{step:attempt}},
+                     protagonist_authored, pitch, attempts:{step:attempt}},
           "_boundaries": {step: first_seq_of_that_step},
         }
 
@@ -1360,6 +1495,15 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
     def _seed(step: str) -> Oracle:
         return Oracle(scene_seed(campaign_seed, f"genesis:{step}", attempt))
 
+    def _progress(idx: int, total: int, label: str) -> None:
+        if progress is not None:
+            try:
+                progress(idx, total, label)
+            except Exception:
+                pass  # progress callback errors must never abort genesis
+
+    _TOTAL_STEPS = 8
+
     with get_tracer().span("genesis"):
         # -----------------------------------------------------------------------
         # Step 1: campaign_seeded (mirrors new_game)
@@ -1375,6 +1519,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 2: gen_frame
         # -----------------------------------------------------------------------
+        _progress(1, _TOTAL_STEPS, "世界框架")
         with get_tracer().span("gen_frame", step="frame"):
             frame_evs, frame = gen_frame(provider, _seed("frame"), pitch)
         boundaries["frame"] = store.append(frame_evs[0])
@@ -1384,6 +1529,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 3: gen_regions
         # -----------------------------------------------------------------------
+        _progress(2, _TOTAL_STEPS, "宏观区域")
         region_evs, regions_summary = gen_regions(provider, _seed("regions"), frame)
         boundaries["regions"] = store.append(region_evs[0])
         for ev in region_evs[1:]:
@@ -1392,13 +1538,20 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 4: gen_local_map
         # -----------------------------------------------------------------------
+        _progress(3, _TOTAL_STEPS, "本地地图")
         local_map_evs, local_map = gen_local_map(provider, _seed("local_map"), frame, regions_summary)
         boundaries["local_map"] = store.append(local_map_evs[0])
         for ev in local_map_evs[1:]:
             store.append(ev)
 
         # -----------------------------------------------------------------------
-        # Step 5: create protagonist (tracked) + move to first venue
+        # Step 5: gen_protagonist — author protagonist to fit the world
+        # -----------------------------------------------------------------------
+        _progress(4, _TOTAL_STEPS, "主角")
+        _, protagonist_authored = gen_protagonist(provider, _seed("protagonist"), frame, local_map)
+
+        # -----------------------------------------------------------------------
+        # Step 5b: create protagonist (tracked) + public facts + move to first venue
         # -----------------------------------------------------------------------
         protagonist = _PROTAGONIST_ID
         first_venue = local_map["venues"][0]
@@ -1406,15 +1559,41 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         ev_char = kernel_event(
             "character_created",
             turn=0, day=1, scene="genesis",
-            summary=f"{protagonist} 主角登场",
+            summary=f"{protagonist} 主角登场（{protagonist_authored['name']}）",
             deltas={
                 "id": protagonist,
                 "tier": "tracked",
-                "sketch": "一位踏上旅途的冒险者",
-                "goal": "探索这个世界",
+                "sketch": protagonist_authored["origin"],
+                "goal": protagonist_authored["goal"],
             },
         )
         boundaries["protagonist"] = store.append(ev_char)
+
+        # fact_asserted for name (公开 — DM 和主角都知道自己叫什么)
+        store.append(kernel_event(
+            "fact_asserted",
+            turn=0, day=1, scene="genesis",
+            summary=f"{protagonist} 名字：{protagonist_authored['name']}",
+            deltas={
+                "subject": protagonist,
+                "predicate": "真名",
+                "value": protagonist_authored["name"],
+                "secrecy": "public",
+            },
+        ))
+
+        # fact_asserted for starting objective (公开 — player knows what to do)
+        store.append(kernel_event(
+            "fact_asserted",
+            turn=0, day=1, scene="genesis",
+            summary=f"{protagonist} 当前目标：{protagonist_authored['objective']}",
+            deltas={
+                "subject": protagonist,
+                "predicate": "目标",
+                "value": protagonist_authored["objective"],
+                "secrecy": "public",
+            },
+        ))
 
         ev_move = kernel_event(
             "entity_moved",
@@ -1427,6 +1606,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 6: gen_factions
         # -----------------------------------------------------------------------
+        _progress(5, _TOTAL_STEPS, "势力")
         faction_evs, factions_summary = gen_factions(provider, _seed("factions"), frame, regions_summary)
         boundaries["factions"] = store.append(faction_evs[0])
         for ev in faction_evs[1:]:
@@ -1435,6 +1615,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 7: gen_npcs
         # -----------------------------------------------------------------------
+        _progress(6, _TOTAL_STEPS, "NPC")
         npc_evs, npcs_summary = gen_npcs(provider, _seed("npcs"), frame, local_map, factions_summary)
         boundaries["npcs"] = store.append(npc_evs[0])
         for ev in npc_evs[1:]:
@@ -1443,6 +1624,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 8: gen_threads → create_lore_line per skeleton
         # -----------------------------------------------------------------------
+        _progress(7, _TOTAL_STEPS, "暗线")
         with get_tracer().span("gen_threads", step="threads"):
             skeletons, threads_summary = gen_threads(
                 provider, _seed("threads"), frame, local_map, protagonist
@@ -1455,10 +1637,14 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         # -----------------------------------------------------------------------
         # Step 9: gen_opening
         # -----------------------------------------------------------------------
+        _progress(8, _TOTAL_STEPS, "开场")
         with get_tracer().span("gen_opening", step="opening"):
             world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
+            # Resolve the first venue's human-readable name so the prompt never shows an id
+            first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
             opening_evs, narration = gen_opening(
-                provider, frame, world_summary, scene_loc=first_venue
+                provider, frame, world_summary,
+                scene_loc=first_venue, scene_loc_name=first_venue_name,
             )
         boundaries["opening"] = store.append(opening_evs[0])
         for ev in opening_evs[1:]:
@@ -1485,6 +1671,10 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
         "n_npcs": n_npcs_actual,
         "n_lore": n_lore,
         "narration_excerpt": narration[:120] if narration else "",
+        "protagonist_name": protagonist_authored["name"],
+        "protagonist_origin": protagonist_authored["origin"],
+        "protagonist_goal": protagonist_authored["goal"],
+        "objective": protagonist_authored["objective"],
     }
 
     return {
@@ -1497,6 +1687,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0) -> dict:
             "npcs_summary": npcs_summary,
             "threads_summary": threads_summary,
             "protagonist": protagonist,
+            "protagonist_authored": protagonist_authored,
             "pitch": pitch,
             "attempts": {step: attempt for step in boundaries},
         },
@@ -1536,8 +1727,22 @@ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
                           npcs_summary: dict, threads_summary: dict) -> str:
     """Build a compact world summary string for gen_opening's world_summary arg."""
     region_names = ", ".join(r["name"] for r in regions_summary.get("regions", []))
-    town_name = local_map.get("start_town", "town_0")
+
+    # Resolve start town NAME from l2 list (not raw id)
+    start_town_id = local_map.get("start_town", "town_0")
+    town_name = start_town_id
+    for entry in local_map.get("l2", []):
+        if entry.get("id") == start_town_id:
+            town_name = entry.get("name", start_town_id)
+            break
+
+    # Use venue NAMES (not ids) for the world summary
     venue_ids = local_map.get("venues", [])
+    venue_names_map = local_map.get("venue_names", {})
+    venue_display = ", ".join(
+        venue_names_map.get(vid, vid) for vid in venue_ids
+    )
+
     npc_sketches = ", ".join(n["sketch"] for n in npcs_summary.get("npcs", []))
     thread_abouts = "; ".join(
         t["about"] for t in threads_summary.get("threads", [])
@@ -1547,13 +1752,13 @@ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
         f"世界基调：{frame['tone']}\n"
         f"核心冲突：{frame['central_conflict']}\n"
         f"大区域：{region_names}\n"
-        f"起始小镇：{town_name}，场所：{', '.join(venue_ids)}\n"
+        f"起始小镇：{town_name}，场所：{venue_display}\n"
         f"开场NPC：{npc_sketches}\n"
         f"暗线：{thread_abouts}"
     )
 
 
-def reroll_all(engine, prev_result: dict) -> dict:
+def reroll_all(engine, prev_result: dict, *, progress=None) -> dict:
     """Retract all genesis events and run a fresh bootstrap_world.
 
     The previous attempt's overall counter is bumped by 1.
@@ -1567,10 +1772,10 @@ def reroll_all(engine, prev_result: dict) -> dict:
     engine.store.retract_from_turn(0)
 
     pitch = prev_result["_state"]["pitch"]
-    return bootstrap_world(engine, pitch, attempt=new_attempt)
+    return bootstrap_world(engine, pitch, attempt=new_attempt, progress=progress)
 
 
-def reroll_step(engine, prev_result: dict, step: str) -> dict:
+def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
     """Retract from step's boundary and re-run from that step to end.
 
     Only leaf steps are supported: 'factions', 'npcs', 'threads'.
@@ -1592,6 +1797,12 @@ def reroll_step(engine, prev_result: dict, step: str) -> dict:
     regions_summary = state["regions_summary"]
     local_map = state["local_map"]
     protagonist = state["protagonist"]
+    protagonist_authored = state.get("protagonist_authored", {
+        "name": "无名旅者",
+        "origin": "来历不明的旅人，只知道自己踏上了这条路。",
+        "goal": "找到属于自己的答案",
+        "objective": "在起始小镇打听线索，寻找下一步的方向",
+    })
     pitch = state["pitch"]
     campaign_seed = engine.campaign_seed
     store = engine.store
@@ -1650,8 +1861,10 @@ def reroll_step(engine, prev_result: dict, step: str) -> dict:
     # Re-run opening
     world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
     first_venue = local_map["venues"][0]
+    first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
     opening_evs, narration = gen_opening(
-        provider, frame, world_summary, scene_loc=first_venue
+        provider, frame, world_summary,
+        scene_loc=first_venue, scene_loc_name=first_venue_name,
     )
     new_boundaries["opening"] = store.append(opening_evs[0])
     for ev in opening_evs[1:]:
@@ -1678,10 +1891,15 @@ def reroll_step(engine, prev_result: dict, step: str) -> dict:
         "n_npcs": n_npcs_actual,
         "n_lore": n_lore,
         "narration_excerpt": narration[:120] if narration else "",
+        "protagonist_name": protagonist_authored["name"],
+        "protagonist_origin": protagonist_authored["origin"],
+        "protagonist_goal": protagonist_authored["goal"],
+        "objective": protagonist_authored["objective"],
     }
 
     new_state["attempts"] = new_attempts
     new_state["pitch"] = pitch
+    new_state["protagonist_authored"] = protagonist_authored
 
     return {
         "summary": summary,

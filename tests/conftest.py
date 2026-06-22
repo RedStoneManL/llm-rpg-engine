@@ -8,7 +8,9 @@ def _hermetic_rpg_env(monkeypatch):
     """Tests must not depend on ambient RPG_* env vars (RPG_EMBEDDER would
     silently turn on the semantic recall path; RPG_DEBUG would change log
     levels). Clear them; tests that need them set do so explicitly."""
-    for var in ("RPG_EMBEDDER", "RPG_DEBUG", "RPG_LOG_LEVEL", "RPG_HOME"):
+    for var in ("RPG_EMBEDDER", "RPG_DEBUG", "RPG_LOG_LEVEL", "RPG_HOME",
+                "RPG_DEBUG_TRACE", "RPG_DEBUG_RUN",
+                "RPG_NARRATION_VERBOSITY", "RPG_MAX_TOOL_ROUNDS"):
         monkeypatch.delenv(var, raising=False)
     # The shared "rpg" logger is process-global; engine.log.configure_logging()
     # sets propagate=False (+ adds a StreamHandler), which leaks across tests and
@@ -23,6 +25,9 @@ def _hermetic_rpg_env(monkeypatch):
     rpg.setLevel(saved[0])
     rpg.propagate = saved[1]
     rpg.handlers[:] = saved[2]
+    # Reset process-global settings to defaults so they don't leak across tests.
+    from engine import settings as _s
+    _s.reset_from_env()
 
 
 @pytest.fixture

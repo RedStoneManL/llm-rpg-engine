@@ -460,7 +460,56 @@ def test_player_input_event_recorded(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Test 5: noop tracer — all additions produce zero overhead (no file written)
+# Test 5: density span appears during a turn (Fix 2 — wrap density in span)
+# ---------------------------------------------------------------------------
+
+def test_density_span_appears(tmp_path, monkeypatch):
+    """run_turn emits a 'density' span for the density backstage hook every turn.
+
+    The span wraps the entire density block (including the registry guard), so
+    it is emitted regardless of whether density actually generates new events.
+    This test asserts the span appears when a real turn runs with a full engine
+    (which registers LoreSystem and therefore owns lore_seeded).
+    """
+    trace_file = str(tmp_path / "t.jsonl")
+    monkeypatch.setenv("RPG_DEBUG_TRACE", trace_file)
+    obs._DEBUG_TRACER = None
+
+    from loop.turn import run_turn, REQUIRED_SECTIONS
+    from loop.strategy import AuthorStrategy
+
+    engine = _make_turn_engine(tmp_path)
+
+    from app.play import _build_scene
+    scene = _build_scene(engine)
+
+    run_turn(
+        engine.registry, engine.store, engine.world, scene,
+        "我环顾四周",
+        strategy=AuthorStrategy(),
+        provider=engine.provider,
+        max_repairs=3,
+        required_sections=REQUIRED_SECTIONS,
+    )
+
+    ps = _paths(trace_file)
+    assert any("density" in p for p in ps), (
+        f"Expected 'density' span in paths after run_turn. "
+        f"Got paths: {[p for p in ps if p][:30]}"
+    )
+
+    # Also verify the span record has the correct structure
+    recs = _records(trace_file)
+    density_recs = [r for r in recs if r.get("name") == "density"]
+    assert density_recs, "Expected at least one density span record in trace"
+    # Verify it is a span_start/span_end pair (DebugTracer emits both)
+    density_types = {r["type"] for r in density_recs}
+    assert "span_start" in density_types, \
+        f"Expected density span_start, got types: {density_types}"
+
+
+# ---------------------------------------------------------------------------
+# Test 6: noop tracer — all additions produce zero overhead (no file written)
 # ---------------------------------------------------------------------------
 
 def test_noop_tracer_no_file(tmp_path, monkeypatch):

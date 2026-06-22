@@ -326,8 +326,11 @@ def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
                     except Exception:
                         entity = None
                     if entity is not None and entity.etype == "Person":
+                        # Self-knowledge rule: pov ALWAYS knows recall hits about itself.
+                        if eid == pov_id:
+                            pass  # never drop a recall hit about the pov itself
                         # Co-presence makes the NPC visible — allow
-                        if eid not in present:
+                        elif eid not in present:
                             # Check if pov knows any facet of this NPC
                             sketch_known = knows(graph, pov_id, f"{eid}.sketch", day)
                             goal_known = knows(graph, pov_id, f"{eid}.goal", day)
@@ -406,6 +409,27 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
 
         results = []
         for cid in matches:
+            # Self-knowledge rule: an agent ALWAYS knows itself.
+            # When pov_id == cid, bypass the knows() gate entirely and return the
+            # entity's own facets at their real (graph) values.  The only exclusions
+            # are: the always-gated 'hidden' predicate (an unknown-even-to-self secret
+            # stays hidden) and the internal-system prefixes (trust:/knows:/rank:/group:).
+            if cid == pov_id:
+                record: dict[str, Any] = {"id": cid}
+                for fact in graph.facts:
+                    if fact.subject != cid:
+                        continue
+                    if not fact.valid_at(day):
+                        continue
+                    pred = fact.predicate
+                    if pred in _ALWAYS_GATED_CHARACTER_PREDICATES:
+                        continue
+                    if any(pred.startswith(pfx) for pfx in _CHARACTER_INTERNAL_PREFIXES):
+                        continue
+                    record[pred] = fact.value
+                results.append(record)
+                continue
+
             co_present = cid in present
             sketch_believed = knows(graph, pov_id, f"{cid}.sketch", day)
             goal_believed = knows(graph, pov_id, f"{cid}.goal", day)
@@ -417,7 +441,7 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
                 continue
 
             # Build the character record with only known facets
-            record: dict[str, Any] = {"id": cid}
+            record = {"id": cid}
             if co_present:
                 # Co-presence makes existence public — note it
                 record["co_present"] = True

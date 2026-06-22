@@ -4,7 +4,7 @@ import tempfile
 from collections import Counter
 
 from engine.oracle import Oracle, load_table, scene_seed
-from loop.bootstrap import _draw_distinct, gen_frame, gen_regions, gen_local_map, gen_factions, gen_npcs, gen_threads, gen_opening, _build_world_summary
+from loop.bootstrap import _draw_distinct, gen_frame, gen_regions, gen_local_map, gen_protagonist, gen_factions, gen_npcs, gen_threads, gen_opening, _build_world_summary
 from loop.lore import _REQUIRED
 
 
@@ -1282,7 +1282,11 @@ def test_gen_opening_provider_exception_fallback():
 
 
 def test_build_world_summary_uses_sketches_and_abouts():
-    """_build_world_summary must embed NPC sketches and thread abouts, not entity ids."""
+    """_build_world_summary must embed NPC sketches and thread abouts, not entity ids.
+
+    Updated for fix #10: local_map now carries venue_names; summary must use venue NAMES
+    (not raw ids like venue_0/venue_1) for the 场所 line.
+    """
     frame = {
         "world_name": "测试世界",
         "tone": "悬疑",
@@ -1301,6 +1305,8 @@ def test_build_world_summary_uses_sketches_and_abouts():
     local_map = {
         "start_town": "town_0",
         "venues": ["venue_0", "venue_1"],
+        # Fix #10: venue_names now carried in local_map summary
+        "venue_names": {"venue_0": "老醉酒馆", "venue_1": "铁铺"},
         "l2": [{"id": "town_0", "kind": "settlement", "name": "起始镇"}],
     }
     npcs_summary = {
@@ -1328,6 +1334,11 @@ def test_build_world_summary_uses_sketches_and_abouts():
     assert "失踪商队的下落" in summary, "Thread about 1 missing from world summary"
     assert "thread_0" not in summary, "Entity id thread_0 must not appear in world summary"
     assert "thread_1" not in summary, "Entity id thread_1 must not appear in world summary"
+    # Fix #10: venue NAMES must appear; raw ids must NOT
+    assert "老醉酒馆" in summary, "Venue name '老醉酒馆' missing from world summary"
+    assert "铁铺" in summary, "Venue name '铁铺' missing from world summary"
+    assert "venue_0" not in summary, "Venue id 'venue_0' must not appear in world summary"
+    assert "venue_1" not in summary, "Venue id 'venue_1' must not appear in world summary"
 
 
 # ---------------------------------------------------------------------------
@@ -1353,17 +1364,18 @@ _T9_N_P = 1         # protagonist threads
 
 
 def _make_t9_scripted_provider(attempt=0):
-    """Build a ScriptedProvider with canned replies for all 8 LLM calls in bootstrap_world.
+    """Build a ScriptedProvider with canned replies for all 9 LLM calls in bootstrap_world.
 
     Steps:
-        1. gen_frame        → 1 call  (JSON world_name + central_conflict)
-        2. gen_regions      → 1 call  (JSON regions array, n_regions entries)
-        3. gen_local_map    → 1 call  (JSON town + venues + neighbors)
-        4. gen_factions     → 1 call  (JSON factions array, n_factions entries)
-        5. gen_npcs         → 1 call  (JSON npcs array, n_npcs entries)
-        6. gen_threads (campaign)    → 1 call
-        7. gen_threads (protagonist) → 1 call
-        8. gen_opening      → 1 call  (plain prose)
+        1. gen_frame           → 1 call  (JSON world_name + central_conflict)
+        2. gen_regions         → 1 call  (JSON regions array, n_regions entries)
+        3. gen_local_map       → 1 call  (JSON town + venues + neighbors)
+        4. gen_protagonist     → 1 call  (JSON name + origin + goal + objective)
+        5. gen_factions        → 1 call  (JSON factions array, n_factions entries)
+        6. gen_npcs            → 1 call  (JSON npcs array, n_npcs entries)
+        7. gen_threads (campaign)    → 1 call
+        8. gen_threads (protagonist) → 1 call
+        9. gen_opening         → 1 call  (plain prose)
     """
     venues = [f"venue_{i}" for i in range(_T9_N_VENUES)]
 
@@ -1383,6 +1395,13 @@ def _make_t9_scripted_provider(attempt=0):
         "town": {"name": "起始镇", "seed": "古老的集镇"},
         "venues": [{"name": f"场所{i}", "seed": f"场所{i}描述"} for i in range(_T9_N_VENUES)],
         "neighbors": [{"name": "荒野", "seed": "危险地带"}],  # n_extra_l2=1
+    })
+
+    protagonist_reply = json.dumps({
+        "name": f"测试主角_{attempt}",
+        "origin": f"测试主角_{attempt}的身世背景，出身于一个普通家庭。",
+        "goal": f"测试主角_{attempt}的核心目标",
+        "objective": f"测试主角_{attempt}的当前任务",
     })
 
     factions_reply = json.dumps({
@@ -1433,6 +1452,7 @@ def _make_t9_scripted_provider(attempt=0):
         frame_reply,
         regions_reply,
         local_map_reply,
+        protagonist_reply,
         factions_reply,
         npcs_reply,
         campaign_threads_reply,
@@ -1467,11 +1487,18 @@ def test_bootstrap_world_has_internal_state(tmp_path):
     state = result.get("_state", {})
     for key in (
         "frame", "regions_summary", "local_map", "factions_summary",
-        "npcs_summary", "threads_summary", "protagonist", "pitch", "attempts",
+        "npcs_summary", "threads_summary", "protagonist", "protagonist_authored",
+        "pitch", "attempts",
     ):
         assert key in state, f"_state missing key: {key}"
     # attempts must be a dict so reroll_step can look up per-step counters
     assert isinstance(state["attempts"], dict), "_state['attempts'] must be a dict"
+    # protagonist_authored must have all four authored fields
+    pa = state["protagonist_authored"]
+    for field in ("name", "origin", "goal", "objective"):
+        assert field in pa and pa[field].strip(), (
+            f"protagonist_authored missing or empty field: {field}"
+        )
 
 
 def test_bootstrap_world_has_boundaries(tmp_path):
@@ -1835,3 +1862,262 @@ def test_bootstrap_world_protagonist_in_venue(tmp_path):
     assert last_loc.startswith("venue_"), (
         f"Protagonist placed at '{last_loc}', expected a venue_* from local_map"
     )
+
+
+# ---------------------------------------------------------------------------
+# Fix #6b: gen_protagonist tests
+# ---------------------------------------------------------------------------
+
+def _base_local_map_for_protagonist():
+    """Minimal local_map dict for gen_protagonist tests."""
+    return {
+        "start_town": "town_0",
+        "venues": ["venue_0", "venue_1"],
+        "l2": [{"id": "town_0", "kind": "settlement", "name": "起始镇"}],
+    }
+
+
+def test_gen_protagonist_returns_four_fields():
+    """gen_protagonist returns an authored dict with name/origin/goal/objective."""
+    from engine.oracle import Oracle, scene_seed
+    frame = _base_frame()
+    local_map = _base_local_map_for_protagonist()
+    reply = json.dumps({
+        "name": "沈云舟",
+        "origin": "出身江南小镇的落魄秀才，父亲死于一场离奇大火。",
+        "goal": "查明父亲死因，为家族翻案",
+        "objective": "前往碎石镇寻找据说见过那场大火的老掌柜",
+    })
+    p = ScriptedProvider([reply])
+    evs, authored = gen_protagonist(p, Oracle(42), frame, local_map)
+    assert authored["name"] == "沈云舟"
+    assert authored["origin"].strip()
+    assert authored["goal"].strip()
+    assert authored["objective"].strip()
+    assert evs == []  # gen_protagonist emits no events itself
+
+
+def test_gen_protagonist_stub_fallback_no_provider():
+    """With provider=None, stub values are non-empty and function never raises."""
+    from engine.oracle import Oracle
+    frame = _base_frame()
+    local_map = _base_local_map_for_protagonist()
+    evs, authored = gen_protagonist(None, Oracle(7), frame, local_map)
+    for field in ("name", "origin", "goal", "objective"):
+        assert isinstance(authored.get(field), str), f"stub field {field!r} not a str"
+        assert authored[field].strip(), f"stub field {field!r} is empty"
+    assert evs == []
+
+
+def test_gen_protagonist_never_raises_on_bad_llm():
+    """gen_protagonist does not raise even when the LLM returns garbage."""
+    from engine.oracle import Oracle
+
+    class GarbageProvider:
+        def supports_tools(self): return False
+        def complete_messages(self, messages): return "{not valid json!!!"
+        def complete(self, system, user, **kw): return "{not valid json!!!"
+
+    frame = _base_frame()
+    local_map = _base_local_map_for_protagonist()
+    evs, authored = gen_protagonist(GarbageProvider(), Oracle(1), frame, local_map)
+    for field in ("name", "origin", "goal", "objective"):
+        assert authored[field].strip(), f"fallback field {field!r} is empty after bad LLM"
+
+
+def test_gen_protagonist_stub_fallback_is_deterministic():
+    """Stub fallback with same seed produces identical output across two calls."""
+    from engine.oracle import Oracle
+    frame = _base_frame()
+    local_map = _base_local_map_for_protagonist()
+    _, a1 = gen_protagonist(None, Oracle(55), frame, local_map)
+    _, a2 = gen_protagonist(None, Oracle(55), frame, local_map)
+    assert a1 == a2
+
+
+# ---------------------------------------------------------------------------
+# Fix #6b: authored protagonist integration tests (bootstrap_world)
+# ---------------------------------------------------------------------------
+
+def test_bootstrap_world_protagonist_character_created_authored(tmp_path):
+    """character_created for protagonist uses AUTHORED sketch (origin) and goal, not generic stubs."""
+    from loop.bootstrap import bootstrap_world
+    from app.engine import _PROTAGONIST_ID
+    engine = _make_t9_engine(tmp_path)
+    result = bootstrap_world(engine, "东方武侠")
+    events = list(engine.store.iter_events())
+    char_ev = next(
+        (e for e in events
+         if e["type"] == "character_created" and e["deltas"]["id"] == _PROTAGONIST_ID),
+        None
+    )
+    assert char_ev is not None, "No character_created for protagonist"
+    # Authored values must NOT be the generic placeholder strings
+    assert char_ev["deltas"]["sketch"] != "一位踏上旅途的冒险者", (
+        "sketch is still generic stub — authored origin not used"
+    )
+    assert char_ev["deltas"]["goal"] != "探索这个世界", (
+        "goal is still generic stub — authored goal not used"
+    )
+    # Must match what the scripted provider returned
+    assert char_ev["deltas"]["sketch"] == "测试主角_0的身世背景，出身于一个普通家庭。"
+    assert char_ev["deltas"]["goal"] == "测试主角_0的核心目标"
+
+
+def test_bootstrap_world_protagonist_name_fact_asserted(tmp_path):
+    """bootstrap_world emits a fact_asserted for protagonist name with secrecy='public'."""
+    from loop.bootstrap import bootstrap_world
+    from app.engine import _PROTAGONIST_ID
+    engine = _make_t9_engine(tmp_path)
+    bootstrap_world(engine, "东方武侠")
+    events = list(engine.store.iter_events())
+    name_facts = [
+        e for e in events
+        if e["type"] == "fact_asserted"
+        and e["deltas"]["subject"] == _PROTAGONIST_ID
+        and e["deltas"]["predicate"] == "真名"
+        and e["deltas"].get("secrecy") == "public"
+    ]
+    assert len(name_facts) == 1, f"Expected 1 protagonist 真名 fact, got {len(name_facts)}"
+    assert name_facts[0]["deltas"]["value"] == "测试主角_0"
+
+
+def test_bootstrap_world_protagonist_objective_fact_asserted(tmp_path):
+    """bootstrap_world emits a fact_asserted for protagonist 目标 with secrecy='public'."""
+    from loop.bootstrap import bootstrap_world
+    from app.engine import _PROTAGONIST_ID
+    engine = _make_t9_engine(tmp_path)
+    bootstrap_world(engine, "东方武侠")
+    events = list(engine.store.iter_events())
+    obj_facts = [
+        e for e in events
+        if e["type"] == "fact_asserted"
+        and e["deltas"]["subject"] == _PROTAGONIST_ID
+        and e["deltas"]["predicate"] == "目标"
+        and e["deltas"].get("secrecy") == "public"
+    ]
+    assert len(obj_facts) == 1, f"Expected 1 protagonist 目标 fact, got {len(obj_facts)}"
+    assert obj_facts[0]["deltas"]["value"] == "测试主角_0的当前任务"
+
+
+def test_bootstrap_world_summary_has_protagonist_fields(tmp_path):
+    """bootstrap_world summary contains protagonist_name/origin/goal/objective."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+    result = bootstrap_world(engine, "东方武侠")
+    summary = result["summary"]
+    for key in ("protagonist_name", "protagonist_origin", "protagonist_goal", "objective"):
+        assert key in summary, f"summary missing key: {key}"
+        assert isinstance(summary[key], str) and summary[key].strip(), (
+            f"summary[{key!r}] is empty"
+        )
+    assert summary["protagonist_name"] == "测试主角_0"
+    assert summary["objective"] == "测试主角_0的当前任务"
+
+
+def test_bootstrap_world_reroll_step_preserves_protagonist_authored(tmp_path):
+    """reroll_step preserves protagonist_authored from prev_result in new result._state."""
+    from loop.bootstrap import bootstrap_world, reroll_step
+    from app.engine import build_engine
+    campaign_dir = tmp_path / _T9_CAMPAIGN_NAME
+
+    engine = build_engine(campaign_dir, provider=_make_t9_scripted_provider(attempt=0))
+    result1 = bootstrap_world(engine, "东方武侠")
+
+    venues = [f"venue_{i}" for i in range(_T9_N_VENUES)]
+    campaign_threads = json.dumps({
+        "lines": [
+            {
+                "about": f"新暗线{i}", "description": f"新描述{i}",
+                "trigger": f"新触发{i}", "secret": f"新真相{i}",
+                "l3_anchor": venues[i % len(venues)],
+                "stages": [{"hint": f"新阶段{i}"}],
+            }
+            for i in range(_T9_N_THREADS)
+        ]
+    })
+    prot_threads = json.dumps({
+        "lines": [
+            {
+                "about": f"新主角线{i}", "description": f"新主角描述{i}",
+                "trigger": f"新主角触发{i}", "secret": f"新主角真相{i}",
+                "l3_anchor": venues[0],
+                "stages": [{"hint": f"新主角阶段{i}"}],
+            }
+            for i in range(_T9_N_P)
+        ]
+    })
+    engine.provider = ScriptedProvider([campaign_threads, prot_threads, "新开场。"])
+    result2 = reroll_step(engine, result1, "threads")
+
+    # protagonist_authored must persist in new state
+    pa = result2["_state"].get("protagonist_authored")
+    assert pa is not None, "protagonist_authored missing from reroll_step result._state"
+    for field in ("name", "origin", "goal", "objective"):
+        assert pa[field].strip(), f"protagonist_authored[{field!r}] empty after reroll_step"
+    # summary must also carry protagonist fields
+    summary = result2["summary"]
+    for key in ("protagonist_name", "protagonist_origin", "protagonist_goal", "objective"):
+        assert key in summary and summary[key].strip(), f"summary missing {key!r} after reroll_step"
+
+
+# ---------------------------------------------------------------------------
+# Fix #1: progress callback tests
+# ---------------------------------------------------------------------------
+
+def test_bootstrap_world_progress_called_once_per_step(tmp_path):
+    """progress callback is invoked exactly 8 times (one per generation step)."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+    calls = []
+    bootstrap_world(engine, "东方武侠", progress=lambda idx, total, label: calls.append((idx, total, label)))
+    assert len(calls) == 8, f"Expected 8 progress calls, got {len(calls)}: {calls}"
+
+
+def test_bootstrap_world_progress_increasing_indices(tmp_path):
+    """progress indices increase monotonically from 1 to total."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+    calls = []
+    bootstrap_world(engine, "东方武侠", progress=lambda idx, total, label: calls.append((idx, total, label)))
+    indices = [c[0] for c in calls]
+    assert indices == sorted(indices), f"Progress indices not sorted: {indices}"
+    assert indices[0] >= 1, "First index must be >= 1"
+    total = calls[0][1]
+    assert total > 0, "total must be > 0"
+    for idx, t, label in calls:
+        assert t == total, f"total changed mid-bootstrap: {t} != {total}"
+
+
+def test_bootstrap_world_progress_labels_non_empty(tmp_path):
+    """All progress labels are non-empty strings."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+    calls = []
+    bootstrap_world(engine, "东方武侠", progress=lambda idx, total, label: calls.append((idx, total, label)))
+    for idx, total, label in calls:
+        assert isinstance(label, str) and label.strip(), (
+            f"progress label empty at index {idx}"
+        )
+
+
+def test_bootstrap_world_progress_none_is_clean_noop(tmp_path):
+    """Default progress=None runs without error (existing caller contract preserved)."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+    # Must not raise; result must be valid
+    result = bootstrap_world(engine, "东方武侠")
+    assert "summary" in result
+
+
+def test_bootstrap_world_progress_exception_does_not_abort(tmp_path):
+    """A progress callback that raises must not abort genesis."""
+    from loop.bootstrap import bootstrap_world
+    engine = _make_t9_engine(tmp_path)
+
+    def bad_progress(idx, total, label):
+        raise RuntimeError("simulated progress failure")
+
+    result = bootstrap_world(engine, "东方武侠", progress=bad_progress)
+    assert "summary" in result
+    assert result["summary"].get("world_name"), "genesis aborted due to bad progress callback"

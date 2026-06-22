@@ -4,7 +4,7 @@
 
 The core idea: give the LLM **full narrative autonomy**, but frame it with a **deterministic harness** — an append-only event log, seeded hidden dice, fog-of-war that the model physically cannot violate, and a strict commit/repair gate. The model writes the story; the engine guarantees the world stays consistent, replayable, and rewindable.
 
-> Status: **v0.1** — a complete playable loop (`open a world → play turns → the world reacts → endgame → rewind`), ~1345 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
+> Status: **v0.1** — a complete playable loop (`open a world → play turns → the world reacts → endgame → rewind`), ~1538 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
 
 ---
 
@@ -108,7 +108,8 @@ Everything is deterministic given the campaign seed + event log, so `/rewind` re
 
 - **Determinism / rewind** — all dice are `Oracle(scene_seed(campaign_seed, key, salt))`; no wall-clock or RNG in the replay path. Rewind = retract events + re-project.
 - **Knowledge tiers** — three lenses over the same graph: **POV** (a specific agent's `knows`), **public/ambient** (what a random passerby could relay — `secrecy=="public"` only, structurally barred from secrets), and **DM** (full ground truth, authoring-only).
-- **Observability (WIP)** — set `RPG_DEBUG_TRACE=/path/trace.jsonl` to record a structured, langgraph-style trajectory (every LLM call's prompt/output/usage, every hook span, every event) for debugging. An `rpg-trace` viewer + `--debug` flag are in progress.
+- **Observability** — run with `--debug` (or set `RPG_DEBUG_TRACE=/path/trace.jsonl`) to record a structured, langgraph-style trajectory (every LLM call's prompt/output/usage, every hook span, every event) to JSONL. Inspect with the agent-friendly `python -m app.trace <file>` viewer: a compact index by default, `--show SEQ` for one node's full prompt+output, plus `--turn/--phase/--grep/--tree/--stats`. See [`docs/debug-mode.md`](docs/debug-mode.md).
+- **Tunable narration** — `--verbosity concise|medium|rich` (or `/verbosity` mid-session) dials how terse vs lavish the DM is. The opening generates a full intro: an authored protagonist (name / 身世 / goal), the current locale (region + town + venues), the world backdrop, and a concrete starting objective.
 
 ---
 
@@ -127,7 +128,7 @@ context/    context assembly
 engine/     oracle, embeddings, logging
 data/       oracle tables (default + genesis dimension tables)
 docs/       design specs & implementation plans (the architecture, decision-by-decision)
-tests/      ~1345 offline tests (deterministic) + live-LLM probes
+tests/      ~1538 offline tests (deterministic) + live-LLM probes
 ```
 
 The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document the design and the decisions behind each subsystem — start there to understand *why* it's built this way.
@@ -137,7 +138,7 @@ The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document
 ## Testing
 
 ```bash
-PYTHONPATH=. python3 -m pytest -q          # ~1345 offline tests, deterministic, no network
+PYTHONPATH=. python3 -m pytest -q          # ~1538 offline tests, deterministic, no network
 ```
 
 Offline tests use fake/scripted providers so the whole engine is exercised without an API key. Live behavior (does a real reasoning model call the tools, keep secrets, generate a coherent world?) is validated by probe scripts under `docs/`.
@@ -146,7 +147,7 @@ Offline tests use fake/scripted providers so the whole engine is exercised witho
 
 ## Status & roadmap
 
-**v0.1** — complete core loop, validated offline + live. Next: finish the debug-trace viewer, optional alternate authoring strategy, world-impact "push" surfacing for the director, and tuning the living-world numbers through real play.
+**v0.1** — complete core loop + structured debug tracing + tunable narration, validated offline (~1538 tests) + live. Next: SillyTavern world-book / character-card import + a player-defined session-zero (define any genesis part yourself, the model fills the rest); optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
 
 ## License
 

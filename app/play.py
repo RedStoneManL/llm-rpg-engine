@@ -18,7 +18,138 @@ list for inputs and a collector for out= without any async/generator magic.
 from __future__ import annotations
 
 import json
+import re
+import sys
+import threading
+import time
 from typing import Callable, Iterable, Any
+
+# ---------------------------------------------------------------------------
+# #4 — Loading indicator while a turn is generated
+# ---------------------------------------------------------------------------
+
+_SPINNER_FRAMES = ["⏳ DM 落笔中   ", "⏳ DM 落笔中.  ", "⏳ DM 落笔中.. ", "⏳ DM 落笔中..."]
+_SPINNER_INTERVAL = 0.35  # seconds per frame
+
+
+class _Spinner:
+    """Content-free "engine is working" indicator.
+
+    TTY path  — background thread writes animated dots directly to sys.stdout
+                using \\r to overwrite the same line.  Cleared on stop().
+    Non-TTY   — prints a single plain line via the injected ``out`` callable
+                (no thread, deterministic for tests/pipes).
+    """
+
+    def __init__(self, out: Callable, *, _force_tty: bool | None = None):
+        self._out = out
+        self._is_tty = (
+            sys.stdout.isatty() if _force_tty is None else _force_tty
+        )
+        self._stop_event: threading.Event | None = None
+        self._thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        if self._is_tty:
+            self._stop_event = threading.Event()
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+        else:
+            # Non-TTY: single plain line through the injected output channel.
+            self._out("（DM 落笔中…）")
+
+    def stop(self) -> None:
+        if self._is_tty and self._stop_event is not None:
+            self._stop_event.set()
+            if self._thread is not None:
+                self._thread.join(timeout=2.0)
+            # Clear the spinner line so the DM narration starts clean.
+            sys.stdout.write("\r" + " " * max(len(f) for f in _SPINNER_FRAMES) + "\r")
+            sys.stdout.flush()
+
+    def _run(self) -> None:
+        idx = 0
+        while not self._stop_event.is_set():
+            frame = _SPINNER_FRAMES[idx % len(_SPINNER_FRAMES)]
+            sys.stdout.write("\r" + frame)
+            sys.stdout.flush()
+            idx += 1
+            self._stop_event.wait(timeout=_SPINNER_INTERVAL)
+
+
+# ---------------------------------------------------------------------------
+# #5 — Distinguish player vs DM visually
+# ---------------------------------------------------------------------------
+
+_ANSI_DIM = "\x1b[2m"
+_ANSI_RESET = "\x1b[0m"
+# DM header separator
+_DM_SEPARATOR_TTY = "─" * 40
+_DM_SEPARATOR_PLAIN = "-" * 40
+
+
+def _echo_player(text: str, out: Callable, *, _force_tty: bool | None = None) -> None:
+    """Echo the sanitised player input with a '▶ 你：' prefix.
+
+    TTY  — dim ANSI color so it recedes behind the DM prose.
+    Non-TTY — plain ASCII prefix, no color codes.
+    """
+    is_tty = sys.stdout.isatty() if _force_tty is None else _force_tty
+    if is_tty:
+        line = f"{_ANSI_DIM}▶ 你：{text}{_ANSI_RESET}"
+    else:
+        line = f"> 你：{text}"
+    out(line)
+
+
+def _print_dm_narration(narration: str, out: Callable, *, _force_tty: bool | None = None) -> None:
+    """Print the DM narration under a clear visual marker.
+
+    TTY  — uses a Unicode separator rule + 【DM】 header.
+    Non-TTY — uses plain ASCII dashes + [DM] header (safe for pipes/tests).
+    """
+    is_tty = sys.stdout.isatty() if _force_tty is None else _force_tty
+    if is_tty:
+        out(_DM_SEPARATOR_TTY)
+        out("【DM】")
+    else:
+        out(_DM_SEPARATOR_PLAIN)
+        out("[DM]")
+    out(narration)
+
+# ---------------------------------------------------------------------------
+# Input sanitizer — strips terminal control/ANSI noise from raw stdin lines.
+# ---------------------------------------------------------------------------
+
+# CSI sequences: ESC [ ... final-byte  (params: 0-9 ; ? and intermediates: space-/)
+_RE_CSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+# Other ESC sequences: ESC <any non-[> char  (SS2/SS3/OSC/DCS/etc.)
+_RE_ESC_OTHER = re.compile(r"\x1b[^\x1b]?")
+# Remaining stray ESC bytes (bare ESC with nothing after)
+_RE_ESC_BARE = re.compile(r"\x1b")
+# C0 control characters EXCEPT HT (0x09 / \t): 0x00-0x08, 0x0a-0x1f
+# (0x0a = \n is already stripped by rstrip; keep \t for tab-completion pastes)
+_RE_C0 = re.compile(r"[\x00-\x08\x0a-\x1f]")
+
+
+def _sanitize_input(line: str) -> str:
+    """Strip ANSI/CSI escape sequences and stray C0 control characters from *line*.
+
+    Returns the cleaned string with leading/trailing whitespace stripped.
+    Printable ASCII, CJK characters, and tab (\t) are preserved.
+
+    Examples:
+        _sanitize_input("\x1b[B\x1b[A\x1b[B")  -> ""
+        _sanitize_input("\x1b[B赶紧进去")        -> "赶紧进去"
+        _sanitize_input("我环顾四周")            -> "我环顾四周"
+        _sanitize_input("\x02[")               -> ""   (Ctrl-b tmux prefix)
+    """
+    s = _RE_CSI.sub("", line)
+    s = _RE_ESC_OTHER.sub("", s)
+    s = _RE_ESC_BARE.sub("", s)
+    s = _RE_C0.sub("", s)
+    return s.strip()
+
 
 from kernel.observability import get_tracer
 from kernel.recall import recall as kernel_recall
@@ -32,14 +163,15 @@ log = get_logger("app.play")
 
 _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
-  /quit           — 退出游戏
-  /recall <关键词>  — 在记忆中搜索
-  /compare on|off — 开/关 甲丙策略对比模式
-  /rewind <N>     — 回退到第 N 回合之前（撤回 N 及之后的所有事件）
-  /undo           — 撤销最后一回合（别名：/oops, //veto）
-  //retcon <N>    — 同 /rewind <N>（OOC 别名）
-  //veto          — 同 /undo（OOC 别名）
-  /help           — 显示此帮助
+  /quit                — 退出游戏
+  /recall <关键词>       — 在记忆中搜索
+  /compare on|off      — 开/关 甲丙策略对比模式
+  /rewind <N>          — 回退到第 N 回合之前（撤回 N 及之后的所有事件）
+  /undo                — 撤销最后一回合（别名：/oops, //veto）
+  //retcon <N>         — 同 /rewind <N>（OOC 别名）
+  //veto               — 同 /undo（OOC 别名）
+  /verbosity [级别]    — 查询或设置叙事详细程度（concise|medium|rich）
+  /help                — 显示此帮助
 """
 
 
@@ -178,6 +310,20 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool
         out(f"[倒带] 已撤销第 {t} 回合，撤回 {result['retracted']} 个事件。")
         return False
 
+    elif verb == "verbosity":
+        from engine import settings as _eng_settings
+        if not arg:
+            # No argument — report current level
+            out(f"[verbosity] 当前叙事详细程度：{_eng_settings.get_verbosity()}")
+        else:
+            level = arg.strip().lower()
+            ok = _eng_settings.set_verbosity(level)
+            if ok:
+                out(f"[verbosity] 叙事详细程度已设为：{level}")
+            else:
+                out(f"[verbosity] 无效级别 '{level}' — 可用：concise | medium | rich")
+        return False
+
     elif verb == "help":
         out(_HELP_TEXT)
         return False
@@ -245,6 +391,15 @@ def play_loop(
         if not line:
             continue
 
+        # Strip ANSI/CSI escape sequences and stray C0 control characters.
+        # Pure terminal-noise lines (arrows, tmux prefix, etc.) become empty → skip.
+        # Mixed lines (e.g. "\x1b[B赶紧进去") → salvaged text runs as a turn.
+        cleaned = _sanitize_input(line)
+        if not cleaned:
+            log.debug("play_loop: skipping pure-noise input %r", line)
+            continue
+        line = cleaned
+
         if line.startswith("/"):
             stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
             if stop:
@@ -258,23 +413,32 @@ def play_loop(
 
         get_tracer().event("player_input", text=player_input, turn=turn_no)
 
+        # #5 — echo the player's sanitised input with a visual marker
+        _echo_player(player_input, out)
+
         try:
             if compare_mode[0]:
                 # run_compare: produce 甲+丙 on the same snapshot; show both, apply 甲.
-                results = run_compare(
-                    engine.registry,
-                    engine.world,
-                    scene,
-                    player_input,
-                    provider=engine.provider,
-                    embedder=engine.embedder,
-                    max_repairs=max_repairs,
-                    required_sections=required_sections,
-                )
+                spinner = _Spinner(out)
+                spinner.start()
+                try:
+                    results = run_compare(
+                        engine.registry,
+                        engine.world,
+                        scene,
+                        player_input,
+                        provider=engine.provider,
+                        embedder=engine.embedder,
+                        max_repairs=max_repairs,
+                        required_sections=required_sections,
+                    )
+                finally:
+                    spinner.stop()
                 out("[对比模式]")
                 rec = {"turn": turn_no, "input": player_input, "mode": "compare"}
                 for label, (commit, attempts, dropped) in results.items():
-                    out(f"[{label}策略] {commit.narration}")
+                    # #5 — frame each candidate's narration under its own DM header
+                    _print_dm_narration(f"[{label}策略] {commit.narration}", out)
                     if dropped:
                         out(f"  (丢弃段落: {dropped})")
                     rec[label] = _candidate_record(commit, attempts, dropped)
@@ -291,24 +455,30 @@ def play_loop(
                 )
                 engine.world = new_world
             else:
-                result = run_turn(
-                    engine.registry,
-                    engine.store,
-                    engine.world,
-                    scene,
-                    player_input,
-                    strategy=strategy,
-                    provider=engine.provider,
-                    embedder=engine.embedder,
-                    max_repairs=max_repairs,
-                    required_sections=required_sections,
-                    cascade_provider=engine.cascade_provider,
-                    catchup_provider=engine.cascade_provider,
-                    prev_scene=prev_scene,
-                )
+                spinner = _Spinner(out)
+                spinner.start()
+                try:
+                    result = run_turn(
+                        engine.registry,
+                        engine.store,
+                        engine.world,
+                        scene,
+                        player_input,
+                        strategy=strategy,
+                        provider=engine.provider,
+                        embedder=engine.embedder,
+                        max_repairs=max_repairs,
+                        required_sections=required_sections,
+                        cascade_provider=engine.cascade_provider,
+                        catchup_provider=engine.cascade_provider,
+                        prev_scene=prev_scene,
+                    )
+                finally:
+                    spinner.stop()
                 engine.world = result.world
                 prev_scene = scene  # update for next turn's enter-scope detection
-                out(result.narration)
+                # #5 — frame the DM narration under a clear marker
+                _print_dm_narration(result.narration, out)
                 if result.dropped_sections:
                     out(f"[提示：{len(result.dropped_sections)}个段落因验证失败已丢弃]")
                 _write_transcript(transcript_path, {

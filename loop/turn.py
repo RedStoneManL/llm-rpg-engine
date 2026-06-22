@@ -146,20 +146,55 @@ def produce_turn(
               commit.narration[:40], list(commit.sections))
 
     # --------------------------------------------------------------------------
-    # Step 2: Validate + repair loop
+    # Step 2: Validate + modular repair loop
+    #
+    # When validation fails, re-emit ONLY the failing sections (not narration,
+    # not passing sections).  This is far cheaper than a full re-author (the
+    # original narration prose is already valid and authoritative — regenerating
+    # it on every repair turn was the dominant cost measured at ~59s/repair).
+    #
+    # Flow per repair attempt:
+    #   a. Compute failing section names from the error list.
+    #   b. Ask strategy.repair_sections() to continue the existing conversation
+    #      and return ONLY a {section: decl} dict for those sections.
+    #   c. Merge the repaired sections into the current commit via dict.update();
+    #      narration + passing sections stay untouched.
+    #   d. Re-validate the merged commit.
+    #
+    # Fallback: if the strategy hasn't implemented repair_sections (raises
+    # NotImplementedError), we fall back to the legacy whole-commit re-author
+    # so third-party strategies still work.
     # --------------------------------------------------------------------------
     attempts = 0
     errors = validate_commit(registry, commit, world, required_sections=required_sections)
 
     while errors and attempts < max_repairs:
-        repair_text = build_repair_request(errors)
-        log.debug("produce_turn: repair attempt=%d errors=%d", attempts + 1, len(errors))
+        failing = {e.section for e in errors}
+        log.debug("produce_turn: repair attempt=%d errors=%d failing=%s",
+                  attempts + 1, len(errors), sorted(failing))
         with get_tracer().span("repair", attempt=attempts + 1):
-            commit = strategy.produce(
-                registry, world, scene, player_input,
-                provider=provider, embedder=embedder,
-                repair=repair_text,
-            )
+            try:
+                repaired = strategy.repair_sections(failing, errors, provider=provider)
+                # Merge repaired sections into the existing commit; narration + passing
+                # sections stay untouched.  Build a new TurnCommit (dataclass is frozen
+                # by convention — reconstruct rather than mutate in place).
+                from kernel.turncommit import TurnCommit as _TC
+                merged_sections = dict(commit.sections)
+                merged_sections.update(repaired)
+                commit = _TC(
+                    narration=commit.narration,
+                    sections=merged_sections,
+                    reasons=commit.reasons,
+                )
+            except NotImplementedError:
+                # Legacy fallback: full re-author (for strategies that don't
+                # implement repair_sections yet).
+                repair_text = build_repair_request(errors)
+                commit = strategy.produce(
+                    registry, world, scene, player_input,
+                    provider=provider, embedder=embedder,
+                    repair=repair_text,
+                )
         errors = validate_commit(registry, commit, world, required_sections=required_sections)
         attempts += 1
 
@@ -383,15 +418,16 @@ def run_turn(
         # Provider preference: cascade_provider (cheap backstage model) first;
         # fall back to main provider so generation works even without RPG_CASCADE_MODEL.
         try:
-            if registry.owner_of_event("lore_seeded") is not None:
-                dens_events = run_density(
-                    registry, store, new_world, protagonist,
-                    provider=(cascade_provider or provider),
-                    day=day, scene=scene_id, turn=turn_num_before,
-                )
-                if dens_events:
-                    new_world = project(registry, store.iter_events())
-                    log.debug("run_turn: density appended %d event(s)", len(dens_events))
+            with get_tracer().span("density", turn=turn_num_before):
+                if registry.owner_of_event("lore_seeded") is not None:
+                    dens_events = run_density(
+                        registry, store, new_world, protagonist,
+                        provider=(cascade_provider or provider),
+                        day=day, scene=scene_id, turn=turn_num_before,
+                    )
+                    if dens_events:
+                        new_world = project(registry, store.iter_events())
+                        log.debug("run_turn: density appended %d event(s)", len(dens_events))
         except Exception:
             log.exception("run_turn: run_density failed (non-fatal, backstage)")
 

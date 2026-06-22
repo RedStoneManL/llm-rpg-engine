@@ -16,6 +16,7 @@ Accepts optional inputs/out/provider params for testability (inputs defaults to 
 from __future__ import annotations
 
 import argparse
+import itertools
 import os
 import sys
 from typing import Callable, Iterable
@@ -23,6 +24,109 @@ from typing import Callable, Iterable
 from engine.log import get_logger, configure_logging
 
 log = get_logger("app.main")
+
+
+def _print_intro(result: dict, out: Callable, *, header: str = "[世界摘要]") -> None:
+    """Print the rich INTRO block from a bootstrap_world result dict.
+
+    Covers:
+      - 主角：name — origin；目标：goal
+      - 当前所在：start region name + start town name + venue ids
+      - 世界背景：world_name (tone) — central_conflict
+      - 当前目标：objective (starting quest)
+      - 开场：narration_excerpt
+      - Counts footer: regions / factions / NPC / lore
+
+    Args:
+        result: dict returned by bootstrap_world / reroll_all / reroll_step.
+        out:    Output callable (injected seam).
+        header: Section header prefix (default "[世界摘要]", overridable for reroll).
+    """
+    summary = result.get("summary", {})
+    state = result.get("_state", {})
+
+    # -----------------------------------------------------------------------
+    # Protagonist info
+    # -----------------------------------------------------------------------
+    prot_name = summary.get("protagonist_name", "?")
+    prot_origin = summary.get("protagonist_origin", "?")
+    prot_goal = summary.get("protagonist_goal", "?")
+    objective = summary.get("objective", "?")
+
+    # -----------------------------------------------------------------------
+    # Location info — L1 region + L2 town + L3 venue ids
+    # -----------------------------------------------------------------------
+    regions_summary = state.get("regions_summary", {})
+    start_region_id = regions_summary.get("start_region", "region_0")
+    region_name = "?"
+    for r in regions_summary.get("regions", []):
+        if r.get("id") == start_region_id:
+            region_name = r.get("name", "?")
+            break
+
+    local_map = state.get("local_map", {})
+    # l2 is a list; town_0 is the first entry
+    l2_list = local_map.get("l2", [])
+    town_name = "?"
+    for entry in l2_list:
+        if entry.get("id") == "town_0":
+            town_name = entry.get("name", "?")
+            break
+    venue_ids = local_map.get("venues", [])
+    # Resolve venue display names: prefer venue_names map, fall back to id
+    venue_names_map = local_map.get("venue_names", {})
+
+    # -----------------------------------------------------------------------
+    # World backdrop
+    # -----------------------------------------------------------------------
+    world_name = summary.get("world_name", "?")
+    tone = summary.get("tone", "?")
+    central_conflict = summary.get("central_conflict", "?")
+
+    # -----------------------------------------------------------------------
+    # Narration
+    # -----------------------------------------------------------------------
+    narration_excerpt = summary.get("narration_excerpt", "")
+
+    # -----------------------------------------------------------------------
+    # Counts
+    # -----------------------------------------------------------------------
+    n_regions = summary.get("n_regions", "?")
+    n_factions = summary.get("n_factions", "?")
+    n_npcs = summary.get("n_npcs", "?")
+    n_lore = summary.get("n_lore", "?")
+
+    # -----------------------------------------------------------------------
+    # Emit the block
+    # -----------------------------------------------------------------------
+    sep = "-" * 40
+    out(sep)
+    out(header)
+    out(sep)
+
+    # Protagonist
+    out(f"【主角】{prot_name} — {prot_origin}（身世）")
+    out(f"  长期目标：{prot_goal}")
+
+    # Location — show venue NAMES (not ids)
+    venue_display_names = [venue_names_map.get(vid, vid) for vid in venue_ids]
+    venues_str = "、".join(venue_display_names) if venue_display_names else "?"
+    out(f"【当前所在】{region_name} > {town_name}（场所：{venues_str}）")
+
+    # World backdrop
+    out(f"【世界背景】{world_name}（{tone}）")
+    out(f"  核心冲突：{central_conflict}")
+
+    # Objective
+    out(f"【当前目标】{objective}")
+
+    # Opening narration
+    if narration_excerpt:
+        out(f"【开场】{narration_excerpt}")
+
+    # Counts footer
+    out(f"  [ 大区域数：{n_regions}  势力数：{n_factions}  NPC 数：{n_npcs}  暗线数：{n_lore} ]")
+    out(sep)
 
 
 def main(
@@ -86,14 +190,39 @@ def main(
              "Alt source: env var RPG_BOOTSTRAP_PITCH. "
              "If neither is provided, bootstrap uses its own oracle-rolled genre.",
     )
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="record a structured trajectory trace to <campaign>/trace.jsonl for debugging",
+    )
+    parser.add_argument(
+        "--verbosity", default=None, choices=["concise", "medium", "rich"],
+        help="Narration verbosity level: concise | medium | rich "
+             "(default: env RPG_NARRATION_VERBOSITY, fallback 'medium'). "
+             "Controls how much atmosphere vs plot-forward prose the DM produces.",
+    )
     args = parser.parse_args(argv)
     configure_logging()  # honor RPG_DEBUG / RPG_LOG_LEVEL so process logs appear
+
+    # Apply --verbosity flag (only when provided; env/default already set at import)
+    if args.verbosity is not None:
+        from engine import settings as _eng_settings
+        _eng_settings.set_verbosity(args.verbosity)
 
     from pathlib import Path
     from app.engine import build_engine, new_game
     from app.play import play_loop
 
     campaign_dir = Path(args.campaign)
+
+    # Handle --debug flag: set RPG_DEBUG_TRACE env var and reset tracer singleton
+    # so genesis is traced too
+    if args.debug and "RPG_DEBUG_TRACE" not in os.environ:
+        trace_path = campaign_dir / "trace.jsonl"
+        os.environ["RPG_DEBUG_TRACE"] = str(trace_path)
+        import kernel.observability as _obs
+        # get_tracer() caches one DebugTracer by path; reset so it rebinds to this run's path.
+        _obs._DEBUG_TRACER = None
+        out(f"[debug] 轨迹 → {trace_path}  (查看: python -m app.trace {trace_path} [--turn N|--phase X|--show SEQ|--tree|--stats])")
 
     # Resolve provider — injected provider wins over CLI flag (for tests)
     if provider is None:
@@ -147,17 +276,15 @@ def main(
 
         log.debug("main: new game pitch=%r", pitch)
         out("[新游戏] 正在生成世界，请稍候…")
-        result = new_game(engine, pitch)
 
-        # Print world summary so the player can review it
-        summary = result.get("summary", {})
-        out("[世界摘要]")
-        out(f"  世界名称：{summary.get('world_name', '?')}")
-        out(f"  基调：{summary.get('tone', '?')}  核心冲突：{summary.get('central_conflict', '?')}")
-        out(f"  大区域数：{summary.get('n_regions', '?')}  势力数：{summary.get('n_factions', '?')}")
-        out(f"  NPC 数：{summary.get('n_npcs', '?')}  暗线数：{summary.get('n_lore', '?')}")
-        if summary.get("narration_excerpt"):
-            out(f"  开场摘录：{summary['narration_excerpt']}")
+        # Progress callback — prints [i/total] 正在生成<label>... via out (Fix #1)
+        def _progress_cb(step_idx: int, total_steps: int, label: str) -> None:
+            out(f"[{step_idx}/{total_steps}] 正在生成{label}…")
+
+        result = new_game(engine, pitch, progress=_progress_cb)
+
+        # Print rich INTRO block so the player can review the new world (Fix #2)
+        _print_intro(result, out)
 
         # ---------------------------------------------------------------
         # Reroll loop — thin, behind the same injected inputs/out seams
@@ -180,24 +307,22 @@ def main(
         out("[提示] 输入 'reroll' 重掷全局，'reroll factions/npcs/threads' 重掷指定步骤，"
             "或直接按回车 / 输入 '开始' / 'start' 进入游戏。")
 
+        # _first_action holds the player's first non-reroll, non-break line (if any),
+        # to be prepended to inputs_iter so play_loop runs it as turn 1.
+        _first_action: str | None = None
+
         for line in inputs_iter:
             line = line.rstrip("\n")
             stripped = line.strip().lower()
 
             if stripped in _BREAK_TOKENS:
+                # Bare break token (empty / 开始 / start) — start game with no forced turn
                 break
 
             if stripped == "reroll":
                 out("[重掷] 正在重新生成整个世界…")
                 result = _bootstrap_mod.reroll_all(engine, result)
-                summary = result.get("summary", {})
-                out("[新世界摘要]")
-                out(f"  世界名称：{summary.get('world_name', '?')}")
-                out(f"  基调：{summary.get('tone', '?')}  核心冲突：{summary.get('central_conflict', '?')}")
-                out(f"  大区域数：{summary.get('n_regions', '?')}  势力数：{summary.get('n_factions', '?')}")
-                out(f"  NPC 数：{summary.get('n_npcs', '?')}  暗线数：{summary.get('n_lore', '?')}")
-                if summary.get("narration_excerpt"):
-                    out(f"  开场摘录：{summary['narration_excerpt']}")
+                _print_intro(result, out, header="[新世界]")
                 out("[提示] 输入 'reroll' 再次重掷，或 '开始' / 'start' / 回车进入游戏。")
                 continue
 
@@ -206,24 +331,23 @@ def main(
                 if step_name in _LEAF_STEPS:
                     out(f"[重掷] 正在重掷 {step_name}…")
                     result = _bootstrap_mod.reroll_step(engine, result, step_name)
-                    summary = result.get("summary", {})
-                    out(f"[新{step_name}摘要]")
-                    out(f"  世界名称：{summary.get('world_name', '?')}")
-                    out(f"  基调：{summary.get('tone', '?')}  核心冲突：{summary.get('central_conflict', '?')}")
-                    out(f"  大区域数：{summary.get('n_regions', '?')}  势力数：{summary.get('n_factions', '?')}")
-                    out(f"  NPC 数：{summary.get('n_npcs', '?')}  暗线数：{summary.get('n_lore', '?')}")
-                    if summary.get("narration_excerpt"):
-                        out(f"  开场摘录：{summary['narration_excerpt']}")
+                    _print_intro(result, out, header=f"[新{step_name}]")
                     out("[提示] 输入 'reroll' 再次重掷，或 '开始' / 'start' / 回车进入游戏。")
                 else:
                     out(f"[未知重掷步骤] '{step_name}' — 可用：factions / npcs / threads")
                 continue
 
-            # Unknown command in reroll loop — treat as break (start game)
+            # Unknown command / first real player action — break into game AND
+            # preserve this line as turn 1 (Feed #11 fix: do NOT discard the line).
             out(f"[提示] 未识别指令 '{line}' — 进入游戏。")
+            _first_action = line
             break
 
         out("[新游戏] 世界已就绪。输入行动描述开始游戏，/help 查看指令。")
+        # If the player typed their first action in the reroll loop, prepend it so
+        # play_loop receives it as turn 1 rather than losing it.
+        if _first_action is not None:
+            inputs_iter = itertools.chain([_first_action], inputs_iter)
     else:
         out(f"[载入存档] 已读取 {len(events)} 条事件。")
 

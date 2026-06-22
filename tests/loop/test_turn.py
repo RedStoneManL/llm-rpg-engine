@@ -117,7 +117,14 @@ def test_run_turn_narration_returned():
 # ---------------------------------------------------------------------------
 
 def test_run_turn_repair_loop_fixes_invalid_commit():
-    """An invalid commit triggers repair; valid second commit succeeds."""
+    """An invalid commit triggers MODULAR repair; only the failing section is re-emitted.
+
+    Fix #8 behaviour (modular repair):
+    - First pass: narration + entities (valid) + facts (dangling ref → invalid).
+    - Repair call: returns ONLY the corrected `facts` section (no narration, no entities).
+    - Result: narration == first-pass narration (NOT regenerated); facts fixed;
+      entities from first pass preserved; ghost_entity appears via entities.
+    """
     from loop.strategy import AuthorStrategy
     from loop.turn import run_turn
 
@@ -125,17 +132,18 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
     world = empty_world(registry)
     scene = _make_scene()
 
-    # First response: facts referencing a non-existent entity (dangling_ref)
+    # First response: valid narration + valid entities + invalid facts (dangling ref to
+    # a DIFFERENT entity not in entities → cross-commit pending check won't save it)
     invalid_canned = {
-        "narration": "First attempt (invalid).",
-        "facts": [{"subject": "ghost_entity", "predicate": "mood", "value": "angry"}],
-    }
-    # Second response: valid (no dangling refs)
-    valid_canned = {
-        "narration": "Repaired attempt.",
+        "narration": "First attempt narration.",
         "entities": [{"id": "ghost_entity", "etype": "Person", "tier": "tracked"}],
+        "facts": [{"subject": "unknown_npc", "predicate": "mood", "value": "angry"}],  # dangling
     }
-    provider = FakeLLMProvider(json_responses=[invalid_canned, valid_canned])
+    # Repair response: ONLY the fixed facts section (modular — no full rewrite)
+    repair_canned = {
+        "facts": [],  # remove the dangling facts reference
+    }
+    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned])
 
     store = _open_temp_store(registry)
     try:
@@ -146,9 +154,11 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
     finally:
         store.close()
 
-    # Should have done at least 1 repair attempt
+    # Should have done exactly 1 repair attempt
     assert result.repair_attempts >= 1
-    # Final world should have the entity from the repaired commit
+    # Narration unchanged from first pass (modular repair doesn't regenerate it)
+    assert result.narration == "First attempt narration."
+    # Final world should have the entity from the first-pass entities
     g = result.world.get("systems", {}).get("ontology")
     assert g is not None
     assert g.get_entity("ghost_entity") is not None
@@ -401,7 +411,14 @@ def test_run_turn_still_works_after_split():
 
 
 def test_produce_turn_repair_loop_no_store_writes():
-    """produce_turn with repair loop (invalid then valid) never writes to store."""
+    """produce_turn with modular repair loop never writes to store.
+
+    Fix #8 behaviour (modular repair):
+    - First pass: narration + entities (valid) + facts (dangling ref → invalid).
+    - Repair: ONLY the corrected `facts` section returned (partial dict).
+    - narration stays == first-pass narration (NOT the repair response's narration).
+    - Still zero store writes throughout.
+    """
     from loop.strategy import AuthorStrategy
     from loop.turn import produce_turn
 
@@ -409,16 +426,18 @@ def test_produce_turn_repair_loop_no_store_writes():
     world = empty_world(registry)
     scene = _make_scene()
 
-    # First invalid (dangling ref), second valid
+    # First pass: valid narration + valid entities + invalid facts (dangling ref to
+    # an entity NOT in entities or world → dangling_ref validation error on facts)
     invalid_canned = {
-        "narration": "Bad turn.",
-        "facts": [{"subject": "ghost_x", "predicate": "mood", "value": "angry"}],
-    }
-    valid_canned = {
-        "narration": "Good turn.",
+        "narration": "First pass narration.",
         "entities": [{"id": "ghost_x", "etype": "Person", "tier": "tracked"}],
+        "facts": [{"subject": "missing_npc", "predicate": "mood", "value": "angry"}],  # dangling
     }
-    provider = FakeLLMProvider(json_responses=[invalid_canned, valid_canned])
+    # Repair: ONLY fixed facts (modular — no narration key, no entities key)
+    repair_canned = {
+        "facts": [],  # remove dangling ref
+    }
+    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned])
 
     store = _open_temp_store(registry)
     try:
@@ -431,7 +450,8 @@ def test_produce_turn_repair_loop_no_store_writes():
         store.close()
 
     assert attempts == 1
-    assert commit.narration == "Good turn."
+    # narration unchanged from first pass (modular repair doesn't regenerate it)
+    assert commit.narration == "First pass narration."
 
 
 # ---------------------------------------------------------------------------

@@ -18,7 +18,6 @@ HybridStrategy (丙):
 from __future__ import annotations
 
 import abc
-import os
 from typing import Any
 
 from context.assembler import assemble_context
@@ -27,6 +26,7 @@ from kernel.turncommit import TurnCommit
 from llm.provider import _parse_json_object
 from llm.tools import build_tool_registry
 from engine.log import get_logger
+from engine import settings as _settings
 from loop.lore_disclosure import station_push_fragment
 
 log = get_logger("loop.strategy")
@@ -44,10 +44,44 @@ TURNCOMMIT_SCHEMA: dict[str, Any] = {
     "additionalProperties": True,
 }
 
-_SYSTEM_PROMPT = """\
+# ---------------------------------------------------------------------------
+# Verbosity fragments — injected into the system prompt at produce-time.
+# ---------------------------------------------------------------------------
+
+_VERBOSITY_FRAGMENT: dict[str, str] = {
+    "concise": (
+        "每回合明显推进剧情/场景/时钟；氛围一两笔带过；克制篇幅，直奔关键。"
+    ),
+    "medium": (
+        "推进为主，适度氛围；不要长篇铺陈。"
+    ),
+    "rich": (
+        "浓墨铺陈，不设字数限制；重环境氛围、角色神态内心、有张力的对话；展示而非告知。"
+    ),
+}
+
+_NARRATE_VERBOSITY_FRAGMENT: dict[str, str] = {
+    "concise": (
+        "篇幅克制：氛围一两笔，直奔当回合最关键的进展；不堆叠长描写。"
+    ),
+    "medium": (
+        "适度叙事：氛围到位即止，情节推进优先；避免长篇铺陈。"
+    ),
+    "rich": (
+        "浓墨铺陈，篇幅随情境而定，不设字数限制——该浓就浓，该收就收。"
+    ),
+}
+
+
+# ---------------------------------------------------------------------------
+# Prompt template strings — __VERBOSITY__ placeholder is substituted per-call
+# (using str.replace, not str.format, to avoid conflicts with JSON {} examples).
+# ---------------------------------------------------------------------------
+
+_SYSTEM_PROMPT_TEMPLATE = """\
 你是主持人（DM），以主角视角叙事，同时记录世界变化。
 
-【narration 文风】融合细腻描写与戏剧张力：重环境氛围、角色神态内心、有张力的对话；具体可感、不空泛；篇幅随情境而定，不设字数限制；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。
+【narration 文风】__VERBOSITY__具体可感、不空泛；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。
 
 【结构】除 narration 外，按本回合【真实发生】的变化给出可选段落（每段都是对象数组）：
 - moves: [{"who":移动的实体id, "to":目标地点id}]   （who、to 均必填）
@@ -85,17 +119,45 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
 2. 输出合法 JSON 对象，必含 "narration" 字段；只输出 JSON，不附 markdown 代码块或其他包装。
 """
 
-_NARRATE_PROMPT = """\
+_NARRATE_PROMPT_TEMPLATE = """\
 你是主持人（DM），以主角视角进行沉浸式叙事。
 
 【文风】融合细腻描写与戏剧张力：重环境氛围、角色的神态动作与内心、以及有张力的对话；多用具体可感的细节，少堆空泛形容。
 【写法】
-1. 第一/第三人称散文皆可（以中文为主）；篇幅随情境而定，不设字数限制——该浓墨铺陈就铺陈，该干脆利落就收住。
+1. 第一/第三人称散文皆可（以中文为主）；__NARRATE_VERBOSITY__
 2. 展示而非告知：设定、过往、人物关系通过此刻的细节、动作与后果自然流露，不要直接复述资料。
 3. 严守 ⚠️只约束·勿泄露 中的保密事实——绝不直接揭露，可暗示、可让其后果显现。
 4. 推进当前局面、给玩家可回应的钩子，但绝不替玩家决定下一步行动。
 5. 只输出叙事散文本身，不要任何 JSON / 结构化数据 / 元说明。
 """
+
+# ---------------------------------------------------------------------------
+# Prompt builder functions — called per-produce to inject current verbosity.
+# ---------------------------------------------------------------------------
+
+
+def _system_prompt(verbosity: str | None = None) -> str:
+    """Build the 甲 system prompt with the current (or given) verbosity fragment."""
+    v = verbosity or _settings.get_verbosity()
+    frag = _VERBOSITY_FRAGMENT.get(v, _VERBOSITY_FRAGMENT["medium"])
+    return _SYSTEM_PROMPT_TEMPLATE.replace("__VERBOSITY__", frag)
+
+
+def _narrate_prompt(verbosity: str | None = None) -> str:
+    """Build the 丙 narration prompt with the current (or given) verbosity fragment."""
+    v = verbosity or _settings.get_verbosity()
+    frag = _NARRATE_VERBOSITY_FRAGMENT.get(v, _NARRATE_VERBOSITY_FRAGMENT["medium"])
+    return _NARRATE_PROMPT_TEMPLATE.replace("__NARRATE_VERBOSITY__", frag)
+
+
+# ---------------------------------------------------------------------------
+# Module-level backward-compat aliases — used by existing tests that import
+# _SYSTEM_PROMPT / _NARRATE_PROMPT directly.  Reflect the *current* medium
+# default so all existing prompt-content assertions still pass.
+# ---------------------------------------------------------------------------
+
+_SYSTEM_PROMPT = _system_prompt("medium")
+_NARRATE_PROMPT = _narrate_prompt("medium")
 
 # 丙 HybridStrategy 结构提示(call 2:作者为自己刚写的散文补结构,带全上下文)
 _SYSTEM_PROMPT_HYBRID = """\
@@ -154,6 +216,27 @@ class TurnStrategy(abc.ABC):
                           user prompt (the previous commit had validation errors).
         """
 
+    def repair_sections(
+        self,
+        failing_sections: set[str],
+        errors: list,
+        *,
+        provider,
+    ) -> dict:
+        """Re-emit ONLY the failing sections; keep narration + passing sections intact.
+
+        Continues the existing conversation (self._messages) with a focused
+        instruction that asks the LLM to output ONLY a JSON object containing
+        the failing section keys — no narration, no other sections.
+
+        Returns a dict of {section_name: new_decl} for the failing sections.
+        The caller merges this into the existing commit via commit.sections.update().
+
+        Default implementation falls back to whole-commit re-generation for
+        strategies that haven't opted into modular repair.
+        """
+        raise NotImplementedError("repair_sections not implemented")
+
 
 # ---------------------------------------------------------------------------
 # AuthorStrategy (甲) — one main-LLM call
@@ -197,7 +280,7 @@ class AuthorStrategy(TurnStrategy):
                 parts.append(ctx)
             parts.append(f"[player] {player_input}")
             self._messages = [
-                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "system", "content": _system_prompt()},
                 {"role": "user", "content": "\n\n".join(parts)},
             ]
         else:
@@ -214,7 +297,7 @@ class AuthorStrategy(TurnStrategy):
             tool_reg = build_tool_registry(registry, world, scene)  # POV set (dm=False)
             schemas = tool_reg.schemas()
             if schemas:
-                rounds = int(os.environ.get("RPG_MAX_TOOL_ROUNDS", "3"))
+                rounds = _settings.get_max_tool_rounds()
                 raw = provider.complete_with_tools(
                     self._messages, schemas, tool_reg.execute,
                     max_tool_rounds=rounds,
@@ -230,6 +313,57 @@ class AuthorStrategy(TurnStrategy):
         self._messages.append({"role": "assistant", "content": raw})
         data = _parse_json_object(raw) or {"narration": raw}
         return TurnCommit.from_dict(data)
+
+    def repair_sections(
+        self,
+        failing_sections: set[str],
+        errors: list,
+        *,
+        provider,
+    ) -> dict:
+        """Modular repair: re-emit ONLY the failing sections.
+
+        Continues the existing authoring conversation (self._messages) with a
+        focused instruction.  The LLM is asked to return a JSON object that
+        contains ONLY the failing section keys — no narration, no passing sections.
+
+        Returns the partial dict of {section_name: new_decl}; the caller merges
+        it into the existing commit via commit.sections.update().
+        """
+        if self._messages is None:
+            raise RuntimeError("repair_sections called before produce (no conversation)")
+
+        # Build a compact error summary grouped by section
+        by_section: dict[str, list] = {}
+        for e in errors:
+            by_section.setdefault(e.section, []).append(e)
+
+        error_lines = []
+        for sec in sorted(failing_sections):
+            errs = by_section.get(sec, [])
+            error_lines.append(f"[{sec}]")
+            for e in errs:
+                loc = f"{sec}{e.field}" if e.field else sec
+                error_lines.append(f"  - {loc} ({e.code}): {e.hint}")
+
+        section_list = "、".join(sorted(failing_sections))
+        repair_instruction = (
+            f"上一条提交中以下段有校验错误：\n"
+            + "\n".join(error_lines)
+            + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
+            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
+        )
+
+        self._messages.append({"role": "user", "content": repair_instruction})
+        log.debug("AuthorStrategy.repair_sections failing=%s msgs=%d",
+                  sorted(failing_sections), len(self._messages))
+
+        raw = provider.complete_messages(self._messages)
+        self._messages.append({"role": "assistant", "content": raw})
+
+        data = _parse_json_object(raw) or {}
+        # Keep only the expected section keys to avoid contamination
+        return {k: v for k, v in data.items() if k in failing_sections}
 
 
 # ---------------------------------------------------------------------------
@@ -264,7 +398,7 @@ class HybridStrategy(TurnStrategy):
             if ctx:
                 narrate_parts.append(ctx)
             narrate_parts.append(f"[player] {player_input}")
-            prose = provider.complete(_NARRATE_PROMPT, "\n\n".join(narrate_parts))
+            prose = provider.complete(_narrate_prompt(), "\n\n".join(narrate_parts))
             self._frozen_prose = prose
 
             # Structure call sees the SAME full context the author had + the prose.
@@ -288,3 +422,49 @@ class HybridStrategy(TurnStrategy):
         data = _parse_json_object(raw) or {}
         data["narration"] = prose
         return TurnCommit.from_dict(data)
+
+    def repair_sections(
+        self,
+        failing_sections: set[str],
+        errors: list,
+        *,
+        provider,
+    ) -> dict:
+        """Modular repair for HybridStrategy: re-emit ONLY the failing sections.
+
+        Continues the structure conversation (self._messages); the frozen prose
+        is already in the thread context. The LLM is asked to output ONLY the
+        failing section keys as a JSON object — no narration, no other sections.
+        """
+        if self._messages is None:
+            raise RuntimeError("repair_sections called before produce (no conversation)")
+
+        by_section: dict[str, list] = {}
+        for e in errors:
+            by_section.setdefault(e.section, []).append(e)
+
+        error_lines = []
+        for sec in sorted(failing_sections):
+            errs = by_section.get(sec, [])
+            error_lines.append(f"[{sec}]")
+            for e in errs:
+                loc = f"{sec}{e.field}" if e.field else sec
+                error_lines.append(f"  - {loc} ({e.code}): {e.hint}")
+
+        section_list = "、".join(sorted(failing_sections))
+        repair_instruction = (
+            f"上一条提交中以下段有校验错误：\n"
+            + "\n".join(error_lines)
+            + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
+            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
+        )
+
+        self._messages.append({"role": "user", "content": repair_instruction})
+        log.debug("HybridStrategy.repair_sections failing=%s msgs=%d",
+                  sorted(failing_sections), len(self._messages))
+
+        raw = provider.complete_messages(self._messages)
+        self._messages.append({"role": "assistant", "content": raw})
+
+        data = _parse_json_object(raw) or {}
+        return {k: v for k, v in data.items() if k in failing_sections}
