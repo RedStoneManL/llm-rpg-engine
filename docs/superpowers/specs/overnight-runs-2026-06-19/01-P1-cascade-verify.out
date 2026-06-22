@@ -1,0 +1,33 @@
+== narrator=glm-5.1 cascade=glm-4.7 ==
+
+[turn] repairs=0 dropped=[] sections=['moves', 'places', 'cast', 'facts', 'world']
+[narration 504字] 火舌舔上油料的瞬间，世界像被撕开了一道口子。
+
+金黄色的光焰从广场中央炸裂开来，热度扑面而来，灼得你眉毛卷曲、面皮发紧。那些为节庆囤积的灯油和脂膏——整整一个季度的储备——此刻成了最贪婪的燃料。柱状的火焰拧成一股，直冲夜空，将低垂的云底映成可怖的橘红色。
+风来了。
+
+你听见风。不是平日穿过巷道的呜咽，而是一头被烈焰唤醒的巨兽，裹挟着火星和浓烟，沿着街道的走向横扫而去。集市中段那些木架棚顶先被点着，...
+
+== narrator `world` section: [{"areas": ["city", "market", "shrine", "slums"], "level": 3, "summary": "人为纵火引燃节庆油料，大火在狂风中失控蔓延，全城陷入烈焰与混乱"}] ==
+
+== cascade events in store: 12 ==
+  world_change     'city'     state='' mood='' 
+  world_change     'market'   state='' mood='' 
+  world_change     'shrine'   state='' mood='' 
+  world_change     'slums'    state='' mood='' 
+  place_evolved    'city'     state='烈焰席卷全城，浓烟遮蔽天日，建筑接连坍塌，街道被火舌与废墟阻断，焦臭弥漫每一寸空气' mood='' 
+  populace_shifted 'city'     state='' mood='极度恐慌——居民哭嚎奔逃、互相推搡踩踏，有人抱着死去的孩子瘫坐在路边，有人疯狂敲打紧闭的城门求放行' 
+  place_evolved    'market'   state='焦黑的废墟——摊棚与货架化为灰烬，地面铺石被烧得龟裂，余烬仍在浓烟中明灭；空气中弥漫着烧焦布料、融化的蜜蜡与烤焦谷物的甜腻恶臭' mood='' 
+  populace_shifted 'market'   state='' mood='商贩抱着残存的货箱哭嚎奔逃；有人跪在废墟前呆若木鸡；更多人被浓烟呛得连滚带爬涌向城门方向，踩翻的果筐与碎陶满地狼藉' 
+  place_evolved    'shrine'   state='浓烟已漫入神殿石阶，祭司紧急敞开大门收容逃难者，圣池被用来浸湿布巾分发给呛咳的难民' mood='' 
+  populace_shifted 'shrine'   state='' mood='惊恐跪地祈祷的信徒与尖叫找人的逃难者挤满正殿，孩童哭声与远处倒塌声交织，有人在火光中质问神明是否已经抛弃了这座城' 
+  place_evolved    'slums'    state='浓烟已灌入狭窄巷道，窝棚区的木质结构开始被飞溅火星点燃；大批市场方向逃来的难民涌入，巷道挤到窒息' mood='' 
+  populace_shifted 'slums'    state='' mood='尖叫奔逃、拖家带口挤向城门方向，有人在火光中疯狂泼水拆屋试图造出隔离带' 
+
+== resulting place states ==
+  city     '烈焰席卷全城，浓烟遮蔽天日，建筑接连坍塌，街道被火舌与废墟阻断，焦臭弥漫每一寸空气'
+  market   '焦黑的废墟——摊棚与货架化为灰烬，地面铺石被烧得龟裂，余烬仍在浓烟中明灭；空气中弥漫着烧焦布料、融化的蜜蜡与烤焦谷物的甜腻恶臭'
+  shrine   '浓烟已漫入神殿石阶，祭司紧急敞开大门收容逃难者，圣池被用来浸湿布巾分发给呛咳的难民'
+  slums    '浓烟已灌入狭窄巷道，窝棚区的木质结构开始被飞溅火星点燃；大批市场方向逃来的难民涌入，巷道挤到窒息'
+
+=== VERDICT: world_section_emitted=True cascade_evolved=['city', 'market', 'shrine', 'slums'] (want narrator to declare areas + cascade descend into districts) ===

@@ -1,0 +1,5 @@
+[{"weight":3,"name":"身世","endpoint_hint":"揭开某人的真实出身"},
+ {"weight":3,"name":"阴谋","endpoint_hint":"与幕后黑手的对决"},
+ {"weight":2,"name":"物品","endpoint_hint":"某件造物的代价与归宿"},
+ {"weight":2,"name":"势力","endpoint_hint":"某方势力的崛起或崩塌"},
+ {"weight":2,"name":"情感","endpoint_hint":"一段关系的质变"}]

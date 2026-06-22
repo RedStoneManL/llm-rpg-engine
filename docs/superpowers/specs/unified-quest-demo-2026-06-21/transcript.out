@@ -1,0 +1,109 @@
+== UNIFIED QUEST LIFECYCLE DEMO narrator=glm-5.1 ==
+world: 青石镇⊃市集/酒馆/码头 + 邻村; 3 quests (失踪商队 medium / 假药郎中 simple / 码头浮尸 complex,已酿到中段)
+
+--- 初始 quests ---
+     - 失踪商队[medium] state=暗 stage=0 summary=None clues=1
+     - 假药郎中[simple] state=暗 stage=0 summary=None clues=1
+     - 码头浮尸[complex] state=暗 stage=1 summary=None clues=2
+
+[T1] @s1 repairs=1 dropped=[]
+  输入: 我在市集的摊位间穿行,留心镇上近来的怪事。
+  [叙事模型 quests 段]: (无)
+  [上下文·暗线环境]: 〔本地暗线·环境可织入,勿点破为任务〕 【就在此处】 ·有人在打听商队的下落 ·郎中正吹嘘药到病除 【本镇其余风声】 ·水边的苇草丛里似乎缠着什么东西
+  « 晨光从青石镇东边的屋脊上翻下来，碎成满地的金箔。市集已经醒了。
+
+你侧身避开一个挑着扁担的农妇，扁担两头的竹筐里码着沾露的青菜，叶子还脆生生的。人声像潮水，一层叠一层——叫卖的、讨价还价的、孩童追逐嬉闹的——你穿行其间，脚步不快不慢，目光却在搜寻那些不对劲的缝隙。
+
+经过布庄门口时，一个干瘦的中年男人正拽着掌柜的袖子，压低了嗓门，声音却没压住多少："……走的是北道，说好了昨天到。人没到，货没到，连
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=1 summary=None clues=2
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary=None clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+
+[T2] @s1 repairs=1 dropped=[]
+  输入: 我拉住一个老摊主,专打听那支没了音信的商队。
+  [叙事模型 quests 段]: (无)
+  [上下文·暗线环境]: 〔本地暗线·环境可织入,勿点破为任务〕 【就在此处】 ·城门记录显示这支商队从没出过城 ·听说有人吃了他的药反而更重了 【本镇其余风声】 ·水边的苇草丛里似乎缠着什么东西
+  « 你挑了个面善的摊位——卖针头线脑的矮摊，摊主是个头发花白的老头，皱纹像干涸的河床。他正百无聊赖地拨弄算盘珠子，见你凑过来，浑浊的眼珠子转了转。
+
+"老人家，"你压低声音，顺手摸出两枚铜钱搁在摊面上，"打听个事——今早布庄那边有人急得跳脚，说北道那支商队昨天就该到了？"
+
+老头瞥了铜钱一眼，没动，但手里的算盘珠子停了。
+
+"你说沈家那支啊。"他声音矮下去半截，浑浊的眼珠子左右瞟了瞟，往你这边凑了凑，
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=2 summary=None clues=3
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary=None clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+
+[T3] @s1 repairs=1 dropped=[]
+  输入: 我顺着城门记录这条线,去查那商队到底出没出过城。
+  [叙事模型 quests 段]: (无)
+  [上下文·暗线环境]: 〔本地暗线·环境可织入,勿点破为任务〕 【就在此处】 ·首领空宅里翻出烧剩的地契 ·听说有人吃了他的药反而更重了 【本镇其余风声】 ·水边的苇草丛里似乎缠着什么东西
+  « 你没有犹豫太久。铜钱已经花出去了，得到的那把"刀"得趁热磨。
+
+穿过市集向西，人声渐渐被巷道两侧的石墙吸去大半。青石镇的巷子窄，两臂一张几乎能触到两边的门板，头顶的屋檐只留一线天光。走了约莫一盏茶的功夫，转过最后一道弯，镇门便撞进眼来。
+
+城门不算气派。青石砌的门洞，门板上的铁皮锈成了暗赭色，两侧的垛口长着杂草。门槛被车辙碾出两道深槽，石面磨得发亮。门洞左边支着一口破铁锅，锅底下炭灰将熄未熄，几张
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=2 summary=None clues=3
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary=None clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+
+[T4] @s2 repairs=2 dropped=[]
+  输入: 事情一时查不下去,我索性动身去半日外的邻村透透气。
+  [叙事模型 quests 段]: (无)
+  [上下文·暗线环境]: (无)
+  « 出镇的时候，守丁已经重新合上了那本黑皮簿子，脑袋一点一点磕向胸口。你回头看了一眼——门洞里的阴影把他的半张脸吞了，看不清什么表情。面摊摊主在你经过时把头埋得更低，湿抹布在条桌上反复打圈，像在擦掉一层擦不掉的东西。你没停步。
+
+出了城门，石板路渐渐变成夯土，再变成被车辙碾出来的泥径。镇子在后头一点点矮下去，最后只剩几缕炊烟挂在树梢上，散不尽也飘不走。
+
+路不宽，两侧是收割过的田。稻茬齐刷刷戳在泥里，
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=2 summary=None clues=3
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary=None clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+
+[T5] @s3 repairs=1 dropped=[]
+  输入: 在邻村歇了一晚,我又折回青石镇,径直往码头去看看。
+  [叙事模型 quests 段]: [{'op': 'advance', 'id': '码头浮尸', 'summary': '在码头苇草丛中发现一具男尸，被捆被击头部，腰间佩沈家商号铜扣，入水时间与商队失踪吻合'}, {'op': 'open', 'id': '商队失踪', 'summary': '沈家北道商队四匹骡子前天进青石镇后人间蒸发，码头浮尸佩沈家铜扣，两案疑似关联'}]
+  [上下文·暗线环境]: (无)
+  « 邻村的夜不好过。
+
+稻草铺硌得脊背发疼，墙缝灌进来的风带着溪水的腥潮气。隔壁那浣衣妇人翻来覆去的动静一直响到大半夜，偶尔还有压低了的咳嗽——不像生病，像在忍住什么。
+
+天没亮透你就起了身。原路折回，夯土路上的露水浸湿了靴面。青石镇的轮廓在晨雾里一点点长出来，炊烟缠着屋脊，像昨天的雾没散尽。
+
+你径直拐向东面。
+
+——码头不大。一段矮石堤伸进浑水里，拴着三四条乌篷船。船板晒得发灰，缆绳松垮垮地泡在水
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=2 summary=None clues=3
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary='在码头苇草丛中发现一具男尸，被捆被击头部，腰间佩沈家商号铜扣，入水时间与商队失踪吻合' clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+     - 商队失踪[None] state=明 stage=-1 summary='沈家北道商队四匹骡子前天进青石镇后人间蒸发，码头浮尸佩沈家铜扣，两案疑似关联' clues=0
+
+[T6] @s4 repairs=0 dropped=[]
+  输入: 我把商队这桩事的来龙去脉理清,做个了断。
+  [叙事模型 quests 段]: [{'op': 'advance', 'id': '码头浮尸', 'summary': "在浮尸内衬夹层中发现被撕断的半页账册，记录货物清单与'不可留'残句；搜尸时石堤上出现至少两人，由老渔夫引路朝苇草丛逼近"}]
+  [上下文·暗线环境]: 〔本地暗线·环境可织入,勿点破为任务〕 【就在此处】 ·死者怀里塞着半张账册 【本镇其余风声】 ·集市上关于一支失踪商队的窃窃私语 ·一个游方郎中的摊子前总围着病人
+  « 你没有急着从苇草丛里起身。
+
+先把尸体彻底翻过来。费了些力气——浸透的衣裤吸在皮肉上，关节僵硬，蜷起的手臂掰开时发出骨节错动的闷响。泥水从衣物皱褶里涌出来，比先前更浑更稠，裹着那股甜腐气，浓得像能挂在鼻腔壁上。
+
+面孔朝天了。
+
+泡胀的面皮泛着蜡白，五官走了形，眼鼻嘴唇的边界模糊得像隔了一层水。但年纪看得出不大——三十出头，顶多。嘴唇外翻，露出灰白的牙龈，牙齿却齐整，不像常年嚼粗粮磨豆子的人。手指
+  --- quests after ---
+     - 失踪商队[medium] state=暗 stage=2 summary=None clues=3
+     - 假药郎中[simple] state=暗 stage=1 summary=None clues=2
+     - 码头浮尸[complex] state=明 stage=2 summary="在浮尸内衬夹层中发现被撕断的半页账册，记录货物清单与'不可留'残句；搜尸时石堤上出现至少两人，由老渔夫引路朝苇草丛逼近" clues=3
+     - th_auto_3ba8031d[None] state=暗 stage=-1 summary='anxious_merchant 登场' clues=0
+     - 商队失踪[None] state=明 stage=-1 summary='沈家北道商队四匹骡子前天进青石镇后人间蒸发，码头浮尸佩沈家铜扣，两案疑似关联' clues=0
+
+=== DONE ===

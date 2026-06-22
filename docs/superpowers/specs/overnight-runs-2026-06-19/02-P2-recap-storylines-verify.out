@@ -1,0 +1,72 @@
+== narrator=glm-5.1 cheap=glm-4.7 ==
+
+[T1 sc01] repairs=0 storylines_decl=[{"op": "open", "id": "recover_jade_statue", "summary": "镇长赵怀安委托主角深入苍狼岭，从北地匪伙手中夺回镇瘟玉像"}]
+[T1] ledger=[('recover_jade_statue', '活跃', '镇长赵怀安委托主角深入苍狼岭，从北地匪伙手中夺回')]
+[T1] recap: scenes_recorded=1 summarized=0 super_summary=-
+
+[T2 sc02] repairs=0 storylines_decl=[{"op": "advance", "id": "recover_jade_statue", "summary": "主角追踪匪迹穿过密林抵达落马坡，遇到自称陆青衣的女刀客，她暗示玉像另有隐情"}, {"op": "open", "id": "jade_true_nature", "summary": "陆青衣暗示玉像远不止镇瘟圣物那么简单，其真实价值或用途存疑"}]
+[T2] ledger=[('recover_jade_statue', '活跃', '主角追踪匪迹穿过密林抵达落马坡，遇到自称陆青衣的'), ('jade_true_nature', '活跃', '陆青衣暗示玉像远不止镇瘟圣物那么简单，其真实价值')]
+[T2] recap: scenes_recorded=2 summarized=0 super_summary=-
+
+[T3 sc03] repairs=1 storylines_decl=[{"op": "advance", "id": "recover_jade_statue", "summary": "获得马戎老巢确切方位，但因黑市走漏风声，行踪可能已暴露，原路线面临失效"}, {"op": "advance", "id": "jade_true_nature", "summary": "马戎替京城某人取玉像，锦衣卫亲至追查——玉像的价值远超镇瘟圣物"}, {"op": "open", "id": "faction_struggle", "summary": "北镇抚司锦衣卫介入玉像之争，多方势力（镇民、陆青衣、锦衣卫、马戎及其幕后主使）角力浮出水面"}]
+[T3] ledger=[('recover_jade_statue', '活跃', '获得马戎老巢确切方位，但因黑市走漏风声，行踪可能'), ('jade_true_nature', '活跃', '马戎替京城某人取玉像，锦衣卫亲至追查——玉像的价'), ('faction_struggle', '活跃', '北镇抚司锦衣卫介入玉像之争，多方势力（镇民、陆青')]
+[T3] recap: scenes_recorded=3 summarized=1 super_summary=-
+
+[T4 sc04] repairs=0 storylines_decl=[{"op": "advance", "id": "recover_jade_statue", "summary": "已摸到马戎寨外确认方位，但马戎正紧急撤离、哨卫严密，原潜入窗口急速关闭"}, {"op": "advance", "id": "jade_true_nature", "summary": "矿洞口草木枯死、周期性闷响、守卫称'不稳'——玉像似乎有某种主动的、不稳定的异常力量"}, {"op": "advance", "id": "faction_struggle", "summary": "马戎受京城主使连催三次急于撤离；镇上黑烟冲天瘟疫失控迹象；多方局势同步收紧"}]
+[T4] ledger=[('recover_jade_statue', '活跃', '已摸到马戎寨外确认方位，但马戎正紧急撤离、哨卫严'), ('jade_true_nature', '活跃', "矿洞口草木枯死、周期性闷响、守卫称'不稳'——玉"), ('faction_struggle', '活跃', '马戎受京城主使连催三次急于撤离；镇上黑烟冲天瘟疫')]
+[T4] recap: scenes_recorded=4 summarized=2 super_summary=-
+Traceback (most recent call last):
+  File "/tmp/verify_p2.py", line 34, in <module>
+    r = run_turn(engine.registry, engine.store, engine.world, scene, line,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/rpg-engine-app/loop/turn.py", line 222, in run_turn
+    commit, attempts, dropped_sections = produce_turn(
+                                         ^^^^^^^^^^^^^
+  File "/root/rpg-engine-app/loop/turn.py", line 97, in produce_turn
+    commit = strategy.produce(
+             ^^^^^^^^^^^^^^^^^
+  File "/root/rpg-engine-app/loop/strategy.py", line 188, in produce
+    raw = provider.complete_messages(self._messages)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/rpg-engine-app/llm/provider.py", line 328, in complete_messages
+    resp = _do_post(url, headers, body)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/rpg-engine-app/llm/provider.py", line 204, in _do_post
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 1392, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 1348, in do_open
+    r = h.getresponse()
+        ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 1448, in getresponse
+    response.begin()
+  File "/usr/lib/python3.12/http/client.py", line 336, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 297, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1252, in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1104, in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: The read operation timed out

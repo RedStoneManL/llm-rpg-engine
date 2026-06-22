@@ -1,0 +1,7 @@
+[
+  {"weight": 3, "name": "身世之谜", "type": "身世线", "endpoint_hint": "揭开主角/同伴的真实出身", "hook": "一件来历不明的旧物"},
+  {"weight": 3, "name": "复仇宿敌", "type": "阴谋线", "endpoint_hint": "与幕后黑手的最终对决", "hook": "一桩未解的旧案"},
+  {"weight": 2, "name": "禁忌之力", "type": "物品线", "endpoint_hint": "力量的代价与归宿", "hook": "一次失控的异象"},
+  {"weight": 2, "name": "势力暗涌", "type": "势力线", "endpoint_hint": "某方势力的崛起或崩塌", "hook": "街头流传的谣言"},
+  {"weight": 2, "name": "情之羁绊", "type": "情感线", "endpoint_hint": "一段关系的质变", "hook": "一个欲言又止的眼神"}
+]

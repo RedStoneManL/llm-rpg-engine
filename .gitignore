@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+/.venv/
+.pytest_cache/
+
+# Secrets — NEVER commit
+.env.local
+.env
+
+# Runtime / campaign / debug data
+/campaign/
+/campaigns/
+*.db
+events.jsonl
+trace.jsonl
+
+# OS
+.DS_Store

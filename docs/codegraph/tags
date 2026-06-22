@@ -1,0 +1,439 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/root/rpg-engine-app/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+ANTHROPIC_VERSION	llm/provider.py	/^    ANTHROPIC_VERSION = "2023-06-01"$/;"	v	class:AnthropicProvider
+AnthropicProvider	llm/provider.py	/^class AnthropicProvider(LLMProvider):$/;"	c
+ArchiveStore	engine/archive.py	/^class ArchiveStore:$/;"	c
+AuthorStrategy	loop/strategy.py	/^class AuthorStrategy(TurnStrategy):$/;"	c
+BIG_THRESHOLD	engine/director.py	/^BIG_THRESHOLD = 75            # 量级:>=75 大事件$/;"	v
+BLOCK	engine/check.py	/^BLOCK = "block"$/;"	v
+CHAR_STALE_EVENTS	engine/check.py	/^CHAR_STALE_EVENTS = 5$/;"	v
+CRIT_BASE	engine/director.py	/^CRIT_BASE = 95                # 暴击基线(张力抬高它,高潮更难但仍可)$/;"	v
+CharacterSystem	systems/character.py	/^class CharacterSystem(ContextSystem):$/;"	c
+ContextSystem	kernel/contextsystem.py	/^class ContextSystem:$/;"	c
+DEFAULT_BASE_URL	llm/provider.py	/^    DEFAULT_BASE_URL = "https:\/\/api.anthropic.com"$/;"	v	class:AnthropicProvider
+DEFAULT_BASE_URL	llm/provider.py	/^    DEFAULT_BASE_URL = "https:\/\/api.openai.com\/v1"$/;"	v	class:OpenAIProvider
+DEFAULT_BASE_URL	llm/provider.py	/^    DEFAULT_BASE_URL = "https:\/\/open.bigmodel.cn\/api\/paas\/v4"$/;"	v	class:ZhipuProvider
+DORMANT_RATIO	engine/director.py	/^DORMANT_RATIO = 0.5           # 类型:埋线 vs 前台 的基础比例$/;"	v
+EVENT_TYPES	engine/schema.py	/^EVENT_TYPES = frozenset({$/;"	v
+Engine	app/engine.py	/^class Engine:$/;"	c
+Entity	facts/entity.py	/^class Entity:$/;"	c
+EventStore	engine/store.py	/^class EventStore:$/;"	c
+ExtractStrategy	loop/strategy.py	/^class ExtractStrategy(TurnStrategy):$/;"	c
+Fact	facts/fact.py	/^class Fact:$/;"	c
+FactGraph	facts/graph.py	/^class FactGraph:$/;"	c
+FactionSystem	systems/faction.py	/^class FactionSystem(ContextSystem):$/;"	c
+FakeEmbedder	engine/embed.py	/^class FakeEmbedder:$/;"	c
+FakeLLMProvider	llm/provider.py	/^class FakeLLMProvider(LLMProvider):$/;"	c
+FastEmbedEmbedder	engine/embed.py	/^class FastEmbedEmbedder:$/;"	c
+Fragment	kernel/contextsystem.py	/^class Fragment:$/;"	c
+IMP_MAX	memory/recall.py	/^IMP_MAX: float = 10.0$/;"	v	typeref:typename:float
+IMP_MIN	memory/recall.py	/^IMP_MIN: float = 0.0$/;"	v	typeref:typename:float
+KnowledgeSystem	systems/knowledge.py	/^class KnowledgeSystem(ContextSystem):$/;"	c
+LAYER_ORDER	kernel/assembler.py	/^LAYER_ORDER = ("stable", "scene", "volatile")$/;"	v
+LLMProvider	llm/provider.py	/^class LLMProvider(abc.ABC):$/;"	c
+LangfuseTracer	kernel/observability.py	/^class LangfuseTracer:$/;"	c
+MIN_ACTIVE_THREADS	engine/director.py	/^MIN_ACTIVE_THREADS = 2$/;"	v
+NoopTracer	kernel/observability.py	/^class NoopTracer:$/;"	c
+ObjectSystem	systems/object.py	/^class ObjectSystem(ContextSystem):$/;"	c
+OntologySystem	systems/ontology.py	/^class OntologySystem(ContextSystem):$/;"	c
+OpenAIProvider	llm/provider.py	/^class OpenAIProvider(LLMProvider):$/;"	c
+Oracle	engine/oracle.py	/^class Oracle:$/;"	c
+PROMISE_STALE_DAYS	engine/check.py	/^PROMISE_STALE_DAYS = 30$/;"	v
+PlaceSystem	systems/place.py	/^class PlaceSystem(ContextSystem):$/;"	c
+RecallHit	kernel/contextsystem.py	/^class RecallHit:$/;"	c
+Registry	kernel/registry.py	/^class Registry:$/;"	c
+Relation	facts/fact.py	/^class Relation:$/;"	c
+SPEED_CADENCE	engine/director.py	/^SPEED_CADENCE = {"快": 3, "中": 6, "慢": 12}$/;"	v
+TENSION_GATE	engine/director.py	/^TENSION_GATE = 0.6           # 张力>=此 → 非暴击前台压成休眠$/;"	v
+THREAD_STALE_SCENES	engine/check.py	/^THREAD_STALE_SCENES = 8$/;"	v
+TURNCOMMIT_SCHEMA	loop/strategy.py	/^TURNCOMMIT_SCHEMA: dict[str, Any] = {$/;"	v	typeref:typename:dict[str, Any]
+TurnCommit	kernel/turncommit.py	/^class TurnCommit:$/;"	c
+TurnResult	loop/turn.py	/^class TurnResult:$/;"	c
+TurnStrategy	loop/strategy.py	/^class TurnStrategy(abc.ABC):$/;"	c
+ValidationError	kernel/contextsystem.py	/^class ValidationError:$/;"	c
+VectorStore	engine/vectorstore.py	/^class VectorStore:$/;"	c
+WARN	engine/check.py	/^WARN = "warn"$/;"	v
+W_IMP	memory/recall.py	/^W_IMP: float = 0.35   # importance weight$/;"	v	typeref:typename:float
+W_REC	memory/recall.py	/^W_REC: float = 0.35   # recency weight$/;"	v	typeref:typename:float
+W_REL	memory/recall.py	/^W_REL: float = 0.30   # relevance (cosine) weight$/;"	v	typeref:typename:float
+ZhipuProvider	llm/provider.py	/^class ZhipuProvider(LLMProvider):$/;"	c
+_ALL_LINTERS	engine/check.py	/^_ALL_LINTERS = _STRUCTURAL + [check_thread_followup, check_character_staleness, check_promise_ag/;"	v
+_DELTA_BONUS	memory/importance.py	/^_DELTA_BONUS = 1      # having any deltas adds 1$/;"	v
+_ENV_KEY_MAP	llm/provider.py	/^_ENV_KEY_MAP = {$/;"	v
+_EVOLUTION_TYPES	engine/check.py	/^_EVOLUTION_TYPES = ("relationship_change", "character_development", "character_reveal")$/;"	v
+_GENESIS_DAY	app/engine.py	/^_GENESIS_DAY = 1$/;"	v
+_GENESIS_SCENE	app/engine.py	/^_GENESIS_SCENE = "genesis"$/;"	v
+_GUARDRAIL_TAG	context/assembler.py	/^_GUARDRAIL_TAG = "⚠️只约束·勿泄露"$/;"	v
+_HELP_TEXT	app/play.py	/^_HELP_TEXT = """\\$/;"	v
+_MAX_SCORE	memory/importance.py	/^_MAX_SCORE = 10$/;"	v
+_MIN_SCORE_HEURISTIC	memory/importance.py	/^_MIN_SCORE_HEURISTIC = 0$/;"	v
+_NARRATE_PROMPT	loop/strategy.py	/^_NARRATE_PROMPT = """\\$/;"	v
+_ORACLE_DIR	engine/oracle.py	/^_ORACLE_DIR = Path(__file__).resolve().parent.parent \/ "data" \/ "oracles"$/;"	v
+_PROTAGONIST_ID	app/engine.py	/^_PROTAGONIST_ID = "protagonist"$/;"	v
+_PROVIDER_MAP	llm/provider.py	/^_PROVIDER_MAP = {$/;"	v
+_REQUIRED	engine/schema.py	/^_REQUIRED = ("id", "type", "day", "scene", "actors", "summary")$/;"	v
+_RESERVED_KEYS	systems/object.py	/^_RESERVED_KEYS = {"op", "item", "to"}$/;"	v
+_RESERVED_PREFIXES	systems/character.py	/^_RESERVED_PREFIXES = {"knows", "rank", "group", "trust"}$/;"	v
+_ROOT	engine/log.py	/^_ROOT = "rpg"$/;"	v
+_SCHEMA	engine/archive.py	/^_SCHEMA = """$/;"	v
+_SCHEMA	engine/store.py	/^_SCHEMA = """$/;"	v
+_SEV_ICON	engine/cli.py	/^_SEV_ICON = {"block": "🔴", "warn": "🟡"}$/;"	v
+_STARTING_PLACE_ID	app/engine.py	/^_STARTING_PLACE_ID = "starting_location"$/;"	v
+_STRUCTURAL	engine/check.py	/^_STRUCTURAL = [check_thread_completeness, check_villain_omniscience, check_timeline, check_dangl/;"	v
+_SYSTEM_PROMPT	loop/strategy.py	/^_SYSTEM_PROMPT = """\\$/;"	v
+_SYSTEM_PROMPT	memory/importance.py	/^_SYSTEM_PROMPT = """\\$/;"	v
+_SYSTEM_PROMPT	memory/reflection.py	/^_SYSTEM_PROMPT = """\\$/;"	v
+_SYSTEM_PROMPT_SHIGUAN	loop/strategy.py	/^_SYSTEM_PROMPT_SHIGUAN = """\\$/;"	v
+_THREAD_REF_BONUS	memory/importance.py	/^_THREAD_REF_BONUS = 1  # having thread_refs adds 1$/;"	v
+_TYPE_BASE	memory/importance.py	/^_TYPE_BASE: dict[str, int] = {$/;"	v	typeref:typename:dict[str, int]
+_VALID_KINDS	systems/place.py	/^_VALID_KINDS = {"settlement", "wilderness", "dungeon", "venue", "region"}$/;"	v
+_VALID_LEVELS	systems/place.py	/^_VALID_LEVELS = {1, 2, 3}$/;"	v
+__enter__	engine/archive.py	/^    def __enter__(self):$/;"	m	class:ArchiveStore
+__enter__	engine/store.py	/^    def __enter__(self):$/;"	m	class:EventStore
+__enter__	engine/vectorstore.py	/^    def __enter__(self):$/;"	m	class:VectorStore
+__exit__	engine/archive.py	/^    def __exit__(self, *exc):$/;"	m	class:ArchiveStore
+__exit__	engine/store.py	/^    def __exit__(self, *exc):$/;"	m	class:EventStore
+__exit__	engine/vectorstore.py	/^    def __exit__(self, *exc):$/;"	m	class:VectorStore
+__init__	engine/archive.py	/^    def __init__(self, db_path):$/;"	m	class:ArchiveStore
+__init__	engine/embed.py	/^    def __init__(self, model_name="BAAI\/bge-small-zh-v1.5", dim=512):$/;"	m	class:FastEmbedEmbedder
+__init__	engine/oracle.py	/^    def __init__(self, seed):$/;"	m	class:Oracle
+__init__	engine/store.py	/^    def __init__(self, db_path, jsonl_path, allowed_types=None):$/;"	m	class:EventStore
+__init__	engine/vectorstore.py	/^    def __init__(self, db_path):$/;"	m	class:VectorStore
+__init__	facts/graph.py	/^    def __init__(self) -> None:$/;"	m	class:FactGraph	typeref:typename:None
+__init__	kernel/observability.py	/^    def __init__(self):$/;"	m	class:LangfuseTracer
+__init__	kernel/registry.py	/^    def __init__(self):$/;"	m	class:Registry
+__init__	llm/provider.py	/^    def __init__(self, model: str, api_key: str, base_url: str | None = None):$/;"	m	class:AnthropicProvider
+__init__	llm/provider.py	/^    def __init__(self, model: str, api_key: str, base_url: str | None = None):$/;"	m	class:OpenAIProvider
+__init__	llm/provider.py	/^    def __init__(self, model: str, api_key: str, base_url: str | None = None):$/;"	m	class:ZhipuProvider
+__init__	llm/provider.py	/^    def __init__(self, responses: list[str] | None = None,$/;"	m	class:FakeLLMProvider
+_archive	engine/recall.py	/^def _archive(campaign_dir):$/;"	f
+_build_request	llm/provider.py	/^    def _build_request(self, system: str, user: str, *,$/;"	m	class:AnthropicProvider	typeref:typename:tuple[str,dict,dict]
+_build_request	llm/provider.py	/^    def _build_request(self, system: str, user: str, *,$/;"	m	class:OpenAIProvider	typeref:typename:tuple[str,dict,dict]
+_build_request	llm/provider.py	/^    def _build_request(self, system: str, user: str, *,$/;"	m	class:ZhipuProvider	typeref:typename:tuple[str,dict,dict]
+_build_scene	app/play.py	/^def _build_scene(engine) -> dict:$/;"	f	typeref:typename:dict
+_campaign_dir	engine/cli.py	/^def _campaign_dir(cid=None) -> Path:$/;"	f	typeref:typename:Path
+_campaign_seed	engine/cli.py	/^def _campaign_seed(cid):$/;"	f
+_campaigns	engine/cli.py	/^def _campaigns() -> Path:$/;"	f	typeref:typename:Path
+_candidate_record	app/play.py	/^def _candidate_record(commit, attempts, dropped) -> dict:$/;"	f	typeref:typename:dict
+_compact	engine/cli.py	/^    from engine.compact import compact as _compact$/;"	x	function:cmd_doctor	file:	nameref:unknown:compact
+_cosine	memory/recall.py	/^def _cosine(a: list[float], b: list[float]) -> float:$/;"	f	typeref:typename:float
+_current	facts/fact.py	/^def _current(end): return end is None$/;"	f
+_current_file	engine/cli.py	/^def _current_file() -> Path:$/;"	f	typeref:typename:Path
+_do_post	llm/provider.py	/^def _do_post(url: str, headers: dict, body: dict, timeout: int = 30) -> dict:$/;"	f	typeref:typename:dict
+_draw_distinct	engine/seed.py	/^def _draw_distinct(oracle, entries, k):$/;"	f
+_ensure	engine/embed.py	/^    def _ensure(self):$/;"	m	class:FastEmbedEmbedder
+_events	engine/recall.py	/^def _events(campaign_dir):$/;"	f
+_extract_int	memory/importance.py	/^def _extract_int(text: str) -> int | None:$/;"	f	typeref:typename:int|None
+_extract_json_object	memory/reflection.py	/^def _extract_json_object(text: str) -> dict | None:$/;"	f	typeref:typename:dict|None
+_finding	engine/check.py	/^def _finding(linter, severity, message, suggestion=""):$/;"	f
+_fts_query	engine/archive.py	/^def _fts_query(q):$/;"	f
+_ground_truth	context/viewpoint.py	/^def _ground_truth(graph: FactGraph, fact_key: str, day: int) -> object | None:$/;"	f	typeref:typename:object|None
+_home	engine/cli.py	/^def _home() -> Path:$/;"	f	typeref:typename:Path
+_hook_state_path	engine/cli.py	/^def _hook_state_path():$/;"	f
+_j	engine/store.py	/^        def _j(v, default):$/;"	f	member:EventStore._row_to_event	file:
+_new_char	engine/projection.py	/^def _new_char(name):$/;"	f
+_next_turn	loop/turn.py	/^def _next_turn(store) -> int:$/;"	f	typeref:typename:int
+_norm_importance	memory/recall.py	/^def _norm_importance(importance: float) -> float:$/;"	f	typeref:typename:float
+_primary_subject	loop/fleet.py	/^def _primary_subject(event: dict) -> str | None:$/;"	f	typeref:typename:str|None
+_project	engine/compact.py	/^def _project(campaign_dir):$/;"	f
+_read_hook_state	engine/cli.py	/^def _read_hook_state():$/;"	f
+_recall	engine/cli.py	/^    from engine.recall import recall as _recall$/;"	x	function:cmd_doctor	file:	nameref:unknown:recall
+_recency	memory/recall.py	/^def _recency(now_day: float, day: float) -> float:$/;"	f	typeref:typename:float
+_resolve_audience	systems/knowledge.py	/^    def _resolve_audience($/;"	m	class:KnowledgeSystem	typeref:typename:list[str]
+_rewind	engine/cli.py	/^    from engine.rewind import rewind as _rewind$/;"	x	function:cmd_doctor	file:	nameref:unknown:rewind
+_rewrite_jsonl	engine/store.py	/^    def _rewrite_jsonl(self):$/;"	m	class:EventStore
+_row	engine/archive.py	/^    def _row(self, r):$/;"	m	class:ArchiveStore
+_row_to_event	engine/store.py	/^    def _row_to_event(r):$/;"	m	class:EventStore
+_scene_ordinals	engine/director.py	/^def _scene_ordinals(events):$/;"	f
+_store	engine/cli.py	/^def _store(d) -> EventStore:$/;"	f	typeref:typename:EventStore
+_touch_session	engine/cli.py	/^def _touch_session():$/;"	f
+_valid_at	facts/fact.py	/^def _valid_at(start, end, day): return day >= start and (end is None or day < end)$/;"	f
+_vectors	engine/recall.py	/^def _vectors(campaign_dir):$/;"	f
+_write_transcript	app/play.py	/^def _write_transcript(path, record: dict) -> None:$/;"	f	typeref:typename:None
+add	engine/vectorstore.py	/^    def add(self, block_id, vector):$/;"	m	class:VectorStore
+add_chunk	engine/archive.py	/^    def add_chunk(self, *, day, scene, turn, text, entities=None, event_ids=None, kind="narratio/;"	m	class:ArchiveStore
+add_entity	facts/graph.py	/^    def add_entity(self, id: str, etype: str, tier: str = "mentioned", **attrs: Any) -> Entity:$/;"	m	class:FactGraph	typeref:typename:Entity
+add_relation	facts/graph.py	/^    def add_relation($/;"	m	class:FactGraph	typeref:typename:Relation
+affordance	kernel/contextsystem.py	/^    affordance: str = ""  # "what you can declare this turn"$/;"	v	class:Fragment	typeref:typename:str
+append	engine/store.py	/^    def append(self, ev) -> int:$/;"	m	class:EventStore	typeref:typename:int
+apply	engine/projection.py	/^def apply(proj, ev):$/;"	f
+apply	kernel/contextsystem.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:ContextSystem	typeref:typename:None
+apply	systems/character.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:CharacterSystem	typeref:typename:None
+apply	systems/faction.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:FactionSystem	typeref:typename:None
+apply	systems/knowledge.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:KnowledgeSystem	typeref:typename:None
+apply	systems/object.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:ObjectSystem	typeref:typename:None
+apply	systems/ontology.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:OntologySystem	typeref:typename:None
+apply	systems/place.py	/^    def apply(self, world: dict, event: dict) -> None:$/;"	m	class:PlaceSystem	typeref:typename:None
+apply_turn	loop/turn.py	/^def apply_turn($/;"	f	typeref:typename:dict
+assemble	kernel/assembler.py	/^def assemble(registry: Registry, scene: dict, world: dict) -> list[Fragment]:$/;"	f	typeref:typename:list[Fragment]
+assemble_context	context/assembler.py	/^def assemble_context($/;"	f	typeref:typename:str
+assert_fact	facts/graph.py	/^    def assert_fact($/;"	m	class:FactGraph	typeref:typename:Fact
+attrs	facts/entity.py	/^    attrs: dict[str, Any] = field(default_factory=dict)$/;"	v	class:Entity	typeref:typename:dict[str, Any]
+attrs	facts/fact.py	/^    attrs: dict = field(default_factory=dict)$/;"	v	class:Relation	typeref:typename:dict
+build_engine	app/engine.py	/^def build_engine($/;"	f	typeref:typename:Engine
+build_repair_request	kernel/validation.py	/^def build_repair_request(errors: list[ValidationError]) -> str:$/;"	f	typeref:typename:str
+build_viewpoint	context/viewpoint.py	/^def build_viewpoint($/;"	f	typeref:typename:dict
+build_working_memory	engine/compact.py	/^def build_working_memory(campaign_dir):$/;"	f
+chance	engine/oracle.py	/^    def chance(self, p):$/;"	m	class:Oracle
+check	engine/check.py	/^def check(events, proj):$/;"	f
+check_character_staleness	engine/check.py	/^def check_character_staleness(events, proj):$/;"	f
+check_dangling_refs	engine/check.py	/^def check_dangling_refs(events, proj):$/;"	f
+check_promise_aging	engine/check.py	/^def check_promise_aging(events, proj):$/;"	f
+check_thread_completeness	engine/check.py	/^def check_thread_completeness(events, proj):$/;"	f
+check_thread_followup	engine/check.py	/^def check_thread_followup(events, proj):$/;"	f
+check_timeline	engine/check.py	/^def check_timeline(events, proj):$/;"	f
+check_villain_omniscience	engine/check.py	/^def check_villain_omniscience(events, proj):$/;"	f
+clear	engine/vectorstore.py	/^    def clear(self):$/;"	m	class:VectorStore
+close	engine/archive.py	/^    def close(self):$/;"	m	class:ArchiveStore
+close	engine/store.py	/^    def close(self):$/;"	m	class:EventStore
+close	engine/vectorstore.py	/^    def close(self):$/;"	m	class:VectorStore
+cmd_check	engine/cli.py	/^def cmd_check(args):$/;"	f
+cmd_compact	engine/cli.py	/^def cmd_compact(args):$/;"	f
+cmd_director	engine/cli.py	/^def cmd_director(args):$/;"	f
+cmd_doctor	engine/cli.py	/^def cmd_doctor(args):$/;"	f
+cmd_hooks	engine/cli.py	/^def cmd_hooks(args):$/;"	f
+cmd_log_event	engine/cli.py	/^def cmd_log_event(args):$/;"	f
+cmd_log_turn	engine/cli.py	/^def cmd_log_turn(args):$/;"	f
+cmd_new	engine/cli.py	/^def cmd_new(args):$/;"	f
+cmd_project	engine/cli.py	/^def cmd_project(args):$/;"	f
+cmd_recall	engine/cli.py	/^def cmd_recall(args):$/;"	f
+cmd_recap	engine/cli.py	/^def cmd_recap(args):$/;"	f
+cmd_reindex	engine/cli.py	/^def cmd_reindex(args):$/;"	f
+cmd_rewind	engine/cli.py	/^def cmd_rewind(args):$/;"	f
+cmd_seed	engine/cli.py	/^def cmd_seed(args):$/;"	f
+cmd_session	engine/cli.py	/^def cmd_session(args):$/;"	f
+cmd_status	engine/cli.py	/^def cmd_status(args):$/;"	f
+cmd_threads_next	engine/cli.py	/^def cmd_threads_next(args):$/;"	f
+commit_sections	kernel/contextsystem.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:ContextSystem	typeref:typename:set[str]
+commit_sections	systems/character.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:CharacterSystem	typeref:typename:set[str]
+commit_sections	systems/faction.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:FactionSystem	typeref:typename:set[str]
+commit_sections	systems/knowledge.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:KnowledgeSystem	typeref:typename:set[str]
+commit_sections	systems/object.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:ObjectSystem	typeref:typename:set[str]
+commit_sections	systems/ontology.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:OntologySystem	typeref:typename:set[str]
+commit_sections	systems/place.py	/^    def commit_sections(self) -> set[str]:$/;"	m	class:PlaceSystem	typeref:typename:set[str]
+compact	engine/compact.py	/^def compact(campaign_dir):$/;"	f
+compact_fn	engine/cli.py	/^from engine.compact import compact as compact_fn$/;"	x	nameref:unknown:compact
+complete	llm/provider.py	/^    def complete(self, system: str, user: str, *,$/;"	m	class:AnthropicProvider	typeref:typename:str
+complete	llm/provider.py	/^    def complete(self, system: str, user: str, *,$/;"	m	class:FakeLLMProvider	typeref:typename:str
+complete	llm/provider.py	/^    def complete(self, system: str, user: str, *,$/;"	m	class:LLMProvider	typeref:typename:str
+complete	llm/provider.py	/^    def complete(self, system: str, user: str, *,$/;"	m	class:OpenAIProvider	typeref:typename:str
+complete	llm/provider.py	/^    def complete(self, system: str, user: str, *,$/;"	m	class:ZhipuProvider	typeref:typename:str
+complete_json	llm/provider.py	/^    def complete_json(self, system: str, user: str, schema: dict, **kw) -> dict:$/;"	m	class:FakeLLMProvider	typeref:typename:dict
+complete_json	llm/provider.py	/^    def complete_json(self, system: str, user: str, schema: dict,$/;"	m	class:LLMProvider	typeref:typename:dict
+compute_pacing	engine/director.py	/^def compute_pacing(events):$/;"	f
+configure_logging	engine/log.py	/^def configure_logging():$/;"	f
+current_facts	facts/graph.py	/^    def current_facts(self, subject: str) -> list[Fact]:$/;"	m	class:FactGraph	typeref:typename:list[Fact]
+d100	engine/oracle.py	/^    def d100(self):$/;"	m	class:Oracle
+delete_from_turn	engine/archive.py	/^    def delete_from_turn(self, turn):$/;"	m	class:ArchiveStore
+digest_extract	kernel/contextsystem.py	/^    def digest_extract(self, prose: str, world: dict) -> dict:$/;"	m	class:ContextSystem	typeref:typename:dict
+digest_extract	kernel/digest.py	/^def digest_extract(registry: Registry, prose: str, world: dict) -> TurnCommit:$/;"	f	typeref:typename:TurnCommit
+digest_fleet	loop/fleet.py	/^def digest_fleet($/;"	f	typeref:typename:list[dict]
+dim	engine/embed.py	/^    dim = 64$/;"	v	class:FakeEmbedder
+director_check	engine/director.py	/^def director_check(scenes_since_event, tension, oracle, *, tables):$/;"	f
+director_mod	engine/cli.py	/^from engine import director as director_mod$/;"	x	nameref:unknown:director
+dispatch_ooc	app/play.py	/^def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool:$/;"	f	typeref:typename:bool
+draw	engine/oracle.py	/^    def draw(self, entries):$/;"	m	class:Oracle
+dropped_sections	loop/turn.py	/^    dropped_sections: list[str] = field(default_factory=list)$/;"	v	class:TurnResult	typeref:typename:list[str]
+dump	kernel/observability.py	/^def dump(label: str, payload) -> None:$/;"	f	typeref:typename:None
+embed	engine/embed.py	/^    def embed(self, texts):$/;"	m	class:FakeEmbedder
+embed	engine/embed.py	/^    def embed(self, texts):$/;"	m	class:FastEmbedEmbedder
+embed_query	memory/recall.py	/^def embed_query(text: str, embedder) -> list[float]:$/;"	f	typeref:typename:list[float]
+empty_projections	engine/projection.py	/^def empty_projections():$/;"	f
+empty_state	kernel/contextsystem.py	/^    def empty_state(self) -> Any:$/;"	m	class:ContextSystem	typeref:typename:Any
+empty_state	systems/character.py	/^    def empty_state(self) -> dict:$/;"	m	class:CharacterSystem	typeref:typename:dict
+empty_state	systems/faction.py	/^    def empty_state(self) -> dict:$/;"	m	class:FactionSystem	typeref:typename:dict
+empty_state	systems/knowledge.py	/^    def empty_state(self) -> dict:$/;"	m	class:KnowledgeSystem	typeref:typename:dict
+empty_state	systems/object.py	/^    def empty_state(self) -> dict:$/;"	m	class:ObjectSystem	typeref:typename:dict
+empty_state	systems/ontology.py	/^    def empty_state(self) -> FactGraph:$/;"	m	class:OntologySystem	typeref:typename:FactGraph
+empty_state	systems/place.py	/^    def empty_state(self) -> dict:$/;"	m	class:PlaceSystem	typeref:typename:dict
+empty_world	kernel/projection.py	/^def empty_world(registry: Registry) -> dict:$/;"	f	typeref:typename:dict
+event	kernel/observability.py	/^    def event(self, name, **attrs):$/;"	m	class:LangfuseTracer
+event	kernel/observability.py	/^    def event(self, name, **attrs):$/;"	m	class:NoopTracer
+event_types	kernel/contextsystem.py	/^    def event_types(self) -> set[str]:$/;"	m	class:ContextSystem	typeref:typename:set[str]
+event_types	kernel/registry.py	/^    def event_types(self) -> set[str]:$/;"	m	class:Registry	typeref:typename:set[str]
+event_types	systems/character.py	/^    def event_types(self) -> set[str]:$/;"	m	class:CharacterSystem	typeref:typename:set[str]
+event_types	systems/faction.py	/^    def event_types(self) -> set[str]:$/;"	m	class:FactionSystem	typeref:typename:set[str]
+event_types	systems/knowledge.py	/^    def event_types(self) -> set[str]:$/;"	m	class:KnowledgeSystem	typeref:typename:set[str]
+event_types	systems/object.py	/^    def event_types(self) -> set[str]:$/;"	m	class:ObjectSystem	typeref:typename:set[str]
+event_types	systems/ontology.py	/^    def event_types(self) -> set[str]:$/;"	m	class:OntologySystem	typeref:typename:set[str]
+event_types	systems/place.py	/^    def event_types(self) -> set[str]:$/;"	m	class:PlaceSystem	typeref:typename:set[str]
+fact_history	facts/graph.py	/^    def fact_history(self, subject: str, predicate: str) -> list[Fact]:$/;"	m	class:FactGraph	typeref:typename:list[Fact]
+from_dict	kernel/turncommit.py	/^    def from_dict(cls, d: dict) -> "TurnCommit":$/;"	m	class:TurnCommit	typeref:typename:"TurnCommit"
+fts_search	engine/archive.py	/^    def fts_search(self, query, k=5, entity=None, day=None):$/;"	m	class:ArchiveStore
+get_chunk	engine/archive.py	/^    def get_chunk(self, chunk_id):$/;"	m	class:ArchiveStore
+get_embedder	engine/embed.py	/^def get_embedder(name=None):$/;"	f
+get_entity	facts/graph.py	/^    def get_entity(self, id: str) -> Entity | None:$/;"	m	class:FactGraph	typeref:typename:Entity|None
+get_logger	engine/log.py	/^def get_logger(name):$/;"	f
+get_tracer	kernel/observability.py	/^def get_tracer():$/;"	f
+heuristic_floor	memory/importance.py	/^def heuristic_floor(event: dict[str, Any]) -> int:$/;"	f	typeref:typename:int
+importance_mod	loop/fleet.py	/^import memory.importance as importance_mod$/;"	I	nameref:module:memory.importance
+inject	kernel/contextsystem.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:ContextSystem	typeref:typename:Fragment|None
+inject	systems/character.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:CharacterSystem	typeref:typename:Fragment|None
+inject	systems/faction.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:FactionSystem	typeref:typename:Fragment|None
+inject	systems/knowledge.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:KnowledgeSystem	typeref:typename:Fragment|None
+inject	systems/object.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:ObjectSystem	typeref:typename:Fragment|None
+inject	systems/ontology.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:OntologySystem	typeref:typename:Fragment|None
+inject	systems/place.py	/^    def inject(self, scene: dict, world: dict) -> Fragment | None:$/;"	m	class:PlaceSystem	typeref:typename:Fragment|None
+is_current	facts/fact.py	/^    def is_current(self): return _current(self.event_time_end)$/;"	m	class:Fact
+is_current	facts/fact.py	/^    def is_current(self): return _current(self.event_time_end)$/;"	m	class:Relation
+iter_chunks	engine/archive.py	/^    def iter_chunks(self):$/;"	m	class:ArchiveStore
+iter_events	engine/store.py	/^    def iter_events(self, include_retracted=False):$/;"	m	class:EventStore
+kernel_event	kernel/events.py	/^def kernel_event(type, *, day, scene, summary, actors=None, deltas=None,$/;"	f	typeref:typename:dict
+kernel_recall	app/play.py	/^from kernel.recall import recall as kernel_recall$/;"	x	nameref:unknown:recall
+kernel_recall	context/assembler.py	/^from kernel.recall import recall as kernel_recall$/;"	x	nameref:unknown:recall
+knowers_of	systems/knowledge.py	/^def knowers_of(graph: FactGraph, fact_key: str, day: int) -> list[str]:$/;"	f	typeref:typename:list[str]
+knows	systems/knowledge.py	/^def knows(graph: FactGraph, knower: str, fact_key: str, day: int) -> object | None:$/;"	f	typeref:typename:object|None
+last_turn	engine/rewind.py	/^def last_turn(campaign_dir):$/;"	f
+load_table	engine/oracle.py	/^def load_table(name, genre=None):$/;"	f
+log	app/__main__.py	/^log = get_logger("app.main")$/;"	v
+log	app/engine.py	/^log = get_logger("app.engine")$/;"	v
+log	app/play.py	/^log = get_logger("app.play")$/;"	v
+log	context/assembler.py	/^log = get_logger("context.assembler")$/;"	v
+log	context/viewpoint.py	/^log = get_logger("context.viewpoint")$/;"	v
+log	engine/archive.py	/^log = get_logger("archive")$/;"	v
+log	engine/check.py	/^log = get_logger("check")$/;"	v
+log	engine/cli.py	/^log = get_logger("cli")$/;"	v
+log	engine/compact.py	/^log = get_logger("compact")$/;"	v
+log	engine/director.py	/^log = get_logger("director")$/;"	v
+log	engine/embed.py	/^log = get_logger("embed")$/;"	v
+log	engine/oracle.py	/^log = get_logger("oracle")$/;"	v
+log	engine/projection.py	/^log = get_logger("projection")$/;"	v
+log	engine/recall.py	/^log = get_logger("recall")$/;"	v
+log	engine/rewind.py	/^log = get_logger("rewind")$/;"	v
+log	engine/seed.py	/^log = get_logger("seed")$/;"	v
+log	engine/store.py	/^log = get_logger("store")$/;"	v
+log	engine/vectorstore.py	/^log = get_logger("vectorstore")$/;"	v
+log	facts/graph.py	/^log = get_logger("facts.graph")$/;"	v
+log	kernel/assembler.py	/^log = get_logger("kernel.assembler")$/;"	v
+log	kernel/contextsystem.py	/^log = get_logger("kernel.contextsystem")$/;"	v
+log	kernel/digest.py	/^log = get_logger("kernel.digest")$/;"	v
+log	kernel/observability.py	/^log = get_logger("kernel.observability")$/;"	v
+log	kernel/projection.py	/^log = get_logger("kernel.projection")$/;"	v
+log	kernel/recall.py	/^log = get_logger("kernel.recall")$/;"	v
+log	kernel/registry.py	/^log = get_logger("kernel.registry")$/;"	v
+log	kernel/validation.py	/^log = get_logger("kernel.validation")$/;"	v
+log	llm/provider.py	/^log = get_logger("llm")$/;"	v
+log	loop/compare.py	/^log = get_logger("loop.compare")$/;"	v
+log	loop/fleet.py	/^log = get_logger("loop.fleet")$/;"	v
+log	loop/strategy.py	/^log = get_logger("loop.strategy")$/;"	v
+log	loop/turn.py	/^log = get_logger("loop.turn")$/;"	v
+log	memory/importance.py	/^log = get_logger("memory.importance")$/;"	v
+log	memory/recall.py	/^log = get_logger("memory.recall")$/;"	v
+log	memory/reflection.py	/^log = get_logger("memory.reflection")$/;"	v
+log	systems/character.py	/^log = get_logger("systems.character")$/;"	v
+log	systems/faction.py	/^log = get_logger("systems.faction")$/;"	v
+log	systems/knowledge.py	/^log = get_logger("systems.knowledge")$/;"	v
+log	systems/object.py	/^log = get_logger("systems.object")$/;"	v
+log	systems/ontology.py	/^log = get_logger("systems.ontology")$/;"	v
+log	systems/place.py	/^log = get_logger("systems.place")$/;"	v
+main	app/__main__.py	/^def main($/;"	f	typeref:typename:None
+main	bin/rpg	/^def main():$/;"	f
+make_event	engine/schema.py	/^def make_event(type, day, scene, actors, summary, *, arc=None, deltas=None,$/;"	f
+make_provider	llm/provider.py	/^def make_provider(kind: str, *, model: str | None,$/;"	f	typeref:typename:LLMProvider
+max_turn	engine/archive.py	/^    def max_turn(self):$/;"	m	class:ArchiveStore
+member_rank	systems/faction.py	/^def member_rank($/;"	f	typeref:typename:str|None
+members_of	systems/faction.py	/^def members_of($/;"	f	typeref:typename:list[str]
+min_turn_of_scene	engine/archive.py	/^    def min_turn_of_scene(self, scene):$/;"	m	class:ArchiveStore
+name	kernel/contextsystem.py	/^    name: str = "unnamed"$/;"	v	class:ContextSystem	typeref:typename:str
+name	systems/character.py	/^    name = "character"$/;"	v	class:CharacterSystem
+name	systems/faction.py	/^    name = "faction"$/;"	v	class:FactionSystem
+name	systems/knowledge.py	/^    name = "knowledge"$/;"	v	class:KnowledgeSystem
+name	systems/object.py	/^    name = "object"$/;"	v	class:ObjectSystem
+name	systems/ontology.py	/^    name = "ontology"$/;"	v	class:OntologySystem
+name	systems/place.py	/^    name = "place"$/;"	v	class:PlaceSystem
+narration	kernel/turncommit.py	/^    narration: str = ""$/;"	v	class:TurnCommit	typeref:typename:str
+navigate	systems/place.py	/^def navigate(graph: FactGraph, src: str, dst: str, day: int) -> dict:$/;"	f	typeref:typename:dict
+neighbors	facts/graph.py	/^    def neighbors(self, src: str, rel: str, day: int) -> list[str]:$/;"	m	class:FactGraph	typeref:typename:list[str]
+new_game	app/engine.py	/^def new_game(engine: Engine) -> None:$/;"	f	typeref:typename:None
+next_turn	engine/archive.py	/^    def next_turn(self):$/;"	m	class:ArchiveStore
+np	engine/vectorstore.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	memory/recall.py	/^import numpy as np$/;"	I	nameref:module:numpy
+open_store	kernel/events.py	/^def open_store(db_path, jsonl_path, allowed_types) -> EventStore:$/;"	f	typeref:typename:EventStore
+owner_of_event	kernel/registry.py	/^    def owner_of_event(self, etype: str) -> ContextSystem | None:$/;"	m	class:Registry	typeref:typename:ContextSystem|None
+owner_of_section	kernel/registry.py	/^    def owner_of_section(self, section: str) -> ContextSystem | None:$/;"	m	class:Registry	typeref:typename:ContextSystem|None
+pacing_probability	engine/director.py	/^def pacing_probability(scenes_since_event):$/;"	f
+pick	engine/oracle.py	/^    def pick(self, items):$/;"	m	class:Oracle
+pick_thread_to_advance	engine/director.py	/^def pick_thread_to_advance(events, threads, oracle, *, threshold=1.0):$/;"	f
+play_loop	app/play.py	/^def play_loop($/;"	f	typeref:typename:None
+produce	loop/strategy.py	/^    def produce($/;"	m	class:AuthorStrategy	typeref:typename:TurnCommit
+produce	loop/strategy.py	/^    def produce($/;"	m	class:ExtractStrategy	typeref:typename:TurnCommit
+produce	loop/strategy.py	/^    def produce($/;"	m	class:TurnStrategy	typeref:typename:TurnCommit
+produce_turn	loop/turn.py	/^def produce_turn($/;"	f	typeref:typename:tuple
+project	engine/projection.py	/^def project(events):$/;"	f
+project	kernel/projection.py	/^def project(registry: Registry, events) -> dict:$/;"	f	typeref:typename:dict
+randint	engine/oracle.py	/^    def randint(self, a, b):$/;"	m	class:Oracle
+random	engine/oracle.py	/^    def random(self):$/;"	m	class:Oracle
+rank	memory/recall.py	/^def rank(candidates: list[dict[str, Any]],$/;"	f	typeref:typename:list[tuple[dict[str,Any],float]]
+recall	engine/recall.py	/^def recall(campaign_dir, query, *, k=5, entity=None, day=None, semantic=True, embedder=None):$/;"	f
+recall	kernel/contextsystem.py	/^    def recall(self, query: str, world: dict) -> list[RecallHit]:$/;"	m	class:ContextSystem	typeref:typename:list[RecallHit]
+recall	kernel/recall.py	/^def recall(registry: Registry, query: str, world: dict, k: int | None = None) -> list[RecallHit]/;"	f	typeref:typename:list[RecallHit]
+recall	systems/character.py	/^    def recall(self, query: str, world: dict) -> list[RecallHit]:$/;"	m	class:CharacterSystem	typeref:typename:list[RecallHit]
+recall	systems/ontology.py	/^    def recall(self, query: str, world: dict) -> list[RecallHit]:$/;"	m	class:OntologySystem	typeref:typename:list[RecallHit]
+recall	systems/place.py	/^    def recall(self, query: str, world: dict) -> list[RecallHit]:$/;"	m	class:PlaceSystem	typeref:typename:list[RecallHit]
+recall_anchor	engine/recall.py	/^def recall_anchor(campaign_dir, anchor_type, *, actor=None):$/;"	f
+recall_mod	engine/cli.py	/^from engine import recall as recall_mod$/;"	x	nameref:unknown:recall
+ref	kernel/contextsystem.py	/^    ref: dict = field(default_factory=dict)$/;"	v	class:RecallHit	typeref:typename:dict
+reflect	memory/reflection.py	/^def reflect(subject: str,$/;"	f	typeref:typename:dict
+reflection_mod	loop/fleet.py	/^import memory.reflection as reflection_mod$/;"	I	nameref:module:memory.reflection
+register	kernel/registry.py	/^    def register(self, system: ContextSystem) -> "Registry":$/;"	m	class:Registry	typeref:typename:"Registry"
+reindex	engine/recall.py	/^def reindex(campaign_dir, *, embedder=None):$/;"	f
+relation_attrs_at	facts/graph.py	/^    def relation_attrs_at(self, src: str, rel: str, day: int) -> list[tuple[str, dict]]:$/;"	m	class:FactGraph	typeref:typename:list[tuple[str,dict]]
+relations_at	facts/graph.py	/^    def relations_at(self, src: str, rel: str, day: int) -> list[Relation]:$/;"	m	class:FactGraph	typeref:typename:list[Relation]
+render	kernel/assembler.py	/^def render(frags: list[Fragment]) -> str:$/;"	f	typeref:typename:str
+requires	kernel/contextsystem.py	/^    def requires(self) -> set[str]:$/;"	m	class:ContextSystem	typeref:typename:set[str]
+requires	systems/character.py	/^    def requires(self) -> set[str]:$/;"	m	class:CharacterSystem	typeref:typename:set[str]
+requires	systems/faction.py	/^    def requires(self) -> set[str]:$/;"	m	class:FactionSystem	typeref:typename:set[str]
+requires	systems/knowledge.py	/^    def requires(self) -> set[str]:$/;"	m	class:KnowledgeSystem	typeref:typename:set[str]
+requires	systems/object.py	/^    def requires(self) -> set[str]:$/;"	m	class:ObjectSystem	typeref:typename:set[str]
+requires	systems/place.py	/^    def requires(self) -> set[str]:$/;"	m	class:PlaceSystem	typeref:typename:set[str]
+retract_from_seq	engine/store.py	/^    def retract_from_seq(self, seq) -> int:$/;"	m	class:EventStore	typeref:typename:int
+retract_from_turn	engine/store.py	/^    def retract_from_turn(self, turn) -> int:$/;"	m	class:EventStore	typeref:typename:int
+rewind	engine/rewind.py	/^def rewind(campaign_dir, turn, *, embedder=None):$/;"	f
+rewind_mod	engine/cli.py	/^from engine import rewind as rewind_mod$/;"	x	nameref:unknown:rewind
+run_check	engine/cli.py	/^from engine.check import check as run_check, BLOCK$/;"	x	nameref:unknown:check
+run_compare	loop/compare.py	/^def run_compare($/;"	f	typeref:typename:dict
+run_turn	loop/turn.py	/^def run_turn($/;"	f	typeref:typename:TurnResult
+scene_seed	engine/oracle.py	/^def scene_seed(campaign_seed, scene_ordinal, salt=0):$/;"	f
+score	memory/importance.py	/^def score(event: dict[str, Any], *, provider=None) -> int:$/;"	f	typeref:typename:int
+search	engine/vectorstore.py	/^    def search(self, vector, k=5):$/;"	m	class:VectorStore
+sections	kernel/turncommit.py	/^    sections: dict[str, Any] = field(default_factory=dict)$/;"	v	class:TurnCommit	typeref:typename:dict[str, Any]
+seed_campaign	engine/seed.py	/^def seed_campaign(genre, oracle):$/;"	f
+set_tier	facts/graph.py	/^    def set_tier(self, id: str, tier: str) -> None:$/;"	m	class:FactGraph	typeref:typename:None
+should_reflect	memory/reflection.py	/^def should_reflect(accumulated_importance: float, *, threshold: float = 30) -> bool:$/;"	f	typeref:typename:bool
+span	kernel/observability.py	/^    def span(self, name, **attrs):$/;"	m	class:LangfuseTracer
+span	kernel/observability.py	/^    def span(self, name, **attrs):$/;"	m	class:NoopTracer
+sync_jsonl	engine/store.py	/^    def sync_jsonl(self):$/;"	m	class:EventStore
+systems	kernel/registry.py	/^    def systems(self) -> list[ContextSystem]:$/;"	m	class:Registry	typeref:typename:list[ContextSystem]
+thread_due_scores	engine/director.py	/^def thread_due_scores(events, threads, oracle):$/;"	f
+tier	facts/entity.py	/^    tier: str = "mentioned"         # tracked | mentioned | retired$/;"	v	class:Entity	typeref:typename:str
+to_dict	kernel/turncommit.py	/^    def to_dict(self) -> dict:$/;"	m	class:TurnCommit	typeref:typename:dict
+to_events	kernel/contextsystem.py	/^    def to_events(self, section: str, decl: Any, *, turn: int, day: int, scene: str) -> list[dic/;"	m	class:ContextSystem	typeref:typename:list[dict]
+to_events	systems/character.py	/^    def to_events($/;"	m	class:CharacterSystem	typeref:typename:list[dict]
+to_events	systems/faction.py	/^    def to_events($/;"	m	class:FactionSystem	typeref:typename:list[dict]
+to_events	systems/knowledge.py	/^    def to_events($/;"	m	class:KnowledgeSystem	typeref:typename:list[dict]
+to_events	systems/object.py	/^    def to_events($/;"	m	class:ObjectSystem	typeref:typename:list[dict]
+to_events	systems/ontology.py	/^    def to_events(self, section: str, decl: list, *, turn: int, day: int, scene: str) -> list[di/;"	m	class:OntologySystem	typeref:typename:list[dict]
+to_events	systems/place.py	/^    def to_events($/;"	m	class:PlaceSystem	typeref:typename:list[dict]
+valid_at	facts/fact.py	/^    def valid_at(self, day): return _valid_at(self.event_time_start, self.event_time_end, day)$/;"	m	class:Fact
+valid_at	facts/fact.py	/^    def valid_at(self, day): return _valid_at(self.event_time_start, self.event_time_end, day)$/;"	m	class:Relation
+validate	kernel/contextsystem.py	/^    def validate(self, section: str, decl: Any, world: dict) -> list[ValidationError]:$/;"	m	class:ContextSystem	typeref:typename:list[ValidationError]
+validate	systems/character.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:CharacterSystem	typeref:typename:list[ValidationError]
+validate	systems/faction.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:FactionSystem	typeref:typename:list[ValidationError]
+validate	systems/knowledge.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:KnowledgeSystem	typeref:typename:list[ValidationError]
+validate	systems/object.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:ObjectSystem	typeref:typename:list[ValidationError]
+validate	systems/ontology.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:OntologySystem	typeref:typename:list[ValidationError]
+validate	systems/place.py	/^    def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:$/;"	m	class:PlaceSystem	typeref:typename:list[ValidationError]
+validate_commit	kernel/validation.py	/^def validate_commit(registry: Registry, commit: TurnCommit, world: dict) -> list[ValidationError/;"	f	typeref:typename:list[ValidationError]
+validate_event	engine/schema.py	/^def validate_event(ev, allowed_types=None):$/;"	f
+value_at	facts/graph.py	/^    def value_at(self, subject: str, predicate: str, day: int) -> object | None:$/;"	m	class:FactGraph	typeref:typename:object|None
+world	app/engine.py	/^    world: dict = field(default_factory=dict)$/;"	v	class:Engine	typeref:typename:dict
+write_projections	engine/projection.py	/^def write_projections(proj, out_dir):$/;"	f

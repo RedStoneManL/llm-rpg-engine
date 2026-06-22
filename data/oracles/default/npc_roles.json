@@ -1,0 +1,7 @@
+[
+  {"weight": 3, "name": "情报贩子", "motivation": "求利避险", "secret": "同时为两方效力"},
+  {"weight": 3, "name": "落魄旧贵", "motivation": "复兴家门", "secret": "握有一件关键证物"},
+  {"weight": 2, "name": "沉默护卫", "motivation": "守护某人", "secret": "背负着血债"},
+  {"weight": 2, "name": "市井少年", "motivation": "出人头地", "secret": "身世不凡"},
+  {"weight": 2, "name": "神秘旅人", "motivation": "寻找某物", "secret": "来自主角的未来/过去"}
+]

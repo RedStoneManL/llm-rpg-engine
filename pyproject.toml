@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q -m 'not slow'"
+markers = ["slow: requires model download / network"]

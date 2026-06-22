@@ -1,0 +1,62 @@
+
+digraph G {
+    concentrate = true;
+
+    rankdir = TB;
+    node [style=filled,fillcolor="#ffffff",fontcolor="#000000",fontname=Helvetica,fontsize=10];
+
+    engine_archive [fillcolor="#c43131",fontcolor="#ffffff",label="engine.archive"];
+    engine_check [fillcolor="#a44646",fontcolor="#ffffff",label="engine.check"];
+    engine_cli [fillcolor="#633535",fontcolor="#ffffff",label="engine.cli"];
+    engine_compact [fillcolor="#a83838",fontcolor="#ffffff",label="engine.compact"];
+    engine_director [fillcolor="#b83d3d",fontcolor="#ffffff",label="engine\.\ndirector"];
+    engine_embed [fillcolor="#b83d3d",fontcolor="#ffffff",label="engine.embed"];
+    engine_log [fillcolor="#f91010",fontcolor="#ffffff",label="engine.log"];
+    engine_oracle [fillcolor="#b83d3d",fontcolor="#ffffff",label="engine.oracle"];
+    engine_projection [fillcolor="#b83d3d",fontcolor="#ffffff",label="engine\.\nprojection"];
+    engine_recall [fillcolor="#993333",fontcolor="#ffffff",label="engine.recall"];
+    engine_rewind [fillcolor="#8f3d3d",fontcolor="#ffffff",label="engine.rewind"];
+    engine_schema [fillcolor="#c24747",fontcolor="#ffffff",label="engine.schema"];
+    engine_seed [fillcolor="#a44646",fontcolor="#ffffff",label="engine.seed"];
+    engine_store [fillcolor="#c82323",fontcolor="#ffffff",label="engine.store"];
+    engine_vectorstore [fillcolor="#ac4949",fontcolor="#ffffff",label="engine\.\nvectorstore"];
+    engine_archive -> engine_cli [fillcolor="#c43131"];
+    engine_archive -> engine_recall [fillcolor="#c43131"];
+    engine_archive -> engine_rewind [fillcolor="#c43131"];
+    engine_check -> engine_cli [fillcolor="#a44646"];
+    engine_compact -> engine_cli [fillcolor="#a83838"];
+    engine_compact -> engine_rewind [fillcolor="#a83838"];
+    engine_director -> engine_check [fillcolor="#b83d3d"];
+    engine_director -> engine_cli [fillcolor="#b83d3d"];
+    engine_embed -> engine_cli [fillcolor="#b83d3d"];
+    engine_embed -> engine_recall [fillcolor="#b83d3d"];
+    engine_log -> engine_archive [fillcolor="#f91010"];
+    engine_log -> engine_check [fillcolor="#f91010"];
+    engine_log -> engine_cli [fillcolor="#f91010"];
+    engine_log -> engine_compact [fillcolor="#f91010"];
+    engine_log -> engine_director [fillcolor="#f91010"];
+    engine_log -> engine_embed [fillcolor="#f91010"];
+    engine_log -> engine_oracle [fillcolor="#f91010"];
+    engine_log -> engine_projection [fillcolor="#f91010"];
+    engine_log -> engine_recall [fillcolor="#f91010"];
+    engine_log -> engine_rewind [fillcolor="#f91010"];
+    engine_log -> engine_seed [fillcolor="#f91010"];
+    engine_log -> engine_store [fillcolor="#f91010"];
+    engine_log -> engine_vectorstore [fillcolor="#f91010"];
+    engine_oracle -> engine_cli [fillcolor="#b83d3d"];
+    engine_oracle -> engine_seed [fillcolor="#b83d3d"];
+    engine_projection -> engine_cli [fillcolor="#b83d3d"];
+    engine_projection -> engine_compact [fillcolor="#b83d3d"];
+    engine_recall -> engine_cli [fillcolor="#993333"];
+    engine_recall -> engine_rewind [fillcolor="#993333"];
+    engine_rewind -> engine_cli [fillcolor="#8f3d3d"];
+    engine_schema -> engine_cli [fillcolor="#c24747"];
+    engine_schema -> engine_store [fillcolor="#c24747"];
+    engine_seed -> engine_cli [fillcolor="#a44646"];
+    engine_store -> engine_cli [fillcolor="#c82323"];
+    engine_store -> engine_compact [fillcolor="#c82323"];
+    engine_store -> engine_recall [fillcolor="#c82323"];
+    engine_store -> engine_rewind [fillcolor="#c82323"];
+    engine_vectorstore -> engine_recall [fillcolor="#ac4949"];
+}
+

@@ -1,0 +1,359 @@
+== LORE A/B COMPARE narrator=glm-5.1 ==
+world: 青石镇 ⊃ 集市(3线)/酒馆(2线)/码头(2线)/城隍庙(1线); 8 event-lines, 同种子同世界
+
+############### MODE B ###############
+
+[B-T1] @s1 repairs=0 dropped=[]
+  输入: 我在集市的摊位之间穿行,留心镇上近来的怪事。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·城门记录显示这支商队从没出过城
+    ·郎中正吹嘘药到病除
+    ·又一张新的寻子告示
+    【本镇其余风声】
+    ·酒馆后间的骰局,赢家总是那几张熟脸
+    ·墙角一个独自闷酒的汉子总低着头
+    ·码头夜里有不报关的货船靠岸
+    ·水边的苇草丛里似乎缠着什么东西
+    ·城隍庙近来香火极旺,求签的排长队
+  « 晨雾还没散尽，青石镇的集市已经闹热起来。
+
+我顺着人流钻进摊位间的窄道，脚下是被无数鞋底磨光的石板，湿漉漉的，踩上去有些打滑。空气搅着油饼焦香、牲口臊气和不知哪家铺子飘来的草药苦味，混成集市特有的浑浊暖意。
+
+左侧一个木箱搭的摊位前围了几个人。我凑近两步，看见一个着灰布长衫的中年男人——游方郎中打扮——正把一包碎叶拍得啪啪响，嗓门大得半条街都听得见：
+
+"诸位列位！这方子是我师父走遍川蜀深山，从苗人手中讨来的！什么咳症、积食、夜啼、筋骨酸——三服见效，五服断根！"他朝人群里一
+
+[B-T2] @s1 repairs=1 dropped=[]
+  输入: 我拉住一个老摊主,专打听那支没了音信的商队。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·首领空宅里翻出烧剩的地契
+    ·郎中正吹嘘药到病除
+    ·又一张新的寻子告示
+    【本镇其余风声】
+    ·酒馆后间的骰局,赢家总是那几张熟脸
+    ·墙角一个独自闷酒的汉子总低着头
+    ·码头夜里有不报关的货船靠岸
+    ·水边的苇草丛里似乎缠着什么东西
+    ·城隍庙近来香火极旺,求签的排长队
+  « 我在一个卖麻绳草鞋的摊子前停住脚。摊主是个干瘦老头，花白胡子茬，一双手粗得像老树根，正百无聊赖地用稻草编绳。这摊位摆在集市年头不短了——那日货箱骡子头回歇在墙根底下时，我恰好就站在他这摊子旁边。
+
+我随手拈起一捆麻绳，搭话似的开口："老伯，对面那队赶骡子的，常来啊？"
+
+老头眼皮都没抬，手指头编绳的速度也没变。可他没接话。沉默了一小会儿，我才听见他喉咙里含含糊糊地挤出一句：
+
+"嗯，来。"
+
+"他们打哪条道进镇的？我往这条道走了几年，回回碰见他们在镇里歇，倒一回没撞上他们过城
+
+[B-T3] @s1 repairs=4 dropped=[]
+  输入: 我踱进酒馆,要一壶酒,竖着耳朵听邻桌的闲谈。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·首领空宅里翻出烧剩的地契
+    ·听说有人吃了他的药反而更重了
+    ·入夜后巷子里有孩童的哭声
+    【本镇其余风声】
+    ·酒馆后间的骰局,赢家总是那几张熟脸
+    ·墙角一个独自闷酒的汉子总低着头
+    ·码头夜里有不报关的货船靠岸
+    ·水边的苇草丛里似乎缠着什么东西
+    ·城隍庙近来香火极旺,求签的排长队
+  « 酒馆的门板卸了一半，里头烟雾裹着发酵的酸气扑面而来。晨间这光景，生意尚淡——靠窗长凳上歪着两个宿醉未醒的脚夫，柜台后老板娘正拿抹布擦碗，眼皮也懒得抬。
+
+我在角落找了个位置坐下。这地方好：背后是墙，侧身能将整个堂面收进眼底，隔着两张桌子的那拨人说话又恰好送得过来。
+
+一壶浊酒端上桌，温吞吞的。我慢慢斟了一碗，没急着喝。
+
+邻桌坐了三个人。当中一个方脸汉子靴上沾着河泥，像是从码头那边过来的，正用指节叩着桌面，压低声音："……我跟你讲，昨夜又听见了。就后巷那截死胡同，细崽子哭，一
+
+[B-T4] @s2 repairs=0 dropped=[]
+  输入: 我盯上墙角那个独自闷酒、一见门开就缩脖子的汉子。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·一个外乡人输红了眼
+    ·他袖口滑出半截磨花的军牌
+    【本镇其余风声】
+    ·集市上关于一支失踪商队的窃窃私语
+    ·一个游方郎中的摊子前总围着病人
+    ·几户人家在墙上贴寻子的告示
+    ·码头夜里有不报关的货船靠岸
+    ·水边的苇草丛里似乎缠着什么东西
+    ·城隍庙近来香火极旺,求签的排长队
+  « 我没有刻意看他。
+
+碗里的浊酒已经凉了小半，拿在手里慢慢转着。目光从碗沿上方飘过去——不直视，但余光够了。
+
+他坐在那儿已经有一阵子了。
+
+刚才方脸汉子那一桌提到"后巷"和"孩子"的时候，满堂没几个人真在听，可这人的肩膀明显地收了一下——不是耸肩，是整个上身往内缩了一寸，像有什么东西搭上了他的后颈。随即他就松开了，手又摊回桌面，垂着眼。碗里的酒纹丝不动。
+
+但他的大拇指在动。
+
+那只摊开的手，拇指肚反复摩挲着掌心的纹路，不快，很轻，像个不知重复了多少年的习惯。而另一只攥碗的手
+
+[B-T5] @s2 repairs=1 dropped=[]
+  输入: 入夜,我沿着码头慢慢走,看看有什么不对劲。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·一个外乡人输红了眼
+    ·他袖口滑出半截磨花的军牌
+    【本镇其余风声】
+    ·集市上关于一支失踪商队的窃窃私语
+    ·一个游方郎中的摊子前总围着病人
+    ·几户人家在墙上贴寻子的告示
+    ·码头夜里有不报关的货船靠岸
+    ·水边的苇草丛里似乎缠着什么东西
+    ·城隍庙近来香火极旺,求签的排长队
+  « 我一整天没有轻举妄动。
+
+午前从酒馆出来，集市上又转了一圈。那张新贴的寻子告示还在，墨迹干透了，纸边被风卷起一角，像只苍白的手朝人招。卖麻绳的老头不在摊上，换了个年轻后生守着，百无聊赖地数草绳。我买了几根茱萸衔在嘴里，混在闲人堆里消磨了半日。
+
+等到炊烟散尽，灯火次第灭去，我才朝码头走。
+
+夜里的码头是另一个地方。
+
+白天卸货搬箱的喧嚷像潮水一样退得干干净净。几条渔船歪在木桩旁，缆绳松松垮垮搭着，船底偶尔磕在石阶上，闷响顺着水面传出老远。河雾比白天厚得多，贴着水面铺开，把对岸
+
+[B-T6] @s3 repairs=2 dropped=[]
+  输入: 我蹲到水边,拨开苇草细看那团缠着的东西。
+  [上下文里的暗线直推]
+    〔本地暗线·环境可织入,勿点破为任务〕
+    【就在此处】
+    ·苫布底下码着一包包的盐
+    ·死者怀里塞着半张账册
+    【本镇其余风声】
+    ·集市上关于一支失踪商队的窃窃私语
+    ·一个游方郎中的摊子前总围着病人
+    ·几户人家在墙上贴寻子的告示
+    ·酒馆后间的骰局,赢家总是那几张熟脸
+    ·墙角一个独自闷酒的汉子总低着头
+    ·城隍庙近来香火极旺,求签的排长队
+  « 我往前探了半步，鞋底没入浅水。冰凉从脚心灌上来，激得小腿肌肉一抽——但我咬着牙没停。
+
+苇秆比我以为的密得多。枯茎韧而锋利，拨开时刮过手背，留下一道道发白的细痕。碎叶和泥沙簌簌往水里掉，每一声都被夜风放大，像是有人在耳边揉纸。我尽量放慢动作，一根一根地压下苇丛，把视野朝水面以下凿开。
+
+那截袖子就在眼前了。
+
+月光照上去，细节一下子涌出来：灰蓝粗棉布，针脚粗笨——一针长一针短，是没怎么拿过针的大人凭手感缝的。袖口那圈绣花泡烂了，只剩下几团洇开的蓝线头，依稀辨得出是朵什么花，但
+
+############### MODE A ###############
+_run_tool_loop hit max_tool_rounds=3; forcing final call without tools
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T1] @s1 repairs=0 dropped=[]
+  输入: 我在集市的摊位之间穿行,留心镇上近来的怪事。
+  [上下文里的暗线索引]
+    〔本地暗线索引·如与玩家此刻相关,用 fetch_storyline(id) 拉取详情〕
+      [失踪商队] 集市上关于一支失踪商队的窃窃私语
+      [假药郎中] 一个游方郎中的摊子前总围着病人
+      [孩童失踪] 几户人家在墙上贴寻子的告示
+      [赌局老千] 酒馆后间的骰局,赢家总是那几张熟脸
+      [逃兵藏身] 墙角一个独自闷酒的汉子总低着头
+      [走私夜货] 码头夜里有不报关的货船靠岸
+      [芦苇浮尸] 水边的苇草丛里似乎缠着什么东西
+      [城隍灵验] 城隍庙近来香火极旺,求签的排长队
+  [模型主动 fetch 的线]: [('fetch_storyline', {'id': '失踪商队', 'depth': 1}), ('fetch_storyline', {'id': '假药郎中', 'depth': 1}), ('fetch_storyline', {'id': '孩童失踪', 'depth': 1}), ('fetch_storyline', {'id': '逃兵藏身', 'depth': 1}), ('fetch_storyline', {'id': '赌局老千', 'depth': 0})]
+  « 晨雾还没散干净，青石镇的集市已经热闹起来。你的靴底踩过湿漉漉的石板，两旁的摊贩扯着嗓子叫卖——干货、粗布、铧犁、盐巴，混着炸油条和牲口的气味，一层层涌过来。
+
+你放慢脚步，竖起耳朵。
+
+最先钻入耳缝的是鱼摊边两个妇人的声音，压得很低，却藏不住急切。一个说赵家的商队走了快十天了还没回，另一人接嘴，说城门那边的老卒讲压根没见着他们的车出过门——说到这里两人忽然噤声，拿眼角扫你，端起菜筐遮住半张脸。
+
+你继续往前走。一面土墙映入眼帘，上头新贴了一张纸，墨迹洇开还没干透，是个「寻」字
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T2] @s1 repairs=1 dropped=[]
+  输入: 我拉住一个老摊主,专打听那支没了音信的商队。
+  [上下文里的暗线索引]
+    (无)
+  [模型主动 fetch 的线]: [('fetch_storyline', {'id': '失踪商队', 'depth': 1})]
+  « 你侧身让过一队挑担的脚夫，在一个卖麻绳的老摊前停下。摊主是个五六十岁的干瘦老头，颧骨高耸，一双浑浊的眼珠在深皱纹里转得却很灵活。你随手拈起一截绳头装作比看，压低声音问了一句：赵家那支商队，到底怎么回事？
+
+老头的眼珠先朝左右转了两圈，像拨算盘珠子似的。然后他咧嘴一笑，露出一口豁牙，声音压得比你还低：
+
+「客官是外乡人吧？……赵家啊，啧。」他伸出枯瘦的手指在绳摊上点了点，像在比划什么，「赵家做的是盐铁绸布的大买卖，逢月便走一趟北路，往云陵那边去。这回走之前还从我这儿买了三十捆麻
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T3] @s1 repairs=1 dropped=[]
+  输入: 我踱进酒馆,要一壶酒,竖着耳朵听邻桌的闲谈。
+  [上下文里的暗线索引]
+    (无)
+  [模型主动 fetch 的线]: [('fetch_storyline', {'id': '孩童失踪', 'depth': 1})]
+  « 你拐进集市的西岔口，没走几步便闻见了酒糟和炖杂碎的气味。酒馆的门面不大，一块半旧的杏黄幌子挂在外头，被晨风吹得啪啪作响，上头歪歪斜斜写着「醉仙楼」三个字——说是楼，其实就是三间打通的平房，房梁熏得乌黑。
+
+门槛上蹲着一只缺了半边耳朵的黄狗，你跨进去时它懒洋洋抬了下眼皮，又趴下了。
+
+里头没几个人。靠窗的长凳上坐着两个脚夫模样的大汉，正埋头扒一碗面，筷子搅得汤汁四溅；柜台后面站着个膀大腰圆的老板娘，围裙上沾满油渍，正拿一把大蒲扇对着灶台扇风。她扫了你一眼，没说话，只伸手往空桌的
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T4] @s2 repairs=1 dropped=[]
+  输入: 我盯上墙角那个独自闷酒、一见门开就缩脖子的汉子。
+  [上下文里的暗线索引]
+    (无)
+  [模型主动 fetch 的线]: [('fetch_storyline', {'id': '孩童失踪', 'depth': 1}), ('fetch_storyline', {'id': '逃兵藏身', 'depth': 1})]
+  « 主角在酒馆中仔细观察角落里独自闷酒的中年男人，发现其指甲缝中的黑色黏腻泥土疑似坟地所产，前臂有淡红色划痕，且对门响异常警觉，身体瞬间绷紧如受惊之兔。结合其先前低语'再找不到，我这辈子就完了'，主角将这些碎片码在脑中，尚未行动。
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T5] @s2 repairs=0 dropped=[]
+  输入: 入夜,我沿着码头慢慢走,看看有什么不对劲。
+  [上下文里的暗线索引]
+    (无)
+  [模型主动 fetch 的线]: (没调用工具)
+  « 你从酒馆侧门溜出去时，暮色已经像墨汁一样洇过了屋脊。青石镇的集市散了场，地上还留着菜叶和竹签子，被晚风一卷，贴着墙根打转。
+
+你沿着石板街一路向南，穿过几条窄巷，空气里的味道变了——酒糟和油烟淡下去，取而代之的是一股子腥咸、潮湿的水汽，裹着腐木和鱼鳞的臭味。脚下的石板也越来越不平整，缝隙里长满了苔藓，踩上去滑腻腻的。
+
+码头到了。
+
+说是码头，其实就是河岸上搭了一排木栈道，几根歪歪斜斜的桩子上系着缆绳，泊着五六条乌篷船和两条平底驳船。月光照不到的地方，水面黑得像一块铁板，偶尔
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+story.apply: storyline_advanced unknown id=失踪商队; created
+story.apply: storyline_advanced unknown id=假药郎中; created
+story.apply: storyline_advanced unknown id=孩童失踪; created
+story.apply: storyline_advanced unknown id=逃兵藏身; created
+
+[A-T6] @s3 repairs=1 dropped=[]
+  输入: 我蹲到水边,拨开苇草细看那团缠着的东西。
+  [上下文里的暗线索引]
+    (无)
+  [模型主动 fetch 的线]: [('fetch_storyline', {'id': '失踪商队', 'depth': 2})]
+  « 你压低身子，一只手撑在湿滑的烂泥上，另一只手拨开岸边密匝匝的芦苇。苇根底下泛起一股浊腥气，比水面上的更冲，像是什么东西泡在水里已经有些时候了。
+
+月光被云翳遮了一半，你只能借着那点微光在水草间摸索。指尖碰到第一样东西时——你的心跳漏了一拍。
+
+是麻绳。
+
+粗麻绳，拧得很紧，绳头打的是一种你见过却不多见的结法——双环绞结，码头搬货的人常用它捆扎重箱。绳子的另一端没入了水下，像被什么东西坠着。你攥住绳子往上提，沉甸甸的，水面被牵出一道涟漪。
+
+拽了两把，阻力忽然一松——一截断裂的
+
+=== DONE ===

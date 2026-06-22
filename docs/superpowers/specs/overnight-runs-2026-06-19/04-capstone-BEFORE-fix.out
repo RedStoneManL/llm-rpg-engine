@@ -1,0 +1,72 @@
+== CAPSTONE: narrator=glm-5.1 cheap=glm-4.7 ==
+
+===== PER-TURN =====
+
+[T1] repairs=0 dropped=[] sections=['places', 'cast', 'moves', 'facts', 'entities', 'relations', 'knowledge', 'storylines']
+   青石镇的黄昏烧得通红。
+
+你站在镇衙偏厅里，脚下的青砖被岁月磨出浅淡的光泽。镇长周伯安坐在案后，两手交叠按在一方发黄的绢帛上，指节因用力而泛白。他不像个惯于求助的人——花白的鬓角剃得齐整，衣领虽旧却浆洗得笔挺。但此刻他望向你的眼神，有一道压不住的裂缝。
+
+"三天前的雨夜，"他的嗓音沉了下去，仿佛在咀...
+   STORY: [{"op": "open", "id": "main_plague_statue", "summary": "夺回苍狼岭山匪劫走的瘟玉像——青石镇镇长周伯安的正式委托"}]
+
+[T2] repairs=1 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'relations', 'knowledge', 'storylines']
+   月色薄如水渍，勉强照出脚下这条石子与泥根搅混的窄道。
+
+你走得不算慢。周伯安指的路记得清楚——沿北道到头，过老鸦石，翻坡入岭。夜风从北方灌下来，裹着越来越浓的湿腐气味，像什么东西在山脊背面慢慢烂着。镇子的灯火在身后缩成几粒橘黄，很快便被一棵歪脖子松树吞掉了。
+
+半个时辰后，老鸦石出现在路尽头。
+
+那...
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "主角夜间出发，过老鸦石进入苍狼岭密林，发现山匪拖运重物的新鲜痕迹，循迹深入岭区"}]
+
+[T3] repairs=1 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'relations', 'knowledge', 'world', 'storylines']
+   你在黑暗中站了很久。拖痕就在脚下，新鲜得像一道尚未结痂的伤口，一路延伸进更深的黑暗里。那声口哨——如果是口哨的话——没有再响。但林中那种被注视的触感还挂在后颈，像一根蘸了凉水的指尖。
+
+你没有继续往前。
+
+不是怯。是那道拖痕两侧的脚印——三五人量，深浅不一——说明搬运玉像的不是小股探子，而是一队有组...
+   WORLD: [{"areas": ["qingshi_town"], "level": 1, "summary": "瘟玉像失窃三天后青石镇北区出现不明皮疹高烧症，疑为瘟疫初兆"}]
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "主角退至鸦集搜集情报，得知封九军匪底细、玉像被运往岭顶老营、半月前有灰袍可疑访客上岭；同时青石镇北区已现疑似疫症征兆，事态紧迫"}]
+
+[T4] repairs=4 dropped=[] sections=['moves', 'places', 'cast', 'facts', 'storylines']
+   你离开鸦集时没有回头。镇上有人开始出红疹，孩子在烧。你没时间等天亮了。
+
+你沿来路过老鸦石，直接踏上爬坡的泥道。月亮偏西，光线薄如旧纱。拖痕仍在脚下，像一条结了黑痂的长伤口，一路弯进树丛深处。你压低身子跟着走，脚掌先落再放脚跟，每一步把声响吞进鞋底。
+
+第一道哨比预想的近。你先闻到旱烟焦辣气，然后看...
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "主角夜间潜入苍狼岭，已通过岭前哨抵达半山窝子，发现一间上闩木棚疑似存放玉像，但门口有抱刀看守且天亮在即"}]
+
+[T5] repairs=1 dropped=[] sections=['places', 'cast', 'entities', 'facts', 'world', 'storylines']
+   你把额头从岩面上抬起来的时候，先看到的是光。
+
+不是月光。月光已经沉到山脊底下了。这道光是从那间上闩木棚的门缝里挤出来的——橘红色的，一跳一跳，像一只从门板底下探出来的火舌。
+
+然后声音来了。
+
+一声闷响不像木头炸裂，倒像是什么黏稠的东西被点燃后猛地膨胀。你趴在岩脊上看见木棚的板壁从内侧鼓起半息——...
+   WORLD: [{"areas": ["banshan_den", "canglang_ridge"], "level": 3, "summary": "苍狼岭半山窝子遭桐油纵火，引发大规模山火，借北风向四面山林蔓延，岭上三处驻地匪众皆受波及"}]
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "半山窝子突遭桐油纵火，疑似存有玉像的木棚被烈焰吞没，主角须在山火与匪众混乱中决定是否冒险确认玉像下落"}]
+
+[T6] repairs=1 dropped=[] sections=['places', 'cast', 'entities', 'facts', 'knowledge', 'storylines']
+   你没有再想。
+
+身体比念头快。从岩脊翻下去的那一瞬，热浪像一面墙撞上来，你本能地偏头，前臂挡住口鼻，鞋底踩进了滚烫的泥浆——桐油渗过的泥，踩上去发黏，每一步都像踩在一层快要凝固的糖稀上。
+
+木棚的门已经不存在了。门框还在，烧成了一副焦黑的骨架，内侧翻卷着蓝黄色的火膜，桐油未尽的余烬在地面淌成几道亮线...
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "主角冒火冲入半山窝子木棚，在坍塌前确认并夺回了瘟玉像，但营地大火失控、匪众混乱、岭顶老营已被惊动，脱身之路未明"}]
+
+[T7] repairs=0 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'storylines']
+   你从岩檐下移动的时候没有站起来。半蹲，脊背擦着岩壁，脚掌碾着泥地一步步横移——火光把你的影子投在石头上，但没有人看石头。岩壁那侧是暗的，暗得像一口竖起来的井。
+
+最近的匪徒在你右前方十五步，背对着你，正拿刀背拍打一截烧着了的灌木根。更远处有人提着空桶来回跑，桶底磕在石头上叮叮当当。喊声、火声、铜锣声...
+   STORY: [{"op": "advance", "id": "main_plague_statue", "summary": "主角抢出瘟玉像趁火场混乱下山，却在密林入口遭兜帽人拦路截取，脱身再受阻"}, {"op": "open", "id": "hooded_buyer", "summary": "兜帽人在火起后精准蹲守下山必经之路意图截取瘟玉像，真实身份与幕后目的不明，疑与半月前灰袍访客有关联"}]
+
+===== FINAL STATE =====
+storyline ledger:
+   [活跃] main_plague_statue: 主角抢出瘟玉像趁火场混乱下山，却在密林入口遭兜帽人拦路截取，脱身再受阻
+   [活跃] hooded_buyer: 兜帽人在火起后精准蹲守下山必经之路意图截取瘟玉像，真实身份与幕后目的不明，疑与半月前灰袍访客有关
+recap: scenes=1 summarized=0 super_summary=-
+director_fired=2  cascade_events=3  knows_facts=9  entities=28
+
+=== CAPSTONE DONE: 7 turns, 138 total events ===

@@ -1,0 +1,42 @@
+== model=glm-5.1 seed=39937622437479 ==
+
+[T1] repairs=0 dropped=[] director_fired_this_turn=False knows_facts=0 threads=0 knowledge_section=False narr=456字
+[T1] 老槐树的影子被晨光拉得细长，像一只伸向你脚跟的手。你紧了紧行囊的系带，踩上松碎的碎石路面，朝山的方向走去。
+
+约莫半个时辰，村子的轮廓在身后矮了下去。炊烟、鸡鸣、井台上洗衣妇人的闲话——那些你听了十几年的声响——一点一点地被山风削薄，到最后只剩下靴底碾过碎石的...
+
+[T2] repairs=3 dropped=[] director_fired_this_turn=True knows_facts=1 threads=0 knowledge_section=True narr=366字
+[T2] 风从断裂的拱门里灌进来，带着石灰与焦木的陈旧气味。断墙根下蜷着一团灰褐色的影子——走近才看清是个人。他裹着不知几层破布，双手拢在袖中，整个人缩得像一枚干瘪的坚果，偶尔被风激起一阵闷咳。你的脚步踩碎了瓦砾间的枯草。他听见了，但没有抬头，只是把脸埋得更深，仿佛这样...
+
+[T3] repairs=1 dropped=[] director_fired_this_turn=False knows_facts=4 threads=0 knowledge_section=True narr=631字
+[T3] 你没有直接问。你蹲下来，与他平视，先递过半块没吃完的干粮，然后用下巴朝断墙方向抬了抬："那边到底怎么了？"
+
+他接过干粮，没吃，攥在手里翻来覆去地捏。沉默了一会儿，他开口了，声音像砂纸蹭石面。
+
+"那片城……原来不是废的。底下有矿脉，银的。最多的时候，三条街，...
+
+[T4] repairs=0 dropped=[] director_fired_this_turn=False knows_facts=5 threads=0 knowledge_section=True narr=556字
+[T4] 钟楼的拱门已经歪了，门框石块挤压在一起，留下一个勉强容人侧身通过的缝隙。你挤进去时，粗粝的石面刮蹭着衣料，一股凉意从缝隙深处涌出来——不是山风的凉，是地下特有的、潮湿的、带着矿锈与陈水气息的寒。
+
+内部比想象中开阔。穹顶塌了一半，灰白的天光从豁口斜切下来，照亮...
+
+[T5] repairs=0 dropped=[] director_fired_this_turn=False knows_facts=5 threads=0 knowledge_section=False narr=541字
+[T5] 钟楼死了。这是你踩过门槛碎砖时的第一个念头——倒塌的石墙把祈祷和钟声一起埋进了灰尘里。
+
+空气很浊。砖石断层间露出被压弯的铁质钟架，整面塌下来的楼板挤压着仅剩的半圈地面，你可以走的路越来越窄。几丛野草从裂缝里挤出来，枯黄了，像是在这地方连活着也懒得费力。
+
+你...
+
+[T6] repairs=1 dropped=[] director_fired_this_turn=False knows_facts=6 threads=0 knowledge_section=True narr=443字
+[T6] 钟楼废墟里光线昏沉，碎砖垒成的断壁勉强遮住半边天，另一半敞着口子，漏下灰蒙蒙的暮色。你掌心里攥着方才翻出的东西——指腹能感到它的棱角被潮气侵蚀得粗粝，边角却仍硬朗。
+
+脚下的石板又震了一下。
+
+不是错觉。你退后半步，重新踩上去：青石面层微微下陷，像踩在一面绷紧...
+
+=== SMOKE SUMMARY ===
+fired_per_player_turn = [False, True, False, False, False, False]
+director_fired turns in store = [3]
+two_consecutive_player_turn_fires = False  (must be False)
+total_repairs over 6 turns = 5
+final threads = []

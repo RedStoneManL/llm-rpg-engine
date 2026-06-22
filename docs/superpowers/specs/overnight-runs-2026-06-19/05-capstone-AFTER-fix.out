@@ -1,0 +1,75 @@
+== CAPSTONE: narrator=glm-5.1 cheap=glm-4.7 ==
+
+===== PER-TURN =====
+
+[T1] repairs=0 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'relations', 'knowledge', 'storylines']
+   青石镇衙署的堂屋逼仄，日光从窗棂缝隙里挤进来，把浮尘照得像金色的蛆虫。
+
+镇长把茶碗搁下时手在抖。不是冷的——这个时节不冷——是那种藏不住的、从骨头缝里渗出来的怕。
+
+「瘟玉像是前朝镇压瘴泽的镇物，」他压低声音，眼珠子朝门口瞟了一眼，像怕隔墙有耳，「丢了它，雨季一到，泽底的瘴气就会漫上来……三年前柳...
+   STORY: [{"op": "open", "id": "plague_jade_recovery", "summary": "主角受镇长委托前往苍狼岭夺回被独耳匪帮劫走的瘟玉像，但玉像底座的秘密与镇长未言明的隐情暗示此事另有蹊跷"}]
+
+[T2] repairs=2 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'relations', 'storylines']
+   离开青石镇时天还没全亮，雾压在石板街面上，像一层湿冷的霜。
+
+皮地图管用，但只管用到山脚下。过了乱石滩，路就不再是路了——只是树根和碎石之间一种也许有人走过的暗示。你弯腰拨开一丛荆棘，发现一截折断的枝条，断口处的白茬还渗着汁水，是新折的。人过去不久，而且不心疼动静。
+
+山脊线上的风带着一股腥甜气，不...
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "主角追踪骡蹄印与拖痕抵达苍狼岭，发现岩壁下独耳匪帮营地火堆刚熄、人影犹在，途中刀痕暗示曾发生冲突"}]
+
+[T3] repairs=0 dropped=[] sections=['storylines']
+   你的手不由自主地摸向腰间的钱袋——然后停住了。
+
+你不在山脚。你不在任何市集或黑市。你蹲在苍狼岭阴坡一棵倒伏的黑松后面，松针扎进你的膝盖，岩壁下十五步远的地方就是独耳匪帮刚熄了火的营地，空气中那股焦糊味正一丝一丝地往你鼻腔里钻。
+
+黑市——青石镇也许有，也许镇子东头那排永年不开门的地窖里就藏着倒腾脏...
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "主角已抵苍狼岭匪帮营地外围，近距离观察到至少三名匪帮成员及岩棚营地结构，但尚未接触或夺取玉像"}]
+
+[T4] repairs=0 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'knowledge', 'storylines']
+   你等。
+
+暮色从松林底部先暗起来，像墨汁从地面往上洇。岩棚那边的三个人影逐渐融入灰暗，但声音反而清晰了——有人骂了一句什么，嗓子哑，语气里是疲惫的怨气。另一个声音低下来回了句什么，只有尾音飘过来，像是在劝，又像是在堵嘴。
+
+第三个始终没开口。
+
+天全黑了。他们拢了一小堆火，压在岩棚口，火光只够照亮半...
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "主角夜间潜入苍狼岭营地，探明临时据点结构与守备状态，发现疑似存放玉像的矮木箱，并观察到独耳深夜独自端详不明器物的异常行为——尚未夺取玉像"}]
+
+[T5] repairs=1 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'knowledge', 'world', 'storylines']
+   你还没来得及迈出第一步。
+
+闷响先到。然后是液体泼在石面上的稠厚声响——紧接着，白蓝色的光从洞窟深处炸开。
+
+桐油。
+
+你认识这个味。刺鼻、甜腻、呛进肺里发苦——油料引燃后火焰沿着泼洒的轨迹蹿开，快得不像自然燃烧。矮木箱上蒙的布在火舌碰到的一瞬蜷缩发黑，兽皮帘子、包袱、驮架——所有东西同时成了燃料。...
+   WORLD: [{"areas": ["canglang_ridge_camp", "canglang_western_trail"], "level": 2, "summary": "苍狼岭营地桐油爆燃引发山火，火势借山风沿黑松林向山脊两侧扩散，下山路径正在被逐步切断"}]
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "营地骤起大火，独耳携矮木箱冒火撤离至西侧窄道；玉像疑似在箱中但未确认，山火正在封死退路，追截窗口急剧收窄"}]
+
+[T6] repairs=1 dropped=[] sections=['places', 'cast', 'facts', 'knowledge', 'storylines']
+   你没有犹豫——不对，你犹豫了。犹豫的时间大概是两次心跳的长度，然后身体比脑子先动了。松针在你蹬地的那一脚炸开，你弯腰冲进浓烟里，左肩擦过岩棚口还没烧透的木杆，滚烫，隔着衣料烫得你整个人一缩。
+
+洞窟里的光不是光的样子。它是橘红色的固体，把整个空间填满了。你什么都看不清——烟是一面灰白色的墙，火是一面...
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "主角冲入火窟发现矮木箱已被独耳抢先带走；来路被山火封断，仅西侧窄道可追，独耳携箱已先行撤离"}]
+
+[T7] repairs=1 dropped=[] sections=['moves', 'places', 'cast', 'entities', 'facts', 'knowledge', 'world', 'storylines']
+   你想带着玉像回青石镇。
+
+这个念头冒出来的瞬间，你低头看了一眼自己的手。
+
+空的。
+
+掌心正在起泡，指尖烫得发白发皱。你冲进火窟，摸到的是滚烫的空地和一截还在烧的蒙布残片。矮木箱——那只和你膝盖等高、体积与镇长描述吻合的矮木箱——此刻夹在独耳的腋下，已经没入了西侧那道石缝的黑暗里。
+
+你空手进火窟，...
+   WORLD: [{"areas": ["canglang_ridge_camp", "western_cleft_passage"], "level": 2, "summary": "苍狼岭营地遭桐油引燃，松林大面积失火，来路被山火封断，火焰可能沿山脊蔓延"}]
+   STORY: [{"op": "advance", "id": "plague_jade_recovery", "summary": "主角冲入火窟发现矮木箱已被独耳抢先带走；来路被山火封断，仅西侧窄道可追，独耳携箱已先行撤离至碎石坡"}]
+
+===== FINAL STATE =====
+storyline ledger:
+   [活跃] plague_jade_recovery: 主角冲入火窟发现矮木箱已被独耳抢先带走；来路被山火封断，仅西侧窄道可追，独耳携箱已先行撤离至碎石
+recap: scenes=1 summarized=0 super_summary=-
+director_fired=0  cascade_events=12  knows_facts=11  entities=14
+
+=== CAPSTONE DONE: 7 turns, 113 total events ===

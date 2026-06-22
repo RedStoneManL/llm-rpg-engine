@@ -1,0 +1,9 @@
+campaign: /tmp/capstone_egb9nc4p
+banshan_den is Place? True
+children of banshan_den: []
+children of canglang_ridge: []
+cascade_trigger roots: ['banshan_den']
+cascade node provider model: glm-4.7
+RAW node verdict: {"evolve": true, "state": "北风裹挟着烈焰席卷寨子，桐油助燃令木制建筑瞬间沦为火炬，浓烟遮天蔽日", "populace_mood": "极度恐慌，争抢着向低处水源逃命，呛咳声、惨叫声与木梁断裂声混杂", "id": "banshan_den"}
+lightweight_validate → {"evolve": true, "state": "北风裹挟着烈焰席卷寨子，桐油助燃令木制建筑瞬间沦为火炬，浓烟遮天蔽日", "populace_mood": "极度恐慌，争抢着向低处水源逃命，呛咳声、惨叫声与木梁断裂声混杂", "id": "banshan_den"}
+evolve? True

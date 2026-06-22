@@ -1,0 +1,631 @@
+digraph G {
+    graph [rankdir=TB, ranksep=0.5, layout=dot, clusterrank="local"];
+    subgraph "cluster_G" {
+
+        graph [style="filled,rounded", fillcolor="#80808018", label=""];
+        "engine" [label="engine", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="0", tooltip="engine\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/__init__.py"];
+        "engine__archive" [label="engine.archive", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="1", tooltip="engine.archive\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py"];
+        "engine__check" [label="engine.check", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="2", tooltip="engine.check\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py"];
+        "engine__cli" [label="engine.cli", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="3", tooltip="engine.cli\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py"];
+        "engine__compact" [label="engine.compact", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="4", tooltip="engine.compact\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/compact.py"];
+        "engine__director" [label="engine.director", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="5", tooltip="engine.director\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py"];
+        "engine__embed" [label="engine.embed", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="6", tooltip="engine.embed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py"];
+        "engine__log" [label="engine.log", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="7", tooltip="engine.log\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/log.py"];
+        "engine__oracle" [label="engine.oracle", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="8", tooltip="engine.oracle\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py"];
+        "engine__projection" [label="engine.projection", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="9", tooltip="engine.projection\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py"];
+        "engine__recall" [label="engine.recall", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="10", tooltip="engine.recall\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py"];
+        "engine__rewind" [label="engine.rewind", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="11", tooltip="engine.rewind\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/rewind.py"];
+        "engine__schema" [label="engine.schema", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="12", tooltip="engine.schema\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/schema.py"];
+        "engine__seed" [label="engine.seed", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="13", tooltip="engine.seed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/seed.py"];
+        "engine__store" [label="engine.store", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="14", tooltip="engine.store\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py"];
+        "engine__vectorstore" [label="engine.vectorstore", style="filled", fillcolor="#ffffffb2", fontcolor="#000000", group="15", tooltip="engine.vectorstore\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py"];
+        subgraph "cluster_engine__archive" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.archive"];
+            "engine__archive__ArchiveStore" [label="ArchiveStore", style="filled", fillcolor="#ffbd99b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:42\nclass in engine.archive"];
+            "engine__archive___fts_query" [label="_fts_query", style="filled", fillcolor="#ffbd99b2", fontcolor="#000000", group="1", tooltip="engine.archive._fts_query\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:11\nfunction in engine.archive"];
+        }
+        subgraph "cluster_engine__archive__ArchiveStore" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore____enter__" [label="__enter__", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.__enter__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:131\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore____exit__" [label="__exit__", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.__exit__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:134\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore____init__" [label="__init__", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.__init__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:43\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore___row" [label="_row", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore._row\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:98\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__add_chunk" [label="add_chunk", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.add_chunk\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:51\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__close" [label="close", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.close\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:125\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__delete_from_turn" [label="delete_from_turn", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.delete_from_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:104\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__fts_search" [label="fts_search", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.fts_search\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:69\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__get_chunk" [label="get_chunk", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.get_chunk\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:65\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__iter_chunks" [label="iter_chunks", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.iter_chunks\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:121\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__max_turn" [label="max_turn", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.max_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:110\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__min_turn_of_scene" [label="min_turn_of_scene", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.min_turn_of_scene\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:117\nmethod in engine.archive.ArchiveStore"];
+            "engine__archive__ArchiveStore__next_turn" [label="next_turn", style="filled", fillcolor="#ff9b65b2", fontcolor="#000000", group="1", tooltip="engine.archive.ArchiveStore.next_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/archive.py:114\nmethod in engine.archive.ArchiveStore"];
+        }
+        subgraph "cluster_engine__check" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.check"];
+            "engine__check__BLOCK" [label="BLOCK", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.BLOCK\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:6\nname in engine.check"];
+            "engine__check___ALL_LINTERS" [label="_ALL_LINTERS", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check._ALL_LINTERS\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:127\nname in engine.check"];
+            "engine__check___finding" [label="_finding", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check._finding\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:9\nfunction in engine.check"];
+            "engine__check__check" [label="check", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:71\nfunction in engine.check"];
+            "engine__check__check_character_staleness" [label="check_character_staleness", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_character_staleness\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:101\nfunction in engine.check"];
+            "engine__check__check_dangling_refs" [label="check_dangling_refs", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_dangling_refs\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:52\nfunction in engine.check"];
+            "engine__check__check_promise_aging" [label="check_promise_aging", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_promise_aging\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:114\nfunction in engine.check"];
+            "engine__check__check_thread_completeness" [label="check_thread_completeness", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_thread_completeness\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:12\nfunction in engine.check"];
+            "engine__check__check_thread_followup" [label="check_thread_followup", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_thread_followup\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:86\nfunction in engine.check"];
+            "engine__check__check_timeline" [label="check_timeline", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_timeline\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:38\nfunction in engine.check"];
+            "engine__check__check_villain_omniscience" [label="check_villain_omniscience", style="filled", fillcolor="#ffe199b2", fontcolor="#000000", group="2", tooltip="engine.check.check_villain_omniscience\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/check.py:24\nfunction in engine.check"];
+        }
+        subgraph "cluster_engine__cli" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.cli"];
+            "engine__cli___SEV_ICON" [label="_SEV_ICON", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._SEV_ICON\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:331\nname in engine.cli"];
+            "engine__cli___campaign_dir" [label="_campaign_dir", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._campaign_dir\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:36\nfunction in engine.cli"];
+            "engine__cli___campaign_seed" [label="_campaign_seed", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._campaign_seed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:226\nfunction in engine.cli"];
+            "engine__cli___campaigns" [label="_campaigns", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._campaigns\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:28\nfunction in engine.cli"];
+            "engine__cli___current_file" [label="_current_file", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._current_file\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:32\nfunction in engine.cli"];
+            "engine__cli___home" [label="_home", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._home\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:24\nfunction in engine.cli"];
+            "engine__cli___hook_state_path" [label="_hook_state_path", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._hook_state_path\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:49\nfunction in engine.cli"];
+            "engine__cli___read_hook_state" [label="_read_hook_state", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._read_hook_state\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:53\nfunction in engine.cli"];
+            "engine__cli___store" [label="_store", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._store\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:45\nfunction in engine.cli"];
+            "engine__cli___touch_session" [label="_touch_session", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli._touch_session\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:63\nfunction in engine.cli"];
+            "engine__cli__cmd_check" [label="cmd_check", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_check\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:333\nfunction in engine.cli"];
+            "engine__cli__cmd_compact" [label="cmd_compact", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_compact\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:198\nfunction in engine.cli"];
+            "engine__cli__cmd_director" [label="cmd_director", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_director\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:230\nfunction in engine.cli"];
+            "engine__cli__cmd_doctor" [label="cmd_doctor", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_doctor\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:275\nfunction in engine.cli"];
+            "engine__cli__cmd_hooks" [label="cmd_hooks", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_hooks\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:359\nfunction in engine.cli"];
+            "engine__cli__cmd_log_event" [label="cmd_log_event", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_log_event\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:101\nfunction in engine.cli"];
+            "engine__cli__cmd_log_turn" [label="cmd_log_turn", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_log_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:149\nfunction in engine.cli"];
+            "engine__cli__cmd_new" [label="cmd_new", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_new\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:90\nfunction in engine.cli"];
+            "engine__cli__cmd_project" [label="cmd_project", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_project\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:122\nfunction in engine.cli"];
+            "engine__cli__cmd_recall" [label="cmd_recall", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_recall\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:175\nfunction in engine.cli"];
+            "engine__cli__cmd_recap" [label="cmd_recap", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_recap\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:167\nfunction in engine.cli"];
+            "engine__cli__cmd_reindex" [label="cmd_reindex", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_reindex\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:189\nfunction in engine.cli"];
+            "engine__cli__cmd_rewind" [label="cmd_rewind", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_rewind\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:205\nfunction in engine.cli"];
+            "engine__cli__cmd_seed" [label="cmd_seed", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_seed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:374\nfunction in engine.cli"];
+            "engine__cli__cmd_session" [label="cmd_session", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_session\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:72\nfunction in engine.cli"];
+            "engine__cli__cmd_status" [label="cmd_status", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_status\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:135\nfunction in engine.cli"];
+            "engine__cli__cmd_threads_next" [label="cmd_threads_next", style="filled", fillcolor="#f9ff99b2", fontcolor="#000000", group="3", tooltip="engine.cli.cmd_threads_next\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/cli.py:311\nfunction in engine.cli"];
+        }
+        subgraph "cluster_engine__compact" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.compact"];
+            "engine__compact___project" [label="_project", style="filled", fillcolor="#d5ff99b2", fontcolor="#000000", group="4", tooltip="engine.compact._project\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/compact.py:10\nfunction in engine.compact"];
+            "engine__compact__build_working_memory" [label="build_working_memory", style="filled", fillcolor="#d5ff99b2", fontcolor="#000000", group="4", tooltip="engine.compact.build_working_memory\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/compact.py:15\nfunction in engine.compact"];
+            "engine__compact__compact" [label="compact", style="filled", fillcolor="#d5ff99b2", fontcolor="#000000", group="4", tooltip="engine.compact.compact\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/compact.py:45\nfunction in engine.compact"];
+        }
+        subgraph "cluster_engine__director" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.director"];
+            "engine__director__MIN_ACTIVE_THREADS" [label="MIN_ACTIVE_THREADS", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.MIN_ACTIVE_THREADS\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:40\nname in engine.director"];
+            "engine__director__SPEED_CADENCE" [label="SPEED_CADENCE", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.SPEED_CADENCE\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:39\nname in engine.director"];
+            "engine__director___scene_ordinals" [label="_scene_ordinals", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director._scene_ordinals\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:42\nfunction in engine.director"];
+            "engine__director__compute_pacing" [label="compute_pacing", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.compute_pacing\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:17\nfunction in engine.director"];
+            "engine__director__director_check" [label="director_check", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.director_check\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:72\nfunction in engine.director"];
+            "engine__director__pacing_probability" [label="pacing_probability", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.pacing_probability\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:11\nfunction in engine.director"];
+            "engine__director__pick_thread_to_advance" [label="pick_thread_to_advance", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.pick_thread_to_advance\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:66\nfunction in engine.director"];
+            "engine__director__thread_due_scores" [label="thread_due_scores", style="filled", fillcolor="#b1ff99b2", fontcolor="#000000", group="5", tooltip="engine.director.thread_due_scores\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/director.py:50\nfunction in engine.director"];
+        }
+        subgraph "cluster_engine__embed" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.embed"];
+            "engine__embed__FakeEmbedder" [label="FakeEmbedder", style="filled", fillcolor="#99ffa5b2", fontcolor="#000000", group="6", tooltip="engine.embed.FakeEmbedder\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:10\nclass in engine.embed"];
+            "engine__embed__FastEmbedEmbedder" [label="FastEmbedEmbedder", style="filled", fillcolor="#99ffa5b2", fontcolor="#000000", group="6", tooltip="engine.embed.FastEmbedEmbedder\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:25\nclass in engine.embed"];
+            "engine__embed__get_embedder" [label="get_embedder", style="filled", fillcolor="#99ffa5b2", fontcolor="#000000", group="6", tooltip="engine.embed.get_embedder\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:52\nfunction in engine.embed"];
+        }
+        subgraph "cluster_engine__embed__FakeEmbedder" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.embed.FakeEmbedder"];
+            "engine__embed__FakeEmbedder__embed" [label="embed", style="filled", fillcolor="#65ff78b2", fontcolor="#000000", group="6", tooltip="engine.embed.FakeEmbedder.embed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:15\nmethod in engine.embed.FakeEmbedder"];
+        }
+        subgraph "cluster_engine__embed__FastEmbedEmbedder" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.embed.FastEmbedEmbedder"];
+            "engine__embed__FastEmbedEmbedder____init__" [label="__init__", style="filled", fillcolor="#65ff78b2", fontcolor="#000000", group="6", tooltip="engine.embed.FastEmbedEmbedder.__init__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:34\nmethod in engine.embed.FastEmbedEmbedder"];
+            "engine__embed__FastEmbedEmbedder___ensure" [label="_ensure", style="filled", fillcolor="#65ff78b2", fontcolor="#000000", group="6", tooltip="engine.embed.FastEmbedEmbedder._ensure\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:39\nmethod in engine.embed.FastEmbedEmbedder"];
+            "engine__embed__FastEmbedEmbedder__embed" [label="embed", style="filled", fillcolor="#65ff78b2", fontcolor="#000000", group="6", tooltip="engine.embed.FastEmbedEmbedder.embed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/embed.py:46\nmethod in engine.embed.FastEmbedEmbedder"];
+        }
+        subgraph "cluster_engine__log" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.log"];
+            "engine__log__configure_logging" [label="configure_logging", style="filled", fillcolor="#99ffc9b2", fontcolor="#000000", group="7", tooltip="engine.log.configure_logging\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/log.py:8\nfunction in engine.log"];
+            "engine__log__get_logger" [label="get_logger", style="filled", fillcolor="#99ffc9b2", fontcolor="#000000", group="7", tooltip="engine.log.get_logger\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/log.py:23\nfunction in engine.log"];
+        }
+        subgraph "cluster_engine__oracle" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.oracle"];
+            "engine__oracle__Oracle" [label="Oracle", style="filled", fillcolor="#99ffedb2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:13\nclass in engine.oracle"];
+            "engine__oracle___ORACLE_DIR" [label="_ORACLE_DIR", style="filled", fillcolor="#99ffedb2", fontcolor="#000000", group="8", tooltip="engine.oracle._ORACLE_DIR\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:11\nname in engine.oracle"];
+            "engine__oracle__load_table" [label="load_table", style="filled", fillcolor="#99ffedb2", fontcolor="#000000", group="8", tooltip="engine.oracle.load_table\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:41\nfunction in engine.oracle"];
+            "engine__oracle__scene_seed" [label="scene_seed", style="filled", fillcolor="#99ffedb2", fontcolor="#000000", group="8", tooltip="engine.oracle.scene_seed\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:49\nfunction in engine.oracle"];
+        }
+        subgraph "cluster_engine__oracle__Oracle" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.oracle.Oracle"];
+            "engine__oracle__Oracle____init__" [label="__init__", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.__init__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:15\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__chance" [label="chance", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.chance\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:22\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__d100" [label="d100", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.d100\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:19\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__draw" [label="draw", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.draw\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:28\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__pick" [label="pick", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.pick\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:25\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__randint" [label="randint", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.randint\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:38\nmethod in engine.oracle.Oracle"];
+            "engine__oracle__Oracle__random" [label="random", style="filled", fillcolor="#65ffe3b2", fontcolor="#000000", group="8", tooltip="engine.oracle.Oracle.random\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/oracle.py:35\nmethod in engine.oracle.Oracle"];
+        }
+        subgraph "cluster_engine__projection" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.projection"];
+            "engine__projection___new_char" [label="_new_char", style="filled", fillcolor="#99ecffb2", fontcolor="#000000", group="9", tooltip="engine.projection._new_char\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py:18\nfunction in engine.projection"];
+            "engine__projection__apply" [label="apply", style="filled", fillcolor="#99ecffb2", fontcolor="#000000", group="9", tooltip="engine.projection.apply\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py:22\nfunction in engine.projection"];
+            "engine__projection__empty_projections" [label="empty_projections", style="filled", fillcolor="#99ecffb2", fontcolor="#000000", group="9", tooltip="engine.projection.empty_projections\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py:9\nfunction in engine.projection"];
+            "engine__projection__project" [label="project", style="filled", fillcolor="#99ecffb2", fontcolor="#000000", group="9", tooltip="engine.projection.project\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py:103\nfunction in engine.projection"];
+            "engine__projection__write_projections" [label="write_projections", style="filled", fillcolor="#99ecffb2", fontcolor="#000000", group="9", tooltip="engine.projection.write_projections\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/projection.py:113\nfunction in engine.projection"];
+        }
+        subgraph "cluster_engine__recall" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.recall"];
+            "engine__recall___archive" [label="_archive", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall._archive\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:12\nfunction in engine.recall"];
+            "engine__recall___events" [label="_events", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall._events\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:18\nfunction in engine.recall"];
+            "engine__recall___vectors" [label="_vectors", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall._vectors\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:15\nfunction in engine.recall"];
+            "engine__recall__recall" [label="recall", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall.recall\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:39\nfunction in engine.recall"];
+            "engine__recall__recall_anchor" [label="recall_anchor", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall.recall_anchor\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:63\nfunction in engine.recall"];
+            "engine__recall__reindex" [label="reindex", style="filled", fillcolor="#99c8ffb2", fontcolor="#000000", group="10", tooltip="engine.recall.reindex\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/recall.py:22\nfunction in engine.recall"];
+        }
+        subgraph "cluster_engine__rewind" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.rewind"];
+            "engine__rewind__last_turn" [label="last_turn", style="filled", fillcolor="#99a4ffb2", fontcolor="#000000", group="11", tooltip="engine.rewind.last_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/rewind.py:13\nfunction in engine.rewind"];
+            "engine__rewind__rewind" [label="rewind", style="filled", fillcolor="#99a4ffb2", fontcolor="#000000", group="11", tooltip="engine.rewind.rewind\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/rewind.py:24\nfunction in engine.rewind"];
+        }
+        subgraph "cluster_engine__schema" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.schema"];
+            "engine__schema__make_event" [label="make_event", style="filled", fillcolor="#b199ffb2", fontcolor="#000000", group="12", tooltip="engine.schema.make_event\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/schema.py:14\nfunction in engine.schema"];
+            "engine__schema__validate_event" [label="validate_event", style="filled", fillcolor="#b199ffb2", fontcolor="#000000", group="12", tooltip="engine.schema.validate_event\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/schema.py:28\nfunction in engine.schema"];
+        }
+        subgraph "cluster_engine__seed" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.seed"];
+            "engine__seed___draw_distinct" [label="_draw_distinct", style="filled", fillcolor="#d499ffb2", fontcolor="#000000", group="13", tooltip="engine.seed._draw_distinct\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/seed.py:7\nfunction in engine.seed"];
+            "engine__seed__seed_campaign" [label="seed_campaign", style="filled", fillcolor="#d499ffb2", fontcolor="#000000", group="13", tooltip="engine.seed.seed_campaign\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/seed.py:18\nfunction in engine.seed"];
+        }
+        subgraph "cluster_engine__store" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.store"];
+            "engine__store__EventStore" [label="EventStore", style="filled", fillcolor="#f899ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:24\nclass in engine.store"];
+        }
+        subgraph "cluster_engine__store__EventStore" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.store.EventStore"];
+            "engine__store__EventStore____enter__" [label="__enter__", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.__enter__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:104\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore____exit__" [label="__exit__", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.__exit__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:107\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore____init__" [label="__init__", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.__init__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:25\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore___rewrite_jsonl" [label="_rewrite_jsonl", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore._rewrite_jsonl\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:90\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore___row_to_event" [label="_row_to_event", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore._row_to_event\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:111\nstaticmethod in engine.store.EventStore"];
+            "engine__store__EventStore__append" [label="append", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.append\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:34\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore__close" [label="close", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.close\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:98\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore__iter_events" [label="iter_events", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.iter_events\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:61\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore__retract_from_seq" [label="retract_from_seq", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.retract_from_seq\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:69\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore__retract_from_turn" [label="retract_from_turn", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.retract_from_turn\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:77\nmethod in engine.store.EventStore"];
+            "engine__store__EventStore__sync_jsonl" [label="sync_jsonl", style="filled", fillcolor="#f565ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore.sync_jsonl\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:86\nmethod in engine.store.EventStore"];
+        }
+        subgraph "cluster_engine__store__EventStore___row_to_event" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.store.EventStore._row_to_event"];
+            "engine__store__EventStore___row_to_event___j" [label="_j", style="filled", fillcolor="#f232ffb2", fontcolor="#000000", group="14", tooltip="engine.store.EventStore._row_to_event._j\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/store.py:112\nfunction in engine.store.EventStore._row_to_event"];
+        }
+        subgraph "cluster_engine__vectorstore" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.vectorstore"];
+            "engine__vectorstore__VectorStore" [label="VectorStore", style="filled", fillcolor="#ff99e0b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:11\nclass in engine.vectorstore"];
+        }
+        subgraph "cluster_engine__vectorstore__VectorStore" {
+
+            graph [style="filled,rounded", fillcolor="#80808018", label="engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore____enter__" [label="__enter__", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.__enter__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:55\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore____exit__" [label="__exit__", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.__exit__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:58\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore____init__" [label="__init__", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.__init__\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:12\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore__add" [label="add", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.add\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:20\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore__clear" [label="clear", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.clear\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:46\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore__close" [label="close", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.close\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:49\nmethod in engine.vectorstore.VectorStore"];
+            "engine__vectorstore__VectorStore__search" [label="search", style="filled", fillcolor="#ff65d1b2", fontcolor="#000000", group="15", tooltip="engine.vectorstore.VectorStore.search\n/root/.hermes/skills/openclaw-imports/rpg-dm/engine/vectorstore.py:27\nmethod in engine.vectorstore.VectorStore"];
+        }
+    }
+        "engine__archive" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore____exit__" -> "engine__archive__ArchiveStore__close" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__add_chunk" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__close" -> "engine__archive__ArchiveStore__close" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__delete_from_turn" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__fts_search" -> "engine__archive__ArchiveStore___row" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__fts_search" -> "engine__archive___fts_query" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__fts_search" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__get_chunk" -> "engine__archive__ArchiveStore___row" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__iter_chunks" -> "engine__archive__ArchiveStore___row" [style="solid",  color="#000000"];
+        "engine__archive__ArchiveStore__next_turn" -> "engine__archive__ArchiveStore__max_turn" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_character_staleness" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_dangling_refs" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_promise_aging" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_thread_completeness" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_thread_followup" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_timeline" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__check__check_villain_omniscience" [style="solid",  color="#000000"];
+        "engine__check" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__check__check" -> "engine__check___ALL_LINTERS" [style="solid",  color="#000000"];
+        "engine__check__check" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__check__check_character_staleness" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_dangling_refs" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_promise_aging" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_thread_completeness" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_thread_followup" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_thread_followup" -> "engine__director___scene_ordinals" [style="solid",  color="#000000"];
+        "engine__check__check_timeline" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__check__check_villain_omniscience" -> "engine__check___finding" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__check__BLOCK" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__check__check" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__compact__compact" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__director" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__oracle__Oracle" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__oracle__load_table" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__oracle__scene_seed" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__projection__write_projections" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__recall" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__rewind" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__schema__make_event" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__seed__seed_campaign" [style="solid",  color="#000000"];
+        "engine__cli" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__cli___campaign_dir" -> "engine__cli___campaigns" [style="solid",  color="#000000"];
+        "engine__cli___campaign_dir" -> "engine__cli___current_file" [style="solid",  color="#000000"];
+        "engine__cli___campaigns" -> "engine__cli___home" [style="solid",  color="#000000"];
+        "engine__cli___current_file" -> "engine__cli___home" [style="solid",  color="#000000"];
+        "engine__cli___hook_state_path" -> "engine__cli___home" [style="solid",  color="#000000"];
+        "engine__cli___read_hook_state" -> "engine__cli___hook_state_path" [style="solid",  color="#000000"];
+        "engine__cli___store" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__cli___store" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__cli___touch_session" -> "engine__cli___hook_state_path" [style="solid",  color="#000000"];
+        "engine__cli___touch_session" -> "engine__cli___read_hook_state" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__check__BLOCK" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__check__check" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__cli___SEV_ICON" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_check" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_compact" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_compact" -> "engine__compact__compact" [style="solid",  color="#000000"];
+        "engine__cli__cmd_compact" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__archive__ArchiveStore__max_turn" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__cli___campaign_seed" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__cli___touch_session" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__director__compute_pacing" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__director__director_check" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__oracle__Oracle" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__oracle__Oracle____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__oracle__load_table" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__oracle__scene_seed" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__schema__make_event" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_director" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__archive__ArchiveStore__add_chunk" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__compact__compact" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__recall__recall" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__rewind__rewind" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__schema__make_event" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_doctor" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_hooks" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__archive__ArchiveStore__max_turn" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__cli___touch_session" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__schema__make_event" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_event" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore__add_chunk" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__archive__ArchiveStore__next_turn" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__cli___touch_session" [style="solid",  color="#000000"];
+        "engine__cli__cmd_log_turn" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_new" -> "engine__cli___campaigns" [style="solid",  color="#000000"];
+        "engine__cli__cmd_new" -> "engine__cli___current_file" [style="solid",  color="#000000"];
+        "engine__cli__cmd_new" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__projection__write_projections" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_project" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recall" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recall" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recall" -> "engine__recall__recall" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recall" -> "engine__recall__recall_anchor" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recap" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recap" -> "engine__cli___touch_session" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recap" -> "engine__compact__build_working_memory" [style="solid",  color="#000000"];
+        "engine__cli__cmd_recap" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_reindex" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_reindex" -> "engine__embed__get_embedder" [style="solid",  color="#000000"];
+        "engine__cli__cmd_reindex" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_reindex" -> "engine__recall__reindex" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__archive__ArchiveStore__min_turn_of_scene" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__rewind__last_turn" [style="solid",  color="#000000"];
+        "engine__cli__cmd_rewind" -> "engine__rewind__rewind" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__cli___campaign_seed" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__oracle__Oracle" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__oracle__Oracle____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__oracle__scene_seed" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__schema__make_event" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__seed__seed_campaign" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_seed" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_session" -> "engine__cli___current_file" [style="solid",  color="#000000"];
+        "engine__cli__cmd_session" -> "engine__cli___hook_state_path" [style="solid",  color="#000000"];
+        "engine__cli__cmd_session" -> "engine__cli___read_hook_state" [style="solid",  color="#000000"];
+        "engine__cli__cmd_session" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__archive__ArchiveStore__max_turn" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_status" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__cli___campaign_dir" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__cli___campaign_seed" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__cli___store" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__director" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__director__MIN_ACTIVE_THREADS" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__director__pick_thread_to_advance" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__oracle__Oracle" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__oracle__Oracle____init__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__cli__cmd_threads_next" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__compact" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__compact" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__compact" -> "engine__projection__write_projections" [style="solid",  color="#000000"];
+        "engine__compact" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__projection__project" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__compact___project" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__compact__build_working_memory" -> "engine__compact___project" [style="solid",  color="#000000"];
+        "engine__compact__build_working_memory" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__compact__build_working_memory" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__compact__compact" -> "engine__compact___project" [style="solid",  color="#000000"];
+        "engine__compact__compact" -> "engine__compact__build_working_memory" [style="solid",  color="#000000"];
+        "engine__compact__compact" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__compact__compact" -> "engine__projection__write_projections" [style="solid",  color="#000000"];
+        "engine__director" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__director__compute_pacing" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__director__director_check" -> "engine__director__pacing_probability" [style="solid",  color="#000000"];
+        "engine__director__director_check" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__director__pick_thread_to_advance" -> "engine__director__thread_due_scores" [style="solid",  color="#000000"];
+        "engine__director__thread_due_scores" -> "engine__director__SPEED_CADENCE" [style="solid",  color="#000000"];
+        "engine__director__thread_due_scores" -> "engine__director___scene_ordinals" [style="solid",  color="#000000"];
+        "engine__director__thread_due_scores" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__embed" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__embed__FakeEmbedder__embed" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__embed__FastEmbedEmbedder___ensure" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__embed__FastEmbedEmbedder__embed" -> "engine__embed__FakeEmbedder__embed" [style="solid",  color="#000000"];
+        "engine__embed__FastEmbedEmbedder__embed" -> "engine__embed__FastEmbedEmbedder___ensure" [style="solid",  color="#000000"];
+        "engine__embed__FastEmbedEmbedder__embed" -> "engine__embed__FastEmbedEmbedder__embed" [style="solid",  color="#000000"];
+        "engine__embed__FastEmbedEmbedder__embed" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__embed__get_embedder" -> "engine__embed__FakeEmbedder" [style="solid",  color="#000000"];
+        "engine__embed__get_embedder" -> "engine__embed__FastEmbedEmbedder" [style="solid",  color="#000000"];
+        "engine__embed__get_embedder" -> "engine__embed__FastEmbedEmbedder____init__" [style="solid",  color="#000000"];
+        "engine__oracle" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__oracle" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle____init__" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__chance" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__d100" -> "engine__oracle__Oracle__randint" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__d100" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__draw" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__draw" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__pick" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__randint" -> "engine__oracle__Oracle__randint" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__randint" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__Oracle__random" -> "engine__oracle__Oracle__random" [style="solid",  color="#000000"];
+        "engine__oracle__load_table" -> "engine__oracle___ORACLE_DIR" [style="solid",  color="#000000"];
+        "engine__projection" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__projection__apply" -> "engine__projection___new_char" [style="solid",  color="#000000"];
+        "engine__projection__project" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__projection__project" -> "engine__projection__apply" [style="solid",  color="#000000"];
+        "engine__projection__project" -> "engine__projection__empty_projections" [style="solid",  color="#000000"];
+        "engine__projection__write_projections" -> "engine__store__EventStore__append" [style="solid",  color="#000000"];
+        "engine__recall" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__recall" -> "engine__embed__get_embedder" [style="solid",  color="#000000"];
+        "engine__recall" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__recall" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__recall" -> "engine__vectorstore__VectorStore" [style="solid",  color="#000000"];
+        "engine__recall___archive" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__recall___archive" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__recall___events" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__recall___events" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__recall___vectors" -> "engine__vectorstore__VectorStore" [style="solid",  color="#000000"];
+        "engine__recall___vectors" -> "engine__vectorstore__VectorStore____init__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__archive__ArchiveStore__fts_search" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__archive__ArchiveStore__get_chunk" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__embed__get_embedder" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__recall___archive" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__recall___vectors" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__recall" -> "engine__vectorstore__VectorStore__search" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__archive__ArchiveStore__get_chunk" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__recall___archive" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__recall___events" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__recall_anchor" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__archive__ArchiveStore__iter_chunks" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__embed__get_embedder" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__recall___archive" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__recall___vectors" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__vectorstore__VectorStore__add" [style="solid",  color="#000000"];
+        "engine__recall__reindex" -> "engine__vectorstore__VectorStore__clear" [style="solid",  color="#000000"];
+        "engine__rewind" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__rewind" -> "engine__compact__compact" [style="solid",  color="#000000"];
+        "engine__rewind" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__rewind" -> "engine__recall__reindex" [style="solid",  color="#000000"];
+        "engine__rewind" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__archive__ArchiveStore__max_turn" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__rewind__last_turn" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__archive__ArchiveStore" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__archive__ArchiveStore____init__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__archive__ArchiveStore__delete_from_turn" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__compact__compact" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__recall__reindex" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__store__EventStore" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__store__EventStore____init__" [style="solid",  color="#000000"];
+        "engine__rewind__rewind" -> "engine__store__EventStore__retract_from_turn" [style="solid",  color="#000000"];
+        "engine__schema__make_event" -> "engine__schema__validate_event" [style="solid",  color="#000000"];
+        "engine__seed" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__seed" -> "engine__oracle__load_table" [style="solid",  color="#000000"];
+        "engine__seed___draw_distinct" -> "engine__oracle__Oracle__draw" [style="solid",  color="#000000"];
+        "engine__seed__seed_campaign" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__seed__seed_campaign" -> "engine__oracle__Oracle__draw" [style="solid",  color="#000000"];
+        "engine__seed__seed_campaign" -> "engine__oracle__Oracle__randint" [style="solid",  color="#000000"];
+        "engine__seed__seed_campaign" -> "engine__oracle__load_table" [style="solid",  color="#000000"];
+        "engine__seed__seed_campaign" -> "engine__seed___draw_distinct" [style="solid",  color="#000000"];
+        "engine__store" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__store" -> "engine__schema__validate_event" [style="solid",  color="#000000"];
+        "engine__store__EventStore____exit__" -> "engine__store__EventStore__close" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__store__EventStore__iter_events" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___rewrite_jsonl" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore___row_to_event" -> "engine__store__EventStore___row_to_event___j" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__archive__ArchiveStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__archive__ArchiveStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__schema__validate_event" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__store__EventStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__store__EventStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__vectorstore__VectorStore____enter__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__append" -> "engine__vectorstore__VectorStore____exit__" [style="solid",  color="#000000"];
+        "engine__store__EventStore__close" -> "engine__archive__ArchiveStore__close" [style="solid",  color="#000000"];
+        "engine__store__EventStore__close" -> "engine__store__EventStore__close" [style="solid",  color="#000000"];
+        "engine__store__EventStore__close" -> "engine__vectorstore__VectorStore__close" [style="solid",  color="#000000"];
+        "engine__store__EventStore__iter_events" -> "engine__store__EventStore___row_to_event" [style="solid",  color="#000000"];
+        "engine__store__EventStore__retract_from_seq" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__store__EventStore__retract_from_seq" -> "engine__store__EventStore___rewrite_jsonl" [style="solid",  color="#000000"];
+        "engine__store__EventStore__retract_from_turn" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__store__EventStore__retract_from_turn" -> "engine__store__EventStore___rewrite_jsonl" [style="solid",  color="#000000"];
+        "engine__store__EventStore__sync_jsonl" -> "engine__store__EventStore___rewrite_jsonl" [style="solid",  color="#000000"];
+        "engine__vectorstore" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore____exit__" -> "engine__vectorstore__VectorStore__close" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore__add" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore__close" -> "engine__archive__ArchiveStore__close" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore__close" -> "engine__store__EventStore__close" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore__close" -> "engine__vectorstore__VectorStore__close" [style="solid",  color="#000000"];
+        "engine__vectorstore__VectorStore__search" -> "engine__log__get_logger" [style="solid",  color="#000000"];
+    }

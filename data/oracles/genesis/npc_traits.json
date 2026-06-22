@@ -1,0 +1,10 @@
+[
+  {"weight": 3, "name": "谨慎"},
+  {"weight": 2, "name": "暴躁"},
+  {"weight": 2, "name": "慈悲"},
+  {"weight": 2, "name": "贪婪"},
+  {"weight": 3, "name": "忠诚"},
+  {"weight": 2, "name": "狡黠"},
+  {"weight": 1, "name": "木讷"},
+  {"weight": 2, "name": "热忱"}
+]

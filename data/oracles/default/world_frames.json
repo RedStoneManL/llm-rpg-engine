@@ -1,0 +1,6 @@
+[
+  {"weight": 2, "name": "暗流都市", "tone": "都市悬疑", "central_conflict": "看似平静下的隐秘势力博弈", "factions": 3},
+  {"weight": 2, "name": "异世重生", "tone": "日轻冒险", "central_conflict": "穿越者在陌生世界求生与崛起", "factions": 4},
+  {"weight": 2, "name": "末世余烬", "tone": "废土生存", "central_conflict": "资源与人性的双重考验", "factions": 3},
+  {"weight": 1, "name": "宫廷棋局", "tone": "权谋", "central_conflict": "继承权之争与暗杀", "factions": 5}
+]

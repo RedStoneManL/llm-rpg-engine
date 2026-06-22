@@ -1,0 +1,5 @@
+pytest
+numpy
+fastembed
+pydeps  # dev: code graph; needs system graphviz (dot)
+pyan3   # dev: call graph (+ system universal-ctags for symbol index)
