@@ -150,4 +150,4 @@ Offline tests use fake/scripted providers so the whole engine is exercised witho
 
 ## License
 
-No license chosen yet — add one before reuse.
+[MIT](LICENSE) © 2026 Xingyu Liu
