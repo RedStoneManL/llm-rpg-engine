@@ -6,6 +6,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"     # cd to the repo root; relative paths below resolve from here
 
+# Load .env.local FIRST (API key + optional GLM_* overrides) so the CONFIG block
+# below always wins over it (e.g. a stray CAMPAIGN= in .env.local won't override).
+set -a
+[ -f .env.local ] && . ./.env.local
+set +a
+: "${ZHIPU_API_KEY:?Set ZHIPU_API_KEY — your GLM/zai key — in .env.local or the environment}"
+
 # ╔════════════════════════════ CONFIG: edit here ════════════════════════════╗
 
 CAMPAIGN="./campaign"      # Save folder. A NEW EMPTY dir = a fresh world (genesis runs
@@ -34,11 +41,6 @@ BASE_URL="${GLM_BASE_URL:-https://open.bigmodel.cn/api/coding/paas/v4}"
 
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 # ------------------------------- leave below as-is --------------------------
-
-set -a
-[ -f .env.local ] && . ./.env.local
-set +a
-: "${ZHIPU_API_KEY:?Set ZHIPU_API_KEY — your GLM/zai key — in .env.local or the environment}"
 
 args=(
   --campaign "$CAMPAIGN"
