@@ -1,5 +1,7 @@
 # llm-rpg-engine
 
+**English** | [中文](README.zh-CN.md)
+
 **An event-sourced, LLM-driven tabletop-RPG (跑团 / TRPG) engine — a living world that the model narrates and the harness keeps honest.**
 
 The core idea: give the LLM **full narrative autonomy**, but frame it with a **deterministic harness** — an append-only event log, seeded hidden dice, fog-of-war that the model physically cannot violate, and a strict commit/repair gate. The model writes the story; the engine guarantees the world stays consistent, replayable, and rewindable.
