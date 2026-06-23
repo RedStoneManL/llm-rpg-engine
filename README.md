@@ -6,7 +6,7 @@
 
 The core idea: give the LLM **full narrative autonomy**, but frame it with a **deterministic harness** — an append-only event log, seeded hidden dice, fog-of-war that the model physically cannot violate, and a strict commit/repair gate. The model writes the story; the engine guarantees the world stays consistent, replayable, and rewindable.
 
-> Status: **v0.2** — a complete playable loop (`define or roll a world → play turns → the world reacts → endgame → rewind`), with **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern import) layered over the model-filled default. ~1540 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
+> Status: **v0.2** — a complete playable loop (`define or roll a world → play turns → the world reacts → endgame → rewind`), with **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern import) layered over the model-filled default. ~1580 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
 
 ---
 
@@ -144,7 +144,7 @@ context/    context assembly
 engine/     oracle, embeddings, logging
 data/       oracle tables (default + genesis dimension tables)
 docs/       design specs & implementation plans (the architecture, decision-by-decision)
-tests/      ~1540 offline tests (deterministic) + live-LLM probes
+tests/      ~1580 offline tests (deterministic) + live-LLM probes
 ```
 
 The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document the design and the decisions behind each subsystem — start there to understand *why* it's built this way.
@@ -154,7 +154,7 @@ The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document
 ## Testing
 
 ```bash
-PYTHONPATH=. python3 -m pytest -q          # ~1540 offline tests, deterministic, no network
+PYTHONPATH=. python3 -m pytest -q          # ~1580 offline tests, deterministic, no network
 ```
 
 Offline tests use fake/scripted providers so the whole engine is exercised without an API key. Live behavior (does a real reasoning model call the tools, keep secrets, generate a coherent world?) is validated by probe scripts under `docs/`.
@@ -163,7 +163,7 @@ Offline tests use fake/scripted providers so the whole engine is exercised witho
 
 ## Status & roadmap
 
-**v0.2** — complete core loop + structured debug tracing + tunable narration + **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern world-book & character-card import; the model fills whatever you don't define), validated offline (~1540 tests) + live. Next: optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
+**v0.2** — complete core loop + structured debug tracing + tunable narration + **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern world-book & character-card import; the model fills whatever you don't define), validated offline (~1580 tests) + live. Next: optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
 
 ## License
 

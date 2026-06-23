@@ -370,11 +370,9 @@ class CharacterSystem(ContextSystem):
         g: FactGraph | None = world.get("systems", {}).get("ontology")
         if not g:
             return None
-        present = scene.get("present", [])
-        if not present:
-            return None
-
+        present = scene.get("present", []) or []
         day = scene.get("day", 0)
+
         cards = []
         for pid in present:
             entity = g.get_entity(pid)
@@ -385,11 +383,34 @@ class CharacterSystem(ContextSystem):
             mood = g.value_at(pid, "mood", day) or "—"
             cards.append(f"{pid}：{sketch} | 目标：{goal} | 此刻：{mood}")
 
-        if not cards:
+        # #R7 Phase 2: a terse continuity line for co-located WALK-ONS — mentioned
+        # Persons physically in the scene but not in `present` (which is
+        # tracked-only). Surfaces them by name so the model remembers they're
+        # around, without the full-card bloat reserved for tracked NPCs; off-scene
+        # entities stay hidden (importance filtering / anti-bloat).
+        location = scene.get("location")
+        protagonist = scene.get("protagonist")
+        ambient = []
+        if location:
+            present_set = set(present)
+            for eid, entity in g.entities.items():
+                if (entity.etype != "Person" or eid == protagonist
+                        or eid in present_set
+                        or getattr(entity, "tier", "mentioned") == "tracked"):
+                    continue
+                locs = g.neighbors(eid, "located_in", day)
+                if locs and locs[0] == location:
+                    nm = g.value_at(eid, "真名", day) or g.value_at(eid, "sketch", day) or eid
+                    ambient.append(str(nm))
+
+        parts = list(cards)
+        if ambient:
+            parts.append("（也在场·过场人物：" + "、".join(ambient) + "）")
+        if not parts:
             return None
 
         return Fragment(
             system="character",
             layer="scene",
-            text="\n".join(cards),
+            text="\n".join(parts),
         )

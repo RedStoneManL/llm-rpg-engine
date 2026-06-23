@@ -18,6 +18,7 @@ HybridStrategy (丙):
 from __future__ import annotations
 
 import abc
+import re
 from typing import Any
 
 from context.assembler import assemble_context
@@ -30,6 +31,58 @@ from engine import settings as _settings
 from loop.lore_disclosure import station_push_fragment
 
 log = get_logger("loop.strategy")
+
+# Neutral fallback shown when the model output can't be parsed AND no narration
+# can be salvaged. NEVER show the raw blob — it carries the structured commit
+# (incl. secrecy="secret" facts). (#R5)
+_PARSE_FAIL_NARRATION = "（这一刻，周遭并无明显变化。）"
+
+
+def _salvage_narration(raw) -> str | None:
+    """Best-effort extract ONLY the "narration" string value from malformed JSON.
+
+    Reads the value char-by-char (honoring the common \\-escapes \\n\\t\\r\\"\\\\/;
+    \\uXXXX passes through literally — this is the degraded salvage path), stopping
+    at the closing quote — so it never includes the structured sections that follow
+    (facts/relations/knowledge/clock). Returns the text, or None if absent.
+    """
+    if not isinstance(raw, str):
+        return None
+    m = re.search(r'"narration"\s*:\s*"', raw)
+    if not m:
+        return None
+    i, out, esc = m.end(), [], {"n": "\n", "t": "\t", "r": "\r",
+                                '"': '"', "\\": "\\", "/": "/"}
+    while i < len(raw):
+        c = raw[i]
+        if c == "\\" and i + 1 < len(raw):
+            out.append(esc.get(raw[i + 1], raw[i + 1]))
+            i += 2
+            continue
+        if c == '"':
+            break
+        out.append(c)
+        i += 1
+    text = "".join(out).strip()
+    return text or None
+
+
+def _data_or_safe(raw) -> dict:
+    """Parse the model output into a commit dict, falling back WITHOUT leaking the
+    raw blob. Never returns {"narration": raw}: that would dump the structured
+    commit (incl. secret facts) into the player-facing narration. (#R5)
+    """
+    data = _parse_json_object(raw)
+    if data is not None:
+        return data
+    salvaged = _salvage_narration(raw)
+    if salvaged:
+        log.warning("produce: model output not valid JSON; salvaged narration only, "
+                    "dropped structured sections (no raw leak)")
+        return {"narration": salvaged}
+    log.warning("produce: model output not valid JSON and no narration salvageable; "
+                "using neutral fallback")
+    return {"narration": _PARSE_FAIL_NARRATION}
 
 # ---------------------------------------------------------------------------
 # Schema for complete_json — permissive; real checking is validate_commit.
@@ -81,12 +134,12 @@ _NARRATE_VERBOSITY_FRAGMENT: dict[str, str] = {
 _SYSTEM_PROMPT_TEMPLATE = """\
 你是主持人（DM），以主角视角叙事，同时记录世界变化。
 
-【narration 文风】__VERBOSITY__具体可感、不空泛；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。
+__STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。
 
 【结构】除 narration 外，按本回合【真实发生】的变化给出可选段落（每段都是对象数组）：
 - moves: [{"who":移动的实体id, "to":目标地点id}]   （who、to 均必填）
 - places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]（kind 只能取列出的五个值之一，别自造如 ruin/forest 等）
-- cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":...}]
+- cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]（叙事中**新登场且有戏**的 NPC 在此 create 并给 sketch/goal,加 "name" 标其名字便于后续引用;只是路过的纯路人可不声明,引擎会按名字自动建轻量占位）
 - entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
 - facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]（subject/predicate/value 必填；只记确有意义的客观事实，勿把布景滥造成 fact）。secrecy 可选，取 "public"|"restricted"|"secret"：街坊皆知的常识/明面事实标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写】（默认不进公开层、绝不外泄）
 - relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
@@ -122,7 +175,7 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
 _NARRATE_PROMPT_TEMPLATE = """\
 你是主持人（DM），以主角视角进行沉浸式叙事。
 
-【文风】融合细腻描写与戏剧张力：重环境氛围、角色的神态动作与内心、以及有张力的对话；多用具体可感的细节，少堆空泛形容。
+__STYLE__【文风】融合细腻描写与戏剧张力：重环境氛围、角色的神态动作与内心、以及有张力的对话；多用具体可感的细节，少堆空泛形容。
 【写法】
 1. 第一/第三人称散文皆可（以中文为主）；__NARRATE_VERBOSITY__
 2. 展示而非告知：设定、过往、人物关系通过此刻的细节、动作与后果自然流露，不要直接复述资料。
@@ -136,18 +189,36 @@ _NARRATE_PROMPT_TEMPLATE = """\
 # ---------------------------------------------------------------------------
 
 
-def _system_prompt(verbosity: str | None = None) -> str:
-    """Build the 甲 system prompt with the current (or given) verbosity fragment."""
+def _style_fragment(style: str | None) -> str:
+    """Build the optional overarching style/voice directive (#R8).
+
+    Generic: wraps whatever style string the player set, so any voice works
+    ("日式轻小说", "冷硬派侦探", ...). Blank -> "" (neutral; byte-identical to the
+    pre-#R8 prompt)."""
+    s = (style or "").strip()
+    if not s:
+        return ""
+    return f"【文风基调】整体以「{s}」的风格叙述，贯穿全篇。\n\n"
+
+
+def _system_prompt(verbosity: str | None = None, style: str | None = None) -> str:
+    """Build the 甲 system prompt with the current (or given) verbosity + style."""
     v = verbosity or _settings.get_verbosity()
     frag = _VERBOSITY_FRAGMENT.get(v, _VERBOSITY_FRAGMENT["medium"])
-    return _SYSTEM_PROMPT_TEMPLATE.replace("__VERBOSITY__", frag)
+    s = _settings.get_style() if style is None else style
+    return (_SYSTEM_PROMPT_TEMPLATE
+            .replace("__STYLE__", _style_fragment(s))
+            .replace("__VERBOSITY__", frag))
 
 
-def _narrate_prompt(verbosity: str | None = None) -> str:
-    """Build the 丙 narration prompt with the current (or given) verbosity fragment."""
+def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> str:
+    """Build the 丙 narration prompt with the current (or given) verbosity + style."""
     v = verbosity or _settings.get_verbosity()
     frag = _NARRATE_VERBOSITY_FRAGMENT.get(v, _NARRATE_VERBOSITY_FRAGMENT["medium"])
-    return _NARRATE_PROMPT_TEMPLATE.replace("__NARRATE_VERBOSITY__", frag)
+    s = _settings.get_style() if style is None else style
+    return (_NARRATE_PROMPT_TEMPLATE
+            .replace("__STYLE__", _style_fragment(s))
+            .replace("__NARRATE_VERBOSITY__", frag))
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +239,7 @@ _SYSTEM_PROMPT_HYBRID = """\
 3. 每个段落都是对象数组：
    - moves: [{"who":实体id, "to":地点id}]
    - places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]（kind 只能取列出五值之一）
-   - cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":...}]
+   - cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]（叙事中**新登场且有戏**的 NPC 在此 create 并给 sketch/goal,加 "name" 标其名字便于后续引用;只是路过的纯路人可不声明,引擎会按名字自动建轻量占位）
    - entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
    - facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]（subject/predicate/value 必填）。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
    - relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
@@ -303,7 +374,7 @@ class AuthorStrategy(TurnStrategy):
                     max_tool_rounds=rounds,
                 )
                 self._messages.append({"role": "assistant", "content": raw})
-                data = _parse_json_object(raw) or {"narration": raw}
+                data = _data_or_safe(raw)
                 return TurnCommit.from_dict(data)
 
         # Existing path: plain complete_messages (unchanged for all non-tool providers
@@ -311,7 +382,7 @@ class AuthorStrategy(TurnStrategy):
         # identical when provider.supports_tools() is False).
         raw = provider.complete_messages(self._messages)
         self._messages.append({"role": "assistant", "content": raw})
-        data = _parse_json_object(raw) or {"narration": raw}
+        data = _data_or_safe(raw)
         return TurnCommit.from_dict(data)
 
     def repair_sections(

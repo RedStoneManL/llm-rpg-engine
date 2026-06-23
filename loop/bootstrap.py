@@ -154,10 +154,14 @@ def gen_frame(
     ))
 
     # Three public fact_asserted events for genre / tone / central_conflict
-    for predicate, value in (
-        ("genre", genre),
-        ("tone", tone),
-        ("central_conflict", central_conflict),
+    # genre/tone are public surface info; central_conflict is the DEEP TRUTH the
+    # player should DISCOVER through play, so it's a DM-only secret fact (#R2) —
+    # it still informs every downstream generator via `frame`, but the fog tiers
+    # (ambient/passerby) can never relay it and the intro never shows it.
+    for predicate, value, secrecy in (
+        ("genre", genre, "public"),
+        ("tone", tone, "public"),
+        ("central_conflict", central_conflict, "secret"),
     ):
         events.append(kernel_event(
             "fact_asserted",
@@ -167,7 +171,7 @@ def gen_frame(
                 "subject": "world",
                 "predicate": predicate,
                 "value": value,
-                "secrecy": "public",
+                "secrecy": secrecy,
             },
         ))
 
@@ -1855,6 +1859,7 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
         "n_npcs": n_npcs_actual,
         "n_lore": n_lore,
         "narration_excerpt": narration[:120] if narration else "",
+        "opening": narration or "",
         "protagonist_name": protagonist_authored["name"],
         "protagonist_origin": protagonist_authored["origin"],
         "protagonist_goal": protagonist_authored["goal"],
@@ -2081,6 +2086,7 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
         "n_npcs": n_npcs_actual,
         "n_lore": n_lore,
         "narration_excerpt": narration[:120] if narration else "",
+        "opening": narration or "",
         "protagonist_name": protagonist_authored["name"],
         "protagonist_origin": protagonist_authored["origin"],
         "protagonist_goal": protagonist_authored["goal"],

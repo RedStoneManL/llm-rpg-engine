@@ -9,6 +9,7 @@ from __future__ import annotations
 import abc
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -64,12 +65,15 @@ def _parse_json_object(raw: str) -> dict | None:
     if 0 <= lo < hi:
         candidates.append(s[lo:hi + 1])  # outermost {...} if prose surrounds it
     for cand in candidates:
-        try:
-            obj = json.loads(cand)
-        except (json.JSONDecodeError, ValueError):
-            continue
-        if isinstance(obj, dict):
-            return obj
+        # Try the candidate as-is, then a trailing-comma-stripped variant
+        # (reasoning models often emit `,]` / `,}` which strict json rejects).
+        for variant in (cand, re.sub(r',(\s*[}\]])', r'\1', cand)):
+            try:
+                obj = json.loads(variant)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if isinstance(obj, dict):
+                return obj
     return None
 
 
@@ -301,6 +305,24 @@ def _http_post_json(url: str, headers: dict, data: bytes, timeout: int) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _retry_after_seconds(e) -> int | None:
+    """Parse an integer Retry-After (seconds) from an HTTPError, or None.
+
+    HTTP-date forms are not supported (return None → fall back to backoff). (#R6)
+    """
+    try:
+        hdrs = getattr(e, "headers", None)
+        val = hdrs.get("Retry-After") if hdrs is not None else None
+    except Exception:
+        return None
+    if not val:
+        return None
+    try:
+        return max(0, int(str(val).strip()))
+    except (ValueError, TypeError):
+        return None
+
+
 def _do_post(url: str, headers: dict, body: dict, timeout: int = 300,
              *, max_retries: int = 4) -> dict:
     """Perform a JSON POST and return the parsed response body.
@@ -327,6 +349,11 @@ def _do_post(url: str, headers: dict, body: dict, timeout: int = 300,
                 # so a burst (compare run) or a popular model (glm-5.1) can't kill the turn.
                 if e.code in (429, 500, 502, 503, 504) and attempt < max_retries:
                     wait = min(2 ** attempt, 30)  # 1,2,4,8,... capped at 30s
+                    # Honor a server Retry-After (seconds) when present (esp. 429);
+                    # cap at 60s so a huge value can't stall the turn forever. (#R6)
+                    ra = _retry_after_seconds(e)
+                    if ra is not None:
+                        wait = min(max(wait, ra), 60)
                     log.warning("_do_post HTTP %d (%s); retry %d/%d after %ds",
                                 e.code, e.reason, attempt + 1, max_retries, wait)
                     time.sleep(wait)

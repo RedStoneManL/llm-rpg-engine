@@ -10,7 +10,8 @@ def _hermetic_rpg_env(monkeypatch):
     levels). Clear them; tests that need them set do so explicitly."""
     for var in ("RPG_EMBEDDER", "RPG_DEBUG", "RPG_LOG_LEVEL", "RPG_HOME",
                 "RPG_DEBUG_TRACE", "RPG_DEBUG_RUN",
-                "RPG_NARRATION_VERBOSITY", "RPG_MAX_TOOL_ROUNDS"):
+                "RPG_NARRATION_VERBOSITY", "RPG_MAX_TOOL_ROUNDS",
+                "RPG_NARRATION_STYLE"):
         monkeypatch.delenv(var, raising=False)
     # The shared "rpg" logger is process-global; engine.log.configure_logging()
     # sets propagate=False (+ adds a StreamHandler), which leaks across tests and

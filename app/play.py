@@ -171,6 +171,7 @@ OOC 指令 (以 / 开头):
   //retcon <N>         — 同 /rewind <N>（OOC 别名）
   //veto               — 同 /undo（OOC 别名）
   /verbosity [级别]    — 查询或设置叙事详细程度（concise|medium|rich）
+  /style [文风]        — 查询或设置叙事文风/笔调（如「日式轻小说」；/style clear 清空）
   /help                — 显示此帮助
 """
 
@@ -322,6 +323,19 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool
                 out(f"[verbosity] 叙事详细程度已设为：{level}")
             else:
                 out(f"[verbosity] 无效级别 '{level}' — 可用：concise | medium | rich")
+        return False
+
+    elif verb == "style":
+        from engine import settings as _eng_settings
+        if not arg:
+            cur = _eng_settings.get_style()
+            out(f"[style] 当前叙事文风：{cur or '（中性/默认）'}")
+        else:
+            s = arg.strip()
+            if s.lower() in ("clear", "none", "默认", "中性"):
+                s = ""
+            _eng_settings.set_style(s)
+            out(f"[style] 叙事文风已设为：{s or '（中性/默认）'}")
         return False
 
     elif verb == "help":
@@ -480,7 +494,10 @@ def play_loop(
                 # #5 — frame the DM narration under a clear marker
                 _print_dm_narration(result.narration, out)
                 if result.dropped_sections:
-                    out(f"[提示：{len(result.dropped_sections)}个段落因验证失败已丢弃]")
+                    # #R7: name the dropped sections (was just a count) so it's clear
+                    # WHICH world-changes failed validation and did not take effect.
+                    out(f"[提示：{('、'.join(result.dropped_sections))} 段验证失败，"
+                        f"本回合这些世界变更未生效]")
                 _write_transcript(transcript_path, {
                     "turn": turn_no, "input": player_input, "mode": "single",
                     **_candidate_record(result.commit, result.repair_attempts,

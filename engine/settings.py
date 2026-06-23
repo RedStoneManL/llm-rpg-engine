@@ -29,12 +29,22 @@ VERBOSITY_LEVELS = ("concise", "medium", "rich")
 
 _verbosity: str = "medium"
 _max_tool_rounds: int = 12
+# Narration STYLE/voice (free text, e.g. "日式轻小说"); "" = neutral (default).
+# Orthogonal to verbosity (which is LENGTH). (#R8)
+_style: str = ""
+
+_STYLE_MAXLEN = 200
 
 
 def _parse_verbosity(raw: str) -> str:
     """Return *raw* if it is a valid verbosity level, else 'medium'."""
     v = raw.strip().lower()
     return v if v in VERBOSITY_LEVELS else "medium"
+
+
+def _parse_style(raw: str) -> str:
+    """Normalize a free-text style string ('' = neutral); length-capped."""
+    return (raw or "").strip()[:_STYLE_MAXLEN]
 
 
 def _parse_max_tool_rounds(raw: str) -> int:
@@ -51,13 +61,14 @@ def reset_from_env() -> None:
     Useful at startup (called automatically on module import) and in tests
     (called to reset state after monkeypatching env vars).
     """
-    global _verbosity, _max_tool_rounds
+    global _verbosity, _max_tool_rounds, _style
     _verbosity = _parse_verbosity(
         os.environ.get("RPG_NARRATION_VERBOSITY", "medium")
     )
     _max_tool_rounds = _parse_max_tool_rounds(
         os.environ.get("RPG_MAX_TOOL_ROUNDS", "12")
     )
+    _style = _parse_style(os.environ.get("RPG_NARRATION_STYLE", ""))
 
 
 # Initialise from env on import
@@ -93,3 +104,31 @@ def set_verbosity(level: str) -> bool:
 def get_max_tool_rounds() -> int:
     """Return the current max-tool-rounds ceiling for the tool loop."""
     return _max_tool_rounds
+
+
+def set_max_tool_rounds(n) -> bool:
+    """Set the max-tool-rounds ceiling (>=0). Returns False on invalid input."""
+    global _max_tool_rounds
+    try:
+        v = int(n)
+    except (ValueError, TypeError):
+        return False
+    if v < 0:
+        return False
+    _max_tool_rounds = v
+    return True
+
+
+def get_style() -> str:
+    """Return the current narration style/voice ('' = neutral)."""
+    return _style
+
+
+def set_style(style: str) -> bool:
+    """Set the narration style/voice (free text; '' clears to neutral).
+
+    Returns True always (any string is accepted; it's normalized + capped).
+    """
+    global _style
+    _style = _parse_style(style)
+    return True

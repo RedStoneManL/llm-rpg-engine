@@ -32,9 +32,9 @@ def _print_intro(result: dict, out: Callable, *, header: str = "[世界摘要]")
     Covers:
       - 主角：name — origin；目标：goal
       - 当前所在：start region name + start town name + venue ids
-      - 世界背景：world_name (tone) — central_conflict
+      - 世界背景：world_name (tone) — surface premise (genre; NOT the secret central_conflict, #R2)
       - 当前目标：objective (starting quest)
-      - 开场：narration_excerpt
+      - 开场：the FULL opening, rendered as its own block (#R4; not a 120-char excerpt)
       - Counts footer: regions / factions / NPC / lore
 
     Args:
@@ -81,12 +81,14 @@ def _print_intro(result: dict, out: Callable, *, header: str = "[世界摘要]")
     # -----------------------------------------------------------------------
     world_name = summary.get("world_name", "?")
     tone = summary.get("tone", "?")
-    central_conflict = summary.get("central_conflict", "?")
+    # R2: surface premise (the player's own genre/pitch) — safe to show; the deep
+    # central_conflict is a DM-only secret and is never displayed in the intro.
+    genre = state.get("frame", {}).get("genre", "") or summary.get("genre", "")
 
     # -----------------------------------------------------------------------
-    # Narration
+    # Opening scene — R4: the FULL opening (fall back to the legacy excerpt).
     # -----------------------------------------------------------------------
-    narration_excerpt = summary.get("narration_excerpt", "")
+    opening = summary.get("opening") or summary.get("narration_excerpt", "")
 
     # -----------------------------------------------------------------------
     # Counts
@@ -113,19 +115,88 @@ def _print_intro(result: dict, out: Callable, *, header: str = "[世界摘要]")
     venues_str = "、".join(venue_display_names) if venue_display_names else "?"
     out(f"【当前所在】{region_name} > {town_name}（场所：{venues_str}）")
 
-    # World backdrop
+    # World backdrop — world name + tone + surface premise (no spoiler; #R2)
     out(f"【世界背景】{world_name}（{tone}）")
-    out(f"  核心冲突：{central_conflict}")
+    if genre:
+        out(f"  {genre}")
 
     # Objective
     out(f"【当前目标】{objective}")
 
-    # Opening narration
-    if narration_excerpt:
-        out(f"【开场】{narration_excerpt}")
-
     # Counts footer
     out(f"  [ 大区域数：{n_regions}  势力数：{n_factions}  NPC 数：{n_npcs}  暗线数：{n_lore} ]")
+    out(sep)
+
+    # Opening scene — shown IN FULL as its own block (#R4), after the meta summary.
+    if opening:
+        out("")
+        out("【开场】")
+        out(opening)
+        out(sep)
+
+
+def _print_resume_recap(engine, out: Callable) -> None:
+    """On loading an existing save, print a compact 'continue' recap (#R1).
+
+    Built ONLY from existing world state (option A): protagonist name + current
+    objective (fact graph), the journey-so-far (reusing the narrative scene
+    summaries + super_summary), and the most recent scene's narration verbatim.
+    No LLM call; rewind-safe. Best-effort — stays silent on missing data.
+    """
+    world = getattr(engine, "world", None)
+    systems = world.get("systems") if isinstance(world, dict) else None
+    systems = systems if isinstance(systems, dict) else {}
+
+    # Header: protagonist name + current objective (latest 目标), from the fact graph.
+    name = objective = ""
+    g = systems.get("ontology")
+    if g is not None:
+        try:
+            for f in g.current_facts("protagonist"):
+                if getattr(f, "predicate", None) == "真名" and not name:
+                    name = str(f.value)
+                elif getattr(f, "predicate", None) == "目标":
+                    objective = str(f.value)   # latest wins
+        except Exception:
+            pass
+
+    # Journey (compressed) + most-recent scene (verbatim) from the narrative slice.
+    # Fully guarded: this runs on every load BEFORE play_loop, so a corrupted /
+    # old-format save must degrade gracefully, never raise.
+    journey: list = []
+    recent: list = []
+    try:
+        ns = systems.get("narrative") or {}
+        buckets = ns.get("scenes") or []
+        if not isinstance(buckets, list):
+            buckets = []
+        if ns.get("super_summary"):
+            journey.append(ns["super_summary"])
+        journey += [b["summary"] for b in buckets
+                    if isinstance(b, dict) and b.get("summary")]
+        last = buckets[-1] if buckets and isinstance(buckets[-1], dict) else {}
+        recent = [t for t in (last.get("raw") or []) if t]
+    except Exception:
+        journey, recent = [], []
+
+    if not (name or objective or journey or recent):
+        return  # nothing to recap (edge/empty save)
+
+    sep = "-" * 40
+    out(sep)
+    out("【继续游戏】")
+    out(sep)
+    if name:
+        out(f"【你是】{name}")
+    if objective:
+        out(f"【当前目标】{objective}")
+    if journey:
+        out("【旅程至此】")
+        for s in journey:
+            out(f"  · {s}")
+    if recent:
+        out("【上次】")
+        out("".join(recent))
     out(sep)
 
 
@@ -218,13 +289,30 @@ def main(
              "(default: env RPG_NARRATION_VERBOSITY, fallback 'medium'). "
              "Controls how much atmosphere vs plot-forward prose the DM produces.",
     )
+    parser.add_argument(
+        "--style", default=None, dest="style",
+        help="Narration STYLE/voice (free text), e.g. '日式轻小说' / '冷硬派侦探'. "
+             "Orthogonal to --verbosity (length). Alt source: env RPG_NARRATION_STYLE. "
+             "Default empty = neutral.",
+    )
+    parser.add_argument(
+        "--max-tool-rounds", default=None, type=int, dest="max_tool_rounds",
+        help="Max POV tool-call rounds per turn (default 12 / env RPG_MAX_TOOL_ROUNDS). "
+             "Lower it (e.g. 4-6) to cut API calls per turn and ease 429 rate-limits.",
+    )
     args = parser.parse_args(argv)
     configure_logging()  # honor RPG_DEBUG / RPG_LOG_LEVEL so process logs appear
 
-    # Apply --verbosity flag (only when provided; env/default already set at import)
+    # Apply --verbosity / --style flags (only when provided; env/default set at import)
     if args.verbosity is not None:
         from engine import settings as _eng_settings
         _eng_settings.set_verbosity(args.verbosity)
+    if args.style is not None:
+        from engine import settings as _eng_settings
+        _eng_settings.set_style(args.style)
+    if args.max_tool_rounds is not None:
+        from engine import settings as _eng_settings
+        _eng_settings.set_max_tool_rounds(args.max_tool_rounds)
 
     from pathlib import Path
     from app.engine import build_engine, new_game
@@ -389,6 +477,7 @@ def main(
             inputs_iter = itertools.chain([_first_action], inputs_iter)
     else:
         out(f"[载入存档] 已读取 {len(events)} 条事件。")
+        _print_resume_recap(engine, out)   # #R1: compact 'continue' recap on load
 
     transcript_path = Path(args.transcript) if args.transcript else (campaign_dir / "transcript.jsonl")
     out(f"[transcript] 逐回合记录写入 {transcript_path}")

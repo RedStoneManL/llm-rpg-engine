@@ -27,6 +27,7 @@ from typing import Any
 from kernel.registry import Registry
 from kernel.projection import project
 from kernel.validation import validate_commit, build_repair_request
+from loop.entity_resolve import augment_unresolved_refs
 from kernel.observability import get_tracer
 from kernel.events import kernel_event
 from kernel import clock as _clock
@@ -166,6 +167,12 @@ def produce_turn(
     # so third-party strategies still work.
     # --------------------------------------------------------------------------
     attempts = 0
+    # #R7 A': resolve/mint name-refs (new named NPCs/places) into ids BEFORE
+    # validation, so a move to a brand-new "卡恩" creates+applies instead of dropping.
+    _aug_scene = ((scene or {}).get("scene") or (scene or {}).get("id")
+                  or (scene or {}).get("location") or "")
+    _aug_day = (scene or {}).get("day", 0)
+    augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
     errors = validate_commit(registry, commit, world, required_sections=required_sections)
 
     while errors and attempts < max_repairs:
@@ -195,6 +202,7 @@ def produce_turn(
                     provider=provider, embedder=embedder,
                     repair=repair_text,
                 )
+        augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_commit(registry, commit, world, required_sections=required_sections)
         attempts += 1
 

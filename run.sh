@@ -30,7 +30,9 @@ IMPORT_WORLD_BOOK=""      # SillyTavern world-book .json.
 CARD_AS="protagonist"     # Import the card as  protagonist  or  npc.
 
 # ---- Experience ----
-VERBOSITY="medium"        # Narration verbosity:  concise | medium | rich
+VERBOSITY="medium"        # Narration length:  concise | medium | rich
+STYLE=""                  # Narration STYLE/voice (free text), e.g. "日式轻小说" / hard-boiled noir; "" = neutral
+TOOL_ROUNDS=""            # Max POV tool-call rounds/turn (default 12). Lower (e.g. 6) to ease 429 rate-limits.
 DEBUG="no"                # "yes" = record a full trajectory to <campaign>/trace.jsonl
                           #   inspect:  PYTHONPATH=. python3 -m app.trace <campaign>/trace.jsonl
 
@@ -55,6 +57,8 @@ if [ -n "$PITCH" ];             then args+=(--pitch "$PITCH"); fi
 if [ -n "$GENESIS" ];          then args+=(--genesis "$GENESIS"); fi
 if [ -n "$IMPORT_CARD" ];      then args+=(--import-card "$IMPORT_CARD" --card-as "$CARD_AS"); fi
 if [ -n "$IMPORT_WORLD_BOOK" ]; then args+=(--import-world-book "$IMPORT_WORLD_BOOK"); fi
+if [ -n "$STYLE" ];             then args+=(--style "$STYLE"); fi
+if [ -n "$TOOL_ROUNDS" ];      then args+=(--max-tool-rounds "$TOOL_ROUNDS"); fi
 if [ "$DEBUG" = "yes" ];        then args+=(--debug); fi
 
 exec python3 -m app "${args[@]}" "$@"

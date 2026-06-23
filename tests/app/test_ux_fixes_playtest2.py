@@ -303,11 +303,16 @@ class TestRichIntroBlock:
             f"World name '{_WORLD_NAME}_0' not found in intro output:\n{combined}"
         )
 
-    def test_intro_contains_central_conflict(self, tmp_path):
+    def test_intro_hides_secret_central_conflict(self, tmp_path):
+        # R2: central_conflict is the DM's deep truth (a secret fact) — the intro
+        # must NOT spoil it. The world backdrop (world name) is still shown.
         output = _run_main(tmp_path, inputs=["开始", "/quit"])
         combined = "\n".join(output)
-        assert f"{_CENTRAL_CONFLICT}_0" in combined, (
-            f"Central conflict '{_CENTRAL_CONFLICT}_0' not found in intro output:\n{combined}"
+        assert f"{_CENTRAL_CONFLICT}_0" not in combined, (
+            f"intro leaked the secret central_conflict:\n{combined}"
+        )
+        assert f"{_WORLD_NAME}_0" in combined, (
+            f"world backdrop (world name) missing from intro:\n{combined}"
         )
 
     def test_intro_contains_narration_excerpt(self, tmp_path):
