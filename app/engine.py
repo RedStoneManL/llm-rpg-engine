@@ -178,7 +178,7 @@ def rewind(engine: Engine, turn: int) -> dict:
     return {"retracted": n, "turn": turn}
 
 
-def new_game(engine: Engine, pitch: str = "", *, progress=None) -> dict:
+def new_game(engine: Engine, pitch: str = "", *, spec=None, progress=None) -> dict:
     """Seed genesis via the real bootstrap pipeline.
 
     Delegates entirely to ``loop.bootstrap.bootstrap_world``, which runs the
@@ -204,7 +204,50 @@ def new_game(engine: Engine, pitch: str = "", *, progress=None) -> dict:
         ``pitch`` defaults to ``""``.
     """
     from loop.bootstrap import bootstrap_world
-    log.debug("new_game: delegating to bootstrap_world pitch=%r", pitch)
-    result = bootstrap_world(engine, pitch, progress=progress)
+    log.debug("new_game: delegating to bootstrap_world pitch=%r spec=%s", pitch, bool(spec))
+    result = bootstrap_world(engine, pitch, spec=spec, progress=progress)
     log.debug("new_game: bootstrap complete, world reprojected")
     return result
+
+
+def resolve_genesis_spec(provider, *, pitch="", blueprint_path=None,
+                         world_book_path=None, card_path=None,
+                         card_as="protagonist",
+                         inputs=None, out=None, interactive=False) -> dict:
+    """Resolve a GenesisSpec from all sources: pitch -> conversion -> file -> session-zero.
+
+    Precedence (later wins): interactive > file > conversion > pitch >
+    (model-fill at bootstrap). Seeding pitch as the base means a player who
+    already gave a pitch is not re-asked for the premise by session-zero.
+    """
+    from loop.genesis_spec import merge, normalize
+    from loop.genesis_blueprint import BlueprintError
+    spec: dict = normalize({"world_premise": {"genre": pitch}}) if pitch else {}
+
+    if world_book_path or card_path:
+        from loop.import_sillytavern import convert_sillytavern
+        try:
+            wb = _read_json(world_book_path) if world_book_path else None
+            card = _read_json(card_path) if card_path else None
+        except (OSError, ValueError) as e:
+            # Surface a bad import file as the same clean error class as a bad
+            # blueprint (not a raw FileNotFoundError/JSONDecodeError traceback).
+            raise BlueprintError(f"failed to read SillyTavern import file: {e}") from e
+        spec = merge(spec, convert_sillytavern(
+            provider, world_book=wb, character_card=card, card_as=card_as))
+
+    if blueprint_path:
+        from loop.genesis_blueprint import load_blueprint
+        spec = merge(spec, load_blueprint(blueprint_path))
+
+    if interactive and inputs is not None:
+        from app.session_zero import run_session_zero
+        spec = run_session_zero(spec, inputs=inputs, out=(out or (lambda *_: None)),
+                                interactive=True)
+
+    return normalize(spec)
+
+
+def _read_json(path):
+    import json
+    return json.loads(Path(path).read_text(encoding="utf-8"))

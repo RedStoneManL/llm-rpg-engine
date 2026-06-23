@@ -191,6 +191,24 @@ def main(
              "If neither is provided, bootstrap uses its own oracle-rolled genre.",
     )
     parser.add_argument(
+        "--genesis", default=None, dest="genesis",
+        help="Path to a genesis blueprint file (JSON/YAML). Defines any subset "
+             "of world parts (world_premise/regions/local_map/protagonist/"
+             "factions/npcs/threads/opening); the model fills the rest.",
+    )
+    parser.add_argument(
+        "--import-world-book", default=None, dest="import_world_book",
+        help="Path to a SillyTavern world-book JSON; LLM-translated into the genesis spec.",
+    )
+    parser.add_argument(
+        "--import-card", default=None, dest="import_card",
+        help="Path to a SillyTavern character card (V2 JSON); LLM-translated into the genesis spec.",
+    )
+    parser.add_argument(
+        "--card-as", default="protagonist", choices=["protagonist", "npc"], dest="card_as",
+        help="Import the character card as the protagonist (default) or an NPC.",
+    )
+    parser.add_argument(
         "--debug", action="store_true",
         help="record a structured trajectory trace to <campaign>/trace.jsonl for debugging",
     )
@@ -281,7 +299,28 @@ def main(
         def _progress_cb(step_idx: int, total_steps: int, label: str) -> None:
             out(f"[{step_idx}/{total_steps}] 正在生成{label}…")
 
-        result = new_game(engine, pitch, progress=_progress_cb)
+        # Resolve a genesis spec from sources (blueprint file / interactive
+        # session-zero); pitch seeds world_premise.genre so a player who already
+        # typed a pitch is not re-asked for the premise. Session-zero reads from
+        # inputs_iter (same stream the reroll loop + play loop consume next).
+        from app.engine import resolve_genesis_spec
+        from loop.genesis_blueprint import BlueprintError
+        try:
+            spec = resolve_genesis_spec(
+                provider,
+                pitch=pitch,
+                blueprint_path=args.genesis,
+                world_book_path=args.import_world_book,
+                card_path=args.import_card,
+                card_as=args.card_as,
+                inputs=inputs_iter if _interactive else None,
+                out=out,
+                interactive=_interactive,
+            )
+        except BlueprintError as e:
+            out(f"[开局错误] 无法读取开局设定文件：{e}")
+            return
+        result = new_game(engine, pitch, spec=spec, progress=_progress_cb)
 
         # Print rich INTRO block so the player can review the new world (Fix #2)
         _print_intro(result, out)

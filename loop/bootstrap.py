@@ -18,6 +18,11 @@ def _draw_distinct(oracle, entries, k):
     return out
 
 
+def _empty_str(v) -> bool:
+    """True when v is not a non-blank string (None / non-str / blank)."""
+    return not (isinstance(v, str) and v.strip())
+
+
 # ---------------------------------------------------------------------------
 # gen_frame — Task 2: world frame (tone / conflict / faction-count / region-count)
 # ---------------------------------------------------------------------------
@@ -41,6 +46,8 @@ def gen_frame(
     provider,
     oracle: Oracle,
     pitch: str,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Roll the world frame and name it via the LLM.
 
@@ -58,49 +65,69 @@ def gen_frame(
     # ------------------------------------------------------------------
     # Engine-decided rolls
     # ------------------------------------------------------------------
-    tone = oracle.draw(load_table("tone_axes", "genesis"))["name"]
-    n_factions = oracle.randint(3, 5)
-    n_regions = oracle.randint(3, 5)
+    provided = provided or {}
+
+    tone_roll = oracle.draw(load_table("tone_axes", "genesis"))["name"]
+    nf_roll = oracle.randint(3, 5)
+    nr_roll = oracle.randint(3, 5)
+    # A provided empty / 0 falls back to the roll (0 regions/factions is nonsensical).
+    tone = provided.get("tone") or tone_roll
+    n_factions = provided.get("n_factions") or nf_roll
+    n_regions = provided.get("n_regions") or nr_roll
+    genre = provided.get("genre") or pitch
 
     # ------------------------------------------------------------------
-    # LLM step — strict field-by-field prompt (mirrors generate_lore_batch)
+    # LLM step — strict field-by-field prompt (mirrors generate_lore_batch).
+    # Skipped when both authored fields are provided.
     # ------------------------------------------------------------------
-    user = (
-        f"玩家给出的世界背景关键词（pitch）：{pitch}\n"
-        f"已由引擎掷出的世界基调（tone）：{tone}\n\n"
-        f"请根据以上信息生成世界命名和核心冲突，以纯 JSON 对象返回，"
-        f"不含 Markdown 代码块、不含任何额外说明。\n"
-        f"对象 MUST 含有 EXACTLY 下列两个字段（不多不少）：\n"
-        f"  \"world_name\"       — 世界或大陆的名称（中文字符串，非空）\n"
-        f"  \"central_conflict\" — 驱动整个世界的核心矛盾或冲突（中文字符串，非空）\n"
-        f"示例：{{\"world_name\": \"碎镜大陆\", \"central_conflict\": \"皇权与江湖势力之间的生死角力\"}}"
-    )
+    p_name = provided.get("world_name")
+    p_conflict = provided.get("central_conflict")
+    need_llm = not (p_name and p_conflict)
 
-    obj, errors = complete_structured(
-        provider,
-        system=_SYSTEM_GEN_FRAME,
-        user=user,
-        validate=_validate_frame,
-        max_repairs=2,
-        log_label="gen_frame",
-    )
-
-    if errors or obj is None:
-        # Deterministic stub — never raises
-        world_name = "未名之地"
-        central_conflict = "一桩悬而未决的乱局"
-        if errors != ["no provider"]:
-            log.warning("gen_frame: LLM step failed (%s); using stub frame",
-                        "; ".join(errors) or "provider is None")
+    if need_llm:
+        user = (
+            f"玩家给出的世界背景关键词（pitch）：{genre}\n"
+            f"已由引擎掷出的世界基调（tone）：{tone}\n\n"
+            f"请根据以上信息生成世界命名和核心冲突，以纯 JSON 对象返回，"
+            f"不含 Markdown 代码块、不含任何额外说明。\n"
+            f"对象 MUST 含有 EXACTLY 下列两个字段（不多不少）：\n"
+            f"  \"world_name\"       — 世界或大陆的名称（中文字符串，非空）\n"
+            f"  \"central_conflict\" — 驱动整个世界的核心矛盾或冲突（中文字符串，非空）\n"
+            f"示例：{{\"world_name\": \"碎镜大陆\", \"central_conflict\": \"皇权与江湖势力之间的生死角力\"}}"
+        )
+        obj, errors = complete_structured(
+            provider,
+            system=_SYSTEM_GEN_FRAME,
+            user=user,
+            validate=_validate_frame,
+            max_repairs=2,
+            log_label="gen_frame",
+        )
+        if errors or obj is None:
+            # Deterministic stub — never raises
+            world_name = "未名之地"
+            central_conflict = "一桩悬而未决的乱局"
+            if errors != ["no provider"]:
+                log.warning("gen_frame: LLM step failed (%s); using stub frame",
+                            "; ".join(errors) or "provider is None")
+        else:
+            world_name = obj["world_name"].strip()
+            central_conflict = obj["central_conflict"].strip()
     else:
-        world_name = obj["world_name"].strip()
-        central_conflict = obj["central_conflict"].strip()
+        world_name = ""
+        central_conflict = ""
+
+    # Provided overrides (non-empty wins)
+    if p_name:
+        world_name = p_name.strip() if isinstance(p_name, str) else p_name
+    if p_conflict:
+        central_conflict = p_conflict.strip() if isinstance(p_conflict, str) else p_conflict
 
     # ------------------------------------------------------------------
     # Assemble frame dict
     # ------------------------------------------------------------------
     frame: dict = {
-        "genre": pitch,
+        "genre": genre,
         "tone": tone,
         "world_name": world_name,
         "central_conflict": central_conflict,
@@ -128,7 +155,7 @@ def gen_frame(
 
     # Three public fact_asserted events for genre / tone / central_conflict
     for predicate, value in (
-        ("genre", pitch),
+        ("genre", genre),
         ("tone", tone),
         ("central_conflict", central_conflict),
     ):
@@ -185,6 +212,8 @@ def gen_regions(
     provider,
     oracle: Oracle,
     frame: dict,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Generate the macro L1-region skeleton with a pinned adjacency graph.
 
@@ -203,13 +232,21 @@ def gen_regions(
         events = place_created(level=1, kind=region) x n_regions
                  + place_linked(region_0 -- region_i) x (n_regions - 1)
     """
-    n = frame["n_regions"]
+    provided = provided or []
+    n = max(len(provided), frame["n_regions"])
 
     # ------------------------------------------------------------------
-    # Engine-decided rolls (oracle only — no random/time)
+    # Engine-decided rolls (oracle only — no random/time). Terrains drawn
+    # distinct then padded by cycling so a larger provided count never errors;
+    # a provided per-region terrain wins over the rolled one.
     # ------------------------------------------------------------------
     terrain_entries = _draw_distinct(oracle, load_table("terrains", "genesis"), n)
-    terrains = [e["name"] for e in terrain_entries]
+    rolled_terrains = [e["name"] for e in terrain_entries] or ["平原"]
+    terrains = [
+        (provided[i].get("terrain") if i < len(provided) and provided[i].get("terrain")
+         else rolled_terrains[i % len(rolled_terrains)])
+        for i in range(n)
+    ]
     density = round(oracle.random() * 0.3 + 0.2, 1)
 
     # ------------------------------------------------------------------
@@ -263,6 +300,13 @@ def gen_regions(
         ]
     else:
         raw_regions = obj["regions"]
+
+    # Provided overrides per index (names/seeds); terrains already overridden above.
+    for i in range(min(len(provided), n)):
+        if provided[i].get("name"):
+            raw_regions[i]["name"] = provided[i]["name"]
+        if provided[i].get("seed"):
+            raw_regions[i]["seed"] = provided[i]["seed"]
 
     # ------------------------------------------------------------------
     # Build region metadata: tiers, ids
@@ -396,6 +440,8 @@ def gen_local_map(
     oracle: Oracle,
     frame: dict,
     regions_summary: dict,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Generate the start region's L2 places and start town's L3 venues.
 
@@ -418,14 +464,24 @@ def gen_local_map(
             place_linked(a=town_0, b=l2_{i}) x n_extra_l2
     """
     start_region = regions_summary["start_region"]
+    provided = provided or {}
+    p_town = provided.get("town") or {}
+    p_venues = provided.get("venues") or []
+    p_neighbors = provided.get("neighbors") or []
 
     # ------------------------------------------------------------------
-    # Engine-decided rolls
+    # Engine-decided rolls. Counts top up to max(provided, rolled); kinds drawn
+    # distinct then padded by cycling; a provided per-neighbor kind wins.
     # ------------------------------------------------------------------
-    n_extra_l2 = oracle.randint(1, 2)
+    n_extra_l2 = max(len(p_neighbors), oracle.randint(1, 2))
     neighbor_kind_entries = _draw_distinct(oracle, load_table("place_kinds", "genesis"), n_extra_l2)
-    neighbor_kinds = [e["name"] for e in neighbor_kind_entries]
-    n_venues = oracle.randint(2, 4)
+    rolled_kinds = [e["name"] for e in neighbor_kind_entries] or ["野地"]
+    neighbor_kinds = [
+        (p_neighbors[i].get("kind") if i < len(p_neighbors) and p_neighbors[i].get("kind")
+         else rolled_kinds[i % len(rolled_kinds)])
+        for i in range(n_extra_l2)
+    ]
+    n_venues = max(len(p_venues), oracle.randint(2, 4))
 
     # ------------------------------------------------------------------
     # LLM step
@@ -486,6 +542,22 @@ def gen_local_map(
                 for i in range(n_extra_l2)
             ],
         }
+
+    # Provided overrides (non-empty wins) before names/ids are read off obj.
+    if p_town.get("name"):
+        obj["town"]["name"] = p_town["name"]
+    if p_town.get("seed"):
+        obj["town"]["seed"] = p_town["seed"]
+    for i in range(min(len(p_venues), n_venues)):
+        if p_venues[i].get("name"):
+            obj["venues"][i]["name"] = p_venues[i]["name"]
+        if p_venues[i].get("seed"):
+            obj["venues"][i]["seed"] = p_venues[i]["seed"]
+    for i in range(min(len(p_neighbors), n_extra_l2)):
+        if p_neighbors[i].get("name"):
+            obj["neighbors"][i]["name"] = p_neighbors[i]["name"]
+        if p_neighbors[i].get("seed"):
+            obj["neighbors"][i]["seed"] = p_neighbors[i]["seed"]
 
     # ------------------------------------------------------------------
     # Build summary
@@ -615,6 +687,8 @@ def gen_protagonist(
     oracle: Oracle,
     frame: dict,
     local_map: dict,
+    *,
+    provided=None,
 ) -> tuple[list, dict]:
     """Author a protagonist that fits the generated world frame.
 
@@ -631,6 +705,12 @@ def gen_protagonist(
     """
     # Use oracle to anchor the call into the attempt-seed scheme (no rolls needed)
     _ = oracle.random()   # consume one draw so seed participates in attempt space
+
+    provided = provided or {}
+    # Skip the LLM entirely when every authored field is supplied.
+    if not any(_empty_str(provided.get(f)) for f in ("name", "origin", "goal", "objective")):
+        return [], {f: (provided[f].strip() if isinstance(provided[f], str) else provided[f])
+                    for f in ("name", "origin", "goal", "objective")}
 
     start_town = local_map.get("start_town", "town_0")
     venues = local_map.get("venues", [])
@@ -702,6 +782,11 @@ def gen_protagonist(
             "objective": obj["objective"].strip(),
         }
 
+    # Provided overrides (non-empty wins) — e.g. provided name kept, objective authored.
+    for f in ("name", "origin", "goal", "objective"):
+        if not _empty_str(provided.get(f)):
+            authored[f] = provided[f].strip() if isinstance(provided[f], str) else provided[f]
+
     return [], authored
 
 
@@ -750,6 +835,8 @@ def gen_factions(
     oracle: Oracle,
     frame: dict,
     regions_summary: dict,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Generate the world's factions (count = frame["n_factions"]).
 
@@ -765,7 +852,8 @@ def gen_factions(
                  each deltas: {"op":"faction","id":"faction_{i}","tier":"mentioned",
                                 "seed":<name>,"motivation":<motivation>}
     """
-    n = frame["n_factions"]
+    provided = provided or []
+    n = max(len(provided), frame["n_factions"])
 
     # ------------------------------------------------------------------
     # LLM step — strict per-index field-naming prompt
@@ -811,6 +899,13 @@ def gen_factions(
         ]
     else:
         raw_factions = obj["factions"]
+
+    # Provided overrides per index (name/motivation).
+    for i in range(min(len(provided), n)):
+        if provided[i].get("name"):
+            raw_factions[i]["name"] = provided[i]["name"]
+        if provided[i].get("motivation"):
+            raw_factions[i]["motivation"] = provided[i]["motivation"]
 
     # ------------------------------------------------------------------
     # Emit genesis events (turn=0, day=1, scene="genesis")
@@ -881,6 +976,8 @@ def gen_npcs(
     frame: dict,
     local_map: dict,
     factions: dict,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Generate 2-4 opening NPCs, each with a hard secret tagged secrecy='secret'.
 
@@ -902,9 +999,11 @@ def gen_npcs(
     # ------------------------------------------------------------------
     # Engine-decided rolls (oracle only)
     # ------------------------------------------------------------------
-    n = oracle.randint(2, 4)
+    provided = provided or []
+    n = max(len(provided), oracle.randint(2, 4))
     role_entries = _draw_distinct(oracle, load_table("npc_roles", "genesis"), n)
-    roles = [e["name"] for e in role_entries]
+    rolled_roles = [e["name"] for e in role_entries] or ["旅人"]
+    roles = [rolled_roles[i % len(rolled_roles)] for i in range(n)]
 
     # Draw 2 traits per NPC (distinct within each NPC's draw)
     traits_table = load_table("npc_traits", "genesis")
@@ -971,6 +1070,15 @@ def gen_npcs(
         ]
     else:
         raw_npcs = obj["npcs"]
+
+    # Provided overrides per index (sketch/goal/secret + optional role); a
+    # provided secret still flows into the secrecy="secret" fact below.
+    for i in range(min(len(provided), n)):
+        for f in ("sketch", "goal", "secret"):
+            if provided[i].get(f):
+                raw_npcs[i][f] = provided[i][f]
+        if provided[i].get("role"):
+            roles[i] = provided[i]["role"]
 
     # ------------------------------------------------------------------
     # Emit genesis events (turn=0, day=1, scene="genesis")
@@ -1108,6 +1216,35 @@ def _make_validate_threads(n: int, venues: list[str]):
     return _validate
 
 
+def _skeleton_from_provided(p, thread_id, complexity, anchor, threshold,
+                            venues, stage_count, eg_venue):
+    """Build a lore skeleton from a player-provided thread line.
+
+    Repairs l3_anchor to a real venue (provided lines may name a bad anchor) and
+    wraps string stages as {"hint": ...}. Empty fields fall back to the rolled
+    complexity / generic strings so the skeleton is always create_lore_line-safe.
+    """
+    anchor_venue = p.get("l3_anchor")
+    if not (isinstance(anchor_venue, str) and anchor_venue in venues):
+        anchor_venue = venues[0] if venues else eg_venue
+    stages = [{"hint": s.strip()} for s in (p.get("stages") or [])
+              if isinstance(s, str) and s.strip()]
+    if not stages:
+        stages = [{"hint": f"线索提示{j + 1}"} for j in range(stage_count)]
+    return {
+        "id": thread_id,
+        "complexity": p.get("complexity") or complexity,
+        "anchor": anchor,
+        "threshold": threshold,
+        "about": p.get("about") or "待揭晓的悬案",
+        "description": p.get("description") or "一条未解之谜",
+        "trigger": p.get("trigger") or "玩家主动调查",
+        "secret": p.get("secret") or "隐藏的真相",
+        "l3_anchor": anchor_venue,
+        "stages": stages,
+    }
+
+
 def _stub_thread_skeleton(
     thread_id: str,
     complexity: str,
@@ -1140,6 +1277,8 @@ def gen_threads(
     frame: dict,
     local_map: dict,
     protagonist: str,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     """Generate 3-5 campaign-level 暗线 + 1-2 protagonist-bound 暗线 (lore skeletons).
 
@@ -1157,7 +1296,8 @@ def gen_threads(
         summary = {"threads": [{"id", "type", "complexity", "anchor"}, ...]}
     """
     try:
-        return _gen_threads_inner(provider, oracle, frame, local_map, protagonist)
+        return _gen_threads_inner(provider, oracle, frame, local_map, protagonist,
+                                  provided=provided)
     except Exception:
         log.exception("gen_threads: unexpected error — returning stub skeletons")
         return _gen_threads_fallback(oracle, local_map, protagonist)
@@ -1169,18 +1309,25 @@ def _gen_threads_inner(
     frame: dict,
     local_map: dict,
     protagonist: str,
+    *,
+    provided=None,
 ) -> tuple[list[dict], dict]:
     venues = list(local_map["venues"])
     start_town = local_map["start_town"]
     venue_str = ", ".join(venues) if venues else "(none specified)"
     eg_venue = venues[0] if venues else "码头"
 
+    provided = provided or []
+    prov_campaign = [t for t in provided if (t.get("bound") or "campaign") != "protagonist"]
+    prov_prot = [t for t in provided if (t.get("bound") or "campaign") == "protagonist"]
+
     # ------------------------------------------------------------------ #
     # Campaign threads: engine-decided rolls
     # ------------------------------------------------------------------ #
-    n = oracle.randint(3, 5)
+    n = max(len(prov_campaign), oracle.randint(3, 5))
     type_entries = _draw_distinct(oracle, load_table("thread_types", "genesis"), n)
-    thread_types = [e["name"] for e in type_entries]
+    rolled_types = [e["name"] for e in type_entries] or ["事件"]
+    thread_types = [rolled_types[i % len(rolled_types)] for i in range(n)]
 
     # Per-thread rolls: complexity, threshold, stage_count
     complexities: list[str] = []
@@ -1194,7 +1341,7 @@ def _gen_threads_inner(
         stage_counts.append(_STAGE_COUNT[complexity])
 
     # Protagonist-bound thread rolls
-    n_p = oracle.randint(1, 2)
+    n_p = max(len(prov_prot), oracle.randint(1, 2))
     p_complexities: list[str] = []
     p_thresholds: list[int] = []
     p_stage_counts: list[int] = []
@@ -1300,7 +1447,11 @@ def _gen_threads_inner(
         stage_count = stage_counts[i]
         thread_type = thread_types[i]
 
-        if campaign_lines is not None:
+        p = prov_campaign[i] if i < len(prov_campaign) else None
+        if p is not None:
+            sk = _skeleton_from_provided(
+                p, thread_id, complexity, start_town, threshold, venues, stage_count, eg_venue)
+        elif campaign_lines is not None:
             ln = campaign_lines[i]
             stages = [{"hint": s["hint"].strip()} for s in ln["stages"][:stage_count]]
             sk = {
@@ -1336,7 +1487,11 @@ def _gen_threads_inner(
         threshold = p_thresholds[i]
         stage_count = p_stage_counts[i]
 
-        if prot_lines is not None:
+        p = prov_prot[i] if i < len(prov_prot) else None
+        if p is not None:
+            sk = _skeleton_from_provided(
+                p, thread_id, complexity, protagonist, threshold, venues, stage_count, eg_venue)
+        elif prot_lines is not None:
             ln = prot_lines[i]
             stages = [{"hint": s["hint"].strip()} for s in ln["stages"][:stage_count]]
             sk = {
@@ -1390,6 +1545,7 @@ def gen_opening(
     *,
     scene_loc: str,
     scene_loc_name: str | None = None,
+    provided=None,
 ) -> tuple[list[dict], str]:
     """Write the opening-scene narration (protagonist POV, landing in the start town).
 
@@ -1410,6 +1566,14 @@ def gen_opening(
         events  — exactly one narration_recorded event whose deltas["text"] == narration.
         narration — the prose string.
     """
+    # Player-provided opening prose is used verbatim (still emits the event).
+    if isinstance(provided, str) and provided.strip():
+        narration = provided.strip()
+        events = [kernel_event(
+            "narration_recorded", turn=0, day=1, scene="genesis",
+            summary="开场叙事", deltas={"scene": "genesis", "text": narration})]
+        return events, narration
+
     world_name = frame.get("world_name", "未名之地")
     narration: str | None = None
     # Use the human-readable name in the prompt; fall back to id only as last resort
@@ -1449,7 +1613,7 @@ def gen_opening(
 # bootstrap_world — Task 9: orchestrator (steps 1-9) + reroll helpers
 # ---------------------------------------------------------------------------
 
-def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> dict:
+def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, progress=None) -> dict:
     """Run all generation steps + protagonist creation; return a rich result dict.
 
     Orchestration order (all genesis events: turn=0, day=1, scene="genesis"):
@@ -1490,6 +1654,18 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
     provider = engine.provider
     campaign_seed = engine.campaign_seed
 
+    # Resolve the spec: normalize, then seed world_premise.genre from `pitch`
+    # when the spec does not already set it. With spec=None + a pitch this is
+    # byte-identical to the legacy pitch-only path.
+    from loop.genesis_spec import normalize as _normalize_spec
+    spec = _normalize_spec(spec)
+    wp = dict(spec.get("world_premise") or {})
+    if not wp.get("genre") and pitch:
+        wp["genre"] = pitch
+    if wp:
+        spec = {**spec, "world_premise": wp}
+    genre = wp.get("genre", pitch)
+
     boundaries: dict[str, int] = {}
 
     def _seed(step: str) -> Oracle:
@@ -1521,7 +1697,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # -----------------------------------------------------------------------
         _progress(1, _TOTAL_STEPS, "世界框架")
         with get_tracer().span("gen_frame", step="frame"):
-            frame_evs, frame = gen_frame(provider, _seed("frame"), pitch)
+            frame_evs, frame = gen_frame(provider, _seed("frame"), genre,
+                                         provided=spec.get("world_premise"))
         boundaries["frame"] = store.append(frame_evs[0])
         for ev in frame_evs[1:]:
             store.append(ev)
@@ -1530,7 +1707,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # Step 3: gen_regions
         # -----------------------------------------------------------------------
         _progress(2, _TOTAL_STEPS, "宏观区域")
-        region_evs, regions_summary = gen_regions(provider, _seed("regions"), frame)
+        region_evs, regions_summary = gen_regions(provider, _seed("regions"), frame,
+                                                   provided=spec.get("regions"))
         boundaries["regions"] = store.append(region_evs[0])
         for ev in region_evs[1:]:
             store.append(ev)
@@ -1539,7 +1717,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # Step 4: gen_local_map
         # -----------------------------------------------------------------------
         _progress(3, _TOTAL_STEPS, "本地地图")
-        local_map_evs, local_map = gen_local_map(provider, _seed("local_map"), frame, regions_summary)
+        local_map_evs, local_map = gen_local_map(provider, _seed("local_map"), frame, regions_summary,
+                                                  provided=spec.get("local_map"))
         boundaries["local_map"] = store.append(local_map_evs[0])
         for ev in local_map_evs[1:]:
             store.append(ev)
@@ -1548,7 +1727,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # Step 5: gen_protagonist — author protagonist to fit the world
         # -----------------------------------------------------------------------
         _progress(4, _TOTAL_STEPS, "主角")
-        _, protagonist_authored = gen_protagonist(provider, _seed("protagonist"), frame, local_map)
+        _, protagonist_authored = gen_protagonist(provider, _seed("protagonist"), frame, local_map,
+                                                  provided=spec.get("protagonist"))
 
         # -----------------------------------------------------------------------
         # Step 5b: create protagonist (tracked) + public facts + move to first venue
@@ -1607,7 +1787,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # Step 6: gen_factions
         # -----------------------------------------------------------------------
         _progress(5, _TOTAL_STEPS, "势力")
-        faction_evs, factions_summary = gen_factions(provider, _seed("factions"), frame, regions_summary)
+        faction_evs, factions_summary = gen_factions(provider, _seed("factions"), frame, regions_summary,
+                                                      provided=spec.get("factions"))
         boundaries["factions"] = store.append(faction_evs[0])
         for ev in faction_evs[1:]:
             store.append(ev)
@@ -1616,7 +1797,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         # Step 7: gen_npcs
         # -----------------------------------------------------------------------
         _progress(6, _TOTAL_STEPS, "NPC")
-        npc_evs, npcs_summary = gen_npcs(provider, _seed("npcs"), frame, local_map, factions_summary)
+        npc_evs, npcs_summary = gen_npcs(provider, _seed("npcs"), frame, local_map, factions_summary,
+                                         provided=spec.get("npcs"))
         boundaries["npcs"] = store.append(npc_evs[0])
         for ev in npc_evs[1:]:
             store.append(ev)
@@ -1627,7 +1809,8 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
         _progress(7, _TOTAL_STEPS, "暗线")
         with get_tracer().span("gen_threads", step="threads"):
             skeletons, threads_summary = gen_threads(
-                provider, _seed("threads"), frame, local_map, protagonist
+                provider, _seed("threads"), frame, local_map, protagonist,
+                provided=spec.get("threads")
             )
         # Append each skeleton via create_lore_line; boundary recovered via SQL below.
         for sk in skeletons:
@@ -1645,6 +1828,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
             opening_evs, narration = gen_opening(
                 provider, frame, world_summary,
                 scene_loc=first_venue, scene_loc_name=first_venue_name,
+                provided=spec.get("opening"),
             )
         boundaries["opening"] = store.append(opening_evs[0])
         for ev in opening_evs[1:]:
@@ -1689,6 +1873,7 @@ def bootstrap_world(engine, pitch: str, *, attempt: int = 0, progress=None) -> d
             "protagonist": protagonist,
             "protagonist_authored": protagonist_authored,
             "pitch": pitch,
+            "spec": spec,
             "attempts": {step: attempt for step in boundaries},
         },
         "_boundaries": boundaries,
@@ -1772,7 +1957,8 @@ def reroll_all(engine, prev_result: dict, *, progress=None) -> dict:
     engine.store.retract_from_turn(0)
 
     pitch = prev_result["_state"]["pitch"]
-    return bootstrap_world(engine, pitch, attempt=new_attempt, progress=progress)
+    prev_spec = prev_result.get("_state", {}).get("spec")
+    return bootstrap_world(engine, pitch, spec=prev_spec, attempt=new_attempt, progress=progress)
 
 
 def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
@@ -1804,6 +1990,7 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
         "objective": "在起始小镇打听线索，寻找下一步的方向",
     })
     pitch = state["pitch"]
+    spec = state.get("spec") or {}
     campaign_seed = engine.campaign_seed
     store = engine.store
     provider = engine.provider
@@ -1831,7 +2018,8 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
 
     # Re-run factions if needed
     if step == "factions":
-        faction_evs, factions_summary = gen_factions(provider, _seed("factions"), frame, regions_summary)
+        faction_evs, factions_summary = gen_factions(provider, _seed("factions"), frame, regions_summary,
+                                                      provided=spec.get("factions"))
         new_boundaries["factions"] = store.append(faction_evs[0])
         for ev in faction_evs[1:]:
             store.append(ev)
@@ -1841,7 +2029,8 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
 
     # Re-run npcs if needed
     if step in ("factions", "npcs"):
-        npc_evs, npcs_summary = gen_npcs(provider, _seed("npcs"), frame, local_map, factions_summary)
+        npc_evs, npcs_summary = gen_npcs(provider, _seed("npcs"), frame, local_map, factions_summary,
+                                         provided=spec.get("npcs"))
         new_boundaries["npcs"] = store.append(npc_evs[0])
         for ev in npc_evs[1:]:
             store.append(ev)
@@ -1851,7 +2040,8 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
 
     # Re-run threads (always, since we retract from factions/npcs/threads boundary)
     skeletons, threads_summary = gen_threads(
-        provider, _seed("threads"), frame, local_map, protagonist
+        provider, _seed("threads"), frame, local_map, protagonist,
+        provided=spec.get("threads")
     )
     for sk in skeletons:
         create_lore_line(store, sk, day=1, scene="genesis", turn=0)

@@ -1,27 +1,15 @@
-# Decisions needed (托管 batch done — resolve on return)
+# Decisions — RESOLVED 2026-06-22
 
-All 9 playtest fixes (#1–#9) implemented, opus final review = READY (0 critical/important),
-full suite 1505 green, live-smoke validated. Below = the genuine forks I did NOT decide for you.
+- D1 Streaming → **NO** (verbosity dial + modular repair are enough for now).
+- D2 Re-push public repo → **DONE** (github.com:RedStoneManL/llm-rpg-engine @ 0695943, v0.1.1).
+- D3 Richer world history → **NO** (central_conflict backdrop is enough).
+- D4 Protagonist/customization → **EXPANDED into the next design effort** (see below).
 
-## D1 — Stream the DM narration? (the remaining latency lever)
-Done already (cheap wins): #9 verbosity dial (default **medium** → shorter turns) + #8 modular
-repair (no full re-write). The BIG remaining perceived-latency win is STREAMING the narration
-(print it as it's generated). Substantial change: `llm/provider.py::_do_post` is non-streaming
-(blocks for the whole completion); streaming needs an SSE request path + the play loop printing
-chunks live. Pairs with the #4 spinner. **Want streaming? (I'll spec+build if yes.)**
-
-## D2 — Re-push the updated engine to the public repo?
-The public `llm-rpg-engine` snapshot is STALE — predates BOTH debug-mode (viewer/--debug) AND all
-9 playtest fixes. To make public v0.1 current = re-snapshot (`git archive HEAD`) + push. Outward-
-facing/irreversible → your call. **Re-push now, or leave public as-is?**
-
-## D3 — Richer world history? (minor)
-#2's intro uses the frame's `central_conflict` as the backdrop. A dedicated multi-event "过往历史"
-(a few authored historical beats) is richer but a small new gen step. **Good enough, or fuller?**
-
-## D4 — Protagonist: engine-authored vs player-defined? (minor)
-#6b has the engine AUTHOR the protagonist (name/身世/goal) to fit the world (matches your "写出来").
-Alternative: a session-zero where YOU define your character. **Keep engine-authored, or add PC creation?**
-
-(Advisory impl-notes, NOT your call — see ledger: M2 empty-required-section repair path narrowed;
-M3 reroll doesn't print progress; M4 sanitizer leaves rare OSC/DCS escape tails.)
+## NEXT DESIGN EFFORT (D4, agreed) — player-definable genesis + SillyTavern import
+User's vision (verbatim intent): at 开局, EVERY part should be user-definable — world frame,
+map/regions, factions, NPCs, **protagonist**, threads, etc. — and if the user does NOT define a
+part, the model fills it in (the current bootstrap). FUTURE: compatible with importing
+**SillyTavern (酒馆) world-books (世界书)** and **character cards (角色卡)**.
+This is a new subsystem (a per-part override/input layer over bootstrap + import adapters that
+map SillyTavern lorebooks/character-cards into the engine's entities/lore/facts). Needs
+brainstorming → spec → plan → build. NOT started.

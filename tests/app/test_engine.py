@@ -375,3 +375,45 @@ def test_rewind_to_genesis_keeps_turn0_events(tmp_path):
     rewind(eng, 1)
     surviving = sum(1 for _ in eng.store.iter_events())
     assert surviving == genesis_count  # turn=0 events intact, turn=1 gone
+
+
+# ---------------------------------------------------------------------------
+# Task 9 — new_game(spec=) + resolve_genesis_spec
+# ---------------------------------------------------------------------------
+
+def test_new_game_forwards_spec(tmp_path):
+    from app.engine import build_engine, new_game
+    engine = build_engine(tmp_path / "c", provider=FakeLLMProvider())
+    result = new_game(engine, "", spec={"protagonist": {"name": "凛"}})
+    assert result["summary"]["protagonist_name"] == "凛"
+
+
+def test_resolve_genesis_spec_file_then_session(tmp_path):
+    import json
+    from app.engine import resolve_genesis_spec
+    bp = tmp_path / "g.json"
+    bp.write_text(json.dumps({"world_premise": {"genre": "日式西幻"}}), encoding="utf-8")
+    # session-zero fills the still-missing protagonist name
+    spec = resolve_genesis_spec(
+        provider=None, blueprint_path=bp,
+        inputs=iter(["凛"]), out=lambda *_: None, interactive=True)
+    assert spec["world_premise"]["genre"] == "日式西幻"
+    assert spec["protagonist"]["name"] == "凛"
+
+
+def test_resolve_genesis_spec_pitch_seeds_premise(tmp_path):
+    # pitch seeds world_premise.genre -> session-zero only asks for protagonist.
+    from app.engine import resolve_genesis_spec
+    spec = resolve_genesis_spec(
+        provider=None, pitch="武侠",
+        inputs=iter(["叶凡"]), out=lambda *_: None, interactive=True)
+    assert spec["world_premise"]["genre"] == "武侠"
+    assert spec["protagonist"]["name"] == "叶凡"
+
+
+def test_resolve_genesis_spec_bad_import_path_raises(tmp_path):
+    # A missing import file raises a clean BlueprintError, not a raw traceback.
+    from app.engine import resolve_genesis_spec
+    from loop.genesis_blueprint import BlueprintError
+    with pytest.raises(BlueprintError):
+        resolve_genesis_spec(provider=None, card_path=tmp_path / "nope.json")

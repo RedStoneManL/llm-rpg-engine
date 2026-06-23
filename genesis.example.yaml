@@ -1,0 +1,84 @@
+# ---------------------------------------------------------------------------
+# Genesis blueprint — define any part of the opening world yourself.
+#
+# EVERY part below is OPTIONAL. Delete what you want the model to invent.
+# The only required floor is:
+#   - world_premise.genre   (what world / 我在哪)
+#   - protagonist.name      (who you are / 我是谁)
+# If you omit a required field and run interactively, the engine asks for it
+# (or you type /auto to let the model decide). Everything else is model-filled.
+#
+# LIST parts AUGMENT: your items are always kept, and the model tops the list
+# up to its own rolled count. Named lists (regions/factions/venues/neighbors)
+# dedup by name; npcs/threads are appended as-is.
+#
+# Run with:   ./run.sh   (after setting CAMPAIGN/PITCH), or:
+#   PYTHONPATH=. python3 -m app --campaign ./mygame --provider zhipu \
+#       --model glm-5.1 --base-url <url> --genesis genesis.example.yaml
+# JSON works too (use a .json file with the same shape).
+# ---------------------------------------------------------------------------
+
+world_premise:
+  genre: 日式西幻            # REQUIRED (or via --pitch / interactive)
+  tone: 黄昏史诗             # optional; else rolled
+  world_name: 阿斯特兰       # optional; else authored
+  central_conflict: 旧神残党与新生王权的暗战   # optional; else authored
+  n_regions: 4              # optional; else rolled (3-5)
+  n_factions: 3             # optional; else rolled (3-5)
+
+protagonist:
+  name: 凛                  # REQUIRED (or via interactive)
+  origin: 失忆的流浪剑客，腰间佩一柄无铭之刀   # optional; else authored
+  goal: 找回失落的记忆与名字                 # optional; else authored
+  # objective is intentionally optional — the engine generates a concrete
+  # opening objective and surfaces it on screen; the deeper arc is owned by
+  # the hidden threads below (you need not pre-write the conspiracy).
+  # objective: 在晨曦镇的酒馆打听一个戴面具的剑客
+
+# regions[0] is the START region. Provide a few; the model fills to the count.
+regions:
+  - name: 晨曦王国
+    terrain: 平原
+    seed: 王权初立，暗流涌动
+  - name: 北境冰原
+    terrain: 雪原
+
+local_map:
+  town:
+    name: 晨曦镇
+    seed: 王国边陲的商路要冲
+  venues:                   # places inside the start town
+    - name: 断剑酒馆
+      seed: 佣兵与消息汇聚之处
+    - name: 旧神祭坛遗址
+  neighbors:                # adjacent L2 places outside the town
+    - name: 低语森林
+      kind: 森林
+
+factions:
+  - name: 光明教会
+    motivation: 肃清旧神残党，巩固教权
+  - name: 影巷盗贼公会
+    motivation: 在动荡中攫取财富与情报
+
+npcs:                       # no name field — sketch/goal/secret; appended as-is
+  - sketch: 独臂的酒馆老板，目光锐利
+    goal: 守住酒馆这块清净地
+    secret: 他是隐退的前教会圣骑士   # stored secrecy="secret" — fog never leaks it
+
+threads:                    # hidden questlines (暗线). bound: campaign | protagonist
+  - about: 入夜后祭坛遗址透出微光
+    description: 旧神祭坛的异象传闻
+    trigger: 玩家夜里探查祭坛
+    secret: 封印旧神的结界正在松动
+    l3_anchor: 旧神祭坛遗址   # must name a venue above; bad anchors auto-repair
+    stages:
+      - 夜里听见低沉的吟唱
+      - 祭坛石缝渗出黑雾
+    bound: campaign
+  - about: 你的无铭之刀偶尔自行震颤
+    secret: 刀中封着你失去的记忆
+    bound: protagonist      # routed to a protagonist-bound 暗线
+
+# opening: |               # optional — provide verbatim opening prose, else authored
+#   你在断剑酒馆的角落醒来，喉间是烈酒的余味……

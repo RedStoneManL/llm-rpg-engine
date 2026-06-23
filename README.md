@@ -4,7 +4,7 @@
 
 The core idea: give the LLM **full narrative autonomy**, but frame it with a **deterministic harness** — an append-only event log, seeded hidden dice, fog-of-war that the model physically cannot violate, and a strict commit/repair gate. The model writes the story; the engine guarantees the world stays consistent, replayable, and rewindable.
 
-> Status: **v0.1** — a complete playable loop (`open a world → play turns → the world reacts → endgame → rewind`), ~1538 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
+> Status: **v0.2** — a complete playable loop (`define or roll a world → play turns → the world reacts → endgame → rewind`), with **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern import) layered over the model-filled default. ~1540 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
 
 ---
 
@@ -102,6 +102,20 @@ Everything is deterministic given the campaign seed + event log, so `/rewind` re
 
 `new_game` runs a semi-interactive **slot-machine** genesis: the oracle distinct-draws from small, extensible dimension tables (`data/oracles/genesis/`) to fix the *structure* — a macro region-adjacency graph (pinned so the geography can't drift later), a starting town with venues, factions, opening NPCs, and 3–5 campaign storylines (+1–2 bound to the protagonist) — and the LLM authors the *content*. You can reroll the whole thing or individual leaf steps before play begins.
 
+### Player-definable genesis
+
+Every genesis part is **definable** — and whatever you don't define, the model fills. There is one canonical `GenesisSpec` that `new_game` consumes; sources merge into it (precedence: interactive > file > import > pitch):
+
+- **Blueprint file** (`--genesis world.yaml|json`) — specify any subset of any part (`world_premise / regions / local_map / protagonist / factions / npcs / threads / opening`). Scalars override; lists *augment* (your items are kept, the model tops up to the rolled count). See [`genesis.example.yaml`](genesis.example.yaml) and [`docs/genesis-blueprint.md`](docs/genesis-blueprint.md).
+- **Interactive session-zero** — the engine asks for the minimal required floor (`world_premise.genre` + `protagonist.name` — "what world / who you are") and keeps asking until each is answered or you type `/auto` to delegate it. "What you're doing" is *not* required input: the engine always generates a concrete opening objective on screen, and the deeper arc lives in the hidden threads (暗线).
+- **SillyTavern import** (`--import-card card.json` / `--import-world-book wb.json`, `--card-as protagonist|npc`) — an **LLM translation layer** that converts 酒馆 character-cards / world-books *into* the native spec. The engine doesn't run SillyTavern's injection semantics; it reads the free-text once at genesis and produces structured parts.
+
+```bash
+# define a world in a file; the model fills the rest
+./run.sh   # or: python -m app --campaign ./mygame --provider zhipu --model glm-5.1 \
+           #            --base-url <url> --genesis genesis.example.yaml
+```
+
 ---
 
 ## Determinism, fog, and observability
@@ -128,7 +142,7 @@ context/    context assembly
 engine/     oracle, embeddings, logging
 data/       oracle tables (default + genesis dimension tables)
 docs/       design specs & implementation plans (the architecture, decision-by-decision)
-tests/      ~1538 offline tests (deterministic) + live-LLM probes
+tests/      ~1540 offline tests (deterministic) + live-LLM probes
 ```
 
 The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document the design and the decisions behind each subsystem — start there to understand *why* it's built this way.
@@ -138,7 +152,7 @@ The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories document
 ## Testing
 
 ```bash
-PYTHONPATH=. python3 -m pytest -q          # ~1538 offline tests, deterministic, no network
+PYTHONPATH=. python3 -m pytest -q          # ~1540 offline tests, deterministic, no network
 ```
 
 Offline tests use fake/scripted providers so the whole engine is exercised without an API key. Live behavior (does a real reasoning model call the tools, keep secrets, generate a coherent world?) is validated by probe scripts under `docs/`.
@@ -147,7 +161,7 @@ Offline tests use fake/scripted providers so the whole engine is exercised witho
 
 ## Status & roadmap
 
-**v0.1** — complete core loop + structured debug tracing + tunable narration, validated offline (~1538 tests) + live. Next: SillyTavern world-book / character-card import + a player-defined session-zero (define any genesis part yourself, the model fills the rest); optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
+**v0.2** — complete core loop + structured debug tracing + tunable narration + **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern world-book & character-card import; the model fills whatever you don't define), validated offline (~1540 tests) + live. Next: optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
 
 ## License
 
