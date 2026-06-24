@@ -6,7 +6,7 @@
 
 The core idea: give the LLM **full narrative autonomy**, but frame it with a **deterministic harness** — an append-only event log, seeded hidden dice, fog-of-war that the model physically cannot violate, and a strict commit/repair gate. The model writes the story; the engine guarantees the world stays consistent, replayable, and rewindable.
 
-> Status: **v0.2** — a complete playable loop (`define or roll a world → play turns → the world reacts → endgame → rewind`), with **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern import) layered over the model-filled default. ~1580 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
+> Status: **v0.3** — a complete playable loop (`define or roll a world → play turns → the world reacts → endgame → rewind`), with **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern import) over the model-filled default, plus live-playtest hardening: a narration **style/voice dial**, **on-the-fly entity introduction** (a new NPC named mid-scene is created + remembered, not dropped), a spoiler-safe intro, and robust JSON / rate-limit handling. ~1580 offline tests, validated live against a reasoning LLM (GLM / zai `glm-5.1`).
 
 ---
 
@@ -163,7 +163,7 @@ Offline tests use fake/scripted providers so the whole engine is exercised witho
 
 ## Status & roadmap
 
-**v0.2** — complete core loop + structured debug tracing + tunable narration + **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern world-book & character-card import; the model fills whatever you don't define), validated offline (~1580 tests) + live. Next: optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
+**v0.3** — complete core loop + structured debug tracing + tunable narration + **player-definable genesis** (blueprint file / interactive session-zero / SillyTavern world-book & character-card import; the model fills whatever you don't define) + live-playtest hardening (narration **style/voice dial**, **on-the-fly entity auto-create/resolve** for NPCs named mid-scene, spoiler-safe intro, resume recap, parse-leak + 429 robustness), validated offline (~1580 tests) + live. Next: optional streaming; world-impact "push" surfacing for the director; tuning the living-world numbers through real play.
 
 ## License
 
