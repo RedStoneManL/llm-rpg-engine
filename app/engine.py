@@ -33,6 +33,8 @@ from systems.time import TimeSystem
 from systems.narrative import NarrativeSystem
 from systems.scene import SceneSystem
 from systems.lore import LoreSystem
+from systems.codex import CodexSystem
+from systems.resources import ResourceSystem
 from llm.provider import FakeLLMProvider, make_provider
 from engine.embed import get_embedder
 from engine.log import get_logger
@@ -72,7 +74,7 @@ def build_engine(
     Args:
         campaign_dir: Path (or str) to the campaign directory.
         provider:     Optional LLMProvider. If None, attempts make_provider from
-                      env, falling back to FakeLLMProvider.
+                      env (default fake); an explicitly configured provider failure raises.
         embedder:     Optional embedder. If None, uses get_embedder() (checks env).
 
     Returns:
@@ -95,6 +97,8 @@ def build_engine(
     registry.register(NarrativeSystem())
     registry.register(SceneSystem())
     registry.register(LoreSystem())
+    registry.register(CodexSystem())
+    registry.register(ResourceSystem())
 
     log.debug("build_engine: registered %d systems", len(registry.systems))
 
@@ -102,19 +106,19 @@ def build_engine(
     db_path = campaign_dir / "events.db"
     jsonl_path = campaign_dir / "events.jsonl"
     store = open_store(db_path, jsonl_path, registry.event_types())
+    store.preflight = lambda events: project(registry, events)
 
     # Resolve provider
     if provider is None:
+        import os
+        kind = os.environ.get("RPG_PROVIDER", "fake")
+        model = os.environ.get("RPG_MODEL")
+        base_url = os.environ.get("RPG_BASE_URL")
         try:
-            # Try to build from env — will use whatever provider keys are set
-            import os
-            kind = os.environ.get("RPG_PROVIDER", "fake")
-            model = os.environ.get("RPG_MODEL")
-            base_url = os.environ.get("RPG_BASE_URL")
             provider = make_provider(kind, model=model, base_url=base_url)
         except Exception:
-            log.debug("build_engine: falling back to FakeLLMProvider")
-            provider = FakeLLMProvider()
+            store.close()
+            raise  # A configured real provider must never silently become a stub.
 
     # Resolve embedder
     if embedder is None:
@@ -139,8 +143,11 @@ def build_engine(
 
     # Project world from existing events
     world = project(registry, store.iter_events())
+    world['_revision'] = store.revision
 
-    campaign_seed = _derive_campaign_seed(campaign_dir)
+    campaign_seed = world.get('meta', {}).get('campaign_seed')
+    if campaign_seed is None:
+        campaign_seed = _derive_campaign_seed(campaign_dir)
 
     log.debug("build_engine: done campaign_dir=%s", campaign_dir)
     return Engine(
@@ -174,11 +181,12 @@ def rewind(engine: Engine, turn: int) -> dict:
     """
     n = engine.store.retract_from_turn(turn)
     engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world['_revision'] = engine.store.revision
     log.debug("rewind: turn=%d retracted=%d", turn, n)
     return {"retracted": n, "turn": turn}
 
 
-def new_game(engine: Engine, pitch: str = "", *, spec=None, progress=None) -> dict:
+def new_game(engine: Engine, pitch: str = "", *, spec=None, progress=None, flavor: str = "classic") -> dict:
     """Seed genesis via the real bootstrap pipeline.
 
     Delegates entirely to ``loop.bootstrap.bootstrap_world``, which runs the
@@ -205,7 +213,7 @@ def new_game(engine: Engine, pitch: str = "", *, spec=None, progress=None) -> di
     """
     from loop.bootstrap import bootstrap_world
     log.debug("new_game: delegating to bootstrap_world pitch=%r spec=%s", pitch, bool(spec))
-    result = bootstrap_world(engine, pitch, spec=spec, progress=progress)
+    result = bootstrap_world(engine, pitch, spec=spec, progress=progress, flavor=flavor)
     log.debug("new_game: bootstrap complete, world reprojected")
     return result
 

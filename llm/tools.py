@@ -32,6 +32,7 @@ from systems.knowledge import knows
 from systems.place import navigate
 from systems.faction import members_of, member_rank
 import kernel.recall as _kernel_recall
+from context.access import pov_world
 
 log = get_logger("llm.tools")
 
@@ -123,6 +124,8 @@ def _resolve_pov(args: dict, scene: dict) -> tuple[str | None, dict | None]:
     protagonist = scene["protagonist"]
     present = scene.get("present", [])
     pov = args.get("pov") or protagonist
+    if pov != protagonist and not scene.get('_allow_pov_shift', True):
+        return None, {'error': 'POV changes require the DM tool registry'}
     if pov != protagonist and pov not in present:
         return None, {"error": "pov not in scene"}
     return pov, None
@@ -182,7 +185,8 @@ def _map_query_fn(world: dict, scene: dict) -> Callable:
         if err is not None:
             return err
 
-        graph = world["systems"]["ontology"]
+        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
+        graph = visible['systems']['ontology']
         day = scene.get("day", 1)
 
         # --- Topology search: find places whose id or seed contains q ---
@@ -277,12 +281,13 @@ def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
         if err is not None:
             return err
 
-        graph = world["systems"]["ontology"]
+        visible = pov_world(world, scene, pov=pov_id, redact_facts=True)
+        graph = visible['systems']['ontology']
         day = scene.get("day", 1)
         present: list[str] = scene.get("present", [])
 
         # Fan-out recall across all registered systems
-        hits = _kernel_recall.recall(registry, q, world)
+        hits = _kernel_recall.recall(registry, q, visible)
 
         # Fog filter: drop hits the POV agent must not see.
         #
@@ -392,16 +397,35 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
         if err is not None:
             return err
 
-        graph = world["systems"]["ontology"]
+        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
+        graph = visible['systems']['ontology']
         day = scene.get("day", 1)
         present: list[str] = scene.get("present", [])
+        location = scene.get("location")
 
-        # Find Person entities matching the query (substring on id)
+        def _co_located(cid: str) -> bool:
+            # Physically in the scene: in present (tracked) OR co-located at the
+            # scene location at ANY tier — a mentioned walk-on standing right here
+            # is still visible and queryable. (I2)
+            if cid in present:
+                return True
+            if location:
+                locs = graph.neighbors(cid, "located_in", day)
+                return bool(locs and locs[0] == location)
+            return False
+
+        # Match Person entities by id OR visible 真名/sketch substring — the model
+        # queries by descriptive name ("老学者"), not the internal id ("npc_0"). (I2)
         matches: list[str] = []
         for eid, entity in graph.entities.items():
             if entity.etype != "Person":
                 continue
-            if q in eid:
+            hay = " ".join(str(x) for x in (
+                eid,
+                graph.value_at(eid, "真名", day) or "",
+                graph.value_at(eid, "sketch", day) or "",
+            ))
+            if q in hay:
                 matches.append(eid)
 
         if not matches:
@@ -430,7 +454,7 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
                 results.append(record)
                 continue
 
-            co_present = cid in present
+            co_present = _co_located(cid)
             sketch_believed = knows(graph, pov_id, f"{cid}.sketch", day)
             goal_believed = knows(graph, pov_id, f"{cid}.goal", day)
             pov_knows_any = (sketch_believed is not None or goal_believed is not None)
@@ -443,7 +467,9 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
             # Build the character record with only known facets
             record = {"id": cid}
             if co_present:
-                # Co-presence makes existence public — note it
+                # Co-presence makes existence public — note it. (sketch/goal stay
+                # fog-gated below: you see someone is here, but learn their
+                # description/aims only by interacting.)
                 record["co_present"] = True
 
             if sketch_believed is not None:
@@ -504,7 +530,8 @@ def _factions_query_fn(world: dict, scene: dict) -> Callable:
         if err is not None:
             return err
 
-        graph = world["systems"]["ontology"]
+        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
+        graph = visible['systems']['ontology']
         day = scene.get("day", 1)
 
         # Find Faction entities matching the query (substring on id or seed attr)
@@ -595,7 +622,8 @@ def _ambient_query_fn(world: dict, scene: dict) -> Callable:
     reach=trust-LLM); the engine only guarantees no hard secret escapes.
     """
     def fn(q: str) -> dict:
-        graph = world["systems"]["ontology"]
+        visible = pov_world(world, scene, redact_facts=False)
+        graph = visible['systems']['ontology']
         day = scene.get("day", 1)
 
         # Public structural: matching Place / Faction seeds (always public topology)
@@ -672,6 +700,27 @@ def _dm_world_query_fn(world: dict, scene: dict) -> Callable:
 
 
 # ---------------------------------------------------------------------------
+# codex_query — world setting reference (世界设定典) — public, no fog (I6-P3c)
+# ---------------------------------------------------------------------------
+
+def _codex_query_fn(world: dict, scene: dict) -> Callable:
+    """Look up world-setting codex blocks by kind/title substring; empty query
+    returns the index. Public reference — no fog gating."""
+    def fn(q: str = "") -> dict:
+        entries = (world.get("systems", {}).get("codex", {}) or {}).get("entries", [])
+        ql = (q or "").strip()
+        if not ql:
+            return {"index": [{"kind": e.get("kind", ""), "title": e.get("title", "")}
+                              for e in entries]}
+        matches = [e for e in entries
+                   if ql in e.get("kind", "") or ql in e.get("title", "") or ql in e.get("id", "")]
+        return {"query": ql, "matches": [
+            {"kind": e.get("kind", ""), "title": e.get("title", ""), "body": e.get("body", "")}
+            for e in matches]}
+    return fn
+
+
+# ---------------------------------------------------------------------------
 # build_tool_registry — assembles the POV tool set (P3a) + tiers (T9)
 # ---------------------------------------------------------------------------
 
@@ -686,6 +735,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     Returns a ToolRegistry whose schemas() and execute() are the provider
     interface; execute() catches every exception (DD3).
     """
+    scene = {**scene, '_allow_pov_shift': dm}
     tools: list[Tool] = []
 
     # --- map_query: geography / topology / fog-gated place facts ---
@@ -696,7 +746,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             " state facts. Topology (exits, parents) is always shown. Place state"
             " facts (e.g. '断桥.是否可通行') are filtered to what the POV agent knows."
             " Optional: path_to=<place_id> returns a navigate() path."
-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
+            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
         parameters={
             "type": "object",
@@ -729,7 +779,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             "Search across all systems for entities or facts matching a query string."
             " Returns ranked hits (text + source system + score)."
             " Hits referencing knowledge-gated facts the POV agent doesn't know are dropped."
-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
+            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
         parameters={
             "type": "object",
@@ -762,7 +812,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             " A never-met character (no knowledge + not co-present) returns"
             " {\"id\": \"...\", \"known\": false}."
             " Co-present characters have their existence visible, but unknown facets remain gated."
-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
+            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
         parameters={
             "type": "object",
@@ -791,7 +841,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             "Look up factions by id or name substring. Returns faction existence (always public)."
             " Membership and rank are fog-gated: only members whose rank in the faction"
             " the POV agent knows (via knows('<member>.rank:<faction>')) are surfaced."
-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
+            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
         parameters={
             "type": "object",
@@ -837,6 +887,30 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             "required": ["q"],
         },
         fn=_ambient_query_fn(world, scene),
+    ))
+
+    # --- codex_query: world setting reference (世界设定典) — public, no fog (P3c) ---
+    tools.append(Tool(
+        name="codex_query",
+        description=(
+            "Consult the WORLD SETTING CODEX (世界设定典) — the world's fixed lore:"
+            " 实力等级 (power-tier system), 编年史 (history), 势力志, geography, myth,"
+            " etc. Pass a kind or title (e.g. '实力等级' / '编年史'); an empty query"
+            " returns the index of available entries. Public reference, no fog. Use"
+            " it to keep narration consistent with how this world's power/history"
+            " actually work (e.g. how strength is ranked)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "Codex kind or title to look up; empty = list the index.",
+                },
+            },
+            "required": [],
+        },
+        fn=_codex_query_fn(world, scene),
     ))
 
     # --- dm_world_query: DM ground-truth tier — only when dm=True (T9) ---

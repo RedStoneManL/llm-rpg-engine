@@ -154,6 +154,8 @@ def _catchup_validate(kind: str):
 
 def _next_turn(store) -> int:
     """Max turn in store + 1."""
+    if hasattr(store, 'next_turn'):
+        return store.next_turn()
     max_t = 0
     for ev in store.iter_events():
         t = ev.get("turn") or 0

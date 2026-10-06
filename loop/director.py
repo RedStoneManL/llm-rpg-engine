@@ -136,7 +136,7 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
     # seed is constant for a whole campaign and the director never changes its
     # mind). next_turn is derived from the event stream, so rolls still reproduce
     # exactly on replay (rewind-safe).
-    next_turn = last_turn + 1
+    next_turn = store.next_turn() if hasattr(store, 'next_turn') else last_turn + 1
     campaign_seed = (world.get("meta", {}) or {}).get("campaign_seed", 0)
     seed_int = scene_seed(campaign_seed, ordinal, next_turn)
     out = director_check(pacing["scenes_since_event"], pacing["tension"],

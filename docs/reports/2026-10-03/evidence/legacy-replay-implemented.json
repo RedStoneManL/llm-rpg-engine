@@ -1,0 +1,51 @@
+[
+  {
+    "save": "play2",
+    "equivalent": true,
+    "facts": 35,
+    "entities": 23,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play3",
+    "equivalent": true,
+    "facts": 99,
+    "entities": 26,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play4",
+    "equivalent": true,
+    "facts": 19,
+    "entities": 18,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play5",
+    "equivalent": true,
+    "facts": 26,
+    "entities": 21,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play6",
+    "equivalent": true,
+    "facts": 22,
+    "entities": 20,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play7",
+    "equivalent": true,
+    "facts": 24,
+    "entities": 20,
+    "original_hash_unchanged": true
+  },
+  {
+    "save": "play8",
+    "equivalent": true,
+    "facts": 42,
+    "entities": 21,
+    "original_hash_unchanged": true
+  }
+]

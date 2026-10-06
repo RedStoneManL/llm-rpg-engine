@@ -11,7 +11,6 @@ class TurnCommit:
     NOTE: "narration" is reserved and must not be used as a commit section name."""
     narration: str = ""
     sections: dict[str, Any] = field(default_factory=dict)
-    reasons: dict[str, Any] = field(default_factory=dict)  # {section: why it's empty this turn}
 
     @classmethod
     def from_dict(cls, d: dict) -> "TurnCommit":
@@ -23,13 +22,11 @@ class TurnCommit:
             narration = "\n\n".join(str(p) for p in narration)
         elif not isinstance(narration, str):
             narration = str(narration)
-        reasons = d.pop("reasons", {})
-        if not isinstance(reasons, dict):
-            reasons = {}
-        return cls(narration=narration, sections=d, reasons=reasons)
+        # Drop any legacy top-level `reasons` map (the pre-I1 anti-laziness escape):
+        # it no longer drives validation, so discard it here rather than let it be
+        # mistaken for a commit section.
+        d.pop("reasons", None)
+        return cls(narration=narration, sections=d)
 
     def to_dict(self) -> dict:
-        out = {"narration": self.narration, **self.sections}
-        if self.reasons:
-            out["reasons"] = self.reasons
-        return out
+        return {"narration": self.narration, **self.sections}

@@ -23,6 +23,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 class ScriptedProvider:
+    is_offline = True  # Canned offline fixture permits stub fallback.
     """Returns canned strings in order (or repeats the last one)."""
     def __init__(self, replies):
         self._r = list(replies)
@@ -633,6 +634,7 @@ def test_full_first_run_play_flow(tmp_path):
     from app.__main__ import main
 
     turn_response = json.dumps({
+        "moves": [], "places": [], "cast": [], "facts": [],
         "narration": "你进入了世界，感受到了这里的氛围。",
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
     })

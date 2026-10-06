@@ -12,7 +12,10 @@ from __future__ import annotations
 _REQUIRED = {"world_premise": "genre", "protagonist": "name"}
 
 _PREMISE_FIELDS = ("genre", "tone", "world_name", "central_conflict",
-                   "n_factions", "n_regions")
+                   "n_factions", "n_regions",
+                   # world-flavor dials — gen_frame._roll_world_seeds reads these
+                   # from `provided`; they must survive normalize to be overridable.
+                   "magic_system", "power_ladder", "world_tension")
 _PROT_FIELDS = ("name", "origin", "goal", "objective")
 
 

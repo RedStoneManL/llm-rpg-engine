@@ -85,8 +85,3 @@ class ContextSystem:
 
     def recall(self, query: str, world: dict) -> list[RecallHit]:
         return []
-
-    # --- digest (strategy 乙) --------------------------------------------
-    def digest_extract(self, prose: str, world: dict) -> dict:
-        """Return {section_name: decl} extracted from narration prose."""
-        return {}

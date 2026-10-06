@@ -44,6 +44,7 @@ log = get_logger("systems.narrative")
 # ---------------------------------------------------------------------------
 
 RECAP_RAW_SCENES: int = 2    # keep the last N scene buckets verbatim
+RECAP_TURNS_PER_BUCKET: int = 6  # even a long conversation must eventually age out
 RECAP_SUMMARY_FANOUT: int = 6  # recompress into super_summary when > N aged summaries
 
 
@@ -80,7 +81,7 @@ class NarrativeSystem(ContextSystem):
         return set()
 
     def event_types(self) -> set[str]:
-        return {"narration_recorded", "scene_summarized", "recap_recompressed"}
+        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
 
     def commit_sections(self) -> set[str]:
         return set()   # harness-authored only; narrator never writes to this
@@ -102,6 +103,10 @@ class NarrativeSystem(ContextSystem):
         d = event.get("deltas", {})
         t = event["type"]
 
+        if t == 'variation_sampled':
+            ns['variations'] = (ns.get('variations', []) + [dict(d)])[-6:]
+            return
+
         if t == "narration_recorded":
             scene = d.get("scene")
             text = d.get("text")
@@ -109,7 +114,8 @@ class NarrativeSystem(ContextSystem):
                 log.warning("narrative.apply: narration_recorded missing text — skipped")
                 return
             buckets = ns["scenes"]
-            if buckets and buckets[-1]["scene"] == scene:
+            if (buckets and buckets[-1]["scene"] == scene
+                    and len(buckets[-1]['raw']) < RECAP_TURNS_PER_BUCKET):
                 # Append to current scene bucket
                 buckets[-1]["raw"].append(text)
             else:

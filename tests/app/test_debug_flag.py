@@ -15,6 +15,7 @@ import pytest
 
 
 class ScriptedProvider:
+    is_offline = True  # Canned offline fixture permits stub fallback.
     """Returns canned strings in order (or repeats the last one)."""
     def __init__(self, replies):
         self._r = list(replies)

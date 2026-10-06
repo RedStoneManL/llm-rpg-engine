@@ -101,7 +101,7 @@ def test_sanitize_preserves_tab():
 
 def _make_canned_provider():
     return FakeLLMProvider(json_responses=[
-        {
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你环顾四周，发现这是一片宁静的旷野。",
             "clock": [{"advance": False, "days": 0, "bands": 0,
                         "reason": "本回合时间未推进"}],

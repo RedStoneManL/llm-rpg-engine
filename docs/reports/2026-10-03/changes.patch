@@ -1,0 +1,3590 @@
+diff --git a/app/__main__.py b/app/__main__.py
+index 9314546..eabca8f 100644
+--- a/app/__main__.py
++++ b/app/__main__.py
+@@ -225,7 +225,7 @@ def main(
+     )
+     parser.add_argument(
+         "--provider", default="fake",
+-        choices=["fake", "openai", "zhipu", "anthropic"],
++        choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
+         help="LLM provider (default: fake)",
+     )
+     parser.add_argument(
+diff --git a/app/engine.py b/app/engine.py
+index e7ed37c..84489b2 100644
+--- a/app/engine.py
++++ b/app/engine.py
+@@ -34,6 +34,7 @@ from systems.narrative import NarrativeSystem
+ from systems.scene import SceneSystem
+ from systems.lore import LoreSystem
+ from systems.codex import CodexSystem
++from systems.resources import ResourceSystem
+ from llm.provider import FakeLLMProvider, make_provider
+ from engine.embed import get_embedder
+ from engine.log import get_logger
+@@ -73,7 +74,7 @@ def build_engine(
+     Args:
+         campaign_dir: Path (or str) to the campaign directory.
+         provider:     Optional LLMProvider. If None, attempts make_provider from
+-                      env, falling back to FakeLLMProvider.
++                      env (default fake); an explicitly configured provider failure raises.
+         embedder:     Optional embedder. If None, uses get_embedder() (checks env).
+ 
+     Returns:
+@@ -97,6 +98,7 @@ def build_engine(
+     registry.register(SceneSystem())
+     registry.register(LoreSystem())
+     registry.register(CodexSystem())
++    registry.register(ResourceSystem())
+ 
+     log.debug("build_engine: registered %d systems", len(registry.systems))
+ 
+@@ -104,19 +106,19 @@ def build_engine(
+     db_path = campaign_dir / "events.db"
+     jsonl_path = campaign_dir / "events.jsonl"
+     store = open_store(db_path, jsonl_path, registry.event_types())
++    store.preflight = lambda events: project(registry, events)
+ 
+     # Resolve provider
+     if provider is None:
++        import os
++        kind = os.environ.get("RPG_PROVIDER", "fake")
++        model = os.environ.get("RPG_MODEL")
++        base_url = os.environ.get("RPG_BASE_URL")
+         try:
+-            # Try to build from env — will use whatever provider keys are set
+-            import os
+-            kind = os.environ.get("RPG_PROVIDER", "fake")
+-            model = os.environ.get("RPG_MODEL")
+-            base_url = os.environ.get("RPG_BASE_URL")
+             provider = make_provider(kind, model=model, base_url=base_url)
+         except Exception:
+-            log.debug("build_engine: falling back to FakeLLMProvider")
+-            provider = FakeLLMProvider()
++            store.close()
++            raise  # A configured real provider must never silently become a stub.
+ 
+     # Resolve embedder
+     if embedder is None:
+@@ -141,8 +143,11 @@ def build_engine(
+ 
+     # Project world from existing events
+     world = project(registry, store.iter_events())
++    world['_revision'] = store.revision
+ 
+-    campaign_seed = _derive_campaign_seed(campaign_dir)
++    campaign_seed = world.get('meta', {}).get('campaign_seed')
++    if campaign_seed is None:
++        campaign_seed = _derive_campaign_seed(campaign_dir)
+ 
+     log.debug("build_engine: done campaign_dir=%s", campaign_dir)
+     return Engine(
+@@ -176,6 +181,7 @@ def rewind(engine: Engine, turn: int) -> dict:
+     """
+     n = engine.store.retract_from_turn(turn)
+     engine.world = project(engine.registry, engine.store.iter_events())
++    engine.world['_revision'] = engine.store.revision
+     log.debug("rewind: turn=%d retracted=%d", turn, n)
+     return {"retracted": n, "turn": turn}
+ 
+diff --git a/app/play.py b/app/play.py
+index 03c0fa1..00b2704 100644
+--- a/app/play.py
++++ b/app/play.py
+@@ -179,7 +179,7 @@ OOC 指令 (以 / 开头):
+ def _build_scene(engine) -> dict:
+     """Construct a scene dict from the current world state.
+ 
+-    protagonist: first tracked Person in the graph (fallback 'protagonist').
++    protagonist: canonical 'protagonist' when present, otherwise first tracked Person.
+     location:    derived from g.neighbors(protagonist, 'located_in', day) first result;
+                  falls back to meta['scene'] if the protagonist has no located_in edge.
+     present:     every OTHER tracked Person whose current located_in place equals
+@@ -191,7 +191,7 @@ def _build_scene(engine) -> dict:
+ 
+     # Find protagonist (first tracked Person)
+     protagonist_id = "protagonist"
+-    if g:
++    if g and g.get_entity(protagonist_id) is None:
+         for eid, e in g.entities.items():
+             if e.etype == "Person" and e.tier == "tracked":
+                 protagonist_id = eid
+@@ -415,7 +415,12 @@ def play_loop(
+         line = cleaned
+ 
+         if line.startswith("/"):
++            revision_before = engine.store.revision
+             stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
++            if engine.store.revision != revision_before:
++                if hasattr(strategy, 'reset'):
++                    strategy.reset()
++                prev_scene = None
+             if stop:
+                 break
+             continue
+@@ -435,7 +440,10 @@ def play_loop(
+ 
+         try:
+             if compare_mode[0]:
+-                # run_compare: produce 甲+丙 on the same snapshot; show both, apply 甲.
++                from loop.variation import prepare_variation, variation_fragment
++                variation = prepare_variation(engine.registry, engine.world, scene, engine.store.next_turn())
++                if variation:
++                    scene = {**scene, '_variation_prompt':variation_fragment(variation)}
+                 spinner = _Spinner(out)
+                 spinner.start()
+                 try:
+@@ -451,6 +459,23 @@ def play_loop(
+                     )
+                 finally:
+                     spinner.stop()
++                jia_commit, _, jia_dropped = results["甲"]
++                if jia_dropped:
++                    from loop.turn import TurnRejected
++                    raise TurnRejected('comparison candidate failed validation')
++                # Reuse the prepared candidate through the same complete-action
++                # gateway as ordinary play; no second narration model call.
++                class PreparedCandidate:
++                    def produce(self, *args, **kwargs):
++                        return jia_commit
++                applied = run_turn(engine.registry, engine.store, engine.world,
++                    scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
++                    embedder=engine.embedder, required_sections=required_sections,
++                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene)
++                engine.world = applied.world
++                prev_scene = scene
++                if hasattr(strategy, 'reset'):
++                    strategy.reset()
+                 out("[对比模式]")
+                 rec = {"turn": turn_no, "input": player_input, "mode": "compare"}
+                 for label, (commit, attempts, dropped) in results.items():
+@@ -461,16 +486,6 @@ def play_loop(
+                     rec[label] = _candidate_record(commit, attempts, dropped)
+                 rec["applied"] = "甲"
+                 _write_transcript(transcript_path, rec)
+-                # Apply the 甲 result by default (callers can override).
+-                # Use advanced_day (same logic as run_turn) so the compare path
+-                # stamps events at the post-clock-advance day, not the frozen
+-                # pre-turn scene day — fixes the "frozen time in compare mode" bug.
+-                jia_commit, _, _ = results["甲"]
+-                new_world = apply_turn(
+-                    engine.registry, engine.store, jia_commit,
+-                    day=advanced_day(engine.world, jia_commit), scene=scene["id"],
+-                )
+-                engine.world = new_world
+             else:
+                 spinner = _Spinner(out)
+                 spinner.start()
+@@ -509,6 +524,18 @@ def play_loop(
+ 
+         except Exception as exc:
+             log.exception("play_loop: turn error: %s", exc)
+-            out(f"[错误] {exc}")
++            from loop.turn import TurnRejected
++            from engine.store import RevisionConflict
++            if isinstance(exc, TurnRejected):
++                out('[这一行动尚未完成，世界保持原状。请重试或换一种行动描述。]')
++            elif isinstance(exc, RevisionConflict):
++                from kernel.projection import project
++                engine.world = project(engine.registry, engine.store.iter_events())
++                engine.world['_revision'] = engine.store.revision
++                if hasattr(strategy, 'reset'):
++                    strategy.reset()
++                out('[世界状态已更新，请重新尝试这次行动。]')
++            else:
++                out(f"[错误] {exc}")
+             _write_transcript(transcript_path, {
+                 "turn": turn_no, "input": player_input, "error": str(exc)})
+diff --git a/context/assembler.py b/context/assembler.py
+index ff712be..2f6e588 100644
+--- a/context/assembler.py
++++ b/context/assembler.py
+@@ -23,6 +23,7 @@ Steps:
+      Return one string.
+ """
+ from __future__ import annotations
++import json
+ 
+ from kernel.registry import Registry
+ from kernel.assembler import assemble, render, LAYER_ORDER
+@@ -31,6 +32,7 @@ from kernel.contextsystem import Fragment
+ from memory.recall import rank, embed_query
+ from context.viewpoint import build_viewpoint
+ from facts.graph import FactGraph
++from context.access import pov_world
+ from engine.log import get_logger
+ import systems.narrative as nmod
+ 
+@@ -62,6 +64,7 @@ def assemble_context(
+     Returns:
+         A single string with stable→scene→volatile cache layer ordering.
+     """
++    world = pov_world(world, scene)
+     # ------------------------------------------------------------------
+     # Step 1: per-system inject fragments (already layer-sorted)
+     # ------------------------------------------------------------------
+@@ -155,6 +158,22 @@ def assemble_context(
+     # Render the base inject fragments first (includes NarrativeSystem.inject scene-raw
+     # and LoreSystem.inject (明账) — both force-pushed, query-independent).
+     base = render(frags)
++    # Fact anchors are repeated independently of free-form recap. Date-stamped
++    # commitments must not acquire an invented history after a context reset.
++    if g is not None and protagonist:
++        anchors = []
++        for fact in g.facts:
++            if not fact.is_current() or fact.predicate.startswith('knows:'):
++                continue
++            entity = g.get_entity(fact.subject)
++            if fact.subject == protagonist or (entity and entity.etype == 'Object' and fact.secrecy == 'public'):
++                anchors.append(f'{fact.subject}.{fact.predicate} = {json.dumps(fact.value, ensure_ascii=False)} '
++                               f'（确立于第 {fact.event_time_start} 天）')
++        if anchors:
++            base += ('\n\n【事实锚点·当前有效】\n' + '\n'.join(anchors[-24:]) + '\n'
++                '回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。'
++                '发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。'
++                '未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。')
+ 
+     # ------------------------------------------------------------------
+     # Step 4a: Recap stable-summary block (PUSH, spec §1 — query-independent)
+@@ -170,7 +189,7 @@ def assemble_context(
+     # Aged buckets: those beyond the recent-N window that have a summary
+     aged_with_summary = [
+         b for idx, b in enumerate(buckets)
+-        if idx < len(buckets) - nmod.RECAP_RAW_SCENES and b.get("summary")
++        if ns.get('summarized_through_index', 0) <= idx < len(buckets) - nmod.RECAP_RAW_SCENES and b.get("summary")
+     ]
+     if super_summary or aged_with_summary:
+         recap_summary_lines.append("## [stable]")
+diff --git a/data/oracles/classic/pack.json b/data/oracles/classic/pack.json
+index 6effe37..3df39c0 100644
+--- a/data/oracles/classic/pack.json
++++ b/data/oracles/classic/pack.json
+@@ -3,10 +3,61 @@
+   "desc": "接地气的西幻/武侠世界，细腻文学笔法。",
+   "voice": "融合细腻描写与戏剧张力：重环境氛围、角色的神态动作与内心、以及有张力的对话；多用具体可感的细节，少堆空泛形容。",
+   "tone": {
+-    "bright": ["冒险", "热血", "日常", "治愈"],
+-    "dark": ["悬疑", "生存", "恩怨", "权谋"],
+-    "hints_bright": ["轻松", "明亮", "王道", "日常", "温馨", "治愈", "热血", "搞笑", "欢乐", "阳光", "轻快", "冒险", "甜"],
+-    "hints_dark": ["黑暗", "暗黑", "残酷", "绝望", "压抑", "阴郁", "沉重", "惊悚", "恐怖", "致郁", "血腥", "悲"]
++    "bright": [
++      "冒险",
++      "热血",
++      "日常",
++      "治愈"
++    ],
++    "dark": [
++      "悬疑",
++      "生存",
++      "恩怨",
++      "权谋"
++    ],
++    "hints_bright": [
++      "轻松",
++      "明亮",
++      "王道",
++      "日常",
++      "温馨",
++      "治愈",
++      "热血",
++      "搞笑",
++      "欢乐",
++      "阳光",
++      "轻快",
++      "冒险",
++      "甜"
++    ],
++    "hints_dark": [
++      "黑暗",
++      "暗黑",
++      "残酷",
++      "绝望",
++      "压抑",
++      "阴郁",
++      "沉重",
++      "惊悚",
++      "恐怖",
++      "致郁",
++      "血腥",
++      "悲"
++    ]
+   },
+-  "select_hints": ["武侠", "西幻", "克苏鲁", "权谋", "硬核"]
++  "select_hints": [
++    "武侠",
++    "西幻",
++    "克苏鲁",
++    "权谋",
++    "硬核"
++  ],
++  "resources": {
++    "coins": {
++      "type": "integer",
++      "min": 0,
++      "initial": 12,
++      "label": "随身钱币"
++    }
++  }
+ }
+diff --git a/data/oracles/isekai/pack.json b/data/oracles/isekai/pack.json
+index 2dbe8a9..60ce083 100644
+--- a/data/oracles/isekai/pack.json
++++ b/data/oracles/isekai/pack.json
+@@ -3,10 +3,58 @@
+   "desc": "穿越来的现代人视角，轻快明亮的异世界冒险。",
+   "voice": "日式轻小说笔法：短句为主、对白与主角内心吐槽驱动、环境点到即止、口语化、节奏轻快明亮、适度玩梗、少堆华丽长定语。",
+   "tone": {
+-    "bright": ["冒险", "热血", "日常", "治愈", "欢乐", "学园"],
+-    "dark": ["悬疑"],
+-    "hints_bright": ["轻松", "明亮", "王道", "日常", "治愈", "热血", "搞笑", "欢乐", "校园", "学园", "甜", "穿越", "异世界"],
+-    "hints_dark": ["黑暗", "残酷", "绝望", "压抑", "悬疑", "阴谋"]
++    "bright": [
++      "冒险",
++      "热血",
++      "日常",
++      "治愈",
++      "欢乐",
++      "学园"
++    ],
++    "dark": [
++      "悬疑"
++    ],
++    "hints_bright": [
++      "轻松",
++      "明亮",
++      "王道",
++      "日常",
++      "治愈",
++      "热血",
++      "搞笑",
++      "欢乐",
++      "校园",
++      "学园",
++      "甜",
++      "穿越",
++      "异世界"
++    ],
++    "hints_dark": [
++      "黑暗",
++      "残酷",
++      "绝望",
++      "压抑",
++      "悬疑",
++      "阴谋"
++    ]
+   },
+-  "select_hints": ["异世界", "穿越", "转生", "召唤", "轻小说", "社畜", "勇者", "魂穿", "isekai"]
++  "select_hints": [
++    "异世界",
++    "穿越",
++    "转生",
++    "召唤",
++    "轻小说",
++    "社畜",
++    "勇者",
++    "魂穿",
++    "isekai"
++  ],
++  "resources": {
++    "coins": {
++      "type": "integer",
++      "min": 0,
++      "initial": 12,
++      "label": "随身钱币"
++    }
++  }
+ }
+diff --git a/docs/README.md b/docs/README.md
+index 1eca766..ac7d55c 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -8,6 +8,7 @@ build scaffolding deleted.
+ 
+ | Doc | What it is |
+ |---|---|
++| [`action-integrity.md`](action-integrity.md) | Atomic actions, DeepSeek profile, resource rules, flavor variation, memory and compatibility limits (2026-10-03). |
+ | [`MODULE_INDEX.md`](MODULE_INDEX.md) | **Canonical** architecture map — every module, its responsibility, files, interactions, and a "where to fix X" table. Start here. |
+ | [`2026-06-19-architecture-world-model.md`](2026-06-19-architecture-world-model.md) | Mechanism-level **visual** companion to MODULE_INDEX — ASCII diagrams of the turn loop, push/pull context, and the data substrate + backstage fleet. |
+ | [`playtest-issues-2026-06-30.md`](playtest-issues-2026-06-30.md) | Current bug/issue register (play5 forensics, I1–I9 — all fixed; I8 待配置). |
+diff --git a/engine/store.py b/engine/store.py
+index cf97209..7005df7 100644
+--- a/engine/store.py
++++ b/engine/store.py
+@@ -1,5 +1,9 @@
++import copy
++import hashlib
+ import json
+ import sqlite3
++import tempfile
++from contextlib import contextmanager
+ from pathlib import Path
+ 
+ from engine.schema import validate_event
+@@ -19,8 +23,21 @@ CREATE TABLE IF NOT EXISTS events (
+ CREATE INDEX IF NOT EXISTS idx_events_day ON events(day);
+ CREATE INDEX IF NOT EXISTS idx_events_scene ON events(scene);
+ CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
++CREATE TABLE IF NOT EXISTS store_revision (
++    singleton INTEGER PRIMARY KEY CHECK(singleton=1), revision INTEGER NOT NULL
++);
++INSERT OR IGNORE INTO store_revision VALUES (1, 0);
++CREATE TABLE IF NOT EXISTS action_receipts (
++    action_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
++    first_seq INTEGER NOT NULL, last_seq INTEGER NOT NULL, revision INTEGER NOT NULL
++);
+ """
+ 
++
++class RevisionConflict(RuntimeError):
++    """A proposal was based on a world that has since changed."""
++
++
+ class EventStore:
+     def __init__(self, db_path, jsonl_path, allowed_types=None):
+         self.db_path = Path(db_path)
+@@ -31,8 +48,84 @@ class EventStore:
+         self._conn.row_factory = sqlite3.Row
+         self._conn.executescript(_SCHEMA)
+         self._conn.commit()
++        self.preflight = None
++        self.mirror_error = None
+ 
+     def append(self, ev) -> int:
++        return self.append_many([ev])["last_seq"]
++
++    @property
++    def revision(self) -> int:
++        return self._conn.execute('SELECT revision FROM store_revision WHERE singleton=1').fetchone()[0]
++
++    def next_turn(self) -> int:
++        return self._conn.execute('SELECT COALESCE(MAX(turn),0)+1 FROM events WHERE retracted=0').fetchone()[0]
++
++    def snapshot(self):
++        """Read events and revision from one SQLite snapshot, then release it."""
++        self._conn.execute('BEGIN')
++        try:
++            revision = self.revision
++            events = list(self.iter_events(include_retracted=True))
++            self._conn.commit()
++            return revision, events
++        except BaseException:
++            self._conn.rollback()
++            raise
++
++    def append_many(self, events, *, expected_revision=None, action_id=None, preflight=None, retractions=()):
++        """Publish a complete proposal atomically; JSONL is a recoverable mirror.
++
++        All LLM work belongs before this short transaction. The preflight callback
++        folds the entire prospective history and must perform no external I/O.
++        """
++        events = copy.deepcopy(list(events))
++        for ev in events:
++            validate_event(ev, self.allowed_types)
++        retractions = list(retractions)
++        if any(kind not in {'seq', 'turn'} for kind, value in retractions):
++            raise ValueError('unknown retraction boundary')
++        fingerprint = hashlib.sha256(json.dumps({'events':events, 'retractions':retractions}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
++        self._conn.execute('BEGIN IMMEDIATE')
++        try:
++            if action_id:
++                prior = self._conn.execute('SELECT * FROM action_receipts WHERE action_id=?', (action_id,)).fetchone()
++                if prior:
++                    if prior['fingerprint'] != fingerprint:
++                        raise RevisionConflict('action_id already used for different events')
++                    if self._conn.execute('SELECT 1 FROM events WHERE seq BETWEEN ? AND ? AND retracted=1 LIMIT 1',
++                                          (prior['first_seq'], prior['last_seq'])).fetchone():
++                        raise RevisionConflict('action was retracted; submit a new action_id')
++                    self._conn.rollback()
++                    return {**dict(prior), 'duplicate': True, 'mirror_pending': bool(self.mirror_error)}
++            revision = self.revision
++            if expected_revision is not None and revision != expected_revision:
++                raise RevisionConflict('world changed while the action was being prepared')
++            removed = 0
++            for kind, value in retractions:
++                removed += self._conn.execute(f'UPDATE events SET retracted=1 WHERE retracted=0 AND {kind}>=?', (value,)).rowcount
++            check = preflight or self.preflight
++            if check is not None:
++                check(list(self.iter_events()) + events)
++            first = last = 0
++            for ev in events:
++                last = self._insert(ev)
++                first = first or last
++            if events or removed:
++                revision += 1
++                self._conn.execute('UPDATE store_revision SET revision=? WHERE singleton=1', (revision,))
++            if action_id:
++                self._conn.execute('INSERT INTO action_receipts VALUES (?,?,?,?,?)',
++                                   (action_id, fingerprint, first, last, revision))
++            self._conn.commit()
++        except BaseException:
++            self._conn.rollback()
++            raise
++        self._sync_mirror_safely()
++        return {'action_id': action_id, 'first_seq': first, 'last_seq': last,
++                'revision': revision, 'duplicate': False, 'mirror_pending': bool(self.mirror_error)}
++
++    def _insert(self, ev) -> int:
+         validate_event(ev, self.allowed_types)
+         row = {
+             "id": ev["id"], "type": ev["type"], "day": ev["day"], "scene": ev["scene"],
+@@ -52,11 +145,8 @@ class EventStore:
+                (id,type,day,scene,arc,actors,summary,deltas,thread_refs,chunk_ids,secrecy,roll,turn,retracted)
+                VALUES (:id,:type,:day,:scene,:arc,:actors,:summary,:deltas,:thread_refs,:chunk_ids,:secrecy,:roll,:turn,:retracted)""",
+             row)
+-        self._conn.commit()
+         seq = cur.lastrowid
+         log.debug("append id=%s seq=%s type=%s", ev["id"], seq, ev["type"])
+-        with self.jsonl_path.open("a", encoding="utf-8") as f:
+-            f.write(json.dumps({**ev, "seq": seq}, ensure_ascii=False) + "\n")
+         return seq
+ 
+     def iter_events(self, include_retracted=False):
+@@ -68,33 +158,58 @@ class EventStore:
+             yield self._row_to_event(r)
+ 
+     def retract_from_seq(self, seq) -> int:
+-        cur = self._conn.execute(
+-            "UPDATE events SET retracted=1 WHERE seq>=? AND retracted=0", (seq,))
+-        self._conn.commit()
+-        log.debug("retract from seq=%s affected=%s", seq, cur.rowcount)
+-        self._rewrite_jsonl()
+-        return cur.rowcount
++        return self._retract('seq>=?', seq)
+ 
+     def retract_from_turn(self, turn) -> int:
+-        cur = self._conn.execute(
+-            "UPDATE events SET retracted=1 WHERE turn IS NOT NULL AND turn>=? AND retracted=0",
+-            (turn,))
+-        self._conn.commit()
+-        self._rewrite_jsonl()
+-        log.debug("retract_from_turn turn>=%s affected=%s", turn, cur.rowcount)
++        return self._retract('turn IS NOT NULL AND turn>=?', turn)
++
++    def _retract(self, condition, value):
++        self._conn.execute('BEGIN IMMEDIATE')
++        try:
++            cur = self._conn.execute('UPDATE events SET retracted=1 WHERE retracted=0 AND ' + condition, (value,))
++            if cur.rowcount:
++                self._conn.execute('UPDATE store_revision SET revision=revision+1 WHERE singleton=1')
++            self._conn.commit()
++        except BaseException:
++            self._conn.rollback()
++            raise
++        self._sync_mirror_safely()
+         return cur.rowcount
+ 
++    def _sync_mirror_safely(self):
++        try:
++            self.sync_jsonl()
++        except (OSError, sqlite3.Error) as exc:
++            self.mirror_error = str(exc)
++            log.warning('SQLite commit saved; JSONL mirror needs sync: %s', exc)
++
+     def sync_jsonl(self):
+         """Rebuild events.jsonl from SQLite (authoritative)."""
+-        self._rewrite_jsonl()
++        # Serialize mirror publication with writers so an older snapshot cannot
++        # replace the export of a newer commit from another connection.
++        self._conn.execute('BEGIN IMMEDIATE')
++        try:
++            self._rewrite_jsonl()
++            self._conn.commit()
++            self.mirror_error = None
++        except BaseException:
++            self._conn.rollback()
++            raise
+ 
+     def _rewrite_jsonl(self):
+         rows = list(self.iter_events(include_retracted=True))
+-        tmp = self.jsonl_path.with_suffix(".jsonl.tmp")
+-        with tmp.open("w", encoding="utf-8") as f:
+-            for ev in rows:
+-                f.write(json.dumps(ev, ensure_ascii=False) + "\n")
+-        tmp.replace(self.jsonl_path)
++        self.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
++        tmp = None
++        try:
++            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=self.jsonl_path.parent,
++                                             prefix=self.jsonl_path.name + '.', delete=False) as f:
++                tmp = Path(f.name)
++                for ev in rows:
++                    f.write(json.dumps(ev, ensure_ascii=False) + "\n")
++            tmp.replace(self.jsonl_path)
++        finally:
++            if tmp is not None:
++                tmp.unlink(missing_ok=True)
+ 
+     def close(self):
+         try:
+@@ -122,3 +237,79 @@ class EventStore:
+             "turn": r["turn"],
+             "retracted": bool(r["retracted"]),
+         }
++
++
++class EventBatch:
++    """In-memory proposal, including backstage events, for a single action.
++
++    No database lock is held during generation. A failed backstage savepoint
++    rolls back only that hook; a failed publication rolls back the whole action.
++    """
++    def __init__(self, store, *, turn=None, preflight=None):
++        self.store = store
++        self.revision, self._snapshot = store.snapshot()
++        self.events = []
++        self.retractions = []
++        self.allowed_types = store.allowed_types
++        self.db_path, self.jsonl_path = store.db_path, store.jsonl_path
++        self.turn = turn if turn is not None else max((e.get('turn') or 0 for e in self._snapshot if not e.get('retracted')), default=0) + 1
++        self.preflight = preflight or store.preflight
++        self._last_seq = max((e.get('seq') or 0 for e in self._snapshot), default=0)
++
++    def next_turn(self):
++        return self.turn
++
++    def _retract(self, kind, value):
++        changed = 0
++        for ev in self._snapshot + self.events:
++            boundary = ev.get(kind)
++            if boundary is not None and boundary >= value and not ev.get('retracted'):
++                ev['retracted'] = True
++                changed += 1
++        self.retractions.append((kind, value))
++        return changed
++
++    def retract_from_seq(self, seq):
++        return self._retract('seq', seq)
++
++    def retract_from_turn(self, turn):
++        return self._retract('turn', turn)
++
++    def append(self, event):
++        ev = copy.deepcopy(event)
++        ev['turn'] = self.turn
++        validate_event(ev, self.allowed_types)
++        ev['seq'] = self._last_seq + len(self.events) + 1
++        self.events.append(ev)
++        return ev['seq']
++
++    def append_many(self, events, **kwargs):
++        start = len(self.events)
++        with self.savepoint():
++            for event in events:
++                self.append(event)
++        return {'first_seq': self._last_seq + start + 1 if len(self.events)>start else 0,
++                'last_seq': self._last_seq + len(self.events) if len(self.events)>start else 0,
++                'revision': self.revision, 'duplicate': False, 'mirror_pending': False}
++
++    def iter_events(self, include_retracted=False):
++        for ev in self._snapshot + self.events:
++            if include_retracted or not ev.get('retracted'):
++                yield ev
++
++    @contextmanager
++    def savepoint(self):
++        start = len(self.events)
++        try:
++            yield
++            if self.preflight and len(self.events) != start:
++                self.preflight(list(self.iter_events()))
++        except BaseException:
++            del self.events[start:]
++            raise
++
++    def publish(self, *, action_id=None):
++        events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
++        return self.store.append_many(events, expected_revision=self.revision,
++                                      action_id=action_id, preflight=self.preflight,
++                                      retractions=self.retractions)
+diff --git a/facts/graph.py b/facts/graph.py
+index 8b877e8..37a0c20 100644
+--- a/facts/graph.py
++++ b/facts/graph.py
+@@ -4,6 +4,7 @@ from typing import Any
+ from engine.log import get_logger
+ from facts.entity import Entity
+ from facts.fact import Fact, Relation
++from facts.rules import check_value
+ 
+ log = get_logger("facts.graph")
+ 
+@@ -19,12 +20,32 @@ class FactGraph:
+         self.entities: dict[str, Entity] = {}
+         self.facts: list[Fact] = []
+         self.relations: list[Relation] = []
++        self._fact_current: dict[tuple[str, str], Fact] = {}
++        self._fact_history: dict[tuple[str, str], list[Fact]] = {}
++        self._facts_by_subject: dict[str, dict[str, Fact]] = {}
++
++    def reindex_facts(self) -> None:
++        """Rebuild derived indexes after constructing a filtered graph view."""
++        self._fact_current = {}
++        self._fact_history = {}
++        self._facts_by_subject = {}
++        for fact in self.facts:
++            self._fact_history.setdefault((fact.subject, fact.predicate), []).append(fact)
++            if fact.is_current():
++                self._fact_current[(fact.subject, fact.predicate)] = fact
++                self._facts_by_subject.setdefault(fact.subject, {})[fact.predicate] = fact
+ 
+     # ------------------------------------------------------------------
+     # Entity CRUD
+     # ------------------------------------------------------------------
+ 
+     def add_entity(self, id: str, etype: str, tier: str = "mentioned", **attrs: Any) -> Entity:
++        prior = self.entities.get(id)
++        # A duplicate entity declaration cannot erase scenario constraints.
++        if prior and 'fact_rules' in prior.attrs:
++            if attrs.get('fact_rules', prior.attrs['fact_rules']) != prior.attrs['fact_rules']:
++                raise ValueError('cannot replace existing fact_rules through entity creation')
++            attrs['fact_rules'] = prior.attrs['fact_rules']
+         e = Entity(id=id, etype=etype, tier=tier, attrs=dict(attrs))
+         self.entities[id] = e
+         log.debug("add_entity id=%s etype=%s tier=%s", id, etype, tier)
+@@ -55,16 +76,15 @@ class FactGraph:
+         secrecy: str | None = None,
+     ) -> Fact:
+         # Close the prior current fact for this (subject, predicate)
+-        for f in self.facts:
+-            if f.subject == subject and f.predicate == predicate and f.is_current():
+-                if f.event_time_start > day:
+-                    raise ValueError(
+-                        f"non-monotonic assert: day={day} < prior start={f.event_time_start}; "
+-                        "out-of-order/flashback not supported"
+-                    )
+-                f.event_time_end = day
+-                log.debug("supersede fact subject=%s predicate=%s at day=%d", subject, predicate, day)
+-                break
++        key = (subject, predicate)
++        prior = self._fact_current.get(key)
++        rule_error = check_value(self.get_entity(subject), predicate, value, prior)
++        if rule_error:
++            raise ValueError(rule_error)
++        if prior is not None:
++            if prior.event_time_start > day:
++                raise ValueError(f'non-monotonic assert: day={day} < prior start={prior.event_time_start}; out-of-order/flashback not supported')
++            prior.event_time_end = day
+         new_fact = Fact(
+             subject=subject,
+             predicate=predicate,
+@@ -75,23 +95,29 @@ class FactGraph:
+             secrecy=secrecy,
+         )
+         self.facts.append(new_fact)
++        self._fact_current[key] = new_fact
++        self._fact_history.setdefault(key, []).append(new_fact)
++        current = self._facts_by_subject.setdefault(subject, {})
++        # Preserve the historical list's assertion order when a fact is replaced.
++        current.pop(predicate, None)
++        current[predicate] = new_fact
+         log.debug("assert_fact subject=%s predicate=%s value=%s day=%d", subject, predicate, value, day)
+         return new_fact
+ 
+     def current_facts(self, subject: str) -> list[Fact]:
+         """All currently-open facts for a subject (no event_time_end)."""
+-        return [f for f in self.facts if f.subject == subject and f.is_current()]
++        return list(self._facts_by_subject.get(subject, {}).values())
+ 
+     def value_at(self, subject: str, predicate: str, day: int) -> object | None:
+         """The value of the fact for (subject, predicate) valid at day, or None."""
+-        for f in self.facts:
+-            if f.subject == subject and f.predicate == predicate and f.valid_at(day):
++        for f in self._fact_history.get((subject, predicate), []):
++            if f.valid_at(day):
+                 return f.value
+         return None
+ 
+     def fact_history(self, subject: str, predicate: str) -> list[Fact]:
+         """All fact records for (subject, predicate), ordered by assertion time."""
+-        return [f for f in self.facts if f.subject == subject and f.predicate == predicate]
++        return list(self._fact_history.get((subject, predicate), []))
+ 
+     # ------------------------------------------------------------------
+     # Relations (bitemporal, (src, rel)-scoped supersession)
+diff --git a/kernel/projection.py b/kernel/projection.py
+index 7f22aa1..f0429e8 100644
+--- a/kernel/projection.py
++++ b/kernel/projection.py
+@@ -20,8 +20,13 @@ def project(registry: Registry, events) -> dict:
+     for ev in events:
+         if ev.get("retracted"):
+             continue
+-        world["meta"]["day"] = ev["day"]
+-        world["meta"]["scene"] = ev["scene"]
++        # Late historical annotations must not move the current scene/clock back.
++        # System projections still receive every event and enforce their own
++        # temporal invariants; a corrupt state transition is never skipped.
++        current_day = world['meta'].get('day')
++        if current_day is None or ev['day'] >= current_day:
++            world["meta"]["day"] = ev["day"]
++            world["meta"]["scene"] = ev["scene"]
+         world["meta"]["timeline"].append(
+             {"day": ev["day"], "scene": ev["scene"], "summary": ev["summary"]})
+         owner = registry.owner_of_event(ev["type"])
+diff --git a/kernel/validation.py b/kernel/validation.py
+index f60cc73..1cde910 100644
+--- a/kernel/validation.py
++++ b/kernel/validation.py
+@@ -1,4 +1,5 @@
+ from __future__ import annotations
++import re
+ 
+ from kernel.registry import Registry
+ from kernel.turncommit import TurnCommit
+@@ -48,6 +49,11 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
+     omit a section it forgot — it must affirmatively declare "no change" via [].
+     """
+     errors: list[ValidationError] = []
++    if not isinstance(commit.narration, str) or (required_sections and not commit.narration.strip()):
++        errors.append(ValidationError('narration', '', 'missing_narration', 'narration 必须是非空的散文字符串'))
++    elif re.search(r'\\?"(?:narration|facts|knowledge|clock)\\?"\s*:', commit.narration or ''):
++        errors.append(ValidationError('narration', '', 'structured_prose',
++            'narration 只能是给玩家阅读的散文，不能包含 JSON 结构、内部字段或原始提交；重新提取纯正文'))
+     g = world.get("systems", {}).get("ontology")
+ 
+     # Same-commit cross-references: collect the ids this commit will create and
+@@ -57,8 +63,13 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
+     pending: set[str] = set()
+     for section, decl in commit.sections.items():
+         owner = registry.owner_of_section(section)
+-        if owner is not None:
+-            pending |= owner.created_ids(section, decl)
++        if owner is not None and not _section_shape_errors(section, decl):
++            try:
++                pending |= {pid for pid in owner.created_ids(section, decl)
++                            if isinstance(pid, str) and pid.strip()}
++            except (TypeError, ValueError, AttributeError) as exc:
++                errors.append(ValidationError(section, '', 'bad_shape',
++                    f'无法读取本段声明的实体 id：{exc}；id 必须是非空字符串'))
+ 
+     stubbed: list[str] = []
+     try:
+@@ -98,6 +109,10 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
+     # sole exception is clock: time must be accounted for every turn, so clock must
+     # be present as a non-empty array (TimeSystem.validate then checks its shape;
+     # a reasons-only clock does not count).
++    for section in sorted(required_sections - {'clock'}):
++        if section not in commit.sections or commit.sections[section] is None:
++            errors.append(ValidationError(section, '', 'missing_section',
++                f'{section} 段必须显式给出；没有变化时给空数组 []'))
+     if "clock" in required_sections:
+         decl = commit.sections.get("clock")
+         if not (isinstance(decl, list) and len(decl) > 0):
+diff --git a/llm/provider.py b/llm/provider.py
+index 57e1139..d9bc198 100644
+--- a/llm/provider.py
++++ b/llm/provider.py
+@@ -13,12 +13,23 @@ import re
+ import time
+ import urllib.error
+ import urllib.request
++from contextvars import ContextVar
+ from typing import Any
+ 
+ from engine.log import get_logger
+ from kernel.observability import get_tracer
+ 
+ log = get_logger("llm")
++_JSON_OUTPUT = ContextVar('rpg_json_output', default=False)
++
++
++def json_call(function, *args, **kwargs):
++    """Request native JSON only for structured calls; preserve prose interfaces."""
++    token = _JSON_OUTPUT.set(True)
++    try:
++        return function(*args, **kwargs)
++    finally:
++        _JSON_OUTPUT.reset(token)
+ 
+ 
+ def _norm_usage(usage: dict) -> dict | None:
+@@ -45,7 +56,8 @@ def _record_usage(gen, parsed: dict) -> None:
+         out = None
+         try:
+             msg = (parsed.get("choices") or [{}])[0].get("message") or {}
+-            out = msg.get("content") or (json.dumps(msg, ensure_ascii=False) if msg else None)
++            visible = {k:v for k,v in msg.items() if k != 'reasoning_content'}
++            out = msg.get("content") or (json.dumps(visible, ensure_ascii=False) if visible else None)
+         except Exception:
+             out = None
+         gen.finish(output=out, usage=norm or None)
+@@ -412,15 +424,19 @@ def _openai_parse(resp: dict) -> tuple[str | None, list[dict]]:
+     """
+     choice = resp["choices"][0]
+     msg = choice["message"]
+-    if choice.get("finish_reason") == "tool_calls" and msg.get("tool_calls"):
++    if msg.get("tool_calls"):
+         calls = []
+-        for tc in msg["tool_calls"]:
++        assistant = {k:v for k,v in msg.items() if k in {'role', 'content', 'reasoning_content', 'tool_calls'}}
++        assistant.setdefault('role', 'assistant')
++        for index, tc in enumerate(msg["tool_calls"]):
+             fn = tc["function"]
+             calls.append({
+                 "id": tc["id"],
+                 "name": fn["name"],
+                 "arguments": json.loads(fn.get("arguments") or "{}"),
+                 "arguments_raw": fn.get("arguments") or "{}",
++                "_assistant": assistant,
++                "_first": index == 0,
+             })
+         return None, calls
+     return msg.get("content"), []
+@@ -432,6 +448,11 @@ def _openai_append_result(messages: list[dict], call: dict, result_str: str) ->
+     OpenAI requires the assistant message echoing the tool_calls to appear
+     BEFORE the tool result message.
+     """
++    if '_assistant' in call:
++        if call['_first']:
++            messages.append(call['_assistant'])
++        messages.append({'role': 'tool', 'tool_call_id': call['id'], 'content': result_str})
++        return
+     messages.append({
+         "role": "assistant",
+         "content": None,
+@@ -523,6 +544,28 @@ class OpenAIProvider(LLMProvider):
+             )
+ 
+ 
++class DeepSeekProvider(OpenAIProvider):
++    """Explicit DeepSeek profile; preserve native tool messages and control thinking."""
++
++    DEFAULT_BASE_URL = 'https://api.deepseek.com'
++    DEFAULT_MAX_TOKENS = 16384
++
++    def __init__(self, model, api_key, base_url=None, max_tokens=None, *, thinking=None):
++        super().__init__(model, api_key, base_url, max_tokens)
++        self.thinking = thinking or os.environ.get('DEEPSEEK_THINKING', 'disabled')
++        if self.thinking not in {'enabled', 'disabled'}:
++            raise ValueError('DEEPSEEK_THINKING must be enabled or disabled')
++
++    def _prepare_body(self, body):
++        body = {**body, 'thinking': {'type': self.thinking}}
++        if _JSON_OUTPUT.get():
++            body['response_format'] = {'type':'json_object'}
++        return body
++
++    def _post(self, url, headers, body, **kwargs):
++        return super()._post(url, headers, self._prepare_body(body), **kwargs)
++
++
+ class ZhipuProvider(LLMProvider):
+     """Zhipu AI (智谱) adapter — OpenAI-compatible API with Zhipu's base URL."""
+ 
+@@ -668,12 +711,14 @@ class AnthropicProvider(LLMProvider):
+ _PROVIDER_MAP = {
+     "fake": None,  # special-cased below
+     "openai": OpenAIProvider,
++    "deepseek": DeepSeekProvider,
+     "zhipu": ZhipuProvider,
+     "anthropic": AnthropicProvider,
+ }
+ 
+ _ENV_KEY_MAP = {
+     "openai": "OPENAI_API_KEY",
++    "deepseek": "DEEPSEEK_API_KEY",
+     "zhipu": "ZHIPU_API_KEY",
+     "anthropic": "ANTHROPIC_API_KEY",
+ }
+diff --git a/llm/structured.py b/llm/structured.py
+index 8ac22c1..399a423 100644
+--- a/llm/structured.py
++++ b/llm/structured.py
+@@ -30,6 +30,7 @@ from __future__ import annotations
+ 
+ from engine.log import get_logger
+ from llm.provider import _parse_json_object
++from llm.generation_guard import record_failure
+ 
+ log = get_logger("llm.structured")
+ 
+@@ -80,6 +81,7 @@ def complete_structured(
+     last parsed object (or None). NEVER raises.
+     """
+     if provider is None:
++        record_failure(log_label, ['no provider'])
+         return None, ["no provider"]
+     messages = [
+         {"role": "system", "content": system},
+@@ -89,10 +91,12 @@ def complete_structured(
+     errors: list[str] = ["no response"]
+     for attempt in range(max_repairs + 1):
+         try:
+-            raw = provider.complete_messages(messages)
++            from llm.provider import json_call
++            raw = json_call(provider.complete_messages, messages)
+         except Exception:
+             log.exception("complete_structured[%s]: complete_messages failed (attempt %d)",
+                           log_label, attempt)
++            record_failure(log_label, ['provider call failed'])
+             return obj, errors
+         obj = _parse_json_object(raw)
+         if not isinstance(obj, dict):
+@@ -114,4 +118,5 @@ def complete_structured(
+                              "content": build_structured_repair(errors, schema_reminder=schema_reminder)})
+     log.warning("complete_structured[%s]: did not conform after %d attempt(s): %s",
+                 log_label, max_repairs + 1, "; ".join(errors)[:200])
++    record_failure(log_label, errors)
+     return obj, errors
+diff --git a/llm/tools.py b/llm/tools.py
+index 43958d1..a49b8c4 100644
+--- a/llm/tools.py
++++ b/llm/tools.py
+@@ -32,6 +32,7 @@ from systems.knowledge import knows
+ from systems.place import navigate
+ from systems.faction import members_of, member_rank
+ import kernel.recall as _kernel_recall
++from context.access import pov_world
+ 
+ log = get_logger("llm.tools")
+ 
+@@ -123,6 +124,8 @@ def _resolve_pov(args: dict, scene: dict) -> tuple[str | None, dict | None]:
+     protagonist = scene["protagonist"]
+     present = scene.get("present", [])
+     pov = args.get("pov") or protagonist
++    if pov != protagonist and not scene.get('_allow_pov_shift', True):
++        return None, {'error': 'POV changes require the DM tool registry'}
+     if pov != protagonist and pov not in present:
+         return None, {"error": "pov not in scene"}
+     return pov, None
+@@ -182,7 +185,8 @@ def _map_query_fn(world: dict, scene: dict) -> Callable:
+         if err is not None:
+             return err
+ 
+-        graph = world["systems"]["ontology"]
++        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
++        graph = visible['systems']['ontology']
+         day = scene.get("day", 1)
+ 
+         # --- Topology search: find places whose id or seed contains q ---
+@@ -277,12 +281,13 @@ def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
+         if err is not None:
+             return err
+ 
+-        graph = world["systems"]["ontology"]
++        visible = pov_world(world, scene, pov=pov_id, redact_facts=True)
++        graph = visible['systems']['ontology']
+         day = scene.get("day", 1)
+         present: list[str] = scene.get("present", [])
+ 
+         # Fan-out recall across all registered systems
+-        hits = _kernel_recall.recall(registry, q, world)
++        hits = _kernel_recall.recall(registry, q, visible)
+ 
+         # Fog filter: drop hits the POV agent must not see.
+         #
+@@ -392,7 +397,8 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
+         if err is not None:
+             return err
+ 
+-        graph = world["systems"]["ontology"]
++        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
++        graph = visible['systems']['ontology']
+         day = scene.get("day", 1)
+         present: list[str] = scene.get("present", [])
+         location = scene.get("location")
+@@ -524,7 +530,8 @@ def _factions_query_fn(world: dict, scene: dict) -> Callable:
+         if err is not None:
+             return err
+ 
+-        graph = world["systems"]["ontology"]
++        visible = pov_world(world, scene, pov=pov_id, redact_facts=False)
++        graph = visible['systems']['ontology']
+         day = scene.get("day", 1)
+ 
+         # Find Faction entities matching the query (substring on id or seed attr)
+@@ -615,7 +622,8 @@ def _ambient_query_fn(world: dict, scene: dict) -> Callable:
+     reach=trust-LLM); the engine only guarantees no hard secret escapes.
+     """
+     def fn(q: str) -> dict:
+-        graph = world["systems"]["ontology"]
++        visible = pov_world(world, scene, redact_facts=False)
++        graph = visible['systems']['ontology']
+         day = scene.get("day", 1)
+ 
+         # Public structural: matching Place / Faction seeds (always public topology)
+@@ -727,6 +735,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
+     Returns a ToolRegistry whose schemas() and execute() are the provider
+     interface; execute() catches every exception (DD3).
+     """
++    scene = {**scene, '_allow_pov_shift': dm}
+     tools: list[Tool] = []
+ 
+     # --- map_query: geography / topology / fog-gated place facts ---
+@@ -737,7 +746,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
+             " state facts. Topology (exits, parents) is always shown. Place state"
+             " facts (e.g. '断桥.是否可通行') are filtered to what the POV agent knows."
+             " Optional: path_to=<place_id> returns a navigate() path."
+-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
++            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
+         ),
+         parameters={
+             "type": "object",
+@@ -770,7 +779,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
+             "Search across all systems for entities or facts matching a query string."
+             " Returns ranked hits (text + source system + score)."
+             " Hits referencing knowledge-gated facts the POV agent doesn't know are dropped."
+-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
++            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
+         ),
+         parameters={
+             "type": "object",
+@@ -803,7 +812,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
+             " A never-met character (no knowledge + not co-present) returns"
+             " {\"id\": \"...\", \"known\": false}."
+             " Co-present characters have their existence visible, but unknown facets remain gated."
+-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
++            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
+         ),
+         parameters={
+             "type": "object",
+@@ -832,7 +841,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
+             "Look up factions by id or name substring. Returns faction existence (always public)."
+             " Membership and rank are fog-gated: only members whose rank in the faction"
+             " the POV agent knows (via knows('<member>.rank:<faction>')) are surfaced."
+-            " Optional: pov=<entity_id> shifts POV to a present NPC (defaults to protagonist)."
++            " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
+         ),
+         parameters={
+             "type": "object",
+diff --git a/loop/bootstrap.py b/loop/bootstrap.py
+index 53946bc..13ae6d8 100644
+--- a/loop/bootstrap.py
++++ b/loop/bootstrap.py
+@@ -4,6 +4,14 @@ The per-step content generators (gen_frame ... gen_opening) live in
+ loop.genesis_steps and are re-exported here for back-compat (tests and
+ callers import them from loop.bootstrap)."""
+ from __future__ import annotations
++import copy
++from functools import wraps
++from uuid import uuid4
++
++from engine.store import EventBatch
++from kernel.projection import project
++from llm.generation_guard import collect_failures, WatchedProvider
++from llm.provider import FakeLLMProvider
+ 
+ from engine.oracle import Oracle, scene_seed, load_table  # noqa: F401
+ from engine.log import get_logger
+@@ -24,10 +32,39 @@ from loop.flavor import stored_flavor
+ log = get_logger("loop.bootstrap")
+ 
+ 
++class GenesisError(RuntimeError):
++    """Generation did not produce a complete world; the prior save is intact."""
++
++
++def _atomic_genesis(function):
++    @wraps(function)
++    def run(engine, *args, **kwargs):
++        if isinstance(engine.store, EventBatch):
++            return function(engine, *args, **kwargs)
++        batch = EventBatch(engine.store, turn=0, preflight=lambda events: project(engine.registry, events))
++        staged = copy.copy(engine)
++        staged.store = batch
++        offline = isinstance(engine.provider, FakeLLMProvider) or getattr(engine.provider, 'is_offline', False)
++        staged.provider = WatchedProvider(engine.provider)
++        if engine.cascade_provider is not None:
++            staged.cascade_provider = WatchedProvider(engine.cascade_provider)
++        with collect_failures() as failures:
++            result = function(staged, *args, **kwargs)
++        if failures and not offline:
++            stages = ', '.join(sorted({f['stage'] for f in failures}))
++            raise GenesisError('世界生成未完成，原存档保持不变；可重试。失败阶段：' + stages)
++        receipt = batch.publish(action_id='genesis:' + str(uuid4()))
++        engine.world = project(engine.registry, engine.store.iter_events())
++        engine.world['_revision'] = receipt['revision']
++        return result
++    return run
++
++
+ # ---------------------------------------------------------------------------
+ # bootstrap_world — Task 9: orchestrator (steps 1-9) + reroll helpers
+ # ---------------------------------------------------------------------------
+ 
++@_atomic_genesis
+ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, progress=None, flavor: str = "classic") -> dict:
+     """Run all generation steps + protagonist creation; return a rich result dict.
+ 
+@@ -59,7 +96,8 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
+           "_boundaries": {step: first_seq_of_that_step},
+         }
+ 
+-    Never raises — generators already fall back to stubs.
++    Real-provider failure raises GenesisError without publishing partial/stub
++    events. Explicit offline providers may use deterministic stub generators.
+     """
+     from kernel.projection import project as _project
+     from loop.lore import create_lore_line
+@@ -203,6 +241,16 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
+         )
+         store.append(ev_move)
+ 
++        # Opt-in host rules; values/types remain flavor data. The resulting
++        # configuration is event-sourced, so resumed saves need no environment.
++        import os
++        from engine.oracle import load_pack_manifest
++        resources = load_pack_manifest(flavor).get('resources', {})
++        if resources and os.environ.get('RPG_RESOURCE_RULES', '0') == '1':
++            store.append(kernel_event('resources_configured', turn=0, day=1, scene='genesis',
++                summary='scenario resource rules configured',
++                deltas={'subject':protagonist, 'resources':resources}))
++
+         # -----------------------------------------------------------------------
+         # Step 6: gen_factions
+         # -----------------------------------------------------------------------
+@@ -325,22 +373,15 @@ def _find_first_lore_seq(store, skeletons: list[dict]) -> int:
+         return _read_last_seq(store) or 1
+     # Direct SQL: cheapest way to find the first lore_created seq without
+     # intercepting create_lore_line's internal store.append call.
+-    conn = store._conn
+-    row = conn.execute(
+-        "SELECT seq FROM events WHERE type='lore_created' AND retracted=0 ORDER BY seq ASC LIMIT 1"
+-    ).fetchone()
+-    if row:
+-        return row[0]
++    seq = next((ev['seq'] for ev in store.iter_events() if ev['type'] == 'lore_created'), None)
++    if seq is not None:
++        return seq
+     return _read_last_seq(store) or 1
+ 
+ 
+ def _read_last_seq(store) -> int | None:
+     """Return the highest seq in the store (non-retracted), or None if empty."""
+-    conn = store._conn
+-    row = conn.execute(
+-        "SELECT MAX(seq) FROM events WHERE retracted=0"
+-    ).fetchone()
+-    return row[0] if row and row[0] is not None else None
++    return max((ev['seq'] for ev in store.iter_events()), default=None)
+ 
+ 
+ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
+@@ -378,6 +419,7 @@ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
+     )
+ 
+ 
++@_atomic_genesis
+ def reroll_all(engine, prev_result: dict, *, progress=None) -> dict:
+     """Retract all genesis events and run a fresh bootstrap_world.
+ 
+@@ -389,14 +431,16 @@ def reroll_all(engine, prev_result: dict, *, progress=None) -> dict:
+     new_attempt = prev_attempt + 1
+ 
+     # Retract all turn-0 events
++    flavor = stored_flavor(engine.store)
+     engine.store.retract_from_turn(0)
+ 
+     pitch = prev_result["_state"]["pitch"]
+     prev_spec = prev_result.get("_state", {}).get("spec")
+     return bootstrap_world(engine, pitch, spec=prev_spec, attempt=new_attempt,
+-                           progress=progress, flavor=stored_flavor(engine.store))
++                           progress=progress, flavor=flavor)
+ 
+ 
++@_atomic_genesis
+ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
+     """Retract from step's boundary and re-run from that step to end.
+ 
+diff --git a/loop/cascade.py b/loop/cascade.py
+index 0c7dbba..cbeddeb 100644
+--- a/loop/cascade.py
++++ b/loop/cascade.py
+@@ -414,6 +414,8 @@ def _last_nonharness_turn(events: list[dict]) -> int:
+ 
+ def _next_cascade_turn(store) -> int:
+     """Max turn in the store + 1 (cascade events get their own slot)."""
++    if hasattr(store, 'next_turn'):
++        return store.next_turn()
+     max_t = 0
+     for ev in store.iter_events():
+         t = ev.get("turn") or 0
+diff --git a/loop/director.py b/loop/director.py
+index f3a967b..edca854 100644
+--- a/loop/director.py
++++ b/loop/director.py
+@@ -136,7 +136,7 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
+     # seed is constant for a whole campaign and the director never changes its
+     # mind). next_turn is derived from the event stream, so rolls still reproduce
+     # exactly on replay (rewind-safe).
+-    next_turn = last_turn + 1
++    next_turn = store.next_turn() if hasattr(store, 'next_turn') else last_turn + 1
+     campaign_seed = (world.get("meta", {}) or {}).get("campaign_seed", 0)
+     seed_int = scene_seed(campaign_seed, ordinal, next_turn)
+     out = director_check(pacing["scenes_since_event"], pacing["tension"],
+diff --git a/loop/fleet.py b/loop/fleet.py
+index 7902bef..c807116 100644
+--- a/loop/fleet.py
++++ b/loop/fleet.py
+@@ -73,6 +73,8 @@ def _primary_subject(event: dict) -> str | None:
+ 
+ def _next_turn_in_store(store) -> int:
+     """Return max existing event turn + 1, or 1 if none."""
++    if hasattr(store, 'next_turn'):
++        return store.next_turn()
+     max_t = 0
+     for ev in store.iter_events():
+         t = ev.get("turn") or 0
+@@ -182,6 +184,7 @@ def digest_fleet(
+     threshold: float = 30,
+     importance_provider=None,
+     narration_text: str | None = None,
++    record_narration: bool = True,
+     scene: str | None = None,
+     recap_provider=None,
+ ) -> list[dict]:
+@@ -266,7 +269,7 @@ def digest_fleet(
+     # ------------------------------------------------------------------
+     # Phase 2: P2 recap maintenance (narration recording)
+     # ------------------------------------------------------------------
+-    if narration_text and scene:
++    if record_narration and narration_text and scene:
+         try:
+             # Get the next turn number to stamp the narration event
+             next_turn = _next_turn_in_store(store)
+@@ -298,7 +301,7 @@ def digest_fleet(
+             if aged is not None:
+                 # Find the aged bucket's raw texts
+                 aged_bucket = next(
+-                    (b for b in ns.get("scenes", []) if b["scene"] == aged),
++                    (b for b in ns.get("scenes", []) if b["scene"] == aged and b.get('summary') is None),
+                     None,
+                 )
+                 if aged_bucket and aged_bucket.get("raw"):
+@@ -317,17 +320,19 @@ def digest_fleet(
+                             post2 = project(registry, store.iter_events())
+                             ns2 = post2.get("systems", {}).get("narrative") or {}
+                             buckets2 = ns2.get("scenes", [])
+-                            summarized_buckets = [
+-                                b for b in buckets2
+-                                if b.get("summary") is not None
+-                            ]
++                            through = ns2.get('summarized_through_index', 0)
++                            pending_summaries = [(i, b) for i, b in enumerate(buckets2)
++                                if i >= through and b.get('summary') is not None]
++                            summarized_buckets = [b for i, b in pending_summaries]
+                             if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
+                                 # Summarize the oldest summaries into super_summary
+                                 oldest_summaries = [
+                                     f"〔{b['scene']}〕{b['summary']}"
+                                     for b in summarized_buckets[: nmod.RECAP_SUMMARY_FANOUT]
+                                 ]
+-                                user_rc = "以下是多个场景的摘要，请压成一段总概要：\n\n" + "\n".join(oldest_summaries)
++                                previous = ns2.get('super_summary') or ''
++                                user_rc = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
++                                           + previous + '\n' + '\n'.join(oldest_summaries))
+                                 rc_obj, rc_errors = complete_structured(
+                                     recap_provider,
+                                     system=_RECOMPRESS_SYSTEM,
+@@ -346,7 +351,7 @@ def digest_fleet(
+                                         summary="recap recompressed",
+                                         deltas={
+                                             "super_summary": rc_summary,
+-                                            "summarized_through_index": len(summarized_buckets),
++                                            "summarized_through_index": pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1,
+                                         },
+                                         turn=_next_turn_in_store(store),
+                                     )
+diff --git a/loop/lore.py b/loop/lore.py
+index e390e84..92efa78 100644
+--- a/loop/lore.py
++++ b/loop/lore.py
+@@ -94,7 +94,7 @@ def run_lore(registry, store, world: dict) -> list[dict]:
+         return []
+ 
+     events = list(store.iter_events())
+-    next_turn = max((e.get("turn") or 0 for e in events), default=0) + 1
++    next_turn = store.next_turn() if hasattr(store, 'next_turn') else max((e.get("turn") or 0 for e in events), default=0) + 1
+     campaign_seed = (world.get("meta", {}) or {}).get("campaign_seed", 0)
+     scene = (world.get("meta", {}) or {}).get("scene") or "scene"
+     _md = (world.get("meta", {}) or {}).get("day")
+diff --git a/loop/strategy.py b/loop/strategy.py
+index a73423f..3c37503 100644
+--- a/loop/strategy.py
++++ b/loop/strategy.py
+@@ -18,6 +18,7 @@ HybridStrategy (丙):
+ from __future__ import annotations
+ 
+ import abc
++import json
+ import re
+ from typing import Any
+ 
+@@ -25,7 +26,7 @@ from context.assembler import assemble_context
+ from kernel.registry import Registry
+ from kernel.clock import band_name
+ from kernel.turncommit import TurnCommit
+-from llm.provider import _parse_json_object
++from llm.provider import _parse_json_object, json_call
+ from llm.tools import build_tool_registry
+ from engine.log import get_logger
+ from engine import settings as _settings
+@@ -372,12 +373,22 @@ def _build_delta(registry, world: dict, scene: dict, player_input: str) -> str:
+     if loc:
+         header += f" · 在 {loc}"
+     parts = [header]
++    # Conversation history is a narrative cache, not the source of world truth.
++    # Include current projections on every turn so backstage changes, discoveries
++    # and repaired state reach the narrator without waiting for compaction.
++    current = assemble_context(registry, world, scene, query=player_input) if registry is not None else ''
++    if current:
++        parts.append('【最新已提交的世界状态；若与旧对话冲突，以此为准】\n' + current)
+     try:
+         frag = station_push_fragment(registry, world, scene)
+     except Exception:
+         frag = None
+     if frag:
+         parts.append(frag)
++    if scene.get('_variation_prompt'):
++        parts.append(scene['_variation_prompt'])
++    if scene.get('_resolution_prompt'):
++        parts.append(scene['_resolution_prompt'])
+     parts.append(f"[player] {player_input}")
+     return "\n\n".join(parts)
+ 
+@@ -399,14 +410,27 @@ class AuthorStrategy(TurnStrategy):
+     _pending_user: str | None = None    # user msg for the in-flight turn (committed on success)
+     _compaction_due: bool = False       # set when usage crosses 70%; consumed next fresh turn
+ 
++    def reset(self) -> None:
++        """Discard derived conversation after rewind, reload or a failed cache write."""
++        self._messages = self._thread = self._pending_user = None
++        self._pending_action = None
++        self._compaction_due = False
++
+     def commit_to_thread(self, narration: str) -> None:
+         """Append [pending user delta, narration prose] to the persistent thread on
+         a successful turn. Narration only — raw JSON / repair / tool messages stay
+         in the transient _messages. No-op in stateless mode (_thread is None)."""
+         if self._thread is not None and self._pending_user is not None:
+-            self._thread.append({"role": "user", "content": self._pending_user})
++            pending_action = getattr(self, '_pending_action', None)
++            content = ('[player] ' + pending_action) if pending_action is not None else self._pending_user
++            self._thread.append({"role": "user", "content": content})
+             self._thread.append({"role": "assistant", "content": narration})
+             self._pending_user = None
++            self._pending_action = None
++            # Keep eight recent exchanges. Facts and long-term recall live in
++            # projections and are refreshed independently of this bounded cache.
++            if len(self._thread) > 17:
++                self._thread = self._thread[:1] + self._thread[-16:]
+ 
+     def _maybe_flag_compaction(self, provider) -> None:
+         """Flag the next fresh turn to rebuild full context when the last call's
+@@ -429,6 +453,8 @@ class AuthorStrategy(TurnStrategy):
+         repair: str | None = None,
+     ) -> TurnCommit:
+         multiturn = (_settings.get_conversation_mode() == "multiturn")
++        if repair is None:
++            self._pending_action = player_input
+ 
+         if repair is not None and self._messages is not None:
+             # Repair: continue the working list in place (prior assistant output is
+@@ -451,6 +477,10 @@ class AuthorStrategy(TurnStrategy):
+             parts = []
+             if ctx:
+                 parts.append(ctx)
++            if scene.get('_variation_prompt'):
++                parts.append(scene['_variation_prompt'])
++            if scene.get('_resolution_prompt'):
++                parts.append(scene['_resolution_prompt'])
+             parts.append(f"[player] {player_input}")
+             full_user = "\n\n".join(parts)
+             self._pending_user = full_user
+@@ -475,7 +505,7 @@ class AuthorStrategy(TurnStrategy):
+             schemas = tool_reg.schemas()
+             if schemas:
+                 rounds = _settings.get_max_tool_rounds()
+-                raw = provider.complete_with_tools(
++                raw = json_call(provider.complete_with_tools,
+                     self._messages, schemas, tool_reg.execute,
+                     max_tool_rounds=rounds,
+                 )
+@@ -493,7 +523,7 @@ class AuthorStrategy(TurnStrategy):
+         # Plain complete_messages (all non-tool providers + all repair turns).
+         # In stateless mode the else-branch above runs every fresh turn and _thread
+         # stays None → this reproduces the original control flow byte-for-byte.
+-        raw = provider.complete_messages(self._messages)
++        raw = json_call(provider.complete_messages, self._messages)
+         self._messages.append({"role": "assistant", "content": raw})
+         if repair is None and multiturn:
+             self._maybe_flag_compaction(provider)
+@@ -514,13 +544,24 @@ class AuthorStrategy(TurnStrategy):
+             {"role": "user", "content": _REASK_JSON},
+         ]
+         try:
+-            reasked = provider.complete_messages(reask_msgs)
++            reasked = json_call(provider.complete_messages, reask_msgs)
+         except Exception:
+             log.warning("produce: JSON re-ask call failed; keeping bare prose")
+             return prose
+-        if _parse_json_object(reasked) is not None:
++        data = _parse_json_object(reasked)
++        if data is not None:
++            # This call wraps existing prose; it may omit narration while
++            # producing valid JSON. Preserve the already-authored visible text.
++            # Only bare prose is safe to preserve verbatim. A malformed JSON
++            # envelope may contain private fields and must never become prose.
++            if prose.strip() and '{' not in prose:
++                data['narration'] = prose
++            else:
++                recovered = data.get('narration')
++                if not isinstance(recovered, str) or '{' in recovered:
++                    data['narration'] = _salvage_narration(prose) or _PARSE_FAIL_NARRATION
+             log.info("produce: recovered structured commit via JSON re-ask")
+-            return reasked
++            return json.dumps(data, ensure_ascii=False)
+         log.warning("produce: JSON re-ask still not valid JSON; keeping bare prose")
+         return prose
+ 
+@@ -561,14 +602,18 @@ class AuthorStrategy(TurnStrategy):
+             f"上一条提交中以下段有校验错误：\n"
+             + "\n".join(error_lines)
+             + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
+-            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
++            + (
++                "，narration 给本回合新散文字符串，只回应玩家最后一条动作，不复制历史；其它段保持不变。"
++                if "narration" in failing_sections else
++                "，不要重写 narration 或其它段，不要包含任何其它内容。"
++            )
+         )
+ 
+         self._messages.append({"role": "user", "content": repair_instruction})
+         log.debug("AuthorStrategy.repair_sections failing=%s msgs=%d",
+                   sorted(failing_sections), len(self._messages))
+ 
+-        raw = provider.complete_messages(self._messages)
++        raw = json_call(provider.complete_messages, self._messages)
+         self._messages.append({"role": "assistant", "content": raw})
+ 
+         data = _parse_json_object(raw) or {}
+@@ -607,6 +652,10 @@ class HybridStrategy(TurnStrategy):
+             narrate_parts = []
+             if ctx:
+                 narrate_parts.append(ctx)
++            if scene.get('_variation_prompt'):
++                narrate_parts.append(scene['_variation_prompt'])
++            if scene.get('_resolution_prompt'):
++                narrate_parts.append(scene['_resolution_prompt'])
+             narrate_parts.append(f"[player] {player_input}")
+             prose = provider.complete(_narrate_prompt(), "\n\n".join(narrate_parts))
+             self._frozen_prose = prose
+@@ -627,7 +676,7 @@ class HybridStrategy(TurnStrategy):
+             log.debug("HybridStrategy.produce: re-structure on repair (frozen prose, msgs=%d)",
+                       len(self._messages))
+ 
+-        raw = provider.complete_messages(self._messages)
++        raw = json_call(provider.complete_messages, self._messages)
+         self._messages.append({"role": "assistant", "content": raw})
+         data = _parse_json_object(raw) or {}
+         data["narration"] = prose
+@@ -666,14 +715,18 @@ class HybridStrategy(TurnStrategy):
+             f"上一条提交中以下段有校验错误：\n"
+             + "\n".join(error_lines)
+             + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
+-            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
++            + (
++                "，narration 给本回合新散文字符串，只回应玩家最后一条动作，不复制历史；其它段保持不变。"
++                if "narration" in failing_sections else
++                "，不要重写 narration 或其它段，不要包含任何其它内容。"
++            )
+         )
+ 
+         self._messages.append({"role": "user", "content": repair_instruction})
+         log.debug("HybridStrategy.repair_sections failing=%s msgs=%d",
+                   sorted(failing_sections), len(self._messages))
+ 
+-        raw = provider.complete_messages(self._messages)
++        raw = json_call(provider.complete_messages, self._messages)
+         self._messages.append({"role": "assistant", "content": raw})
+ 
+         data = _parse_json_object(raw) or {}
+diff --git a/loop/time.py b/loop/time.py
+index 18645be..b4cc671 100644
+--- a/loop/time.py
++++ b/loop/time.py
+@@ -154,6 +154,8 @@ def _catchup_validate(kind: str):
+ 
+ def _next_turn(store) -> int:
+     """Max turn in store + 1."""
++    if hasattr(store, 'next_turn'):
++        return store.next_turn()
+     max_t = 0
+     for ev in store.iter_events():
+         t = ev.get("turn") or 0
+diff --git a/loop/turn.py b/loop/turn.py
+index 29075d9..258a969 100644
+--- a/loop/turn.py
++++ b/loop/turn.py
+@@ -22,7 +22,13 @@ TurnResult: dataclass holding narration, world, commit, events,
+ from __future__ import annotations
+ 
+ from dataclasses import dataclass, field
++import copy
+ from typing import Any
++from uuid import uuid4
++from loop.resources import prepare_resources, validate_resources
++from loop.narration_guard import validate_narration
++
++from engine.store import EventBatch, RevisionConflict
+ 
+ from kernel.registry import Registry
+ from kernel.projection import project
+@@ -61,10 +67,17 @@ class TurnResult:
+     events: list[dict]
+     repair_attempts: int
+     dropped_sections: list[str] = field(default_factory=list)
++    receipt: dict = field(default_factory=dict)
++
++
++class TurnRejected(ValueError):
++    """The proposed action has no coherent, validated result to publish."""
+ 
+ 
+ def _next_turn(store) -> int:
+     """Compute turn number = max existing event turn + 1, or 1 if none."""
++    if hasattr(store, 'next_turn'):
++        return store.next_turn()
+     max_turn = 0
+     for ev in store.iter_events():
+         t = ev.get("turn") or 0
+@@ -174,6 +187,8 @@ def produce_turn(
+     _aug_day = (scene or {}).get("day", 0)
+     augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
+     errors = validate_commit(registry, commit, world, required_sections=required_sections)
++    errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
++    errors.extend(validate_narration(commit, world))
+ 
+     while errors and attempts < max_repairs:
+         failing = {e.section for e in errors}
+@@ -187,9 +202,9 @@ def produce_turn(
+                 # by convention — reconstruct rather than mutate in place).
+                 from kernel.turncommit import TurnCommit as _TC
+                 merged_sections = dict(commit.sections)
+-                merged_sections.update(repaired)
++                merged_sections.update({k:v for k,v in repaired.items() if k != 'narration'})
+                 commit = _TC(
+-                    narration=commit.narration,
++                    narration=repaired.get('narration', commit.narration),
+                     sections=merged_sections,
+                 )
+             except NotImplementedError:
+@@ -203,6 +218,8 @@ def produce_turn(
+                 )
+         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
+         errors = validate_commit(registry, commit, world, required_sections=required_sections)
++        errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
++        errors.extend(validate_narration(commit, world))
+         attempts += 1
+ 
+     # --------------------------------------------------------------------------
+@@ -222,12 +239,7 @@ def produce_turn(
+         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
+ 
+     log.debug("produce_turn: done repair_attempts=%d dropped=%s", attempts, dropped_sections)
+-    # Multi-turn: append this finalized turn (clean narration only) to the
+-    # strategy's persistent conversation. No-op for stateless / non-multiturn.
+-    # getattr-guarded so duck-typed test/stub strategies without the hook still work.
+-    commit_to_thread = getattr(strategy, "commit_to_thread", None)
+-    if commit_to_thread is not None:
+-        commit_to_thread(commit.narration)
++    # Persistent conversation is advanced only by run_turn after durable commit.
+     return commit, attempts, dropped_sections
+ 
+ 
+@@ -264,15 +276,14 @@ def apply_turn(
+         events.extend(section_events)
+         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
+ 
+-    for ev in events:
+-        store.append(ev)
++    store.append_many(events, preflight=lambda history: project(registry, history))
+     new_world = project(registry, store.iter_events())
+ 
+     log.debug("apply_turn: turn=%d events_appended=%d", turn_num, len(events))
+     return new_world
+ 
+ 
+-def run_turn(
++def _run_turn_staged(
+     registry: Registry,
+     store,
+     world: dict,
+@@ -321,11 +332,20 @@ def run_turn(
+             strategy=strategy, provider=provider, embedder=embedder,
+             max_repairs=max_repairs, required_sections=required_sections,
+         )
++        if dropped_sections:
++            raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
+ 
+         scene_id = scene.get("id") or scene.get("location") or "scene"
+         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day
+ 
+         new_world = apply_turn(registry, store, commit, day=day, scene=scene_id)
++        # The visible story is part of the action, never an optional digest side
++        # effect. A failing reflection hook cannot lose a successfully shown turn.
++        if commit.narration and registry.owner_of_event('narration_recorded') is not None:
++            store.append(kernel_event('narration_recorded', day=day, scene=scene_id,
++                summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration},
++                turn=turn_num_before))
++            new_world = project(registry, store.iter_events())
+ 
+         # Collect newly appended events (those with turn == turn_num_before)
+         events: list[dict] = [
+@@ -341,12 +361,13 @@ def run_turn(
+         # P2: also feeds narration_text + recap_provider for recap maintenance.
+         try:
+             with get_tracer().span("digest_fleet", turn=turn_num_before):
+-                appended_events = digest_fleet(
++                appended_events = _backstage_call(store, digest_fleet,
+                     registry, store, events, new_world,
+                     provider=provider,
+                     narration_text=commit.narration,
++                    record_narration=False,
+                     scene=scene_id,
+-                    recap_provider=cascade_provider,
++                    recap_provider=cascade_provider or provider,
+                 )
+             if appended_events:
+                 new_world = project(registry, store.iter_events())  # fold arc/narr facts into world
+@@ -359,7 +380,7 @@ def run_turn(
+         # in. Same shape as digest_fleet: post-apply, tracer span, never fatal.
+         try:
+             with get_tracer().span("director", turn=turn_num_before):
+-                dir_events = run_director(registry, store, new_world)
++                dir_events = _backstage_call(store, run_director, registry, store, new_world)
+             if dir_events:
+                 new_world = project(registry, store.iter_events())
+                 log.debug("run_turn: director appended %d event(s)", len(dir_events))
+@@ -371,7 +392,7 @@ def run_turn(
+         # never fatal, re-project on append.
+         try:
+             with get_tracer().span("cascade", turn=turn_num_before):
+-                cas_events = run_cascade(registry, store, new_world,
++                cas_events = _backstage_call(store, run_cascade, registry, store, new_world,
+                                          scene=scene_id, provider=provider,
+                                          cascade_provider=cascade_provider)
+             if cas_events:
+@@ -389,7 +410,7 @@ def run_turn(
+         _prev_scene = prev_scene if prev_scene is not None else {}
+         try:
+             with get_tracer().span("catchup", turn=turn_num_before):
+-                cat_events = run_catchup(registry, store, new_world,
++                cat_events = _backstage_call(store, run_catchup, registry, store, new_world,
+                                          prev_scene=_prev_scene, new_scene=scene,
+                                          provider=provider,
+                                          catchup_provider=catchup_provider)
+@@ -404,7 +425,7 @@ def run_turn(
+         # Same shape as digest/director/cascade: post-apply, tracer span, non-fatal.
+         try:
+             with get_tracer().span("lore", turn=turn_num_before):
+-                lore_events = run_lore(registry, store, new_world)
++                lore_events = _backstage_call(store, run_lore, registry, store, new_world)
+             if lore_events:
+                 new_world = project(registry, store.iter_events())
+                 log.debug("run_turn: lore appended %d event(s)", len(lore_events))
+@@ -416,7 +437,7 @@ def run_turn(
+         # Guarded by registry ownership (quest_demoted) and non-fatal (like other hooks).
+         try:
+             if registry.owner_of_event("quest_demoted") is not None:
+-                _run_demote_on_leave(
++                _backstage_call(store, _run_demote_on_leave,
+                     registry, store, new_world, protagonist, provider,
+                     turn_num=turn_num_before, day=day, scene=scene_id,
+                 )
+@@ -433,7 +454,7 @@ def run_turn(
+         try:
+             with get_tracer().span("density", turn=turn_num_before):
+                 if registry.owner_of_event("lore_seeded") is not None:
+-                    dens_events = run_density(
++                    dens_events = _backstage_call(store, run_density,
+                         registry, store, new_world, protagonist,
+                         provider=(cascade_provider or provider),
+                         day=day, scene=scene_id, turn=turn_num_before,
+@@ -472,12 +493,79 @@ def run_turn(
+             narration=commit.narration,
+             world=new_world,
+             commit=commit,
+-            events=events,
++            events=[ev for ev in store.iter_events() if ev.get('turn') == turn_num_before],
+             repair_attempts=attempts,
+             dropped_sections=dropped_sections,
+         )
+ 
+ 
++def _backstage_call(store, function, *args, **kwargs):
++    with store.savepoint():
++        return function(*args, **kwargs)
++
++
++def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
++             embedder=None, max_repairs=3, required_sections=frozenset(),
++             cascade_provider=None, catchup_provider=None, prev_scene=None,
++             action_id=None, expected_revision=None) -> TurnResult:
++    """Prepare one complete action without a lock, then atomically publish it.
++
++    Foreground effects, narration and backstage consequences share one turn.
++    A stale proposal or failed write changes neither the database nor the
++    narrator's committed conversation. Callers may supply an action identity.
++    """
++    batch = EventBatch(store, preflight=lambda history: project(registry, history))
++    version = expected_revision if expected_revision is not None else world.get('_revision')
++    if version is not None and version != batch.revision:
++        raise RevisionConflict('refresh the world before preparing another action')
++    cached_revision = getattr(strategy, '_committed_revision', None)
++    if cached_revision is not None and cached_revision != batch.revision and hasattr(strategy, 'reset'):
++        strategy.reset()
++    old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
++    try:
++        if registry.owner_of_event('resources_resolved') is not None:
++            resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
++            if resolution:
++                batch.append(resolution)
++                world = project(registry, batch.iter_events())
++                scene = {**scene, '_resolved_values':expected, '_resolution_prompt':prompt,
++                         '_resolved_clock':resolution['deltas'].get('wait_until')}
++        from loop.variation import prepare_variation, variation_fragment
++        variation = prepare_variation(registry, world, scene, batch.turn)
++        if variation:
++            batch.append(variation)
++            scene = {**scene, '_variation_prompt': variation_fragment(variation)}
++        result = _run_turn_staged(registry, batch, world, scene, player_input,
++            strategy=strategy, provider=provider, embedder=embedder,
++            max_repairs=max_repairs, required_sections=required_sections,
++            cascade_provider=cascade_provider, catchup_provider=catchup_provider,
++            prev_scene=prev_scene)
++        graph = result.world.get('systems', {}).get('ontology')
++        for (subject, predicate), value in scene.get('_resolved_values', {}).items():
++            if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:
++                raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
++        receipt = batch.publish(action_id=action_id or str(uuid4()))
++    except BaseException:
++        if hasattr(strategy, '__dict__'):
++            strategy.__dict__.clear()
++            strategy.__dict__.update(old_state)
++        raise
++    result.receipt = receipt
++    result.world['_revision'] = receipt['revision']
++    strategy._committed_revision = receipt['revision']
++    try:
++        commit_thread = getattr(strategy, 'commit_to_thread', None)
++        if commit_thread:
++            commit_thread(result.narration)
++    except Exception:
++        # Persistence already succeeded. Rebuild this derivative cache next turn
++        # instead of telling the caller that the committed action failed.
++        log.exception('Conversation cache update failed after commit')
++        if hasattr(strategy, 'reset'):
++            strategy.reset()
++    return result
++
++
+ # ---------------------------------------------------------------------------
+ # demote-on-leave helper (T4)
+ # ---------------------------------------------------------------------------
+diff --git a/systems/director.py b/systems/director.py
+index 13d9235..ba1a2af 100644
+--- a/systems/director.py
++++ b/systems/director.py
+@@ -38,6 +38,7 @@ class DirectorSystem(ContextSystem):
+         t = event["type"]
+         d = event.get("deltas", {})
+         if t == "campaign_seeded":
++            world.setdefault('meta', {})['flavor'] = d.get('flavor', 'classic')
+             seed = d.get("campaign_seed")
+             if seed is not None:
+                 world.setdefault("meta", {})["campaign_seed"] = seed
+diff --git a/systems/narrative.py b/systems/narrative.py
+index b533592..8cfe6ad 100644
+--- a/systems/narrative.py
++++ b/systems/narrative.py
+@@ -44,6 +44,7 @@ log = get_logger("systems.narrative")
+ # ---------------------------------------------------------------------------
+ 
+ RECAP_RAW_SCENES: int = 2    # keep the last N scene buckets verbatim
++RECAP_TURNS_PER_BUCKET: int = 6  # even a long conversation must eventually age out
+ RECAP_SUMMARY_FANOUT: int = 6  # recompress into super_summary when > N aged summaries
+ 
+ 
+@@ -80,7 +81,7 @@ class NarrativeSystem(ContextSystem):
+         return set()
+ 
+     def event_types(self) -> set[str]:
+-        return {"narration_recorded", "scene_summarized", "recap_recompressed"}
++        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
+ 
+     def commit_sections(self) -> set[str]:
+         return set()   # harness-authored only; narrator never writes to this
+@@ -102,6 +103,10 @@ class NarrativeSystem(ContextSystem):
+         d = event.get("deltas", {})
+         t = event["type"]
+ 
++        if t == 'variation_sampled':
++            ns['variations'] = (ns.get('variations', []) + [dict(d)])[-6:]
++            return
++
+         if t == "narration_recorded":
+             scene = d.get("scene")
+             text = d.get("text")
+@@ -109,7 +114,8 @@ class NarrativeSystem(ContextSystem):
+                 log.warning("narrative.apply: narration_recorded missing text — skipped")
+                 return
+             buckets = ns["scenes"]
+-            if buckets and buckets[-1]["scene"] == scene:
++            if (buckets and buckets[-1]["scene"] == scene
++                    and len(buckets[-1]['raw']) < RECAP_TURNS_PER_BUCKET):
+                 # Append to current scene bucket
+                 buckets[-1]["raw"].append(text)
+             else:
+diff --git a/systems/ontology.py b/systems/ontology.py
+index 2ec8992..62ee194 100644
+--- a/systems/ontology.py
++++ b/systems/ontology.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
+ from kernel.events import kernel_event
+ from facts.graph import FactGraph
++from facts.rules import check_value
+ from engine.log import get_logger
+ 
+ log = get_logger("systems.ontology")
+@@ -60,7 +61,7 @@ class OntologySystem(ContextSystem):
+             subject = d.get("subject")
+             predicate = d.get("predicate")
+             value = d.get("value")
+-            if not subject or not predicate or value is None:
++            if not subject or not predicate or 'value' not in d:
+                 log.warning(
+                     "fact_asserted event missing subject/predicate/value in deltas; skipping. "
+                     "event_id=%s deltas=%r", event.get("id"), d
+@@ -141,6 +142,9 @@ class OntologySystem(ContextSystem):
+                         hint="实体声明必须是对象 (dict)",
+                     ))
+                     continue
++                if 'attrs' in item and not isinstance(item['attrs'], dict):
++                    errs.append(ValidationError(section, f'[{i}].attrs', 'bad_shape',
++                        'attrs 必须是对象 {}，不能是字符串、数组或 null'))
+                 if not item.get("id") or not isinstance(item.get("id"), str):
+                     errs.append(ValidationError(
+                         section=section,
+@@ -191,6 +195,12 @@ class OntologySystem(ContextSystem):
+                 # basic type check above (so we don't double-error on missing subject)
+                 if g and item.get("subject") and isinstance(item.get("subject"), str):
+                     subject = item["subject"]
++                    if isinstance(item.get('predicate'), str) and 'value' in item:
++                        history = g.fact_history(subject, item['predicate'])
++                        rule_error = check_value(g.get_entity(subject), item['predicate'], item['value'],
++                                                 history[-1] if history else None)
++                        if rule_error:
++                            errs.append(ValidationError(section, f'[{i}].value', 'fact_rule', rule_error))
+                     if g.get_entity(subject) is None:
+                         errs.append(ValidationError(
+                             section=section,
+diff --git a/systems/time.py b/systems/time.py
+index 657df6e..a98eb47 100644
+--- a/systems/time.py
++++ b/systems/time.py
+@@ -60,7 +60,7 @@ class TimeSystem(ContextSystem):
+             if entity is None:
+                 log.warning("time_advanced dangling id=%s; last_update not stamped", pid)
+             else:
+-                entity.attrs["last_update"] = event["day"]
++                entity.attrs["last_update"] = max(entity.attrs.get('last_update', 0), event["day"])
+                 log.debug("time_advanced stamped last_update=%d for id=%s", event["day"], pid)
+         # If no id: pure elapse carrier — projection sets meta.day via kernel
+ 
+diff --git a/tests/app/test_debug_flag.py b/tests/app/test_debug_flag.py
+index 2c2810f..561bf7d 100644
+--- a/tests/app/test_debug_flag.py
++++ b/tests/app/test_debug_flag.py
+@@ -15,6 +15,7 @@ import pytest
+ 
+ 
+ class ScriptedProvider:
++    is_offline = True  # Canned offline fixture permits stub fallback.
+     """Returns canned strings in order (or repeats the last one)."""
+     def __init__(self, replies):
+         self._r = list(replies)
+diff --git a/tests/app/test_fix1011.py b/tests/app/test_fix1011.py
+index b75cf04..239e1cf 100644
+--- a/tests/app/test_fix1011.py
++++ b/tests/app/test_fix1011.py
+@@ -24,6 +24,7 @@ import pytest
+ # ---------------------------------------------------------------------------
+ 
+ class ScriptedProvider:
++    is_offline = True  # Canned offline fixture permits stub fallback.
+     """Returns canned strings in order; repeats last one if exhausted."""
+     def __init__(self, replies):
+         self._r = list(replies)
+@@ -536,7 +537,7 @@ class TestRerollLoopPreservesFirstAction:
+     """A non-reroll first line must not be discarded; it must reach play_loop as turn 1."""
+ 
+     def _make_turn_response(self):
+-        return json.dumps({
++        return json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你走进了市集，感受到了热闹的气息。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
+         })
+@@ -563,7 +564,7 @@ class TestRerollLoopPreservesFirstAction:
+         """The line '我去市集看看' must NOT be silently discarded (old bug)."""
+         # This test uses a turn response that echoes the player action in narration.
+         # The key assertion: the game must have actually RUN a turn (narration present).
+-        turn_response = json.dumps({
++        turn_response = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你迈步走向市集，四周的叫卖声涌入耳中。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
+         })
+@@ -613,7 +614,7 @@ class TestRerollLoopPreservesFirstAction:
+ 
+     def test_reroll_then_first_action_preserved(self, tmp_path):
+         """After a reroll, a first real action still reaches play_loop as turn 1."""
+-        turn_response = json.dumps({
++        turn_response = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你抵达了市集，耳边响起了嘈杂的喧嚣声。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
+         })
+diff --git a/tests/app/test_input_sanitize.py b/tests/app/test_input_sanitize.py
+index e6646e4..64ed347 100644
+--- a/tests/app/test_input_sanitize.py
++++ b/tests/app/test_input_sanitize.py
+@@ -101,7 +101,7 @@ def test_sanitize_preserves_tab():
+ 
+ def _make_canned_provider():
+     return FakeLLMProvider(json_responses=[
+-        {
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你环顾四周，发现这是一片宁静的旷野。",
+             "clock": [{"advance": False, "days": 0, "bands": 0,
+                         "reason": "本回合时间未推进"}],
+diff --git a/tests/app/test_integration.py b/tests/app/test_integration.py
+index adf03f4..6b8e623 100644
+--- a/tests/app/test_integration.py
++++ b/tests/app/test_integration.py
+@@ -23,6 +23,7 @@ from pathlib import Path
+ # ---------------------------------------------------------------------------
+ 
+ class ScriptedProvider:
++    is_offline = True  # Canned offline fixture permits stub fallback.
+     """Returns canned strings in order (or repeats the last one)."""
+     def __init__(self, replies):
+         self._r = list(replies)
+@@ -633,6 +634,7 @@ def test_full_first_run_play_flow(tmp_path):
+     from app.__main__ import main
+ 
+     turn_response = json.dumps({
++        "moves": [], "places": [], "cast": [], "facts": [],
+         "narration": "你进入了世界，感受到了这里的氛围。",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
+     })
+diff --git a/tests/app/test_play.py b/tests/app/test_play.py
+index 2eee097..d05be57 100644
+--- a/tests/app/test_play.py
++++ b/tests/app/test_play.py
+@@ -13,7 +13,7 @@ from llm.provider import FakeLLMProvider
+ def _make_canned_provider():
+     """FakeLLMProvider that returns a valid TurnCommit JSON."""
+     return FakeLLMProvider(json_responses=[
+-        {
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你环顾四周，发现这是一片宁静的旷野。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
+         }
+@@ -100,16 +100,16 @@ def test_play_loop_compare_on_then_input_runs_compare(tmp_path):
+ 
+     # Need a provider that can handle multiple calls (compare calls both strategies)
+     provider = FakeLLMProvider(json_responses=[
+-        {"narration": "甲策略叙述：你踏入前方的小路。",
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "甲策略叙述：你踏入前方的小路。",
+          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
+-        {"narration": "乙策略叙述：小路延伸向远方。",
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "乙策略叙述：小路延伸向远方。",
+          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
+     ])
+     engine = _build_engine_with_game(tmp_path, provider=provider)
+     engine.provider = FakeLLMProvider(json_responses=[
+-        {"narration": "甲策略叙述：你踏入前方的小路。",
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "甲策略叙述：你踏入前方的小路。",
+          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
+-        {"narration": "乙策略叙述：小路延伸向远方。",
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "乙策略叙述：小路延伸向远方。",
+          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
+     ])
+ 
+@@ -350,12 +350,12 @@ def test_compare_mode_advances_clock(tmp_path):
+     from systems.time import TimeSystem
+ 
+     # 甲 commit: clock advances by 2 bands (晨→下午)
+-    jia_commit = {
++    jia_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+         "narration": "甲: 蹲守到下午，终于等到了目标。",
+         "clock": [{"advance": True, "days": 0, "bands": 2, "reason": "蹲守到下午"}],
+     }
+     # 丙 commit: also valid (no-advance), only 甲 is applied
+-    bing_commit = {
++    bing_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+         "narration": "丙: 目标现身。",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "紧接上一刻"}],
+     }
+diff --git a/tests/app/test_ux_fixes_45.py b/tests/app/test_ux_fixes_45.py
+index 08386ec..c31740a 100644
+--- a/tests/app/test_ux_fixes_45.py
++++ b/tests/app/test_ux_fixes_45.py
+@@ -36,7 +36,7 @@ from llm.provider import FakeLLMProvider
+ 
+ def _canned_provider():
+     return FakeLLMProvider(json_responses=[
+-        {
++        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "你环顾四周，发现这是一片宁静的旷野。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
+         }
+@@ -402,11 +402,11 @@ class TestCompareModeFix45:
+     def test_compare_mode_player_echo_and_dm_framing(self, tmp_path):
+         """In compare mode: player input is echoed + spinner runs + DM framing present."""
+         from app.play import play_loop
+-        jia = {
++        jia = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "甲策略叙述：你踏入小路。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "无"}],
+         }
+-        bing = {
++        bing = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "丙策略叙述：小路延伸。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "无"}],
+         }
+diff --git a/tests/app/test_ux_fixes_playtest2.py b/tests/app/test_ux_fixes_playtest2.py
+index ea71115..94f9aec 100644
+--- a/tests/app/test_ux_fixes_playtest2.py
++++ b/tests/app/test_ux_fixes_playtest2.py
+@@ -33,6 +33,7 @@ from llm.provider import FakeLLMProvider
+ # ---------------------------------------------------------------------------
+ 
+ class ScriptedProvider:
++    is_offline = True  # Canned offline fixture permits stub fallback.
+     """Returns canned strings in order; repeats the last one if exhausted."""
+     def __init__(self, replies):
+         self._r = list(replies)
+diff --git a/tests/context/test_assembler.py b/tests/context/test_assembler.py
+index 745e04a..0e913f3 100644
+--- a/tests/context/test_assembler.py
++++ b/tests/context/test_assembler.py
+@@ -158,8 +158,8 @@ def test_assembled_context_contains_pov_fact():
+     assert "安全" in result
+ 
+ 
+-def test_assembled_context_contains_guardrail_marker():
+-    """Facts protagonist does NOT know but are in graph should have guardrail marker."""
++def test_assembled_context_excludes_unknown_truth():
++    """Unknown ground truth stays backstage even when another NPC knows it."""
+     r, w = _build_world()
+     scene = {
+         "protagonist": "主角",
+@@ -168,8 +168,8 @@ def test_assembled_context_contains_guardrail_marker():
+         "location": "桥头",
+     }
+     result = assemble_context(r, w, scene)
+-    # 密道.location is unknown to protagonist but true in graph — guardrail
+-    assert "⚠️只约束·勿泄露" in result
++    assert "地窖" not in result
++    assert w["systems"]["ontology"].value_at("密道", "location", 1) == "地窖"
+ 
+ 
+ def test_assembled_context_stable_before_scene_before_volatile():
+diff --git a/tests/llm/test_tools.py b/tests/llm/test_tools.py
+index b31b7a5..8bdf5d2 100644
+--- a/tests/llm/test_tools.py
++++ b/tests/llm/test_tools.py
+@@ -199,13 +199,15 @@ def test_map_query_pov_not_in_scene_errors():
+     assert "error" in out
+ 
+ 
+-def test_map_query_pov_present_npc_allowed():
+-    """A pov entity that IS in scene["present"] is valid (DD5)."""
++def test_map_query_pov_present_npc_requires_dm_registry():
++    """Physical presence does not grant access to another mind."""
+     from llm.tools import build_tool_registry
+     r, w = _world_with_map(knows_gate=False)
+     scene = _scene(present=["hero", "ally"])
+     reg = build_tool_registry(r, w, scene)
+-    # 'ally' is present; should not return an error (may return empty facts for ally)
++    out = json.loads(reg.execute("map_query", {"q": "gate", "pov": "ally"}))
++    assert "error" in out
++    reg = build_tool_registry(r, w, scene, dm=True)
+     out = json.loads(reg.execute("map_query", {"q": "gate", "pov": "ally"}))
+     assert "error" not in out
+ 
+@@ -608,10 +610,8 @@ def test_characters_query_never_met_returns_known_false():
+     assert "垄断情报市场" not in out_str, (
+         "fog-leak: goal of never-met NPC leaked"
+     )
+-    # The result should signal the character exists but is unknown
+-    assert "known" in out_str and ("false" in out_str.lower() or "False" in out_str), (
+-        "never-met NPC should be returned with known:false marker"
+-    )
++    # An unknown identity must not become an existence oracle.
++    assert out["matches"] == []
+ 
+ 
+ def test_characters_query_co_present_existence_visible():
+diff --git a/tests/llm/test_tools_self_knowledge.py b/tests/llm/test_tools_self_knowledge.py
+index 0c3916f..e2360b9 100644
+--- a/tests/llm/test_tools_self_knowledge.py
++++ b/tests/llm/test_tools_self_knowledge.py
+@@ -178,22 +178,15 @@ def test_characters_query_self_never_returns_hidden():
+ # T_SK4: fog is NOT loosened for non-self (querying another unknown NPC)
+ # ---------------------------------------------------------------------------
+ 
+-def test_characters_query_other_unknown_npc_still_returns_known_false():
+-    """T_SK4: querying a never-met NPC (not self) still returns known:false — fog intact."""
++def test_characters_query_unknown_npc_does_not_reveal_existence():
++    """An undiscovered NPC cannot be enumerated through search."""
+     from llm.tools import build_tool_registry
+ 
+     r, w, scene = _world_protagonist_no_self_grant()
+     reg = build_tool_registry(r, w, scene)
+     out = json.loads(reg.execute("characters_query", {"q": "stranger"}))
+ 
+-    matches = out.get("matches", [])
+-    assert matches, "no matches returned for stranger query"
+-    stranger_record = next((m for m in matches if m.get("id") == "stranger"), None)
+-    assert stranger_record is not None, "stranger not found in matches"
+-    assert stranger_record.get("known") is False, (
+-        "fog regression: unknown NPC 'stranger' should still be known:false — "
+-        "self-knowledge fix must NOT loosen fog for non-self entities"
+-    )
++    assert out.get("matches", []) == []
+ 
+ 
+ def test_characters_query_other_unknown_npc_no_sketch_leak():
+diff --git a/tests/loop/test_bootstrap.py b/tests/loop/test_bootstrap.py
+index 7c57101..65aef15 100644
+--- a/tests/loop/test_bootstrap.py
++++ b/tests/loop/test_bootstrap.py
+@@ -38,6 +38,7 @@ class ScriptedProvider:
+     so prose calls (gen_opening) and structured calls (gen_frame, etc.) can be
+     scripted uniformly.
+     """
++    is_offline = True  # Explicit fixture: intentionally exercises stub fallbacks.
+     def __init__(self, replies): self._r = list(replies); self.i = 0
+     def supports_tools(self): return False
+     def _next(self):
+diff --git a/tests/loop/test_clock_required.py b/tests/loop/test_clock_required.py
+index 5c9efb0..32cf9fc 100644
+--- a/tests/loop/test_clock_required.py
++++ b/tests/loop/test_clock_required.py
+@@ -1,10 +1,11 @@
+ import os
+ import tempfile
++import pytest
+ 
+ from kernel.registry import Registry
+ from kernel.projection import empty_world
+ from kernel.events import open_store
+-from loop.turn import run_turn, REQUIRED_SECTIONS
++from loop.turn import run_turn, REQUIRED_SECTIONS, TurnRejected
+ from loop.strategy import AuthorStrategy, _SYSTEM_PROMPT, _SYSTEM_PROMPT_HYBRID
+ from llm.provider import FakeLLMProvider
+ from systems.ontology import OntologySystem
+@@ -39,7 +40,7 @@ def test_missing_clock_is_repaired_via_gate():
+     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "town", "location": "town"}
+ 
+     # First attempt: every OTHER required section explained via reasons, but NO clock.
+-    no_clock = {"narration": "原地。",
++    no_clock = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "原地。",
+                 "reasons": {"moves": "未移动", "places": "无新地点",
+                             "cast": "无人物变化", "facts": "无"}}
+     # Repair attempt: now includes a no-advance clock.
+@@ -59,21 +60,15 @@ def test_missing_clock_is_repaired_via_gate():
+     assert result.world["meta"]["day"] == 1
+ 
+ 
+-def test_clock_via_reasons_only_is_safe_no_advance():
+-    """If the narrator answers every attempt with clock only in reasons (not as an
+-    array), the turn completes without raising and the clock does NOT advance.
+-
+-    This documents that the reason-escape path is a safe no-advance, not a crash.
+-    The clock section is dropped (never a valid array) after max_repairs exhausted,
+-    and the turn proceeds with the pre-turn day/band unchanged.
+-    """
++def test_clock_via_reasons_only_rejects_without_writes():
++    """A legacy reasons map cannot stand in for the required clock section."""
+     r = _registry()
+     world = empty_world(r)
+     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "town", "location": "town"}
+ 
+     # Every attempt returns reasons for all required sections but NO clock array.
+-    # The gate will bounce it max_repairs times, then drop clock and proceed.
+-    clock_via_reasons_only = {
++    # The gate repairs up to max_repairs, then rejects the entire action.
++    clock_via_reasons_only = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+         "narration": "原地踌躇。",
+         "reasons": {
+             "moves": "未移动",
+@@ -88,18 +83,16 @@ def test_clock_via_reasons_only_is_safe_no_advance():
+     provider = FakeLLMProvider(json_responses=[clock_via_reasons_only] * 4)
+     store = _store(r)
+     try:
+-        result = run_turn(r, store, world, scene, "发呆",
+-                          strategy=AuthorStrategy(), provider=provider,
+-                          required_sections=REQUIRED_SECTIONS)
++        with pytest.raises(TurnRejected):
++            run_turn(r, store, world, scene, "发呆",
++                     strategy=AuthorStrategy(), provider=provider,
++                     required_sections=REQUIRED_SECTIONS)
++        assert list(store.iter_events()) == []
+     finally:
+         store.close()
+ 
+-    # Turn must complete without raising
+-    assert result is not None
+-    # Clock must NOT have advanced (no valid clock array was ever supplied).
+-    # empty_world starts with meta.day=None and band absent; both must be unchanged.
+-    day_after = result.world["meta"].get("day")
+-    band_after = result.world["meta"].get("band", 0)
++    day_after = world["meta"].get("day")
++    band_after = world["meta"].get("band", 0)
+     assert day_after is None or day_after == 1, (
+         f"Clock advanced unexpectedly: day={day_after}"
+     )
+diff --git a/tests/loop/test_fix1011_loop.py b/tests/loop/test_fix1011_loop.py
+index 2800139..0af43fd 100644
+--- a/tests/loop/test_fix1011_loop.py
++++ b/tests/loop/test_fix1011_loop.py
+@@ -28,6 +28,7 @@ from loop.bootstrap import (
+ # ---------------------------------------------------------------------------
+ 
+ class ScriptedProvider:
++    is_offline = True  # Canned offline fixture permits stub fallback.
+     """Tiny scripted provider that replays canned replies."""
+     def __init__(self, replies):
+         self._r = list(replies)
+diff --git a/tests/loop/test_lore_loop.py b/tests/loop/test_lore_loop.py
+index a192f71..9b53e5b 100644
+--- a/tests/loop/test_lore_loop.py
++++ b/tests/loop/test_lore_loop.py
+@@ -219,7 +219,7 @@ def test_run_turn_advances_lore_end_to_end():
+     create_lore_line(store, _SK, day=1, scene="s1", turn=0)
+     world = project(r, store.iter_events())
+     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "s1", "location": "town"}
+-    commit = {"narration": "无事。",
++    commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "无事。",
+               "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地"}],
+               "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
+     res = run_turn(r, store, world, scene, "观察",
+diff --git a/tests/loop/test_scene_progression.py b/tests/loop/test_scene_progression.py
+index ec4980f..a0a66e6 100644
+--- a/tests/loop/test_scene_progression.py
++++ b/tests/loop/test_scene_progression.py
+@@ -54,7 +54,7 @@ def _scene(world):
+ 
+ 
+ def _no_change_commit(narr="原地。"):
+-    return {"narration": narr,
++    return {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": narr,
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地"}],
+             "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
+ 
+@@ -78,7 +78,7 @@ def test_no_boundary_keeps_scene():
+ def test_location_change_advances_scene():
+     store = _store(_registry())
+     r, world = _seed(store)
+-    move_commit = {"narration": "我走到市集。",
++    move_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "我走到市集。",
+                    "places": [{"id": "market", "level": 2, "kind": "settlement", "seed": "集市"}],
+                    "moves": [{"who": "hero", "to": "market"}],
+                    "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "几步路"}],
+@@ -95,7 +95,7 @@ def test_location_change_advances_scene():
+ def test_day_change_advances_scene():
+     store = _store(_registry())
+     r, world = _seed(store)
+-    overnight = {"narration": "一夜过去。",
++    overnight = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "一夜过去。",
+                  "clock": [{"advance": True, "days": 1, "bands": 0, "reason": "宿了一夜"}],
+                  "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
+     res = run_turn(r, store, world, _scene(world), "睡一觉",
+@@ -131,7 +131,7 @@ def test_multi_scene_run_creates_distinct_recap_buckets():
+     # 3 turns, each moving to a fresh place => 3 scene boundaries.
+     commits = []
+     for i in range(1, 4):
+-        commits.append({"narration": f"第{i}站的见闻。",
++        commits.append({**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": f"第{i}站的见闻。",
+                         "places": [{"id": f"place{i}", "level": 2, "kind": "settlement", "seed": "x"}],
+                         "moves": [{"who": "hero", "to": f"place{i}"}],
+                         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "赶路"}],
+diff --git a/tests/loop/test_strategy_safe_parse.py b/tests/loop/test_strategy_safe_parse.py
+index c58eb1e..ea2cfb7 100644
+--- a/tests/loop/test_strategy_safe_parse.py
++++ b/tests/loop/test_strategy_safe_parse.py
+@@ -98,7 +98,7 @@ def test_reask_json_recovers_structured_commit():
+     s._messages = [{"role": "system", "content": "sys"}, {"role": "user", "content": "u"}]
+     prov = FakeLLMProvider(json_responses=[{"narration": "你坐下了。", "moves": [], "clock": []}])
+     out = s._reask_json("你在流浪汉旁边坐下。（散文，没有 JSON）", prov)
+-    assert _parse_json_object(out) == {"narration": "你坐下了。", "moves": [], "clock": []}
++    assert _parse_json_object(out) == {"narration": "你在流浪汉旁边坐下。（散文，没有 JSON）", "moves": [], "clock": []}
+ 
+ 
+ def test_reask_json_keeps_prose_when_reask_also_fails():
+diff --git a/tests/loop/test_trace_coverage.py b/tests/loop/test_trace_coverage.py
+index fd2e82e..3b8ea3d 100644
+--- a/tests/loop/test_trace_coverage.py
++++ b/tests/loop/test_trace_coverage.py
+@@ -259,7 +259,7 @@ def _make_turn_engine(tmp_path):
+     bootstrap_world(engine, "回合测试")
+ 
+     # Now swap in a FakeLLMProvider for the actual turn
+-    valid_commit = {
++    valid_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+         "narration": "你环顾四周，发现这是一片宁静的旷野。",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "时间未推进"}],
+     }
+@@ -304,11 +304,11 @@ class _RepairFakeProvider:
+ 
+     def __init__(self):
+         self._calls = 0
+-        self._bad = json.dumps({
++        self._bad = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "坏的回合输出",
+             # Missing required 'clock' section — will fail validate_commit
+         })
+-        self._good = json.dumps({
++        self._good = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+             "narration": "修复后的输出，你环顾四周。",
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
+         })
+@@ -435,7 +435,7 @@ def test_player_input_event_recorded(tmp_path, monkeypatch):
+     bootstrap_world(engine, "事件追踪测试")
+ 
+     # Swap to a FakeLLMProvider for the actual turn
+-    valid_commit = {
++    valid_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
+         "narration": "你环顾四周，发现这是一片宁静的旷野。",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
+     }
+diff --git a/tests/loop/test_turn.py b/tests/loop/test_turn.py
+index 5c0a8ba..0500e9b 100644
+--- a/tests/loop/test_turn.py
++++ b/tests/loop/test_turn.py
+@@ -168,10 +168,10 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
+ # Task 2c: commit stays invalid all attempts → section dropped, valid applied
+ # ---------------------------------------------------------------------------
+ 
+-def test_run_turn_drop_fallback_still_invalid_sections():
+-    """If a section stays invalid after max_repairs, it's dropped; valid sections apply."""
++def test_run_turn_rejects_still_invalid_sections_without_partial_state():
++    """An incomplete action publishes neither valid fragments nor its narration."""
+     from loop.strategy import AuthorStrategy
+-    from loop.turn import run_turn, TurnResult
++    from loop.turn import run_turn, TurnRejected
+ 
+     registry = _make_registry()
+     world = empty_world(registry)
+@@ -188,23 +188,14 @@ def test_run_turn_drop_fallback_still_invalid_sections():
+ 
+     store = _open_temp_store(registry)
+     try:
+-        result = run_turn(
+-            registry, store, world, scene, "I act",
+-            strategy=AuthorStrategy(), provider=provider,
+-            max_repairs=3,
+-        )
++        with pytest.raises(TurnRejected):
++            run_turn(registry, store, world, scene, "I act",
++                     strategy=AuthorStrategy(), provider=provider, max_repairs=3)
++        assert list(store.iter_events()) == []
++        assert store.revision == 0
+     finally:
+         store.close()
+ 
+-    # The 'facts' section should be in dropped_sections
+-    assert "facts" in result.dropped_sections
+-    # The 'entities' section had no errors (real_hero is valid), so real_hero exists
+-    g = result.world.get("systems", {}).get("ontology")
+-    assert g is not None
+-    assert g.get_entity("real_hero") is not None
+-    # ghost_entity was never added (the facts section was dropped, and no entities for it)
+-    assert g.get_entity("ghost_entity") is None
+-
+ 
+ # ---------------------------------------------------------------------------
+ # Task 3: two-turn end-to-end sequence (world state accrues)
+diff --git a/tests/loop/test_turn_density_hook.py b/tests/loop/test_turn_density_hook.py
+index a692769..a640e29 100644
+--- a/tests/loop/test_turn_density_hook.py
++++ b/tests/loop/test_turn_density_hook.py
+@@ -32,11 +32,13 @@ from llm.provider import FakeLLMProvider
+ # ---------------------------------------------------------------------------
+ 
+ def _reg():
++    from systems.time import TimeSystem
+     r = Registry()
+     r.register(OntologySystem())
+     r.register(PlaceSystem())
+     r.register(CharacterSystem())
+     r.register(LoreSystem())
++    r.register(TimeSystem())
+     return r
+ 
+ 
+@@ -72,7 +74,7 @@ def _narrator_commit(to: str | None = None):
+         "places": [],
+         "cast": [],
+         "facts": [],
+-        "clock": [],
++        "clock": [{"advance":False,"days":0,"bands":0,"reason":"片刻"}],
+     }
+     if to:
+         commit["moves"] = [{"who": "hero", "to": to}]
+diff --git a/tests/loop/test_turn_multiturn.py b/tests/loop/test_turn_multiturn.py
+index a27a66d..201a943 100644
+--- a/tests/loop/test_turn_multiturn.py
++++ b/tests/loop/test_turn_multiturn.py
+@@ -1,9 +1,4 @@
+-"""produce_turn wires commit_to_thread on success (multi-turn).
+-
+-Mirrors the proven test_produce_turn_returns_commit_without_writing_store setup
+-(tests/loop/test_turn.py): real registry + empty_world + a canned narration-only
+-commit; no required_sections, no store.
+-"""
++"""Generation prepares conversation; only durable publication commits it."""
+ from engine import settings
+ from loop.strategy import AuthorStrategy
+ from loop.turn import produce_turn
+@@ -23,7 +18,7 @@ def _make_registry():
+     return r
+ 
+ 
+-def test_produce_turn_success_commits_one_pair_to_thread():
++def test_produce_turn_prepares_without_committing_conversation():
+     settings.set_conversation_mode("multiturn")
+     registry = _make_registry()
+     world = empty_world(registry)
+@@ -31,8 +26,7 @@ def test_produce_turn_success_commits_one_pair_to_thread():
+     s = AuthorStrategy()
+     prov = FakeLLMProvider(json_responses=[{"narration": "第一段叙事"}])
+     produce_turn(registry, world, scene, "动作", strategy=s, provider=prov)
+-    # First fresh turn opens thread=[system]; on success commit_to_thread appends
+-    # [pending-user, narration] → length 3; assistant entry is the narration prose.
+-    assert len(s._thread) == 3
+-    assert s._thread[2] == {"role": "assistant", "content": "第一段叙事"}
++    # Generation may prepare a system cache, but no user/assistant pair is committed.
++    assert len(s._thread) == 1
++    assert s._pending_user is not None
+     settings.set_conversation_mode("multiturn")
+diff --git a/tests/systems/test_narrative_system.py b/tests/systems/test_narrative_system.py
+index aace1a2..d2d0cec 100644
+--- a/tests/systems/test_narrative_system.py
++++ b/tests/systems/test_narrative_system.py
+@@ -27,7 +27,7 @@ def test_owns_events_no_section():
+     s = NarrativeSystem()
+     assert s.name == "narrative"
+     assert s.event_types() == {
+-        "narration_recorded", "scene_summarized", "recap_recompressed"}
++        "narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
+     assert s.commit_sections() == set()          # harness-authored
+     assert s.requires() == set()
+ 
+diff --git a/context/access.py b/context/access.py
+new file mode 100644
+index 0000000..c3ad6dc
+--- /dev/null
++++ b/context/access.py
+@@ -0,0 +1,83 @@
++"""Shared read boundary for narrator context and player-facing queries.
++
++The authoritative graph is retained for backstage simulation. A POV view filters
++entities before matching and replaces private truth with the observer's belief.
++Legacy places without visibility metadata keep their public topology; newly
++authored hidden entities opt in with attrs.visibility='hidden'.
++"""
++import copy
++
++from facts.graph import FactGraph
++from systems.knowledge import knows
++
++
++def entity_visible(graph, entity, scene, pov, day):
++    eid = entity.id
++    if eid == pov or eid == scene.get('location') or eid in scene.get('present', []):
++        return True
++    if entity.etype == 'Person' and scene.get('location') in graph.neighbors(eid, 'located_in', day):
++        return True
++    if pov in (entity.attrs.get('discovered_by') or []):
++        return True
++    if knows(graph, pov, f'{eid}.discovered', day):
++        return True
++    # Knowledge of a facet establishes that the person/place has been encountered.
++    if any(f.predicate.startswith(f'knows:{eid}.') for f in graph.current_facts(pov)):
++        return True
++    visibility = entity.attrs.get('visibility')
++    if visibility in {'hidden', 'secret', 'undiscovered'}:
++        return False
++    if entity.etype == 'Person':
++        return visibility == 'public'
++    return True
++
++
++def pov_world(world, scene, *, pov=None, redact_facts=True):
++    """Return an independent graph projection; never modify canonical world data."""
++    graph = world.get('systems', {}).get('ontology')
++    pov = pov or scene.get('protagonist')
++    if graph is None or not pov:
++        return world
++    day = scene.get('day') or world.get('meta', {}).get('day') or 1
++    present = set(scene.get('present', []))
++    if scene.get('location'):
++        present.update(eid for eid,e in graph.entities.items() if e.etype == 'Person'
++                       and scene['location'] in graph.neighbors(eid, 'located_in', day))
++    view = FactGraph()
++    view.entities = {eid:copy.deepcopy(entity) for eid,entity in graph.entities.items()
++                     if entity_visible(graph, entity, scene, pov, day)}
++    for fact in graph.facts:
++        if fact.subject not in view.entities:
++            continue
++        if not redact_facts:
++            view.facts.append(copy.deepcopy(fact))
++            continue
++        if not fact.valid_at(day):
++            continue
++        if fact.predicate.startswith('knows:'):
++            if fact.subject == pov:
++                exposed = copy.deepcopy(fact)
++                own_prefix = f'knows:{pov}.'
++                if fact.predicate.startswith(own_prefix):
++                    predicate = fact.predicate[len(own_prefix):]
++                    direct = graph._fact_current.get((pov, predicate))
++                    if direct is not None and predicate != 'hidden' and direct.secrecy != 'secret':
++                        exposed.value = copy.deepcopy(direct.value)
++                view.facts.append(exposed)
++            continue
++        believed = knows(graph, pov, f'{fact.subject}.{fact.predicate}', day)
++        self_visible = fact.subject == pov and fact.predicate != 'hidden' and fact.secrecy != 'secret'
++        entity = graph.get_entity(fact.subject)
++        observable = {'sketch', 'name', '真名', 'mood', 'state'} | set(entity.attrs.get('observable_fields') or [])
++        co_present_visible = (fact.subject in present and
++            fact.predicate in observable and fact.secrecy not in {'secret', 'restricted'})
++        if believed is not None or fact.secrecy == 'public' or self_visible or co_present_visible:
++            exposed = copy.deepcopy(fact)
++            if believed is not None and not self_visible:
++                exposed.value = copy.deepcopy(believed)
++            view.facts.append(exposed)
++    view.relations = [copy.deepcopy(r) for r in graph.relations
++                      if r.src in view.entities and r.dst in view.entities
++                      and r.attrs.get('visibility') not in {'hidden', 'secret'}]
++    view.reindex_facts()
++    return {**world, 'systems': {**world['systems'], 'ontology': view}}
+diff --git a/data/oracles/default/narrative_variations.json b/data/oracles/default/narrative_variations.json
+new file mode 100644
+index 0000000..1a4082d
+--- /dev/null
++++ b/data/oracles/default/narrative_variations.json
+@@ -0,0 +1,8 @@
++[
++  {"id":"quiet", "weight":4, "hint":"允许一段平常而具体的生活；安静行动不必附赠危机或任务。"},
++  {"id":"sensory", "weight":2, "hint":"从声音、触感或气味中选一种适合当下环境的具体细节，避免重复惯用意象。"},
++  {"id":"routine", "weight":2, "hint":"让在场人物继续一件符合已有身份的小事；他们的日常不必围着主角转。"},
++  {"id":"voice", "weight":2, "hint":"用已有角色的说话节奏、停顿或动作区分人物，不增加无依据的身世。"},
++  {"id":"consequence", "weight":2, "hint":"如有已提交事件的可见后果，自然提及一个；没有就略过。"},
++  {"id":"space", "weight":1, "hint":"突出一处真实可见的空间关系，让玩家容易理解身处何地与可行动方向。"}
++]
+diff --git a/data/oracles/isekai/narrative_variations.json b/data/oracles/isekai/narrative_variations.json
+new file mode 100644
+index 0000000..8a50857
+--- /dev/null
++++ b/data/oracles/isekai/narrative_variations.json
+@@ -0,0 +1,8 @@
++[
++  {"id":"quiet", "weight":4, "hint":"给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。"},
++  {"id":"voice", "weight":2, "hint":"以轻快短对白或一个停顿体现人物差异；吐槽基于主角既有性格，不替玩家下决定。"},
++  {"id":"routine", "weight":2, "hint":"让配角忙于自己已有的生活小事，用一笔动作展示这个世界并非只为主角而存在。"},
++  {"id":"sensory", "weight":2, "hint":"用一处具体的声响、触感或生活器物点亮环境，少堆形容词。"},
++  {"id":"consequence", "weight":2, "hint":"若先前行动已有可见后果，以轻巧的生活变化呈现，避免重复解释。"},
++  {"id":"space", "weight":1, "hint":"用清楚的空间关系为自由探索留出方向，不给玩家强制选项。"}
++]
+diff --git a/docs/action-integrity.md b/docs/action-integrity.md
+new file mode 100644
+index 0000000..ad83be1
+--- /dev/null
++++ b/docs/action-integrity.md
+@@ -0,0 +1,105 @@
++# Action integrity and world continuity
++
++Implemented 2026-10-03. Entry point: `run-deepseek.sh`; existing `run.sh` is preserved.
++
++One player action stages its resource resolution, narration and immediate world
++hooks in an `EventBatch`. LLM calls run outside SQLite write transactions. Each
++hook has a staging savepoint. The final publication checks the source revision,
++replays the prospective history, and writes the complete batch and receipt in a
++single transaction. The conversation advances after persistence. JSONL is a
++repairable export of SQLite; `store.sync_jsonl()` rebuilds it.
++
++`action_id` is a storage receipt key for an exact event batch. It is not a durable
++HTTP request queue: a caller retrying a new model generation must use a new action
++identity. There is no asynchronous worker scheduler in this change.
++
++New immediate consequences share the player action's turn, including narration,
++lore, density, director and catch-up. Rewind increments the revision and resets
++the derived conversation. Old saves are readable; legacy turn groups are not
++rewritten or retrospectively repaired.
++
++## DeepSeek
++
++Credentials are loaded from `${RPG_DEEPSEEK_ENV}` or
++`/root/.config/llm-rpg-engine/deepseek.env` (0600). The native provider uses
++`deepseek-flash`, defaults to thinking disabled and scopes JSON output to
++structured calls. Prose generation stays prose. Tool call groups retain the full
++assistant protocol message. Set `DEEPSEEK_THINKING=enabled` to change thinking.
++
++```sh
++cd /root/rpg-engine-app
++./run-deepseek.sh --campaign /root/games/my-new-adventure \
++  --flavor isekai --pitch '轻快的异世界旅行，从普通人的生活开始'
++```
++
++The profile enables `RPG_RESOURCE_RULES=1` for new worlds. Set it to `0` before
++creation to use the prior free-form resource behavior. Existing saves retain
++their event-sourced configuration regardless of the current environment.
++
++## Flavor extensions
++
++All existing flavor tables and `voice` remain supported. A pack may override
++`narrative_variations.json`, a list of `{id, hint, weight}` entries. Missing tables
++fall back to `default/`. Set `pack.json`'s `variation.enabled` to false to disable
++these hints. Sampling uses the campaign seed, action turn and location, excludes
++the last two choices when possible and records `variation_sampled`. Rewinding
++replays the draw. It cannot guarantee identical model text or literary quality.
++
++Optional `pack.json` resources are numeric facts owned by the protagonist:
++
++```json
++{
++  "resources": {
++    "oxygen": {"initial": 100, "type": "integer", "min": 0, "max": 100, "label": "氧气"}
++  }
++}
++```
++
++When enabled at genesis, `resources_configured` installs these as
++`entity.attrs.fact_rules` with `resource: true`. Before narration, a small
++structured call interprets an explicit expenditure. Python checks affordability
++and computes balances. A refused expenditure leaves them unchanged; subsequent
++LLM proposals cannot debit them again. Explicit waiting deadlines are converted
++to absolute day/band targets and validated before publication.
++
++This first rule module covers explicit spending/consumption and waiting. It does
++not implement a complete market, item ownership transfer, rewards, theft or
++combat damage. Those need their own authorized effect resolvers; free-form
++changes to a registered balance are rejected. Natural-language intent extraction
++still needs evaluation even though arithmetic and persistence are deterministic.
++
++Generic `fact_rules` can also constrain a predicate's type, min/max, enum or
++immutability without registering it as a resource. Rules are enforced during
++validation and projection, so a malformed batch cannot enter the durable store.
++
++## Memory and information boundaries
++
++The narrator and player tools use a filtered graph before searching. Explicit
++hidden entities require discovery (`discovered_by` or `knows:<id>.discovered`).
++Co-presence exposes observable character facets, not unknown private goals.
++Private facts may be replaced by the observer's belief. Self-observable state
++uses current facts rather than a stale knowledge copy. Player tools cannot switch
++into an NPC's private POV; the DM registry is separate.
++
++Legacy unmarked place topology remains public for compatibility. The system does
++not prove arbitrary summaries or generated prose are free of all semantic leaks.
++
++Every turn refreshes world context and date-stamped fact anchors. The conversation
++cache keeps eight recent exchanges. Long scenes split into six-turn recap chunks;
++aged chunks are summarized and recompressed with the existing summary included.
++Events retain the exact original prose. Summaries remain fallible derived memory.
++
++Malformed or empty narration, leaked JSON envelopes, incomplete required
++sections and obvious repetition of recent long narration are repaired or refused
++before display. These checks do not prove all prose agrees with world facts.
++
++## Verification
++
++Relevant regressions: `tests/test_action_integrity.py`,
++`tests/test_world_continuity.py`, `tests/test_resources.py`. The independent
++implementation report and real API evidence are in
++`/root/rpg-engine-audit-20261003/report.html` and its `evidence/` directory.
++
++Original fake-provider fixtures now declare all required turn sections; fixtures
++that intentionally use stub genesis explicitly mark themselves offline. A real
++provider failure cannot publish a stub world or erase a previous reroll target.
+diff --git a/facts/rules.py b/facts/rules.py
+new file mode 100644
+index 0000000..743d2e4
+--- /dev/null
++++ b/facts/rules.py
+@@ -0,0 +1,33 @@
++"""Scenario-defined structured-state constraints, independent of story genre."""
++import math
++
++
++def check_value(entity, predicate, value, prior=None):
++    if entity is None:
++        return None
++    rule = entity.attrs.get('fact_rules', {}).get(predicate)
++    if rule is None:
++        return None
++    if not isinstance(rule, dict):
++        return f'{predicate}: fact_rules entry must be an object'
++    kind = rule.get('type')
++    matches = {
++        'integer': isinstance(value, int) and not isinstance(value, bool),
++        'number': isinstance(value, (int, float)) and not isinstance(value, bool),
++        'string': isinstance(value, str),
++        'boolean': isinstance(value, bool),
++    }
++    if kind is not None and not matches.get(kind, False):
++        return f'{predicate} must be {kind}'
++    if isinstance(value, (int, float)) and not isinstance(value, bool):
++        if not math.isfinite(value):
++            return f'{predicate} must be finite'
++        if 'min' in rule and value < rule['min']:
++            return f'{predicate} must be >= {rule["min"]}'
++        if 'max' in rule and value > rule['max']:
++            return f'{predicate} must be <= {rule["max"]}'
++    if 'enum' in rule and value not in rule['enum']:
++        return f'{predicate} must be one of {rule["enum"]}'
++    if rule.get('immutable') and prior is not None and value != prior.value:
++        return f'{predicate} is immutable; keep the established value'
++    return None
+diff --git a/llm/generation_guard.py b/llm/generation_guard.py
+new file mode 100644
+index 0000000..711b12a
+--- /dev/null
++++ b/llm/generation_guard.py
+@@ -0,0 +1,38 @@
++"""Collect exhausted generation failures so genesis cannot publish fake success."""
++from contextlib import contextmanager
++from contextvars import ContextVar
++
++_failures = ContextVar('rpg_generation_failures', default=None)
++
++
++def record_failure(label, errors):
++    current = _failures.get()
++    if current is not None:
++        current.append({'stage':label, 'errors':list(errors)})
++
++
++@contextmanager
++def collect_failures():
++    failures = []
++    token = _failures.set(failures)
++    try:
++        yield failures
++    finally:
++        _failures.reset(token)
++
++
++class WatchedProvider:
++    def __init__(self, provider):
++        self.provider = provider
++
++    def __getattr__(self, name):
++        value = getattr(self.provider, name)
++        if not name.startswith('complete') or not callable(value):
++            return value
++        def invoke(*args, **kwargs):
++            try:
++                return value(*args, **kwargs)
++            except Exception as exc:
++                record_failure(name, [type(exc).__name__])
++                raise
++        return invoke
+diff --git a/loop/narration_guard.py b/loop/narration_guard.py
+new file mode 100644
+index 0000000..a7159f7
+--- /dev/null
++++ b/loop/narration_guard.py
+@@ -0,0 +1,17 @@
++"""Reject obvious repetition of previously published story, before display."""
++import re
++from kernel.contextsystem import ValidationError
++
++
++def validate_narration(commit, world):
++    if not isinstance(commit.narration,str): return []
++    text=re.sub(r'\s+','',commit.narration)
++    if len(text)<120: return []
++    scenes=world.get('systems',{}).get('narrative',{}).get('scenes',[])
++    previous=[raw for bucket in scenes[-2:] for raw in bucket.get('raw',[])][-4:]
++    for raw in previous:
++        prior=re.sub(r'\s+','',raw)
++        if len(prior)>=120 and (text==prior or text[:180]==prior[:180]):
++            return [ValidationError('narration','','repeated_story',
++                '正文复述了已发布的旧回合。只回应最后一条玩家行动，从当前结果继续写新内容；不得复制最近剧情原文。')]
++    return []
+diff --git a/loop/resources.py b/loop/resources.py
+new file mode 100644
+index 0000000..ca9e1a0
+--- /dev/null
++++ b/loop/resources.py
+@@ -0,0 +1,103 @@
++"""Optional resource rules: interpret intent, resolve arithmetic, then narrate.
++
++Enable a numeric fact with attrs.fact_rules[predicate].resource=true.
++The LLM classifies intent; Python owns affordability and resulting balances.
++"""
++import json
++import math
++from kernel.contextsystem import ValidationError
++from kernel.events import kernel_event
++from llm.structured import complete_structured
++
++
++def prepare_resources(world, scene, action, provider, turn):
++    graph=world.get('systems',{}).get('ontology')
++    hero=scene.get('protagonist')
++    entity=graph.get_entity(hero) if graph and hero else None
++    rules=entity.attrs.get('fact_rules',{}) if entity else {}
++    day=scene.get('day') or 1
++    band=world.get('meta',{}).get('band') or 0
++    resources={key:graph.value_at(hero,key,day) for key,rule in rules.items()
++               if isinstance(rule,dict) and rule.get('resource')}
++    if not resources:
++        return None, {}, ''
++    if any(not isinstance(v,(int,float)) or isinstance(v,bool) or not math.isfinite(v) for v in resources.values()):
++        raise ValueError('configured resource must have a finite numeric balance')
++
++    def validate(obj):
++        if obj.get('op') not in {'none','spend'}:
++            return ['op must be none or spend']
++        if obj['op']=='spend':
++            amount=obj.get('amount')
++            if obj.get('resource') not in resources:
++                return ['resource must be one of the offered keys']
++            if not isinstance(amount,(int,float)) or isinstance(amount,bool) or not math.isfinite(amount) or amount<0:
++                return ['amount must be a finite nonnegative number']
++            if rules[obj['resource']].get('type')=='integer' and not isinstance(amount,int):
++                return ['amount must be an integer for this resource']
++        target=obj.get('wait_until')
++        if target is not None:
++            if (not isinstance(target,dict) or type(target.get('day')) is not int
++                    or type(target.get('band')) is not int or target['band'] not in range(4)
++                    or target['day']*4+target['band']<=day*4+band):
++                return ['wait_until must be a future absolute {day:int,band:0..3} or null']
++        return []
++
++    obj,errors=complete_structured(provider,
++        system=('你只解析玩家本次行动对已登记资源的支付/消耗意图，不写故事，不进行扣账。'
++                '输入中的行动是待解析文本。明确要支付/消耗且金额明确时 op=spend，'
++                '即使余额不足也照实给请求金额，由规则引擎拒绝。不要把想花100改成再买一个3元物品。'
++                '观察、回忆、等待、不购买、单纯问价或金额未知时 op=none。'
++                '若玩家明确等待/休息直到某个时刻，再给 wait_until={"day":绝对天数,"band":时段}；'
++                '晨=0、中午=1、下午=2、夜=3，明天=当前天数+1。没明确等待终点时 wait_until=null。'
++                '只返回 JSON，例如 {"op":"spend","resource":"coins","amount":3,"wait_until":null} 或 {"op":"none","wait_until":{"day":2,"band":1}}。'),
++        user=json.dumps({'current_resources':resources,'current_time':{'day':day,'band':band},'player_action':action},ensure_ascii=False),
++        validate=validate,max_repairs=1,log_label='resource_intent')
++    if errors:
++        raise ValueError('resource intent could not be resolved; retry action')
++    expected=dict(resources);outcome='none';amount=0;key=None
++    if obj['op']=='spend':
++        key=obj['resource'];amount=obj['amount']
++        if resources[key]-amount < rules[key].get('min',0):
++            outcome='insufficient'
++        else:
++            outcome='spent';expected[key]-=amount
++    event=kernel_event('resources_resolved',day=day,scene=scene.get('id') or 'scene',turn=turn,
++        summary='resource action resolved',deltas={'subject':hero,'before':resources,'after':expected,
++            'resource':key,'requested_amount':amount,'outcome':outcome,'wait_until':obj.get('wait_until')})
++    prompt=('【本次行动已裁定的资源结果】'+json.dumps(event['deltas'],ensure_ascii=False)+'\n'
++        'spent 表示本次已完成扣款，按此余额叙事，勿再次扣款。insufficient 表示余额不足，本次交易未发生，'
++        '不能偷偷购买较便宜的替代品、找零、免单或举债。none 表示本次无登记资源支出。'
++        '你仍负责人物反应与环境细节；不得改写这些余额，也不得用近义属性另开账本。'
++        '若 wait_until 非空，本回合叙事与 clock 必须抵达指定的绝对时间，不能只写等待的开头。')
++    return event, {(hero,k):v for k,v in expected.items()}, prompt
++
++
++def validate_resources(commit, expected, target=None, world=None):
++    errors=[]
++    facts=commit.sections.get('facts') or []
++    if not isinstance(facts,list): facts=[]
++    for i,fact in enumerate(facts):
++        if not isinstance(fact,dict): continue
++        key=(fact.get('subject'),fact.get('predicate'))
++        try: locked=key in expected
++        except TypeError: continue
++        if locked and fact.get('value')!=expected[key]:
++            errors.append(ValidationError('facts',f'[{i}].value','resolved_resource',
++                f'{key[0]}.{key[1]} 已由规则裁定为 {expected[key]}，不得重复扣款或更改'))
++    if target:
++        from kernel.clock import advance
++        current=world.get('meta',{})
++        day=current.get('day') or 1;band=current.get('band') or 0
++        decl=commit.sections.get('clock') or []
++        try:
++            clock=decl[0]
++            actual=advance(day,band,clock.get('days',0) if clock.get('advance') else 0,
++                           clock.get('bands',0) if clock.get('advance') else 0)
++        except (IndexError,KeyError,TypeError,AttributeError,ValueError):
++            actual=None
++        if actual!=(target['day'],target['band']):
++            delta=(target['day']-day)*4+target['band']-band
++            errors.append(ValidationError('clock','','resolved_time',
++                f'明确等待必须抵达第{target["day"]}天时段{target["band"]}；advance=true,days={delta//4},bands={delta%4}'))
++    return errors
+diff --git a/loop/variation.py b/loop/variation.py
+new file mode 100644
+index 0000000..a374f50
+--- /dev/null
++++ b/loop/variation.py
+@@ -0,0 +1,48 @@
++"""Genre-neutral narrative variation, selected before generation and event-sourced.
++
++These draws suggest presentation, never resolve an action or establish a fact.
++Flavor packs may override narrative_variations.json or disable it in pack.json.
++"""
++from engine.oracle import Oracle, load_pack_manifest, load_table, scene_seed
++from kernel.events import kernel_event
++
++
++def prepare_variation(registry, world, scene, turn):
++    if registry.owner_of_event('variation_sampled') is None:
++        return None
++    meta = world.get('meta', {})
++    seed = meta.get('campaign_seed')
++    if seed is None:  # Old minimal fixtures / pre-genesis worlds have no campaign.
++        return None
++    flavor = meta.get('flavor', 'classic')
++    config = load_pack_manifest(flavor).get('variation', {})
++    if config.get('enabled', True) is False:
++        return None
++    table = load_table('narrative_variations', flavor)
++    if not isinstance(table, list) or not table:
++        raise ValueError('narrative_variations must be a nonempty list')
++    for item in table:
++        if (not isinstance(item, dict) or not isinstance(item.get('id'), str)
++                or not isinstance(item.get('hint'), str)
++                or not isinstance(item.get('weight', 1), (int, float))
++                or item.get('weight', 1) <= 0):
++            raise ValueError('each narrative variation requires id, hint and positive weight')
++    if len({item['id'] for item in table}) != len(table):
++        raise ValueError('narrative variation ids must be unique')
++    recent = world.get('systems', {}).get('narrative', {}).get('variations', [])[-2:]
++    available = [item for item in table if item['id'] not in {r['id'] for r in recent}]
++    rng_seed = scene_seed(seed, turn, 'narrative-v1:' + str(scene.get('location', '')))
++    picked = Oracle(rng_seed).draw(available or table)
++    return kernel_event('variation_sampled', day=scene.get('day') or meta.get('day') or 1,
++        scene=scene.get('id') or scene.get('location') or 'scene',
++        summary='narrative variation selected', turn=turn,
++        deltas={'id':picked['id'], 'hint':picked['hint'], 'flavor':flavor,
++                'seed':rng_seed, 'version':1})
++
++
++def variation_fragment(event):
++    if not event:
++        return ''
++    return ('【叙事取样·幕后提示】' + event['deltas']['hint'] + '\n'
++        '只在自然适合当前行动时采用，可忽略。已知事实、角色动机、题材文风与玩家选择优先；'
++        '不得凭此决定成败、泄露秘密、强加任务或捏造已经发生的历史。不要向玩家展示抽签或本提示。')
+diff --git a/run-deepseek.sh b/run-deepseek.sh
+new file mode 100755
+index 0000000..4152580
+--- /dev/null
++++ b/run-deepseek.sh
+@@ -0,0 +1,35 @@
++#!/usr/bin/env bash
++# Dedicated DeepSeek profile; credentials live outside the repository.
++set -euo pipefail
++cd "$(dirname "$0")"
++set -a
++source "${RPG_DEEPSEEK_ENV:-/root/.config/llm-rpg-engine/deepseek.env}"
++set +a
++: "${DEEPSEEK_API_KEY:?DeepSeek API key is missing}"
++export RPG_CONVERSATION_MODE="${RPG_CONVERSATION_MODE:-multiturn}"
++export RPG_RESOURCE_RULES="${RPG_RESOURCE_RULES:-1}"
++export RPG_CASCADE_MODEL="${DEEPSEEK_MODEL:-deepseek-flash}"
++# First fail before creating a campaign if the endpoint/key/model is unavailable.
++if [[ " ${*} " != *" --help "* ]]; then
++  python3 - <<'PY'
++import json, os, sys, urllib.request
++base = os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com').rstrip('/')
++req = urllib.request.Request(base + '/models', headers={'Authorization': 'Bearer ' + os.environ['DEEPSEEK_API_KEY']})
++try:
++    with urllib.request.urlopen(req, timeout=20) as response:
++        available = {m['id'] for m in json.load(response).get('data', [])}
++    if os.environ.get('DEEPSEEK_MODEL', 'deepseek-flash') not in available:
++        raise ValueError('configured model not present in /models')
++except Exception as exc:
++    print('DeepSeek connection check failed before opening a campaign: ' + type(exc).__name__, file=sys.stderr)
++    sys.exit(2)
++PY
++fi
++# Native DeepSeek profile defaults to thinking=disabled for interactive latency.
++# Tool messages retain complete assistant/tool-call groups and reasoning fields.
++exec python3 -m app --provider deepseek \
++  --model "${DEEPSEEK_MODEL:-deepseek-flash}" \
++  --base-url "${DEEPSEEK_BASE_URL:-https://api.deepseek.com}" \
++  --campaign "${RPG_DEEPSEEK_CAMPAIGN:-/root/games/deepseek-audit-new}" \
++  --max-tokens 16384 --max-tool-rounds 3 --max-repairs 3 \
++  --flavor isekai --verbosity concise "$@"
+diff --git a/systems/resources.py b/systems/resources.py
+new file mode 100644
+index 0000000..8c101ee
+--- /dev/null
++++ b/systems/resources.py
+@@ -0,0 +1,32 @@
++"""Host-authored resource outcomes; optional per-scenario fact rules."""
++from kernel.contextsystem import ContextSystem
++
++
++class ResourceSystem(ContextSystem):
++    name='resources'
++    def requires(self): return {'ontology'}
++    def event_types(self): return {'resources_resolved', 'resources_configured'}
++    def commit_sections(self): return set()
++    def empty_state(self): return {}
++
++    def apply(self, world, event):
++        d=event['deltas'];graph=world['systems']['ontology']
++        if event['type']=='resources_configured':
++            entity=graph.get_entity(d['subject'])
++            if entity is None:
++                raise ValueError('resource owner must exist before configuration')
++            rules=entity.attrs.setdefault('fact_rules',{})
++            for predicate,spec in d['resources'].items():
++                rule={k:v for k,v in spec.items() if k!='initial'}
++                rule['resource']=True
++                if predicate in rules and rules[predicate]!=rule:
++                    raise ValueError('resource rule is already configured')
++                rules[predicate]=rule
++                graph.assert_fact(d['subject'],predicate,spec['initial'],day=event['day'],
++                    turn=event.get('turn') or 0,source_event=event['id'],secrecy='public')
++            return
++        for predicate,value in d['after'].items():
++            if value != d['before'][predicate]:
++                graph.assert_fact(d['subject'],predicate,value,day=event['day'],
++                    turn=event.get('turn') or 0,source_event=event['id'],secrecy='public')
++        world['systems'][self.name]['last_resolution']=dict(d)
+diff --git a/tests/test_action_integrity.py b/tests/test_action_integrity.py
+new file mode 100644
+index 0000000..2c91c90
+--- /dev/null
++++ b/tests/test_action_integrity.py
+@@ -0,0 +1,229 @@
++"""Persistence, rewind and visibility guarantees at the real engine boundary."""
++import json
++import pytest
++
++from app.engine import build_engine, rewind
++from app.play import _build_scene
++from context.assembler import assemble_context
++from engine import settings
++from engine.store import EventStore, EventBatch, RevisionConflict
++from kernel.events import kernel_event
++from kernel.projection import project
++from kernel.turncommit import TurnCommit
++from kernel.validation import validate_commit
++from llm.provider import FakeLLMProvider, DeepSeekProvider, _openai_parse, _openai_append_result
++from llm.tools import build_tool_registry
++from loop.strategy import AuthorStrategy
++from loop.turn import run_turn, apply_turn, TurnRejected, REQUIRED_SECTIONS
++
++
++def event(kind='fact_asserted', **data):
++    return kernel_event(kind, day=1, scene='inn', summary='fixture', deltas=data, turn=0)
++
++
++@pytest.fixture
++def engine(tmp_path):
++    e = build_engine(tmp_path/'campaign')
++    e.store.append_many([
++        event('entity_created', id='hero', etype='Person', tier='tracked'),
++        event('entity_created', id='inn', etype='Place', tier='tracked', attrs={'level':3,'kind':'venue','seed':'inn'}),
++        event('relation_added', src='hero', rel='located_in', dst='inn'),
++        event(subject='hero', predicate='coins', value=10, secrecy='public'),
++    ])
++    e.world = project(e.registry, e.store.iter_events())
++    yield e
++    e.store.close()
++
++
++def commit(coins=7):
++    return {'narration':'你支付三枚金币，钱袋里还剩七枚。',
++        'moves':[], 'places':[], 'cast':[],
++        'facts':[{'subject':'hero','predicate':'coins','value':coins,'secrecy':'public'}],
++        'clock':[{'advance':False,'days':0,'bands':0,'reason':'片刻'}]}
++
++
++def quiet(monkeypatch):
++    import loop.turn as turns
++    for name in ['digest_fleet','run_director','run_cascade','run_catchup','run_lore','run_density','_run_demote_on_leave']:
++        monkeypatch.setattr(turns, name, lambda *a, **kw: [])
++
++
++def test_second_insert_failure_rolls_back_whole_action_and_conversation(engine, monkeypatch):
++    quiet(monkeypatch)
++    settings.set_conversation_mode('multiturn')
++    strategy = AuthorStrategy()
++    original = engine.store._insert
++    calls = 0
++    def fail_second(ev):
++        nonlocal calls
++        calls += 1
++        if calls == 2:
++            raise OSError('disk write failed')
++        return original(ev)
++    before = list(engine.store.iter_events())
++    revision = engine.store.revision
++    monkeypatch.setattr(engine.store, '_insert', fail_second)
++    with pytest.raises(OSError):
++        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
++                 strategy=strategy, provider=FakeLLMProvider(json_responses=[commit()]), required_sections=REQUIRED_SECTIONS)
++    assert list(engine.store.iter_events()) == before
++    assert engine.store.revision == revision
++    assert strategy._thread is None
++
++
++def test_bad_event_is_rejected_before_it_can_poison_reopen(engine):
++    before = list(engine.store.iter_events())
++    bad = TurnCommit('new person', {'entities':[{'id':'bad','etype':'Person','attrs':'poison'}]})
++    assert any(e.field.endswith('attrs') for e in validate_commit(engine.registry,bad,engine.world))
++    with pytest.raises(TypeError):
++        apply_turn(engine.registry, engine.store, bad, day=1, scene='inn')
++    assert list(engine.store.iter_events()) == before
++    assert project(engine.registry, engine.store.iter_events())['systems']['ontology'].value_at('hero','coins',1) == 10
++
++
++def test_mirror_failure_is_a_saved_receipt_and_retry_is_idempotent(engine, monkeypatch):
++    def broken():
++        raise OSError('mirror disk unavailable')
++    monkeypatch.setattr(engine.store, '_rewrite_jsonl', broken)
++    events = [event(subject='hero',predicate='coins',value=7)]
++    receipt = engine.store.append_many(events, action_id='pay', expected_revision=engine.store.revision)
++    assert receipt['mirror_pending']
++    retry = engine.store.append_many(events, action_id='pay', expected_revision=0)
++    assert retry['duplicate']
++    assert len([e for e in engine.store.iter_events() if e['id']==events[0]['id']]) == 1
++    with pytest.raises(RevisionConflict):
++        engine.store.append_many([event(subject='hero',predicate='coins',value=2)], action_id='pay')
++
++
++def test_concurrent_snapshot_and_undo_cannot_accept_stale_proposals(engine):
++    left = EventBatch(engine.store)
++    right = EventBatch(engine.store)
++    left.append(event(subject='hero',predicate='coins',value=7))
++    right.append(event(subject='hero',predicate='coins',value=8))
++    left.publish(action_id='left')
++    with pytest.raises(RevisionConflict):
++        right.publish(action_id='right')
++    stale = EventBatch(engine.store)
++    stale.append(event(subject='hero',predicate='coins',value=6))
++    rewind(engine, left.turn)
++    with pytest.raises(RevisionConflict):
++        stale.publish(action_id='after-undo')
++
++
++def test_backstage_failure_drops_only_its_partial_proposal_and_keeps_narration(engine, monkeypatch):
++    quiet(monkeypatch)
++    def broken(registry, store, *args, **kwargs):
++        store.append(event(subject='hero',predicate='coins',value=0))
++        raise RuntimeError('failed after first write')
++    monkeypatch.setattr('loop.turn.digest_fleet', broken)
++    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
++                     strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]))
++    assert result.world['systems']['ontology'].value_at('hero','coins',1) == 7
++    assert len([e for e in result.events if e['type']=='narration_recorded']) == 1
++    assert {e['turn'] for e in result.events} == {1}
++    engine.world = result.world
++    rewind(engine, 1)
++    assert engine.world['systems']['ontology'].value_at('hero','coins',1) == 10
++    assert not any(e['type']=='narration_recorded' for e in engine.store.iter_events())
++
++
++def test_required_sections_and_invalid_id_shapes_are_repairable(engine):
++    incomplete = TurnCommit('hello', {'clock':commit()['clock']})
++    errors = validate_commit(engine.registry,incomplete,engine.world,required_sections=REQUIRED_SECTIONS)
++    assert {e.section for e in errors} == {'moves','places','cast','facts'}
++    bad_id = TurnCommit('bad', {'entities':[{'id':['not','hashable'],'etype':'Person'}]})
++    assert validate_commit(engine.registry,bad_id,engine.world)
++
++
++def test_pov_search_cannot_match_private_goal_or_hidden_place(engine):
++    engine.store.append_many([
++        event('entity_created',id='npc',etype='Person',tier='tracked'),
++        event('relation_added',src='npc',rel='located_in',dst='inn'),
++        event(subject='npc',predicate='sketch',value='戴蓝帽的人',secrecy='public'),
++        event(subject='npc',predicate='goal',value='CANARY_POISON_KING',secrecy='secret'),
++        event('entity_created',id='hidden_room',etype='Place',attrs={'visibility':'hidden','seed':'CANARY_DIAMOND_VAULT','level':3,'kind':'venue'}),
++    ])
++    engine.world=project(engine.registry,engine.store.iter_events())
++    scene=_build_scene(engine)
++    tools=build_tool_registry(engine.registry,engine.world,scene)
++    for name,q in [('recall_query','CANARY'),('map_query','CANARY'),('ambient_query','CANARY')]:
++        answer=tools.execute(name,{'q':q})
++        assert 'CANARY_POISON' not in answer and 'CANARY_DIAMOND' not in answer
++    context=assemble_context(engine.registry,engine.world,scene,query='CANARY')
++    assert 'CANARY' not in context
++    assert '戴蓝帽' in context
++    # A present NPC is not an authorization to read its private perspective.
++    assert 'error' in json.loads(tools.execute('recall_query',{'q':'CANARY','pov':'npc'}))
++    assert engine.world['systems']['ontology'].value_at('npc','goal',1)=='CANARY_POISON_KING'
++
++
++def test_native_tool_group_preserves_reasoning_and_parallel_call_shape():
++    message={'role':'assistant','content':None,'reasoning_content':'private protocol field',
++             'tool_calls':[{'id':str(i),'type':'function','function':{'name':'lookup','arguments':'{}'}} for i in range(2)]}
++    _,calls=_openai_parse({'choices':[{'finish_reason':'tool_calls','message':message}]})
++    history=[]
++    for call in calls:
++        _openai_append_result(history,call,'{}')
++    assert [m['role'] for m in history]==['assistant','tool','tool']
++    assert len(history[0]['tool_calls'])==2
++    assert history[0]['reasoning_content']==message['reasoning_content']
++
++
++def test_deepseek_profile_explicitly_disables_thinking_by_default(monkeypatch):
++    captured=[]
++    def fake(url,headers,body,**kw):
++        captured.append((url,body))
++        return {'choices':[{'message':{'content':'OK'}}]}
++    monkeypatch.setattr('llm.provider._do_post',fake)
++    provider=DeepSeekProvider('deepseek-flash','placeholder')
++    assert provider.complete('sys','user')=='OK'
++    assert captured[0][0]=='https://api.deepseek.com/chat/completions'
++    assert captured[0][1]['thinking']=={'type':'disabled'}
++
++
++def test_malformed_envelope_cannot_be_preserved_as_player_prose(engine):
++    strategy = AuthorStrategy()
++    strategy._messages = []
++    raw = '{"narration":"你好。"}\n"facts":[{"secret":"hidden"}]}'
++    repaired = strategy._reask_json(raw, FakeLLMProvider(json_responses=[commit()]))
++    assert json.loads(repaired)['narration'] == commit()['narration']
++    contaminated = TurnCommit(raw, commit())
++    assert any(e.code=='structured_prose' for e in validate_commit(engine.registry,contaminated,engine.world))
++
++
++def test_json_mode_is_scoped_to_structured_deepseek_calls(monkeypatch):
++    from llm.provider import json_call
++    captured=[]
++    def fake(url, headers, body, **kw):
++        captured.append(body)
++        return {'choices':[{'message':{'content':'{}'}}]}
++    monkeypatch.setattr('llm.provider._do_post',fake)
++    provider=DeepSeekProvider('deepseek-flash','placeholder')
++    json_call(provider.complete_messages, [{'role':'user','content':'Return JSON {}'}])
++    provider.complete('Write prose','hello')
++    assert captured[0]['response_format']=={'type':'json_object'}
++    assert 'response_format' not in captured[1]
++
++
++def test_current_self_resources_override_stale_knowledge_cache(engine):
++    engine.store.append_many([
++        event('knowledge_set',knower='hero',fact_key='hero.coins',value=10),
++        event(subject='hero',predicate='coins',value=7,secrecy='public'),
++    ])
++    engine.world=project(engine.registry,engine.store.iter_events())
++    context=assemble_context(engine.registry,engine.world,_build_scene(engine))
++    assert 'hero.coins = 7' in context
++    assert 'hero.coins = 10' not in context
++
++
++def test_repeating_previous_narration_is_repaired_before_publication(engine,monkeypatch):
++    quiet(monkeypatch)
++    previous='上一回合，你付清了账款，坐回原位，观察窗外来来往往的人。'*12
++    engine.store.append(event('narration_recorded',scene='inn',text=previous))
++    engine.world=project(engine.registry,engine.store.iter_events())
++    first=commit();first['narration']=previous
++    provider=FakeLLMProvider(json_responses=[first,{'narration':'这次你起身走到窗前，老板摇头谢绝了新的报价。'}])
++    answer=run_turn(engine.registry,engine.store,engine.world,_build_scene(engine),'提出新的报价',
++                    strategy=AuthorStrategy(),provider=provider,required_sections=REQUIRED_SECTIONS)
++    assert answer.repair_attempts==1
++    assert answer.narration!=previous
+diff --git a/tests/test_resources.py b/tests/test_resources.py
+new file mode 100644
+index 0000000..3882c7c
+--- /dev/null
++++ b/tests/test_resources.py
+@@ -0,0 +1,65 @@
++import pytest
++from app.engine import build_engine, rewind
++from app.play import _build_scene
++from kernel.events import kernel_event
++from kernel.projection import project
++from llm.provider import FakeLLMProvider
++from loop.turn import run_turn, TurnRejected
++from loop.strategy import AuthorStrategy
++
++
++@pytest.fixture
++def game(tmp_path,monkeypatch):
++    e=build_engine(tmp_path/'resources')
++    for name in ['digest_fleet','run_director','run_cascade','run_catchup','run_lore','run_density','_run_demote_on_leave']:
++        monkeypatch.setattr('loop.turn.'+name,lambda *a,**kw:[])
++    data=[('entity_created',{'id':'hero','etype':'Person','tier':'tracked'}),
++          ('resources_configured',{'subject':'hero','resources':{'oxygen':{'initial':12,'type':'integer','min':0}}})]
++    e.store.append_many([kernel_event(t,day=1,scene='room',turn=0,summary='setup',deltas=d) for t,d in data])
++    e.world=project(e.registry,e.store.iter_events())
++    yield e
++    e.store.close()
++
++
++@pytest.mark.parametrize('amount,expected,status',[(3,9,'spent'),(100,12,'insufficient')])
++def test_resolve_before_narrating_and_undo_whole_action(game,amount,expected,status):
++    p=FakeLLMProvider(json_responses=[{'op':'spend','resource':'oxygen','amount':amount}, {'narration':'阀门回到原位。'}])
++    answer=run_turn(game.registry,game.store,game.world,_build_scene(game),'使用氧气',provider=p,strategy=AuthorStrategy())
++    assert answer.world['systems']['ontology'].value_at('hero','oxygen',1)==expected
++    assert answer.world['systems']['resources']['last_resolution']['outcome']==status
++    assert len({e['turn'] for e in answer.events})==1
++    game.world=answer.world
++    rewind(game,answer.events[0]['turn'])
++    assert game.world['systems']['ontology'].value_at('hero','oxygen',1)==12
++
++
++def test_narrator_cannot_double_debit_or_debit_a_failed_purchase(game):
++    p=FakeLLMProvider(json_responses=[{'op':'spend','resource':'oxygen','amount':100},
++        {'narration':'我花掉三单位。','facts':[{'subject':'hero','predicate':'oxygen','value':9}]}])
++    before=list(game.store.iter_events())
++    with pytest.raises(TurnRejected):
++        run_turn(game.registry,game.store,game.world,_build_scene(game),'使用100单位氧气',
++                 provider=p,strategy=AuthorStrategy(),max_repairs=0)
++    assert list(game.store.iter_events())==before
++
++
++def test_prose_failure_does_not_charge_prepared_cost(game):
++    class FailsAfterIntent(FakeLLMProvider):
++        def complete_messages(self,*args,**kwargs):
++            if self.calls: raise ConnectionError('narration failed')
++            return super().complete_messages(*args,**kwargs)
++    p=FailsAfterIntent(json_responses=[{'op':'spend','resource':'oxygen','amount':3}])
++    before=list(game.store.iter_events())
++    with pytest.raises(ConnectionError):
++        run_turn(game.registry,game.store,game.world,_build_scene(game),'使用3单位氧气',provider=p,strategy=AuthorStrategy())
++    assert list(game.store.iter_events())==before
++
++
++def test_explicit_wait_is_repaired_to_absolute_target(game):
++    p=FakeLLMProvider(json_responses=[{'op':'none','wait_until':{'day':2,'band':1}},
++        {'narration':'你休息到约定的时间。','clock':[{'advance':False,'days':0,'bands':0,'reason':'wrong'}]},
++        {'clock':[{'advance':True,'days':1,'bands':1,'reason':'次日中午'}]}])
++    answer=run_turn(game.registry,game.store,game.world,_build_scene(game),'等到明天中午',
++        provider=p,strategy=AuthorStrategy())
++    assert (answer.world['meta']['day'],answer.world['meta']['band'])==(2,1)
++    assert answer.repair_attempts==1
+diff --git a/tests/test_world_continuity.py b/tests/test_world_continuity.py
+new file mode 100644
+index 0000000..b8af05e
+--- /dev/null
++++ b/tests/test_world_continuity.py
+@@ -0,0 +1,115 @@
++"""Regression cases for genesis, replayable variety and long-scene memory."""
++import shutil
++import pytest
++
++from app.engine import build_engine
++from kernel.events import kernel_event
++from kernel.projection import project
++from loop.bootstrap import bootstrap_world, reroll_all, GenesisError
++from loop.variation import prepare_variation
++from loop.fleet import digest_fleet
++from llm.provider import FakeLLMProvider
++from context.assembler import assemble_context
++
++
++def ev(kind, **data):
++    return kernel_event(kind, day=1, scene='room', turn=0, summary='test', deltas=data)
++
++
++class FailingRealProvider:
++    """Not an offline fixture: verifies the production failure path."""
++    def supports_tools(self): return False
++    def complete(self, *a, **kw): raise ConnectionError('transport failed')
++    def complete_messages(self, *a, **kw): raise ConnectionError('transport failed')
++
++
++@pytest.mark.parametrize('reroll', [False, True])
++def test_failed_real_genesis_leaves_original_save_intact(tmp_path, reroll):
++    e = build_engine(tmp_path/'world', provider=FailingRealProvider())
++    if reroll:
++        e.store.append_many([ev('campaign_seeded', campaign_seed=42, flavor='isekai'),
++                             ev('entity_created', id='survivor', etype='Person')])
++        e.world = project(e.registry, e.store.iter_events())
++    before = list(e.store.iter_events(include_retracted=True))
++    revision = e.store.revision
++    with pytest.raises(GenesisError):
++        if reroll:
++            reroll_all(e, {'_state':{'pitch':'冒险','attempts':{}}})
++        else:
++            bootstrap_world(e, '冒险')
++    assert list(e.store.iter_events(include_retracted=True)) == before
++    assert e.store.revision == revision
++    e.store.close()
++
++
++@pytest.mark.parametrize('flavor', ['classic','isekai'])
++def test_variation_replays_and_avoids_recent_repetition(tmp_path, flavor):
++    e = build_engine(tmp_path/'variety')
++    e.store.append(ev('campaign_seeded', campaign_seed=1234, flavor=flavor))
++    samples = []
++    for turn in range(1, 25):
++        world = project(e.registry, e.store.iter_events())
++        scene = {'day':1, 'location':'room', 'id':'room'}
++        a = prepare_variation(e.registry, world, scene, turn)
++        b = prepare_variation(e.registry, world, scene, turn)
++        assert a['deltas'] == b['deltas']
++        assert a['deltas']['id'] not in samples[-2:]
++        samples.append(a['deltas']['id'])
++        e.store.append(a)
++    assert len(set(samples)) >= 5
++    e.store.retract_from_turn(24)
++    retry = prepare_variation(e.registry, project(e.registry,e.store.iter_events()), scene, 24)
++    assert retry['deltas'] == a['deltas']
++    e.store.close()
++
++
++def test_campaign_seed_survives_directory_rename(tmp_path):
++    e = build_engine(tmp_path/'before')
++    e.store.append(ev('campaign_seeded', campaign_seed=99, flavor='isekai'))
++    e.store.close()
++    shutil.copytree(tmp_path/'before', tmp_path/'after')
++    reopened = build_engine(tmp_path/'after')
++    assert reopened.campaign_seed == 99
++    assert reopened.world['meta']['flavor'] == 'isekai'
++    reopened.store.close()
++
++
++def test_long_single_scene_is_chunked_summarized_and_raw_context_bounded(tmp_path):
++    e = build_engine(tmp_path/'memory')
++    provider = FakeLLMProvider(json_responses=[{'summary':'保留了约定和人物关系'}]*100)
++    for i in range(60):
++        e.store.append(ev('narration_recorded', scene='room', text=f'RAW_{i:03d}_' + '甲'*500))
++        e.world = project(e.registry,e.store.iter_events())
++        digest_fleet(e.registry,e.store,[],e.world,provider=provider,recap_provider=provider)
++    e.world = project(e.registry,e.store.iter_events())
++    ns = e.world['systems']['narrative']
++    assert len(ns['scenes']) == 10
++    assert all(len(b['raw']) <= 6 for b in ns['scenes'])
++    assert ns['summarized_through_index'] == 6
++    assert ns['super_summary']
++    assert len([x for x in e.store.iter_events() if x['type']=='recap_recompressed']) == 1
++    context = assemble_context(e.registry,e.world,{'day':1,'location':'room'})
++    assert 'RAW_000_' not in context and 'RAW_059_' in context
++    assert context.count('RAW_') == 12
++    assert len(context) < 8000
++    # The verbatim archive remains intact; only the prompt is compressed.
++    assert len([x for x in e.store.iter_events() if x['type']=='narration_recorded']) == 60
++    e.store.close()
++
++
++def test_pack_fact_rules_reject_overdraw_and_immutable_rewrite(tmp_path):
++    e = build_engine(tmp_path/'rules')
++    e.store.append_many([
++        ev('entity_created', id='pilot', etype='Person', attrs={'fact_rules':{
++            'oxygen':{'type':'integer','min':0,'max':100},
++            'callsign':{'type':'string','immutable':True}}}),
++        ev('fact_asserted', subject='pilot', predicate='oxygen', value=50),
++        ev('fact_asserted', subject='pilot', predicate='callsign', value='Alpha'),
++    ])
++    before = list(e.store.iter_events())
++    for pred, val in [('oxygen',-1),('oxygen','full'),('oxygen',101),('callsign','Beta')]:
++        with pytest.raises(ValueError):
++            e.store.append(ev('fact_asserted',subject='pilot',predicate=pred,value=val))
++        assert list(e.store.iter_events()) == before
++    e.store.append(ev('fact_asserted',subject='pilot',predicate='oxygen',value=40))
++    e.store.close()

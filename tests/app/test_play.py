@@ -13,7 +13,7 @@ from llm.provider import FakeLLMProvider
 def _make_canned_provider():
     """FakeLLMProvider that returns a valid TurnCommit JSON."""
     return FakeLLMProvider(json_responses=[
-        {
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你环顾四周，发现这是一片宁静的旷野。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
         }
@@ -100,16 +100,16 @@ def test_play_loop_compare_on_then_input_runs_compare(tmp_path):
 
     # Need a provider that can handle multiple calls (compare calls both strategies)
     provider = FakeLLMProvider(json_responses=[
-        {"narration": "甲策略叙述：你踏入前方的小路。",
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "甲策略叙述：你踏入前方的小路。",
          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
-        {"narration": "乙策略叙述：小路延伸向远方。",
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "乙策略叙述：小路延伸向远方。",
          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
     ])
     engine = _build_engine_with_game(tmp_path, provider=provider)
     engine.provider = FakeLLMProvider(json_responses=[
-        {"narration": "甲策略叙述：你踏入前方的小路。",
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "甲策略叙述：你踏入前方的小路。",
          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
-        {"narration": "乙策略叙述：小路延伸向远方。",
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "乙策略叙述：小路延伸向远方。",
          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
     ])
 
@@ -350,12 +350,12 @@ def test_compare_mode_advances_clock(tmp_path):
     from systems.time import TimeSystem
 
     # 甲 commit: clock advances by 2 bands (晨→下午)
-    jia_commit = {
+    jia_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
         "narration": "甲: 蹲守到下午，终于等到了目标。",
         "clock": [{"advance": True, "days": 0, "bands": 2, "reason": "蹲守到下午"}],
     }
     # 丙 commit: also valid (no-advance), only 甲 is applied
-    bing_commit = {
+    bing_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
         "narration": "丙: 目标现身。",
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "紧接上一刻"}],
     }

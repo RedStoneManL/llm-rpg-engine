@@ -1,0 +1,18 @@
+{
+  "scope": "real SQLite and kernel projection with deterministic scripted actions; no model quality claims",
+  "status": "passed",
+  "counts": {
+    "actions": 120,
+    "undo": 12,
+    "reopen": 12,
+    "duplicates": 17,
+    "write_failures": 8,
+    "stale_rejected": 12
+  },
+  "final_coins": 892,
+  "revision": 132,
+  "concurrent_writers": [
+    "committed",
+    "conflict"
+  ]
+}

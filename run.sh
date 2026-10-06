@@ -15,7 +15,7 @@ set +a
 
 # ╔════════════════════════════ CONFIG: edit here ════════════════════════════╗
 
-CAMPAIGN="./campaign"      # Save folder. A NEW EMPTY dir = a fresh world (genesis runs
+CAMPAIGN="${RPG_CAMPAIGN:-./campaign}"      # Save folder. A NEW EMPTY dir = a fresh world (genesis runs
                           # only on an empty store; reusing a dir loads the save instead).
 
 PITCH="东方武侠悬疑"        # World keywords (free text). Leave "" for an interactive
@@ -31,9 +31,9 @@ CARD_AS="protagonist"     # Import the card as  protagonist  or  npc.
 
 # ---- Experience ----
 VERBOSITY="medium"        # Narration length:  concise | medium | rich
-STYLE=""                  # Narration STYLE/voice (free text), e.g. "日式轻小说" / hard-boiled noir; "" = neutral
+STYLE="${RPG_STYLE:-}"                  # Narration STYLE/voice (free text), e.g. "日式轻小说" / hard-boiled noir; "" = neutral
 TOOL_ROUNDS=""            # Max POV tool-call rounds/turn (default 12). Lower (e.g. 6) to ease 429 rate-limits.
-DEBUG="no"                # "yes" = record a full trajectory to <campaign>/trace.jsonl
+DEBUG="${RPG_DEBUG:-no}"                # "yes" = record a full trajectory to <campaign>/trace.jsonl
                           #   inspect:  PYTHONPATH=. python3 -m app.trace <campaign>/trace.jsonl
 
 # ---- Model / endpoint (usually leave as-is) ----

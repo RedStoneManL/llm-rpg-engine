@@ -1,0 +1,32 @@
+{
+  "rows": [
+    {
+      "events": 1000,
+      "baseline_ms": 27.96917036175728,
+      "implemented_ms": 6.551090627908707,
+      "speedup": 4.269391457142126
+    },
+    {
+      "events": 3000,
+      "baseline_ms": 126.61126628518105,
+      "implemented_ms": 28.771085664629936,
+      "speedup": 4.400642636882906
+    },
+    {
+      "events": 6000,
+      "baseline_ms": 678.8188591599464,
+      "implemented_ms": 44.95900683104992,
+      "speedup": 15.098617763307342
+    },
+    {
+      "events": 12000,
+      "baseline_ms": 1898.6476212739944,
+      "implemented_ms": 78.4687027335167,
+      "speedup": 24.19624073207746
+    }
+  ],
+  "repeats": 3,
+  "statistic": "median",
+  "all_projections_equal": true,
+  "scope": "synthetic fact projection only; no LLM calls, transaction cost or relation-heavy workloads"
+}

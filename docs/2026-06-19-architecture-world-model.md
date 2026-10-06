@@ -1,6 +1,6 @@
 # 世界模型架构示意（rpg-engine-app · `app` 分支）
 
-> 截至 2026-06-19 的**当前**架构(v1 + 活世界层 A–E + context/continuity 重构 P1/P2 已落地;P3 工具层规划中、图中以"拉/PULL"虚线标出)。配套:设计 spec `2026-06-17-rpg-ultimate-harness-design.md`、重构 spec `superpowers/specs/2026-06-19-context-continuity-tools-redesign.md`。
+> **机制级**架构示意(回合循环 / 推-拉上下文 / 数据底座)。2026-06-19 起草,所绘**机制此后稳定**;P3 拉式工具层已落地。此后新增的系统(lore 暗线 / world-clock / world-bootstrap / player-genesis / multiturn-compaction)未列入下图的系统清单——**当前完整系统册以 [`MODULE_INDEX.md`](MODULE_INDEX.md) 为准**(本文是其配套的可视化机制图)。配套设计 spec:[`2026-06-17-rpg-ultimate-harness-design.md`](2026-06-17-rpg-ultimate-harness-design.md)、[context-continuity 重构 spec](archive/superpowers/specs/2026-06-19-context-continuity-tools-redesign.md)。
 
 ## 一句话心智模型
 
@@ -49,7 +49,7 @@
    各系统 inject() ─────▶│        叙事模型这一回合看到的上下文          │
    + assemble 组装        │   (cache 友好: stable → scene → volatile)  │
                          └───────────────────────────────────────────┘
-   ▲ 推(强制·每回合必看·延续性命脉)                       ▲ 拉(按需·P3 规划中)
+   ▲ 推(强制·每回合必看·延续性命脉)                       ▲ 拉(按需·P3 已落地)
    │                                                      │
    ├─[stable 层]  Ontology: 世界规则                      │  ┌─────────────────┐
    │              Narrative: 往昔概要(recap 老场景摘要)   │  │  叙事模型按需查的  │

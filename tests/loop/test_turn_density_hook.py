@@ -32,11 +32,13 @@ from llm.provider import FakeLLMProvider
 # ---------------------------------------------------------------------------
 
 def _reg():
+    from systems.time import TimeSystem
     r = Registry()
     r.register(OntologySystem())
     r.register(PlaceSystem())
     r.register(CharacterSystem())
     r.register(LoreSystem())
+    r.register(TimeSystem())
     return r
 
 
@@ -72,7 +74,7 @@ def _narrator_commit(to: str | None = None):
         "places": [],
         "cast": [],
         "facts": [],
-        "clock": [],
+        "clock": [{"advance":False,"days":0,"bands":0,"reason":"片刻"}],
     }
     if to:
         commit["moves"] = [{"who": "hero", "to": to}]

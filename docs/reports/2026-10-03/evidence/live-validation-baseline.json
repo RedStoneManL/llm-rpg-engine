@@ -1,0 +1,1102 @@
+{
+  "model_requested": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "status": "completed_requires_review",
+  "real_calls": 24,
+  "samples": [
+    {
+      "scenario": "payment",
+      "repeat": 0,
+      "strategy": "author",
+      "seconds": 3.338704852387309,
+      "calls": 2,
+      "repairs": 1,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把三枚金币推过吧台。酒保用两根手指把它们扫进围裙口袋，顺手从架子上取下一只粗陶杯，从一只深色的木桶里接满，杯口浮着一层浅白的沫。酒液带着麦芽和一点焦糖的气味。\n\n「谢了。」他朝你点点头，转身去招呼另一头的客人。你手里还剩七枚金币。酒馆里人不多，靠窗那张桌子上，一个披斗篷的瘦高个正用指尖转着一枚旧铜钱，眼睛半垂着，没在喝杯里的东西。",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [
+          {
+            "id": "innkeeper",
+            "op": "create",
+            "name": "酒保",
+            "sketch": "这间酒馆的掌柜，中年，围裙上沾着常年擦不干净的水渍，话不多，记账却很清楚。",
+            "goal": "维持酒馆的经营，看清每个新来的客人是什么路数"
+          },
+          {
+            "id": "cloaked_stranger",
+            "op": "create",
+            "name": "披斗篷的瘦高个",
+            "sketch": "坐在靠窗座位，斗篷压得很低，指尖反复转着一枚旧铜钱，杯里的酒几乎没动过，像是在等什么人。",
+            "goal": "等待一个尚未露面的人，同时留意进门的每一个生面孔"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 10
+          },
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 7,
+            "secrecy": "public"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "hero.coins",
+            "value": 7,
+            "via": "亲眼看着钱袋里的金币减少"
+          }
+        ],
+        "clock": [
+          {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "完成一次买酒付款，清晨的酒馆从安静进入日常营业，场景内出现新的可关注对象"
+          }
+        ]
+      },
+      "expected_coins": 7,
+      "persisted": true,
+      "observed_coins": 7,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "payment",
+      "repeat": 0,
+      "strategy": "hybrid",
+      "seconds": 3.094480112195015,
+      "calls": 2,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把三枚金币推到吧台上。铜面蹭过那块被历年酒渍浸得发黑的木沿，发出一声很轻的、有点钝的响。酒保的拇指按上去，一枚一枚往掌心里拨，没数第二遍。\n\n他就收了三枚。这地方不宽裕，但没人在三枚金币上耍花样。\n\n杯子推过来的时候，酒液晃了一圈，撞在杯壁上又退回去。晨光从门口斜进来，只照亮了半张桌面，你的手和杯子的影子都拖得很长。店里没什么人，墙角一个老头趴在桌上，呼吸声很重。灶上还留着昨夜的火星，哔剥一下，又没了。\n\n你没急着喝。酒保也不催，拿了块布擦另一只杯子，眼神落在门口。\n\n三枚金币出去，钱袋轻了。他没问你从哪儿来。",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 7,
+            "secrecy": "public"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一清晨内的连续场景，喝酒与付账都发生在片刻之间，时段未切换"
+          }
+        ]
+      },
+      "expected_coins": 7,
+      "persisted": true,
+      "observed_coins": 7,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "payment",
+      "repeat": 1,
+      "strategy": "hybrid",
+      "seconds": 3.0473520141094923,
+      "calls": 3,
+      "repairs": 1,
+      "dropped": [
+        "clock"
+      ],
+      "validation_errors": [
+        {
+          "section": "clock",
+          "code": "clock_required"
+        }
+      ],
+      "narration": "木杯推过来，麦酒在杯壁上挂着细密的水珠，边缘一圈泡沫还没散尽。你把三枚金币并排搁在潮湿的柜面上，老板娘用拇指把它们拢进掌心，低头翻看了一眼年份，没多话。\n\n左手边的角落里有个人一直没喝酒，杯口凝着灰。他看你付账，视线在那枚最旧的金币上多停了一瞬，随即移开。",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": []
+      },
+      "expected_coins": 7,
+      "persisted": false
+    },
+    {
+      "scenario": "payment",
+      "repeat": 1,
+      "strategy": "author",
+      "seconds": 1.0177997946739197,
+      "calls": 1,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把三枚金币拍在柜台上。酒保的数钱动作快得像变戏法，金币落袋，一杯浑浊的麦酒推到你面前。他没多看你一眼，转身去招呼别的桌子。",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 7,
+            "secrecy": "public"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "只是付钱买酒，时间未实质推进"
+          }
+        ]
+      },
+      "expected_coins": 7,
+      "persisted": true,
+      "observed_coins": 7,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "insufficient_funds",
+      "repeat": 0,
+      "strategy": "author",
+      "seconds": 2.9157478529959917,
+      "calls": 1,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "晨光斜切过旅店大堂，洒在柜台上一层薄灰。你把话撂在台面上——想买下这间旅店，价钱一百金币。老板手里的抹布停在半空，抬眼看了你半晌，慢悠悠把抹布搭上肩。\n\n「一百枚？」他嗤了一声，不是嘲笑，更像听见什么老掉牙的笑话。「这铺子我开了二十三年。你出得起一百，我未必肯卖；你出不起一百，就更别拿我寻开心了。」\n\n他把账本往你这边推了推，指节敲了敲封皮：「你身上几个钱，我看得出来。想借？这条街上放债的倒是有一个——利滚利，能把人骨头都榨出油来。你要是真有心，先去凑钱，凑齐了再来跟我谈价。」他顿了顿，眼神里像是有点别的意思，「不过丑话说前头，铺子这东西，价钱是会变的。」",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [
+          {
+            "id": "innkeeper",
+            "op": "create",
+            "sketch": "旅店老板，五十上下，开了二十三年店，精明而不失分寸，话说一半留一半",
+            "goal": "摸清hero买店的真实意图与财力，为自己争取最大利益",
+            "name": "旅店老板"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "inn",
+            "predicate": "售价",
+            "value": "老板口头报价100金币，但表示价钱会变",
+            "secrecy": "restricted"
+          },
+          {
+            "subject": "innkeeper",
+            "predicate": "经营年限",
+            "value": "二十三年"
+          },
+          {
+            "subject": "hero",
+            "predicate": "购店意图",
+            "value": "已向老板表明想以100金币买下旅店",
+            "secrecy": "restricted"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "inn.售价",
+            "value": "老板报价100金币且暗示价钱会变动",
+            "via": "老板亲口"
+          },
+          {
+            "op": "told",
+            "knower": "innkeeper",
+            "fact_key": "hero.购店意图",
+            "value": "hero想买下旅店",
+            "via": "hero亲口"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "一段柜台前的对话，时间未实质推进"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "insufficient_funds",
+      "repeat": 0,
+      "strategy": "hybrid",
+      "seconds": 5.548102868720889,
+      "calls": 3,
+      "repairs": 1,
+      "dropped": [
+        "clock"
+      ],
+      "validation_errors": [
+        {
+          "section": "clock",
+          "code": "clock_required"
+        }
+      ],
+      "narration": "柜台上的铜板还带着灶间的暖意。旅店老板擦着同一只杯子，已经擦了很久——老板不是个话多的人，可他那双眼睛在你们进门时就量过你们的靴子、腰间的袋子，还有袋子的份量。\n\n听你说完，他把杯子放下，压在抹布上，转过来看你。他没有笑，也没有当你是在开玩笑。\n\n\"一百枚。\"他重复了一遍，声音不高，像是先把这个数在自己嘴里过了过秤。\"我这店开了十九年，檐上那片瓦还是我亲手翻的。你出这个价，我认。钱呢？\"\n\n你说了借钱的事。\n\n他拿起杯子，又擦起来。这回擦得快，杯沿在灯下转出一圈细光。\n\n\"我这儿不赊账。\"他说，\"住店的，也是先付后住。\"他顿了顿，往铺子那头努了努嘴——那边坐着的老住客正把一个钱袋往怀里收，动作慢，但没停。\"你要是钱不够，有两个法子。一是去把这一百枚凑齐了，回来说话。二是——\"他终于停下手，认认真真看了你一眼，\"我这店缺个跑腿的。工钱，不算多。\"\n\n窗外街上的石板还湿着，早市的骡车轧过去，一声一声。他等着你答话。",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [
+          {
+            "id": "innkeeper",
+            "op": "create",
+            "sketch": "开了十九年旅店的中年老板，话少，眼神精明，看人先量靴子和钱袋；不赊账，但店里缺跑腿的人手",
+            "goal": "把店经营下去，钱要现结；对出得起价的客人（比如一百枚买瓦）愿意谈，否则招个跑腿的顶工钱",
+            "name": "旅店老板"
+          },
+          {
+            "id": "old_lodger",
+            "op": "create",
+            "sketch": "旅店里坐了很久的老住客，把装钱的袋子往怀里收，动作慢但没停",
+            "goal": "守住自己的钱袋，低调地待在店里",
+            "name": "老住客"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "innkeeper",
+            "predicate": "年数经营",
+            "value": 19,
+            "secrecy": "public"
+          },
+          {
+            "subject": "innkeeper",
+            "predicate": "规矩",
+            "value": "不赊账，住店先付后住",
+            "secrecy": "public"
+          },
+          {
+            "subject": "innkeeper",
+            "predicate": "开价",
+            "value": "一百枚铜板认卖檐上那片瓦；店里缺跑腿的，工钱不多",
+            "secrecy": "public"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": false
+    },
+    {
+      "scenario": "insufficient_funds",
+      "repeat": 1,
+      "strategy": "hybrid",
+      "seconds": 4.984411733224988,
+      "calls": 3,
+      "repairs": 1,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "旅店大厅的桌面上还留着昨夜没擦净的油渍，老板正用一块半湿的粗布来回打圈。你把话说完，他手下没停，只抬起眼皮扫了你一下，像在掂量一袋麦子够不够分量。\n\n“一百枚，”他把措辞嚼了一遍，布搭上肩，“这价钱我不吃亏。可你手里有多少，我上礼拜就看出来了——十枚，还是昨夜赌桌上那点零头。”\n\n柜台角落摆着本卷了边的账册，他伸手压了压，没翻开。“借？”他笑了一声，很短，“镇上放钱的就那么几位，你拿什么做押？没铺子没地，十枚金币连我这屋里的酒桶都买不走。”\n\n他把抹布丢进盆里，水响了一声。\n\n“这样吧。你要是真想盘它，我倒不急着赶你的话。先攒着，攒够了我再跟你谈价——不过这期间店是我的，你说得不算。”",
+      "sections": {
+        "moves": [],
+        "places": [],
+        "cast": [
+          {
+            "id": "innkeeper",
+            "op": "create",
+            "name": "旅店老板",
+            "sketch": "经营inn的中年男人，精于世故、善察人心，一眼看穿hero的钱袋子；不愿赊账，只肯等hero攒够钱再谈盘店。",
+            "goal": "守住自己的旅店生意，不做亏本买卖；对盘店一事持观望态度"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 10
+          },
+          {
+            "subject": "innkeeper",
+            "predicate": "attitude_toward_sale",
+            "value": "拒绝立即出售或赊账，提出等hero攒够一百枚金币再谈，期间旅店仍归自己掌控"
+          },
+          {
+            "subject": "innkeeper",
+            "predicate": "asking_price",
+            "value": 100
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "整段对话发生在同一时段（晨）内的连续场景，无时间流逝"
+          }
+        ],
+        "relations": [
+          {
+            "src": "innkeeper",
+            "rel": "owns",
+            "dst": "inn"
+          }
+        ],
+        "quests": [
+          {
+            "op": "open",
+            "id": "buy_inn",
+            "summary": "hero想盘下旅店，老板开价一百枚金币并要求先攒够钱再谈价，期间旅店仍归老板掌控"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "insufficient_funds",
+      "repeat": 1,
+      "strategy": "author",
+      "seconds": 2.685378108173609,
+      "calls": 1,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把这句荒唐的话说出口时，自己都觉得像在开玩笑。旅店老板正擦着一只豁口的木杯，闻言愣了半息，抬眼把你从头到脚看了一遍。他没恼，反而嗤地笑出声，把杯子往柜台上一搁：「一百枚？小子，我这家店连墙皮带地皮，也值不上这个数。」他顿了顿，随手朝窗外那条尘土飞扬的街甩了甩下巴，「你要真想有间自己的窝，街尾那幢塌了半边的旧铺子，房东早想脱手，你去问了就知道——便宜得能让你笑掉牙。」说完他重新抄起木杯，一副懒得再搭理你的样子。",
+      "sections": {
+        "moves": [],
+        "places": [
+          {
+            "id": "street_end_shop",
+            "level": 2,
+            "kind": "venue",
+            "seed": "街尾一幢塌了半边的旧铺子，房东急于脱手，要价极低"
+          }
+        ],
+        "cast": [
+          {
+            "id": "innkeeper",
+            "op": "create",
+            "sketch": "旅店老板，擦着豁口木杯的中年人，说话直白带刺，只认现钱",
+            "goal": "把自己的旅店经营下去，不稀罕空口的大话",
+            "name": "旅店老板"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "inn",
+            "predicate": "老板报价",
+            "value": "连墙带地也值不上一百枚金币",
+            "secrecy": "public"
+          },
+          {
+            "subject": "street_end_shop",
+            "predicate": "售价",
+            "value": "房东急于脱手，要价极低"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "street_end_shop.售价",
+            "value": "街尾旧铺子房东急于脱手，要价极低",
+            "via": "旅店老板指点"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前一段简短对话，时间未实质推进"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "conversation",
+      "repeat": 0,
+      "strategy": "author",
+      "seconds": 3.3907101787626743,
+      "calls": 1,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把一枚金币在指间转了半圈，又收回去，只朝柜台后的侍者抬了抬下巴：「这一带，有什么值得走一趟的地方？」\n\n侍者拿抹布擦着酒杯，眼皮抬了一下，看你那没花出去的意思，倒也不恼。他往窗外努了努嘴：「镇子东头出去是旧驿道，往北走小半天，有片废矿——前两年塌过一回，封了。可夜里老有人往那边摸，谁知道找什么。」\n\n他顿了顿，声音放低了些：「再有就是南边码头。这阵子来的船，卸的货跟报关的账对不上。客官要是找人，去码头喝酒准没错。」\n\n他把杯子搁上架，像是随口补了一句：「您要是真往矿上走，白天去。别赶夜路。」\n\n窗外的街上，早市刚支起摊子，卖炭的吆喝声一声接一声。",
+      "sections": {
+        "moves": [],
+        "places": [
+          {
+            "id": "old_mine",
+            "level": 2,
+            "kind": "wilderness",
+            "seed": "镇北半日路程的废弃矿洞，两年前塌方后封禁，却有人夜里悄悄出没"
+          },
+          {
+            "id": "dock",
+            "level": 2,
+            "kind": "venue",
+            "seed": "南边码头的酒馆区，来往船上货物与账目对不上，水手与掮客混杂"
+          }
+        ],
+        "cast": [
+          {
+            "id": "inn_keeper",
+            "op": "create",
+            "sketch": "客栈柜台后的侍者，擦杯子的中年男人，话不多但知道镇上不少事",
+            "goal": "守着自己的活计，对肯听的客人提点几句，不愿惹麻烦",
+            "name": "客栈侍者"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "old_mine",
+            "predicate": "状态",
+            "value": "两年前塌方封禁，近期夜里有人出没",
+            "secrecy": "public"
+          },
+          {
+            "subject": "dock",
+            "predicate": "异动",
+            "value": "近期到港船只货物与报关账目不符",
+            "secrecy": "public"
+          },
+          {
+            "subject": "inn_keeper",
+            "predicate": "态度",
+            "value": "愿意向客人提点本地风声",
+            "secrecy": "public"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "old_mine.状态",
+            "value": "两年前塌方封禁，近期夜里有人出没",
+            "via": "客栈侍者口述"
+          },
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "dock.异动",
+            "value": "近期到港船只货物与报关账目不符",
+            "via": "客栈侍者口述"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "仍在客栈内的一段简短交谈，时间未实质推进"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "conversation",
+      "repeat": 0,
+      "strategy": "hybrid",
+      "seconds": 5.175651215016842,
+      "calls": 3,
+      "repairs": 1,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "清晨的旅店堂里还浮着昨夜烧剩的柴灰味。侍者正用一块灰布擦着陶杯，动作不紧不慢，见你走近才抬头。\n\n“值当去的地方？”他把杯子搁下，用布角揩了揩手，“往北走到镇口那棵歪脖子树下，有条往山里去的旧路，猎户们说上头有座塌了半边的石亭，天晴时能望见远处的河。东边集市倒热闹，可那都是买买卖卖，你既说不添东西，去了也白站着。”\n\n他顿了顿，压低些声音：“再有就是后街那间没挂招牌的屋子，夜里才开门，最近总有人进出，脸都遮着。我不好多嘴。”\n\n说完他重新抄起杯子，像是那最后一句本就是随口撂的。窗外天光刚漫过屋檐，堂里除了你们两个，再无旁人。\n\n【钟】advance true, bands 1, reason：与侍者闲谈片刻，晨推进至中午",
+      "sections": {
+        "moves": [],
+        "places": [
+          {
+            "id": "crooked_tree_road",
+            "level": 2,
+            "kind": "wilderness",
+            "seed": "镇口歪脖子树下通往山里的旧路，猎户常走，尽头有座塌了半边的石亭，天晴时能望见远处的河。"
+          },
+          {
+            "id": "east_market",
+            "level": 2,
+            "kind": "venue",
+            "seed": "东边热闹的集市，满是买买卖卖的摊贩与吆喝，适合采买补给、打听行情。"
+          },
+          {
+            "id": "back_alley_house",
+            "level": 2,
+            "kind": "venue",
+            "seed": "后街那间没挂招牌的屋子，只有夜里才开门，近日总有人蒙着脸进出，透着说不清的古怪。"
+          }
+        ],
+        "cast": [
+          {
+            "id": "inn_waiter",
+            "op": "create",
+            "sketch": "旅店堂里擦陶杯的侍者，动作不紧不慢，说话留半句，对镇子附近的门道却门儿清，尤其那间夜屋的事只肯压低声音点一句就收。",
+            "goal": "守着自己的活儿，对肯搭话的客人顺手透些本地路数，但真正的秘密绝不轻易说透。",
+            "name": "侍者"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 10
+          },
+          {
+            "subject": "inn",
+            "predicate": "morning_company",
+            "value": "除侍者外再无旁人"
+          }
+        ],
+        "clock": [
+          {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "与侍者闲谈片刻，晨推进至中午"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    },
+    {
+      "scenario": "conversation",
+      "repeat": 1,
+      "strategy": "hybrid",
+      "seconds": 4.802189281210303,
+      "calls": 3,
+      "repairs": 1,
+      "dropped": [
+        "clock"
+      ],
+      "validation_errors": [
+        {
+          "section": "clock",
+          "code": "clock_required"
+        }
+      ],
+      "narration": "天还没大亮，客栈堂里只点了两盏灯，光晕够不着墙角。凳子一只脚短了半寸，你坐着，靴跟轻轻磕一下，它就跟着晃一下。\n\n侍者正拿抹布擦长桌，指节通红。听你问起附近，他手上的动作没停，斜眼扫了你一眼，又看了看你腰间那十枚金币的位置——那是他第三次看那儿了。\n\n“往东走三里，有座旧磨坊，夜里亮过灯。”他说得很轻，像是不想让灶台那边的人听见，“河水这两年浅了，磨盘早不转了。谁在那儿住，没人说得上名。”\n\n抹布在桌上绕了半圈，他补一句：“再有就是北坡的废猎人小屋，装陷阱的老周，去年没再出来过。你要想动手，先掂量掂量身上带没带够东西。”\n\n灶上水开了，他拎起铜壶，把“掂量”两个字留在桌上晾着。",
+      "sections": {
+        "moves": [],
+        "places": [
+          {
+            "id": "old_mill",
+            "level": 3,
+            "kind": "venue",
+            "seed": "河东三里废弃磨坊，河水变浅后磨盘停转，夜里偶有人点灯"
+          },
+          {
+            "id": "hunter_hut",
+            "level": 3,
+            "kind": "venue",
+            "seed": "北坡废弃猎人小屋，装陷阱的老周去年一去不回"
+          }
+        ],
+        "cast": [
+          {
+            "id": "innkeeper_waiter",
+            "op": "create",
+            "sketch": "客栈侍者，指节通红，擦桌为生，对人腰间钱财格外留意，说话压着嗓子怕被灶台那边听见",
+            "goal": "守住客栈里的安稳日子，不惹麻烦，偶尔用打听来的消息换点小利"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "hero",
+            "predicate": "coins",
+            "value": 10,
+            "secrecy": "public"
+          },
+          {
+            "subject": "innkeeper_waiter",
+            "predicate": "knows_local_rumors",
+            "value": "知道东边旧磨坊夜里有灯、北坡废猎人屋老周失踪的事"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": false
+    },
+    {
+      "scenario": "conversation",
+      "repeat": 1,
+      "strategy": "author",
+      "seconds": 2.522734098136425,
+      "calls": 1,
+      "repairs": 0,
+      "dropped": [],
+      "validation_errors": [],
+      "narration": "你把一枚铜板在指间转了半圈，没让它落进柜台，只叫住正擦杯子的侍者。「附近有什么值得去的地方？」\n\n侍者手一顿，往窗外那条主街抬了抬下巴：「往北走半刻钟，山脚下有座塔，说是前朝修的，没人敢进去——去年镇长派人去看，回来一个，疯了，嘴里念叨着『下面是活的』。」他把杯子搁下，压低声音，「东边林子倒是有猎户走的道，谁都能进。再往南……就没什么了，除非你想搭商队的车去城里。」\n\n他瞥了眼你手里那枚没花出去的钱，笑意收了收，回头继续擦他的杯子。",
+      "sections": {
+        "moves": [],
+        "places": [
+          {
+            "id": "tower",
+            "level": 2,
+            "kind": "dungeon",
+            "seed": "山脚的前朝旧塔，无人敢入，去年探过的人只回来一个，疯了，说「下面是活的」"
+          },
+          {
+            "id": "east_woods",
+            "level": 2,
+            "kind": "wilderness",
+            "seed": "客栈东边一片林子，有猎户常走的土道"
+          }
+        ],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "tower",
+            "predicate": "传闻",
+            "value": "前朝旧塔，无人敢入；去年镇长的探查队只回来一人，疯了，反复说『下面是活的』",
+            "secrecy": "public"
+          },
+          {
+            "subject": "east_woods",
+            "predicate": "可通行",
+            "value": "有猎户常走的土道，谁都能进",
+            "secrecy": "public"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "tower.传闻",
+            "value": "前朝旧塔，无人敢入；去年镇长的探查队只回来一人，疯了，反复说『下面是活的』",
+            "via": "客栈侍者"
+          },
+          {
+            "op": "told",
+            "knower": "hero",
+            "fact_key": "east_woods.可通行",
+            "value": "有猎户常走的土道，谁都能进",
+            "via": "客栈侍者"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "仅一段柜台前的问答，时间未实质推进"
+          }
+        ]
+      },
+      "expected_coins": 10,
+      "persisted": true,
+      "observed_coins": 10,
+      "accounting_ok": true
+    }
+  ],
+  "api_calls": [
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.6337896324694157,
+      "usage": {
+        "prompt_tokens": 2123,
+        "completion_tokens": 399,
+        "total_tokens": 2522,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2123
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.7027902025729418,
+      "usage": {
+        "prompt_tokens": 2601,
+        "completion_tokens": 37,
+        "total_tokens": 2638,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 169
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.909669192507863,
+      "usage": {
+        "prompt_tokens": 362,
+        "completion_tokens": 186,
+        "total_tokens": 548,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 362
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.1834446024149656,
+      "usage": {
+        "prompt_tokens": 1623,
+        "completion_tokens": 102,
+        "total_tokens": 1725,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1623
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.9319686945527792,
+      "usage": {
+        "prompt_tokens": 362,
+        "completion_tokens": 90,
+        "total_tokens": 452,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 234
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.3381598442792892,
+      "usage": {
+        "prompt_tokens": 1527,
+        "completion_tokens": 48,
+        "total_tokens": 1575,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280
+        },
+        "prompt_cache_hit_tokens": 1280,
+        "prompt_cache_miss_tokens": 247
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.7711244039237499,
+      "usage": {
+        "prompt_tokens": 1689,
+        "completion_tokens": 30,
+        "total_tokens": 1719,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        },
+        "prompt_cache_hit_tokens": 1536,
+        "prompt_cache_miss_tokens": 153
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.0163355618715286,
+      "usage": {
+        "prompt_tokens": 2123,
+        "completion_tokens": 116,
+        "total_tokens": 2239,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 203
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.9145294949412346,
+      "usage": {
+        "prompt_tokens": 2128,
+        "completion_tokens": 471,
+        "total_tokens": 2599,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 208
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.742610566318035,
+      "usage": {
+        "prompt_tokens": 367,
+        "completion_tokens": 282,
+        "total_tokens": 649,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 239
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.9247379023581743,
+      "usage": {
+        "prompt_tokens": 1719,
+        "completion_tokens": 394,
+        "total_tokens": 2113,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408
+        },
+        "prompt_cache_hit_tokens": 1408,
+        "prompt_cache_miss_tokens": 311
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.8768653515726328,
+      "usage": {
+        "prompt_tokens": 2227,
+        "completion_tokens": 35,
+        "total_tokens": 2262,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048
+        },
+        "prompt_cache_hit_tokens": 2048,
+        "prompt_cache_miss_tokens": 179
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.986932558938861,
+      "usage": {
+        "prompt_tokens": 367,
+        "completion_tokens": 209,
+        "total_tokens": 576,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 239
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.8604217730462551,
+      "usage": {
+        "prompt_tokens": 1646,
+        "completion_tokens": 381,
+        "total_tokens": 2027,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408
+        },
+        "prompt_cache_hit_tokens": 1408,
+        "prompt_cache_miss_tokens": 238
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.1318008117377758,
+      "usage": {
+        "prompt_tokens": 2179,
+        "completion_tokens": 119,
+        "total_tokens": 2298,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 259
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.6837239526212215,
+      "usage": {
+        "prompt_tokens": 2128,
+        "completion_tokens": 513,
+        "total_tokens": 2641,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 208
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 3.3888752441853285,
+      "usage": {
+        "prompt_tokens": 2121,
+        "completion_tokens": 580,
+        "total_tokens": 2701,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 201
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.8385310713201761,
+      "usage": {
+        "prompt_tokens": 360,
+        "completion_tokens": 222,
+        "total_tokens": 582,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 232
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.547667106613517,
+      "usage": {
+        "prompt_tokens": 1659,
+        "completion_tokens": 440,
+        "total_tokens": 2099,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408
+        },
+        "prompt_cache_hit_tokens": 1408,
+        "prompt_cache_miss_tokens": 251
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.780882865190506,
+      "usage": {
+        "prompt_tokens": 2213,
+        "completion_tokens": 51,
+        "total_tokens": 2264,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048
+        },
+        "prompt_cache_hit_tokens": 2048,
+        "prompt_cache_miss_tokens": 165
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 1.9576051626354456,
+      "usage": {
+        "prompt_tokens": 360,
+        "completion_tokens": 212,
+        "total_tokens": 572,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 232
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.1247158478945494,
+      "usage": {
+        "prompt_tokens": 1649,
+        "completion_tokens": 308,
+        "total_tokens": 1957,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408
+        },
+        "prompt_cache_hit_tokens": 1408,
+        "prompt_cache_miss_tokens": 241
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 0.7117079645395279,
+      "usage": {
+        "prompt_tokens": 2071,
+        "completion_tokens": 40,
+        "total_tokens": 2111,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 151
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "seconds": 2.520226091146469,
+      "usage": {
+        "prompt_tokens": 2121,
+        "completion_tokens": 463,
+        "total_tokens": 2584,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 201
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "scope": "paired one-turn synthetic scenes, not a long-session or streaming acceptance"
+}

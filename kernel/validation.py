@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 
 from kernel.registry import Registry
 from kernel.turncommit import TurnCommit
@@ -48,6 +49,11 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
     omit a section it forgot — it must affirmatively declare "no change" via [].
     """
     errors: list[ValidationError] = []
+    if not isinstance(commit.narration, str) or (required_sections and not commit.narration.strip()):
+        errors.append(ValidationError('narration', '', 'missing_narration', 'narration 必须是非空的散文字符串'))
+    elif re.search(r'\\?"(?:narration|facts|knowledge|clock)\\?"\s*:', commit.narration or ''):
+        errors.append(ValidationError('narration', '', 'structured_prose',
+            'narration 只能是给玩家阅读的散文，不能包含 JSON 结构、内部字段或原始提交；重新提取纯正文'))
     g = world.get("systems", {}).get("ontology")
 
     # Same-commit cross-references: collect the ids this commit will create and
@@ -57,8 +63,13 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
     pending: set[str] = set()
     for section, decl in commit.sections.items():
         owner = registry.owner_of_section(section)
-        if owner is not None:
-            pending |= owner.created_ids(section, decl)
+        if owner is not None and not _section_shape_errors(section, decl):
+            try:
+                pending |= {pid for pid in owner.created_ids(section, decl)
+                            if isinstance(pid, str) and pid.strip()}
+            except (TypeError, ValueError, AttributeError) as exc:
+                errors.append(ValidationError(section, '', 'bad_shape',
+                    f'无法读取本段声明的实体 id：{exc}；id 必须是非空字符串'))
 
     stubbed: list[str] = []
     try:
@@ -91,20 +102,23 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
         for pid in stubbed:
             g.entities.pop(pid, None)
 
-    # Presence + reason requirement: every required section must EITHER carry
-    # content OR be explained in `reasons` (why it's empty this turn). Forces the
-    # model to consciously confirm "nothing happened here" rather than silently
-    # omit (or reflexively dump []) a section it actually forgot.
-    reasons = commit.reasons or {}
-    for s in required_sections:
-        decl = commit.sections.get(s)
-        has_content = isinstance(decl, list) and len(decl) > 0
-        has_reason = bool(str(reasons.get(s, "")).strip())
-        if not has_content and not has_reason:
+    # Required-section presence. An empty section is given as a bare [] meaning
+    # "no change this turn" — that is VALID, no `reasons` entry needed (the
+    # narration prompt teaches "[] = no change"; the old empty_no_reason rule
+    # contradicted that prompt and burned a repair round on every quiet turn). The
+    # sole exception is clock: time must be accounted for every turn, so clock must
+    # be present as a non-empty array (TimeSystem.validate then checks its shape;
+    # a reasons-only clock does not count).
+    for section in sorted(required_sections - {'clock'}):
+        if section not in commit.sections or commit.sections[section] is None:
+            errors.append(ValidationError(section, '', 'missing_section',
+                f'{section} 段必须显式给出；没有变化时给空数组 []'))
+    if "clock" in required_sections:
+        decl = commit.sections.get("clock")
+        if not (isinstance(decl, list) and len(decl) > 0):
             errors.append(ValidationError(
-                s, "", "empty_no_reason",
-                f"段 {s!r} 为空;若本回合确无变化,必须在顶层 reasons 里写明【为什么】没有"
-                f"(强制确认你不是漏写)，例如 reasons:{{\"{s}\":\"主角停在原地,未移动\"}}"))
+                "clock", "", "clock_required",
+                "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"))
 
     log.debug("validate_commit sections=%d errors=%d pending=%d required=%d",
               len(commit.sections), len(errors), len(pending), len(required_sections))

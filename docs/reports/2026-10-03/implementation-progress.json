@@ -1,0 +1,60 @@
+{
+  "objective": "完善现有 RPG harness：可信世界状态、持续记忆、幕后演化、多题材与可复现随机性；实际 DeepSeek 游玩验证及架构对照 HTML",
+  "project": "/root/rpg-engine-app",
+  "baseline_head": "fb7ebd899f2faf0ba7c76974f90203475f4ff1e8",
+  "preserved_user_change": "run.sh",
+  "phases": [
+    {
+      "id": "P1",
+      "status": "implemented_and_verified_with_documented_limits",
+      "scope": "原子批量提交、预演、版本冲突、完整动作撤销、失败不推进对话"
+    },
+    {
+      "id": "P2",
+      "status": "implemented_and_verified_with_documented_limits",
+      "scope": "校验健壮性、事实索引、时钟与可见性/信念读视图、可靠上下文刷新"
+    },
+    {
+      "id": "P3",
+      "status": "implemented_and_verified_with_documented_limits",
+      "scope": "DeepSeek 原生配置与工具协议、创世失败不污染存档"
+    },
+    {
+      "id": "P4",
+      "status": "implemented_and_verified_with_documented_limits",
+      "scope": "可复现的多样性提示及风格包扩展、与既有幕后演化协作"
+    },
+    {
+      "id": "P5",
+      "status": "implemented_and_verified_with_documented_limits",
+      "scope": "回归、故障恢复、多题材真实 DeepSeek 连续游玩与报告更新"
+    }
+  ],
+  "evidence_before_change": {
+    "baseline_tests": 1687,
+    "live_scenes": 12,
+    "author_accepted": 6,
+    "hybrid_accepted": 3,
+    "live_scene_calls": 24,
+    "protocol_calls": 5,
+    "legacy_thinking_tools_live_http": 200
+  },
+  "constraints": [
+    "密钥不入源码/报告",
+    "原存档只读验证，测试新存档/副本",
+    "不重写历史、不丢弃坏事件来伪造一致性",
+    "保留 flavor/style 扩展边界",
+    "报告不加入权限排查细节"
+  ],
+  "live_v1_failed_acceptance": "16 actions saved/replayed, but payments omitted balance changes and malformed JSON was retained as prose; preserved in implemented-live-play-v1-failures.json. Fixing before final acceptance.",
+  "final_verification": {
+    "pytest_passed": 1712,
+    "endurance_actions": 120,
+    "legacy_saves_equal": 7,
+    "final_live_actions": 16,
+    "accounting_checks_passed": 8,
+    "explicit_wait_checks_passed": 2,
+    "semantic_story_quality": "not_fully_accepted; see implemented-live-review.json"
+  },
+  "report": "/root/rpg-engine-audit-20261003/report.html"
+}

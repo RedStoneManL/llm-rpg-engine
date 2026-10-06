@@ -13,7 +13,7 @@ def scene_seed_helper():
 
 
 def test_draw_distinct_returns_k_distinct_and_deterministic():
-    table = load_table("thread_types", "genesis")
+    table = load_table("thread_types", "classic")
     a = _draw_distinct(Oracle(123), table, 3)
     b = _draw_distinct(Oracle(123), table, 3)
     assert len(a) == 3
@@ -21,13 +21,13 @@ def test_draw_distinct_returns_k_distinct_and_deterministic():
     assert [e["name"] for e in a] == [e["name"] for e in b]  # deterministic per seed
 
 def test_draw_distinct_caps_at_pool_size():
-    table = load_table("place_kinds", "genesis")      # only 3 entries
+    table = load_table("place_kinds", "classic")      # only 3 entries
     out = _draw_distinct(Oracle(1), table, 10)
     assert len(out) == 3
 
 def test_genesis_tables_load():
     for name in ("thread_types","npc_roles","place_kinds","tone_axes","terrains"):
-        t = load_table(name, "genesis")
+        t = load_table(name, "classic")
         assert isinstance(t, list) and t and all("name" in e for e in t)
 
 
@@ -38,6 +38,7 @@ class ScriptedProvider:
     so prose calls (gen_opening) and structured calls (gen_frame, etc.) can be
     scripted uniformly.
     """
+    is_offline = True  # Explicit fixture: intentionally exercises stub fallbacks.
     def __init__(self, replies): self._r = list(replies); self.i = 0
     def supports_tools(self): return False
     def _next(self):
@@ -52,7 +53,7 @@ def test_gen_frame_rolls_counts_deterministically():
     assert 3 <= frame["n_factions"] <= 5
     assert 3 <= frame["n_regions"] <= 5
     assert frame["world_name"] == "河谷王国"
-    assert frame["tone"] in {"悬疑","冒险","权谋","生存","恩怨"}
+    assert frame["tone"] in {"悬疑","冒险","权谋","生存","恩怨","热血","日常","治愈"}
     # world entity + public frame facts emitted
     types = [e["type"] for e in evs]
     assert "entity_created" in types
@@ -63,6 +64,48 @@ def test_gen_frame_falls_back_without_provider():
     evs, frame = gen_frame(None, Oracle(7), "x")
     assert frame["world_name"]            # non-empty stub name
     assert evs                            # still emits world entity
+
+
+# I6-P2: world multi-dimensional oracle seeds
+
+def test_roll_world_seeds_structure_and_override():
+    from loop.bootstrap import _roll_world_seeds
+    s = _roll_world_seeds(Oracle(1), {})
+    assert set(s) == {"magic_system", "power_ladder", "world_tension"}
+    assert all(isinstance(s[k], str) and s[k].strip() for k in s)
+    s2 = _roll_world_seeds(Oracle(1), {"magic_system": "自定义魔法"})
+    assert s2["magic_system"] == "自定义魔法"          # provided overrides the roll
+
+
+def test_gen_frame_carries_world_dims_in_frame_and_facts():
+    p = ScriptedProvider([json.dumps({"world_name": "碎星之地", "central_conflict": "星脉枯竭"})])
+    evs, frame = gen_frame(p, Oracle(3), "日式西幻")
+    for k in ("magic_system", "power_ladder", "world_tension"):
+        assert frame.get(k), f"frame missing world dim {k}"
+    facts = {e["deltas"]["predicate"] for e in evs if e["type"] == "fact_asserted"}
+    assert {"magic_system", "power_ladder", "world_tension"} <= facts
+
+
+# I6-P3b: gen_codex world setting blocks
+
+def test_gen_codex_emits_blocks_from_llm():
+    from loop.bootstrap import gen_codex
+    frame = {"world_name": "碎星之地", "magic_system": "符文", "power_ladder": "境界突破",
+             "world_tension": "魔潮压境", "central_conflict": "星脉枯竭"}
+    reply = json.dumps({"entries": [
+        {"kind": "实力等级", "title": "星脉位阶", "body": "由初窥到通脉，共九阶……"},
+        {"kind": "编年史", "title": "碎星编年", "body": "古时星辰坠地……"},
+    ]})
+    evs = gen_codex(ScriptedProvider([reply]), Oracle(2), frame,
+                    {"factions": [{"name": "星脉守望者"}]})
+    assert len(evs) == 2 and all(e["type"] == "codex_entry_added" for e in evs)
+    assert {"星脉位阶", "碎星编年"} == {e["deltas"]["title"] for e in evs}
+
+
+def test_gen_codex_stub_never_raises():
+    from loop.bootstrap import gen_codex
+    evs = gen_codex(None, Oracle(1), {"power_ladder": "分级", "world_tension": "争霸"})
+    assert len(evs) >= 2 and all(e["type"] == "codex_entry_added" for e in evs)
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +222,7 @@ def test_gen_regions_engine_terrain_wins_over_llm_echo():
     from engine.oracle import Oracle, load_table
     from loop.bootstrap import _draw_distinct
     oracle_probe = Oracle(5)
-    terrain_entries = _draw_distinct(oracle_probe, load_table("terrains", "genesis"), 2)
+    terrain_entries = _draw_distinct(oracle_probe, load_table("terrains", "classic"), 2)
     engine_terrains = [e["name"] for e in terrain_entries]
 
     frame = {"genre":"x","tone":"悬疑","central_conflict":"c","world_name":"w","n_factions":3,"n_regions":2}
@@ -750,7 +793,7 @@ def test_gen_npcs_all_events_genesis():
 
 def test_gen_npcs_npc_traits_table_loaded():
     """npc_traits oracle table exists with >= 6 entries, each having weight and name."""
-    traits = load_table("npc_traits", "genesis")
+    traits = load_table("npc_traits", "classic")
     assert isinstance(traits, list)
     assert len(traits) >= 6
     for entry in traits:
@@ -848,7 +891,7 @@ def _thread_counts(seed):
     from loop.bootstrap import _draw_distinct, _COMPLEXITY_TABLE, _SPEED_TABLE
     oracle = Oracle(seed)
     n = oracle.randint(3, 5)
-    _draw_distinct(oracle, load_table("thread_types", "genesis"), n)
+    _draw_distinct(oracle, load_table("thread_types", "classic"), n)
     for _ in range(n):
         oracle.draw(_COMPLEXITY_TABLE)
         oracle.draw(_SPEED_TABLE)
@@ -1616,6 +1659,18 @@ def test_bootstrap_world_protagonist_in_world(tmp_path):
             )
 
 
+def test_bootstrap_world_populates_codex(tmp_path):
+    """I6-P3b: genesis authors world-setting codex blocks (stub fallback ensures
+    they exist even without a real LLM)."""
+    from loop.bootstrap import bootstrap_world
+    from systems.codex import codex_entries
+    engine = _make_t9_engine(tmp_path)
+    bootstrap_world(engine, "东方武侠")
+    entries = codex_entries(engine.world)
+    assert entries, "genesis did not populate the codex"
+    assert all(e.get("title") and e.get("body") for e in entries)
+
+
 def test_bootstrap_world_determinism(tmp_path):
     """Two engines with the SAME campaign dir name (→ same campaign_seed) + same
     scripted replies produce identical event-type histograms.
@@ -2121,3 +2176,22 @@ def test_bootstrap_world_progress_exception_does_not_abort(tmp_path):
     result = bootstrap_world(engine, "东方武侠", progress=bad_progress)
     assert "summary" in result
     assert result["summary"].get("world_name"), "genesis aborted due to bad progress callback"
+
+
+# I6-P1: protagonist multi-dimensional oracle seeds (anti mode-collapse)
+
+def test_roll_protagonist_seeds_structure_and_block():
+    from loop.bootstrap import _roll_protagonist_seeds, _protagonist_seed_block
+    s = _roll_protagonist_seeds(Oracle(1))
+    assert set(s) == {"origin", "hook", "quirk"}
+    assert all(isinstance(s[k], str) and s[k].strip() for k in s)
+    block = _protagonist_seed_block(s)
+    assert s["origin"] in block and s["hook"] in block and s["quirk"] in block
+
+
+def test_protagonist_seeds_vary_across_campaigns():
+    """Different campaign seeds must yield varied protagonist origins — the whole
+    point (every play5-era run was the same 守塔人遗孤)."""
+    from loop.bootstrap import _roll_protagonist_seeds
+    origins = {_roll_protagonist_seeds(Oracle(i))["origin"] for i in range(12)}
+    assert len(origins) >= 3, f"protagonist origin barely varies: {origins}"

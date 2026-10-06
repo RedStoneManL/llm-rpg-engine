@@ -1,0 +1,45 @@
+#!/root/.hermes/skills/openclaw-imports/rpg-dm/.venv/bin/python
+"""hermes pre_llm_call hook: inject the active RPG campaign's working memory.
+SAFE: self-scoped (only when an RPG session is active+fresh) and fail-safe
+(any error → silent no-op; hermes also wraps hooks in try/except)."""
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+_SKILL = Path(__file__).resolve().parent.parent
+_TTL = 3600  # seconds; stale heartbeat → assume the RPG session ended
+
+def _storage():
+    return Path(os.environ.get("RPG_HOME", _SKILL)) / "storage"
+
+def main():
+    try:
+        json.load(sys.stdin)          # consume payload (we don't need fields, but must read)
+    except Exception:
+        return
+    try:
+        sp = _storage() / "hook_state.json"
+        if not sp.exists():
+            return
+        st = json.loads(sp.read_text())
+        if not st.get("active"):
+            return
+        if time.time() - float(st.get("ts", 0)) > _TTL:
+            return
+        campaign = st.get("campaign")
+        cd = _storage() / "campaigns" / str(campaign)
+        if not cd.exists():
+            return
+        sys.path.insert(0, str(_SKILL))
+        from engine.compact import build_working_memory
+        wm = build_working_memory(cd)
+        if wm and wm.strip():
+            print(json.dumps({"context": "【跑团 · 当前工作记忆(harness 注入)】\n" + wm},
+                             ensure_ascii=False))
+    except Exception:
+        return  # never break the turn
+
+if __name__ == "__main__":
+    main()

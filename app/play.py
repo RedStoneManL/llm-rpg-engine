@@ -179,7 +179,7 @@ OOC 指令 (以 / 开头):
 def _build_scene(engine) -> dict:
     """Construct a scene dict from the current world state.
 
-    protagonist: first tracked Person in the graph (fallback 'protagonist').
+    protagonist: canonical 'protagonist' when present, otherwise first tracked Person.
     location:    derived from g.neighbors(protagonist, 'located_in', day) first result;
                  falls back to meta['scene'] if the protagonist has no located_in edge.
     present:     every OTHER tracked Person whose current located_in place equals
@@ -191,7 +191,7 @@ def _build_scene(engine) -> dict:
 
     # Find protagonist (first tracked Person)
     protagonist_id = "protagonist"
-    if g:
+    if g and g.get_entity(protagonist_id) is None:
         for eid, e in g.entities.items():
             if e.etype == "Person" and e.tier == "tracked":
                 protagonist_id = eid
@@ -362,7 +362,6 @@ def _candidate_record(commit, attempts, dropped) -> dict:
     return {
         "narration": commit.narration,
         "sections": commit.sections,
-        "reasons": commit.reasons,
         "repair_attempts": attempts,
         "dropped": list(dropped or []),
     }
@@ -378,6 +377,7 @@ def play_loop(
     transcript_path=None,
     max_repairs: int = 6,
     required_sections: frozenset = REQUIRED_SECTIONS,
+    echo_input: bool = True,
 ) -> None:
     """REPL play loop.
 
@@ -415,7 +415,12 @@ def play_loop(
         line = cleaned
 
         if line.startswith("/"):
+            revision_before = engine.store.revision
             stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
+            if engine.store.revision != revision_before:
+                if hasattr(strategy, 'reset'):
+                    strategy.reset()
+                prev_scene = None
             if stop:
                 break
             continue
@@ -427,12 +432,18 @@ def play_loop(
 
         get_tracer().event("player_input", text=player_input, turn=turn_no)
 
-        # #5 — echo the player's sanitised input with a visual marker
-        _echo_player(player_input, out)
+        # #5 — echo the player's sanitised input with a visual marker.
+        # Skipped when an interactive readline prompt ("▶ 你：") already showed it
+        # (echo_input=False) — otherwise the line would appear twice.
+        if echo_input:
+            _echo_player(player_input, out)
 
         try:
             if compare_mode[0]:
-                # run_compare: produce 甲+丙 on the same snapshot; show both, apply 甲.
+                from loop.variation import prepare_variation, variation_fragment
+                variation = prepare_variation(engine.registry, engine.world, scene, engine.store.next_turn())
+                if variation:
+                    scene = {**scene, '_variation_prompt':variation_fragment(variation)}
                 spinner = _Spinner(out)
                 spinner.start()
                 try:
@@ -448,6 +459,23 @@ def play_loop(
                     )
                 finally:
                     spinner.stop()
+                jia_commit, _, jia_dropped = results["甲"]
+                if jia_dropped:
+                    from loop.turn import TurnRejected
+                    raise TurnRejected('comparison candidate failed validation')
+                # Reuse the prepared candidate through the same complete-action
+                # gateway as ordinary play; no second narration model call.
+                class PreparedCandidate:
+                    def produce(self, *args, **kwargs):
+                        return jia_commit
+                applied = run_turn(engine.registry, engine.store, engine.world,
+                    scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
+                    embedder=engine.embedder, required_sections=required_sections,
+                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene)
+                engine.world = applied.world
+                prev_scene = scene
+                if hasattr(strategy, 'reset'):
+                    strategy.reset()
                 out("[对比模式]")
                 rec = {"turn": turn_no, "input": player_input, "mode": "compare"}
                 for label, (commit, attempts, dropped) in results.items():
@@ -458,16 +486,6 @@ def play_loop(
                     rec[label] = _candidate_record(commit, attempts, dropped)
                 rec["applied"] = "甲"
                 _write_transcript(transcript_path, rec)
-                # Apply the 甲 result by default (callers can override).
-                # Use advanced_day (same logic as run_turn) so the compare path
-                # stamps events at the post-clock-advance day, not the frozen
-                # pre-turn scene day — fixes the "frozen time in compare mode" bug.
-                jia_commit, _, _ = results["甲"]
-                new_world = apply_turn(
-                    engine.registry, engine.store, jia_commit,
-                    day=advanced_day(engine.world, jia_commit), scene=scene["id"],
-                )
-                engine.world = new_world
             else:
                 spinner = _Spinner(out)
                 spinner.start()
@@ -506,6 +524,18 @@ def play_loop(
 
         except Exception as exc:
             log.exception("play_loop: turn error: %s", exc)
-            out(f"[错误] {exc}")
+            from loop.turn import TurnRejected
+            from engine.store import RevisionConflict
+            if isinstance(exc, TurnRejected):
+                out('[这一行动尚未完成，世界保持原状。请重试或换一种行动描述。]')
+            elif isinstance(exc, RevisionConflict):
+                from kernel.projection import project
+                engine.world = project(engine.registry, engine.store.iter_events())
+                engine.world['_revision'] = engine.store.revision
+                if hasattr(strategy, 'reset'):
+                    strategy.reset()
+                out('[世界状态已更新，请重新尝试这次行动。]')
+            else:
+                out(f"[错误] {exc}")
             _write_transcript(transcript_path, {
                 "turn": turn_no, "input": player_input, "error": str(exc)})

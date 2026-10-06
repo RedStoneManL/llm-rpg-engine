@@ -38,6 +38,7 @@ class DirectorSystem(ContextSystem):
         t = event["type"]
         d = event.get("deltas", {})
         if t == "campaign_seeded":
+            world.setdefault('meta', {})['flavor'] = d.get('flavor', 'classic')
             seed = d.get("campaign_seed")
             if seed is not None:
                 world.setdefault("meta", {})["campaign_seed"] = seed

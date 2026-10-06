@@ -27,7 +27,7 @@ def test_owns_events_no_section():
     s = NarrativeSystem()
     assert s.name == "narrative"
     assert s.event_types() == {
-        "narration_recorded", "scene_summarized", "recap_recompressed"}
+        "narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
     assert s.commit_sections() == set()          # harness-authored
     assert s.requires() == set()
 

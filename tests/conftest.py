@@ -11,7 +11,7 @@ def _hermetic_rpg_env(monkeypatch):
     for var in ("RPG_EMBEDDER", "RPG_DEBUG", "RPG_LOG_LEVEL", "RPG_HOME",
                 "RPG_DEBUG_TRACE", "RPG_DEBUG_RUN",
                 "RPG_NARRATION_VERBOSITY", "RPG_MAX_TOOL_ROUNDS",
-                "RPG_NARRATION_STYLE"):
+                "RPG_NARRATION_STYLE", "RPG_CONVERSATION_MODE"):
         monkeypatch.delenv(var, raising=False)
     # The shared "rpg" logger is process-global; engine.log.configure_logging()
     # sets propagate=False (+ adds a StreamHandler), which leaks across tests and
@@ -22,6 +22,11 @@ def _hermetic_rpg_env(monkeypatch):
     rpg.handlers.clear()
     rpg.propagate = True
     rpg.setLevel(logging.WARNING)
+    # Existing suite asserts today's per-turn assembly → pin stateless. New
+    # multi-turn tests opt in via settings.set_conversation_mode("multiturn").
+    from engine import settings as _s
+    monkeypatch.setenv("RPG_CONVERSATION_MODE", "stateless")
+    _s.reset_from_env()
     yield
     rpg.setLevel(saved[0])
     rpg.propagate = saved[1]

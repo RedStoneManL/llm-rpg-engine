@@ -1,0 +1,7 @@
+{
+  "xdg_config": "passed",
+  "environment_only": "passed",
+  "portable_default_campaign": "passed",
+  "explicit_missing_file": "refused",
+  "network_calls": 0
+}

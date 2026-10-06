@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "javascriptErrors": [],
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "bodyWidth": 1425,
+      "duplicateIds": [],
+      "sections": 8,
+      "decisions": 7,
+      "svgCount": 2,
+      "rejectFilterVisible": 2
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "bodyWidth": 390,
+      "duplicateIds": [],
+      "sections": 8,
+      "decisions": 7,
+      "svgCount": 2,
+      "rejectFilterVisible": 2
+    }
+  ]
+}

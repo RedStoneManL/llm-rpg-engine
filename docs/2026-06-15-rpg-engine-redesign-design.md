@@ -353,9 +353,9 @@ rpg-engine/
 
 | 期 | 子系统 | 状态 |
 |---|---|---|
-| **P1 事件核心** | 事件 store + schema + 投影 + CLI 骨架 | ✅ 已实现(见 `docs/plans/2026-06-15-phase1-event-core.md`) |
-| **P2a 归档·召回·工作记忆** | 逐字块(FTS5 trigram)+ FTS/结构化/锚点召回 + working_memory + debug 基建 | ✅ 已实现(`docs/plans/2026-06-16-phase2a-archive-recall.md`) |
-| **P2b 语义/向量召回** | Embedder(fake+bge-small-zh-v1.5)+ numpy-cosine 向量库 + reindex + 语义融进 recall | ✅ 已实现(`docs/plans/2026-06-16-phase2b-semantic-recall.md`) |
+| **P1 事件核心** | 事件 store + schema + 投影 + CLI 骨架 | ✅ 已实现(见 `docs/archive/plans/2026-06-15-phase1-event-core.md`) |
+| **P2a 归档·召回·工作记忆** | 逐字块(FTS5 trigram)+ FTS/结构化/锚点召回 + working_memory + debug 基建 | ✅ 已实现(`docs/archive/plans/2026-06-16-phase2a-archive-recall.md`) |
+| **P2b 语义/向量召回** | Embedder(fake+bge-small-zh-v1.5)+ numpy-cosine 向量库 + reindex + 语义融进 recall | ✅ 已实现(`docs/archive/plans/2026-06-16-phase2b-semantic-recall.md`) |
 | P3 纠错/倒带 | rewind + reproject + /oops /retcon /veto /steer | 待 |
 | P4 导演/神谕 | oracle 表 + 暗骰 + 双轴 + 休眠暗线 + 多线调度 | 待 |
 | P5 完整性闸门 | `rpg check` linters | 待 |

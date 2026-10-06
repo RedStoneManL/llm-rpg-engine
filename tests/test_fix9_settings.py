@@ -378,3 +378,54 @@ class TestCLIVerbosity:
         assert verbosity_during_play == ["medium"], (
             f"Expected verbosity='medium' (default); got {verbosity_during_play}"
         )
+
+
+class TestConversationMode:
+    def test_default_is_multiturn(self, monkeypatch):
+        monkeypatch.delenv("RPG_CONVERSATION_MODE", raising=False)
+        from engine import settings
+        settings.reset_from_env()
+        assert settings.get_conversation_mode() == "multiturn"
+
+    def test_env_override_stateless(self, monkeypatch):
+        monkeypatch.setenv("RPG_CONVERSATION_MODE", "stateless")
+        from engine import settings
+        settings.reset_from_env()
+        assert settings.get_conversation_mode() == "stateless"
+
+    def test_set_valid_and_invalid(self):
+        from engine import settings
+        assert settings.set_conversation_mode("stateless") is True
+        assert settings.get_conversation_mode() == "stateless"
+        assert settings.set_conversation_mode("bogus") is False
+        assert settings.get_conversation_mode() == "stateless"  # unchanged
+        settings.set_conversation_mode("multiturn")
+
+    def test_invalid_env_falls_back_to_multiturn(self, monkeypatch):
+        monkeypatch.setenv("RPG_CONVERSATION_MODE", "nonsense")
+        from engine import settings
+        settings.reset_from_env()
+        assert settings.get_conversation_mode() == "multiturn"
+
+
+# --- flavor pack voice (extracted from the hardcoded prompt) ---
+
+def test_pack_voice_is_default_style_when_no_explicit():
+    import engine.settings as st
+    st.reset_from_env()
+    try:
+        st.set_pack_voice("日式轻小说笔法")
+        assert st.get_style() == "日式轻小说笔法"      # pack voice fills in when no explicit style
+    finally:
+        st.reset_from_env()
+
+
+def test_explicit_style_overrides_pack_voice():
+    import engine.settings as st
+    st.reset_from_env()
+    try:
+        st.set_pack_voice("pack默认")
+        st.set_style("玩家指定")
+        assert st.get_style() == "玩家指定"            # explicit wins
+    finally:
+        st.reset_from_env()

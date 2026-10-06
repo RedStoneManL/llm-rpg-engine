@@ -19,3 +19,12 @@ trace.jsonl
 
 # OS
 .DS_Store
+*.pyc
+*.pyo
+/storage/
+.env.*
+!.env.example
+!.env.local.example
+*.env
+transcript.jsonl
+*.log

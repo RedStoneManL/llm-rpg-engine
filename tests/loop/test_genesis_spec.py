@@ -14,6 +14,21 @@ def test_normalize_drops_empty_fields_and_parts():
     assert "opening" not in spec
 
 
+def test_normalize_keeps_world_flavor_dials():
+    # magic_system/power_ladder/world_tension must survive normalize so they can
+    # override the roll (gen_frame._roll_world_seeds reads them from `provided`).
+    # Regression: they were silently stripped, making the override dead.
+    spec = normalize({"world_premise": {
+        "genre": "日式西幻", "tone": "治愈",
+        "magic_system": "元素咒文", "power_ladder": "境界突破", "world_tension": "列国争霸",
+    }})
+    wp = spec["world_premise"]
+    assert wp["tone"] == "治愈"
+    assert wp["magic_system"] == "元素咒文"
+    assert wp["power_ladder"] == "境界突破"
+    assert wp["world_tension"] == "列国争霸"
+
+
 def test_normalize_none_and_garbage():
     assert normalize(None) == {}
     assert normalize("nope") == {}

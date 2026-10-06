@@ -69,6 +69,13 @@ def fetch_lore(line: dict, depth: int) -> dict:
     return out
 
 
+def _is_protagonist_line(lid) -> bool:
+    """Protagonist-bound 暗线 (pthread_*) — the player's PERSONAL arc. It must NOT
+    autonomously expire / finale / catastrophe; only the player resolves it. Without
+    this a complex pthread line could auto-'救场了结' in a few turns (play5 I5)."""
+    return isinstance(lid, str) and lid.startswith("pthread")
+
+
 def run_lore(registry, store, world: dict) -> list[dict]:
     """Per-turn seeded 暗骰: advance each active line whose roll passes threshold."""
     # Lazy import to avoid circular dependency: loop.lore ↔ loop.density ↔ loop.lore
@@ -87,7 +94,7 @@ def run_lore(registry, store, world: dict) -> list[dict]:
         return []
 
     events = list(store.iter_events())
-    next_turn = max((e.get("turn") or 0 for e in events), default=0) + 1
+    next_turn = store.next_turn() if hasattr(store, 'next_turn') else max((e.get("turn") or 0 for e in events), default=0) + 1
     campaign_seed = (world.get("meta", {}) or {}).get("campaign_seed", 0)
     scene = (world.get("meta", {}) or {}).get("scene") or "scene"
     _md = (world.get("meta", {}) or {}).get("day")
@@ -134,7 +141,8 @@ def run_lore(registry, store, world: dict) -> list[dict]:
         # ---- B. Finale: pending_finale (set on a PRIOR turn by lifespan expiry) ----
         # Must be detected BEFORE the expiry block so it fires on subsequent turns,
         # not the same trip the expiry first sets pending_finale.
-        if ln.get("complexity") == "complex" and ln.get("pending_finale"):
+        if (ln.get("complexity") == "complex" and ln.get("pending_finale")
+                and not _is_protagonist_line(lid)):
             oracle = Oracle(scene_seed(campaign_seed, f"finale:{lid}", day))
             if oracle.d100() <= FINALE_RESCUE_CHANCE:
                 # Last-chance rescue succeeded — inescapable crisis quietly resolved
@@ -167,7 +175,8 @@ def run_lore(registry, store, world: dict) -> list[dict]:
         # ---- Expiry check (lifespan, day-granular) ----
         born_day = ln.get("born_day")
         lifespan_days = ln.get("lifespan_days")
-        if born_day is not None and lifespan_days is not None:
+        if (born_day is not None and lifespan_days is not None
+                and not _is_protagonist_line(lid)):
             if (day - born_day) >= lifespan_days:
                 complexity = ln.get("complexity")
                 if complexity == "complex":

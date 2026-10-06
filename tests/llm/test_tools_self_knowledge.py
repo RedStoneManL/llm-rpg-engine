@@ -178,22 +178,15 @@ def test_characters_query_self_never_returns_hidden():
 # T_SK4: fog is NOT loosened for non-self (querying another unknown NPC)
 # ---------------------------------------------------------------------------
 
-def test_characters_query_other_unknown_npc_still_returns_known_false():
-    """T_SK4: querying a never-met NPC (not self) still returns known:false — fog intact."""
+def test_characters_query_unknown_npc_does_not_reveal_existence():
+    """An undiscovered NPC cannot be enumerated through search."""
     from llm.tools import build_tool_registry
 
     r, w, scene = _world_protagonist_no_self_grant()
     reg = build_tool_registry(r, w, scene)
     out = json.loads(reg.execute("characters_query", {"q": "stranger"}))
 
-    matches = out.get("matches", [])
-    assert matches, "no matches returned for stranger query"
-    stranger_record = next((m for m in matches if m.get("id") == "stranger"), None)
-    assert stranger_record is not None, "stranger not found in matches"
-    assert stranger_record.get("known") is False, (
-        "fog regression: unknown NPC 'stranger' should still be known:false — "
-        "self-knowledge fix must NOT loosen fog for non-self entities"
-    )
+    assert out.get("matches", []) == []
 
 
 def test_characters_query_other_unknown_npc_no_sketch_leak():

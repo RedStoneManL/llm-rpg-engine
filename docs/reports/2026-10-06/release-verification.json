@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-06",
+  "purpose": "Verify the exact source snapshot prepared for the existing public repository",
+  "public_parent": "fb91fd4f84028099f24ce1d2af7cd75d87488c05",
+  "pytest": {
+    "tests": 1712.0,
+    "failures": 0.0,
+    "errors": 0.0,
+    "skipped": 0.0,
+    "time": 82.566
+  },
+  "deselected_by_default": 1,
+  "endurance": {
+    "actions": 120,
+    "injected_write_failures": 12,
+    "whole_action_undos": 10,
+    "reopens": 8,
+    "salt_replays": 10,
+    "status": "passed"
+  },
+  "launcher": "XDG config, environment-only credentials, missing-file rejection, relative campaign, and help without credentials passed",
+  "artifacts": "Source/evidence credential scan and primary report/document links passed",
+  "live_api": "No additional paid model calls during packaging; October 3 results and their limitations retained"
+}

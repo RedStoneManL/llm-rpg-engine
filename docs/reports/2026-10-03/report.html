@@ -1,0 +1,189 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RPG Engine · 改进实施与实测</title><style>
+:root{--ink:#193e2f;--muted:#6e7c70;--line:#dbe2d7;--paper:#f5f6f0}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}body{margin:0;background:var(--paper);color:#344b3c;font:16px/1.8 system-ui,"Noto Sans CJK SC",sans-serif}a{color:#286841;text-underline-offset:4px}nav{position:sticky;top:0;z-index:20;background:#f5f6f0ed;backdrop-filter:blur(12px);display:flex;gap:24px;padding:13px max(3%,calc((100vw - 1160px)/2));border-bottom:1px solid var(--line);overflow:auto;white-space:nowrap;font-size:13px}nav strong{margin-right:auto}nav a{text-decoration:none}main{max-width:1160px;margin:auto;padding:0 24px 50px}header{padding:56px 0 34px}h1{font-size:clamp(32px,4.8vw,56px);letter-spacing:-2px;line-height:1.25;color:var(--ink);margin:20px 0 25px}h2{font-size:29px;line-height:1.4;color:var(--ink);margin:8px 0 24px}h3{font-size:19px;line-height:1.5;color:var(--ink);margin:0 0 15px}p{margin:10px 0 17px}.lead{font-size:19px;max-width:900px}.eyebrow,.num{font-size:11px;letter-spacing:2px;font-weight:700;color:#4b7956}.path,small,.caption{color:var(--muted);font-size:12px}.path{overflow-wrap:anywhere}.banner{padding:18px 23px;border-left:4px solid #4b8356;border-radius:0 12px 12px 0;background:#e8f0e2}.warning{border-color:#b27b37;background:#fcf1df}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:28px 0}.metric{padding:20px;background:white;border:1px solid var(--line);border-radius:13px}.metric b{display:block;font-size:36px;color:var(--ink);line-height:1.3}.metric span{display:block;font-size:14px;margin:7px 0}.metric small{display:block;line-height:1.6}section{padding:40px 0;border-top:1px solid var(--line)}.grid,.twocol{display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel{background:white;border:1px solid var(--line);border-radius:13px;padding:25px}.diagram{margin:24px 0;padding:20px 12px;background:white;border:1px solid var(--line);border-radius:13px;overflow:auto}svg{width:100%;display:block}.diagram svg{min-width:730px}.scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;background:white;font-size:14px}th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #edf0e7;vertical-align:top}th{background:#edf1e6;color:var(--ink)}.change{display:grid;grid-template-columns:42px 1fr;gap:19px;padding:25px 0;border-bottom:1px solid var(--line)}.change>span{font-size:15px;color:#67896b}.change p{font-size:14px}.change small{display:block;letter-spacing:2px;margin-bottom:4px}.file{font:12px monospace}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0}button{font:13px system-ui;border:1px solid #bfcfba;border-radius:7px;padding:8px 14px;background:white;color:var(--ink);cursor:pointer}button.active{background:var(--ink);color:white}.decisions{display:grid;grid-template-columns:1fr 1fr;gap:15px}.decision{padding:22px;border:1px solid var(--line);border-radius:12px;background:white}.decision h3{margin-top:12px}.decision p{font-size:14px}.decision[hidden]{display:none}label{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;background:#e9ede1;color:#627752}label.adopt{background:#e0edda;color:#2b673d}label.reject{background:#f7e6d6;color:#915d2a}label.change,label.hold{background:#ece9d5;color:#8a7527}.world-title{margin:30px 0 14px}.story{border:1px solid var(--line);border-radius:10px;background:white;margin:10px 0;overflow:hidden}summary{padding:15px 20px;cursor:pointer}summary b{font-size:14px;margin:0 13px}summary small{font-size:12px}.story[open] summary{background:#edf3e8;border-bottom:1px solid var(--line)}.player{margin:19px 24px;border-left:3px solid #c49a64;padding:7px 15px;color:#8c652c;font-size:14px}.prose{white-space:pre-wrap;font:15px/2 Georgia,"Noto Serif CJK SC",serif;padding:4px 24px 20px;max-height:580px;overflow:auto}.story>.caption{padding:0 24px}pre,code{font:12px/1.8 ui-monospace,Consolas,monospace}pre{padding:20px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;background:#193e2f;color:#e5eee0}code{padding:2px 5px;background:#e7eddf;overflow-wrap:anywhere}.sources{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.sources a{padding:14px;border:1px solid var(--line);border-radius:8px;background:white;font-size:13px}.note{padding:10px 19px;border-left:3px solid #bfcfb8;font-size:14px}ul{padding-left:21px}li{margin:10px 0}.foot{padding:20px 0;font-size:12px;color:var(--muted)}.step{display:grid;grid-template-columns:32px 1fr;gap:15px;margin:20px 0}.step b{color:#7b9063}.step p{font-size:14px;margin:0}
+@media(max-width:700px){h1{font-size:29px;letter-spacing:-1px}nav{padding:10px 17px;gap:20px}nav strong{display:none}main{padding:0 17px 30px}header{padding-top:32px}.metrics{grid-template-columns:1fr 1fr;gap:10px}.metric{padding:15px}.metric b{font-size:30px}.grid,.twocol,.decisions{grid-template-columns:1fr}.twocol{gap:0}.sources{grid-template-columns:1fr 1fr}.change{grid-template-columns:24px 1fr;gap:12px}h2{font-size:25px}.lead{font-size:17px}summary small{display:block;margin-top:7px}.panel{padding:20px}}
+@media print{nav,.toolbar{display:none}body{background:white}header{padding-top:0}main{max-width:100%;padding:0}.panel,.change,.decision,.metric{break-inside:avoid}.diagram svg{min-width:0}.prose{max-height:none}.metrics{grid-template-columns:repeat(4,1fr)}a{color:inherit}}
+</style></head><body><nav><strong>RPG / ENGINE REVIEW</strong><a href="#architecture">架构对照</a><a href="#changes">已改什么</a><a href="#experiments">实际测试</a><a href="#world">世界与记忆</a><a href="#claude">复核 Claude</a><a href="#target">扩展与边界</a><a href="#evidence">证据</a></nav><main><header><div class="eyebrow">IMPLEMENTATION & EMPIRICAL REVIEW · 2026.10.03</div><h1>让每次行动有可信的结果，<br>让世界记住发生过什么。</h1><p class="lead">已直接改进 rpg-engine-app：统一动作、叙事与幕后变化的提交边界，修复记忆及可见性，增加场景包驱动的随机提示与资源规则。保留原有多题材扩展方式，真实失败样本也纳入结论。</p><p class="path">项目 /root/rpg-engine-app · 基线 fb7ebd8<br>Claude session：3f2736aa-1b06-454d-8ad8-0f987c6b0a9f · 2026-09-07<br>/root/llm-rpg-engine 是较早副本；原 run.sh 与原始游玩存档保留。</p><div class="banner"><b>基础一致性、资源账本、明确等待与恢复机制通过实测；整体叙事质量尚未通过全面验收。</b><br>已实施的机制有回归、故障注入、旧档兼容及真实模型证据。状态一致性与文学表现分开评估，不把成功存盘当成故事正确。</div><div class="metrics"><div class="metric"><b>1,712</b><span>当前回归通过</span><small>失败 0 / 错误 0</small></div><div class="metric"><b>16/16</b><span>最终轮真实动作提交</span><small>2 个题材；叙事质量另行复核</small></div><div class="metric"><b>120</b><span>当前代码持续动作</span><small>12 次故障 · 10 次撤销 · 8 次重开</small></div><div class="metric"><b>24.2×</b><span>12K 事实投影加速</span><small>3 次中位数；不等于回合提速</small></div></div></header><section id="architecture"><div class="num">01 / BEFORE & AFTER</div><h2>保留领域扩展点，统一一次行动的提交边界</h2><p>原系统已经有地图、人物、势力、知识、时间、暗线、场景密度和叙事记忆。主要风险在这些系统如何一起完成一次行动。本次保留领域划分，让所有候选变化先暂存、验证，再成为同一段可信历史。</p><div class="diagram"><svg viewBox="0 0 1040 560" role="img" aria-label="原架构与改进架构"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#71887b"/></marker></defs><text x="15" y="25" fill="#183e2f" font-size="21" font-family="sans-serif">原架构 · 每个环节各自推进</text><rect x="15" y="48" width="230" height="105" rx="12" fill="#fff1e7" stroke="#dcb897"/><text x="32" y="81" fill="#183e2f" font-size="19" font-family="sans-serif">LLM 叙事与状态</text><text x="32" y="111" fill="#536e61" font-size="14" font-family="sans-serif">返修耗尽，丢弃坏段</text><path d="M246 100L266 100" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="270" y="48" width="230" height="105" rx="12" fill="#fff1e7" stroke="#dcb897"/><text x="287" y="81" fill="#183e2f" font-size="19" font-family="sans-serif">逐条提交事件</text><text x="287" y="111" fill="#536e61" font-size="14" font-family="sans-serif">SQLite / JSONL 各自写</text><path d="M501 100L521 100" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="525" y="48" width="230" height="105" rx="12" fill="#fff1e7" stroke="#dcb897"/><text x="542" y="81" fill="#183e2f" font-size="19" font-family="sans-serif">后台钩子再追加</text><text x="542" y="111" fill="#536e61" font-size="14" font-family="sans-serif">各自推进 turn</text><path d="M756 100L776 100" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="780" y="48" width="230" height="105" rx="12" fill="#fff1e7" stroke="#dcb897"/><text x="797" y="81" fill="#183e2f" font-size="19" font-family="sans-serif">世界、会话、显示</text><text x="797" y="111" fill="#536e61" font-size="14" font-family="sans-serif">提交和撤销边界分散</text><text x="15" y="207" fill="#183e2f" font-size="21" font-family="sans-serif">已实施 · 先准备完整行动，再发布可信状态</text><rect x="15" y="230" width="230" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="32" y="263" fill="#183e2f" font-size="19" font-family="sans-serif">玩家行动</text><text x="32" y="293" fill="#536e61" font-size="14" font-family="sans-serif">资源意图 → 规则算术</text><text x="32" y="316" fill="#536e61" font-size="14" font-family="sans-serif">明确等待 → 绝对时刻</text><path d="M246 282L266 282" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="270" y="230" width="230" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="287" y="263" fill="#183e2f" font-size="19" font-family="sans-serif">上下文 + 叙事</text><text x="287" y="293" fill="#536e61" font-size="14" font-family="sans-serif">POV / 事实锚点 / 记忆</text><text x="287" y="316" fill="#536e61" font-size="14" font-family="sans-serif">风格包 / 随机细节提示</text><path d="M501 282L521 282" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="525" y="230" width="230" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="542" y="263" fill="#183e2f" font-size="19" font-family="sans-serif">校验 / 修复</text><text x="542" y="293" fill="#536e61" font-size="14" font-family="sans-serif">必填段 / 资源 / 时钟</text><text x="542" y="316" fill="#536e61" font-size="14" font-family="sans-serif">正文格式 / 重复检测</text><path d="M756 282L776 282" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="780" y="230" width="230" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="797" y="263" fill="#183e2f" font-size="19" font-family="sans-serif">EventBatch 暂存</text><text x="797" y="293" fill="#536e61" font-size="14" font-family="sans-serif">主动作 + 叙事 + 后台</text><text x="797" y="316" fill="#536e61" font-size="14" font-family="sans-serif">同一 turn / 保存点</text><path d="M895 337L895 390" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="525" y="402" width="485" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="542" y="435" fill="#183e2f" font-size="19" font-family="sans-serif">一次事务发布</text><text x="542" y="465" fill="#536e61" font-size="14" font-family="sans-serif">revision 检查 + 全历史预演</text><text x="542" y="488" fill="#536e61" font-size="14" font-family="sans-serif">events + revision + receipt；JSONL 可重建</text><path d="M523 453L492 453" stroke="#71887b" fill="none" stroke-width="2" marker-end="url(#arrow)"/><rect x="15" y="402" width="475" height="105" rx="12" fill="#eaf2e8" stroke="#acc6b0"/><text x="32" y="435" fill="#183e2f" font-size="19" font-family="sans-serif">成功后才显示、写入会话</text><text x="32" y="465" fill="#536e61" font-size="14" font-family="sans-serif">撤销完整动作与即时后台后果</text><text x="32" y="488" fill="#536e61" font-size="14" font-family="sans-serif">清理会话缓存；拒绝旧版本提案</text><text x="15" y="546" fill="#536e61" font-size="13" font-family="sans-serif">所有模型调用在数据库写事务外；同步领域系统保留，异步世界服务器仍是后续工作。</text></svg></div><p class="caption">资源与绝对等待由启用规则的场景使用。图中展示的是已实施的同步流程，没有把异步世界服务器画成既成能力。</p></section><section id="changes"><div class="num">02 / SHIPPED</div><h2>修复了什么，新增了什么</h2><article class="change"><span>01</span><div><h3>原子行动</h3><div class="twocol"><p><small>之前</small>逐条写入，错误可能留下半个动作。</p><p><small>现在</small>EventBatch、预演、版本检查与批量事务；每个后台钩子有独立暂存回滚点。</p></div><a class="file" href="../../../engine/store.py">engine/store.py</a></div></article><article class="change"><span>02</span><div><h3>完整撤销</h3><div class="twocol"><p><small>之前</small>后台也推进 turn，对话先于持久化更新。</p><p><small>现在</small>新动作共享根 turn；提交成功后更新会话；撤销及版本变化使缓存失效。</p></div><a class="file" href="../../../loop/turn.py">loop/turn.py</a></div></article><article class="change"><span>03</span><div><h3>玩家信息边界</h3><div class="twocol"><p><small>之前</small>隐藏地点参与搜索；在场 NPC 的私有目标从 recall 泄漏。</p><p><small>现在</small>先过滤实体及字段再匹配；私有事实按玩家信念读取；NPC POV 需 DM 权限。</p></div><a class="file" href="../../../context/access.py">context/access.py</a></div></article><article class="change"><span>04</span><div><h3>持续记忆</h3><div class="twocol"><p><small>之前</small>同场景原文无限累积；旧摘要被反复压缩。</p><p><small>现在</small>6 回合分块、保留最近 2 块；推进摘要游标，合并已有总览和新增摘要。</p></div><a class="file" href="../../../systems/narrative.py">systems/narrative.py</a></div></article><article class="change"><span>05</span><div><h3>资源裁定</h3><div class="twocol"><p><small>之前</small>模型漏写账本或重复扣钱，已在真实测试复现。</p><p><small>现在</small>场景包声明资源；模型解析明确意图，Python 判断支出与不足；叙事不能改写结果。</p></div><a class="file" href="../../../loop/resources.py">loop/resources.py</a></div></article><article class="change"><span>06</span><div><h3>时间与正文</h3><div class="twocol"><p><small>之前</small>明确等待未落实；原始 JSON 进入正文；复制旧情节。</p><p><small>现在</small>明确等待校验绝对终点；空白、结构化正文和近期长文重复被修复或拒绝。</p></div><a class="file" href="../../../loop/narration_guard.py">loop/narration_guard.py</a></div></article><article class="change"><span>07</span><div><h3>随机性</h3><div class="twocol"><p><small>之前</small>已有暗骰多用于剧情转折，日常细节易趋同。</p><p><small>现在</small>增加日常、感官、人物习惯等风格表；可复现抽样，尽量避开最近两项。</p></div><a class="file" href="../../../loop/variation.py">loop/variation.py</a></div></article><article class="change"><span>08</span><div><h3>事实索引</h3><div class="twocol"><p><small>之前</small>事实更新与读取反复扫描长列表。</p><p><small>现在</small>按事实键、主体、历史分组索引，保留原日志和历史查询语义。</p></div><a class="file" href="../../../facts/graph.py">facts/graph.py</a></div></article><article class="change"><span>09</span><div><h3>创世失败</h3><div class="twocol"><p><small>之前</small>API 全失败也可能保存占位世界。</p><p><small>现在</small>创世和重掷暂存；真实失败不发布、不删除原世界；测试 stub 显式声明。</p></div><a class="file" href="../../../loop/bootstrap.py">loop/bootstrap.py</a></div></article><article class="change"><span>10</span><div><h3>模型适配</h3><div class="twocol"><p><small>之前</small>通用兼容接口缺乏结构化及工具协议细节。</p><p><small>现在</small>DeepSeek 原生 profile、按调用启用 JSON、完整工具消息组，保留原 Zhipu 入口。</p></div><a class="file" href="../../../llm/provider.py">llm/provider.py</a></div></article></section><section id="experiments"><div class="num">03 / REAL TESTS</div><h2>失败样本改变了实现，也保留在报告里</h2><div class="grid"><div class="panel"><h3>实际迭代过程</h3><div class="step"><b>V1</b><p>62 次调用。付款漏账；格式重问把 JSON 当正文保存。保留失败输出。</p></div><div class="step"><b>V2</b><p>56 次调用。原生 JSON 与事实锚点让首次付款正确，但余额不足后仍重复扣款，提示词不足以管账。</p></div><div class="step"><b>V3</b><p>74 次调用。规则层守住账本；正文却会整段重复、写错等待时刻，不能算整体叙事通过。</p></div><div class="step"><b>V4</b><p>75 次 API 调用，16 次动作全部提交；资源检查8/8、明确等待终点2/2、回放16/16。新增修复可以阻挡明显的正文重复，但不证明语义完全自洽。</p></div></div><div class="panel"><h3>最终轮验收读数</h3><div class="scroll"><table><thead><tr><th>检查</th><th>最终轮观测</th></tr></thead><tbody><tr><td>真实动作提交</td><td>16/16</td></tr><tr><td>明确资源期望值</td><td>8/8</td></tr><tr><td>存盘投影可重放</td><td>16/16</td></tr><tr><td>重开 / 撤销</td><td>2/2 重开一致；2/2 撤销原文与动作</td></tr><tr><td>明确等待终点</td><td>2/2 抵达次日中午</td></tr><tr><td>明显正文重复</td><td>0/16（规则定义的重复）</td></tr><tr><td>正文包含隐藏地点 canary</td><td>0/16（单一已知探针）</td></tr><tr><td>空白正文 / JSON 外壳</td><td>0 / 0</td></tr><tr><td>动作耗时中位数</td><td>8.05 秒，含同步后台；不是首字延迟</td></tr><tr><td>最终轮 API / token</td><td>75 次 / 264,797 tokens</td></tr></tbody></table></div><p class="caption">真实 deepseek-flash；thinking disabled；最多 2 轮工具、3 次修复。全新世界中加入明确的资源、承诺和隐藏地点测试夹具。各轮世界不同，耗时不作修复的因果比较。</p></div></div><div class="banner warning" style="margin:24px 0"><b>状态通过，不等于全文语义正确。</b><br>人工复核仍发现可疑或矛盾的叙事：异世界余额不足段夹入退款/找零动作，但账本保持9；武侠回忆把蓝伞的持有位置与归还时间写得自相矛盾，并补写未记录的过去。随机提示和结构校验不能解决全部语义问题。完整经济、物品所有权与结构化承诺列为下一步，未宣布通过。</div><div class="grid"><div class="panel"><h3>旧存档与持续运行</h3><p>play2–play8 共 7 份 SQLite 副本，实体、事实、关系历史与原实现一致；原数据库哈希不变。</p><p>当前代码运行 120 个动作，验证 12 次写入故障、10 次完整撤销、8 次重开。最终燃料为 880，与 1000 − 120 一致；10 次撤销重试的随机提示一致。</p><p class="caption">确定性 provider 验证恢复机制，不能证明模型叙事质量。旧存档历史回合分组没有自动改写。</p></div><div class="panel"><h3>事实索引性能</h3><svg viewBox="0 0 500 294" role="img" aria-label="事实投影基准"><text x="76" y="23" font-size="13" fill="#9b714e">之前</text><text x="150" y="23" font-size="13" fill="#3e7a59">已实施</text><text x="12" y="63" font-size="13" fill="#5b6f60">1,000</text><rect x="76" y="48" width="5.7" height="17" rx="3" fill="#c9956a"/><rect x="76" y="70" width="2.0" height="17" rx="3" fill="#3e7a59"/><text x="12" y="121" font-size="13" fill="#5b6f60">3,000</text><rect x="76" y="106" width="25.7" height="17" rx="3" fill="#c9956a"/><rect x="76" y="128" width="5.8" height="17" rx="3" fill="#3e7a59"/><text x="12" y="179" font-size="13" fill="#5b6f60">6,000</text><rect x="76" y="164" width="137.6" height="17" rx="3" fill="#c9956a"/><rect x="76" y="186" width="9.1" height="17" rx="3" fill="#3e7a59"/><text x="12" y="237" font-size="13" fill="#5b6f60">12,000</text><rect x="76" y="222" width="385.0" height="17" rx="3" fill="#c9956a"/><rect x="76" y="244" width="15.9" height="17" rx="3" fill="#3e7a59"/></svg><div class="scroll"><table><thead><tr><th>事件数</th><th>之前</th><th>现在</th><th>比值</th></tr></thead><tbody><tr><td>1,000</td><td>28.0 ms</td><td>6.6 ms</td><td>4.3×</td></tr><tr><td>3,000</td><td>126.6 ms</td><td>28.8 ms</td><td>4.4×</td></tr><tr><td>6,000</td><td>678.8 ms</td><td>45.0 ms</td><td>15.1×</td></tr><tr><td>12,000</td><td>1898.6 ms</td><td>78.5 ms</td><td>24.2×</td></tr></tbody></table></div><p class="caption">同一投影工作负载，3 次取中位数，事实结果等价；原审计另验证 4320 次历史查询。这是合成事实投影，不是模型回合速度，也不覆盖关系密集负载。</p></div></div><h3 style="margin-top:34px">可展开的完整游玩记录</h3><p class="caption">展示最终轮全部正文，不只选最好看的片段。原始状态与人工语义复核另有证据链接。</p><h3 class="world-title">涡水镇 <small>classic</small></h3><details class="story"><summary><label class="adopt">已提交</label><b>购买干粮</b><small>8.2 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我按摊位标价买一份3枚钱币的干粮，现在付款。</p><div class="prose">你从腰间布袋里摸出三枚铜钱，钱面上还沾着河泥的暗绿。摊主是个瘦脸妇人，围裙前襟洇着常年不褪的油渍，她只略一点头，便把那三枚钱从你掌心里一枚枚拨走，码进木匣，动作快得像在拾掇活鱼。
+
+换来的是巴掌大一块干饼，用半张旧油纸裹着，硬得能敲出响，掰开时掉下的碎屑里混着几粒晒干的河虾米，腥香直往鼻子里钻。你顺手把它塞进袖袋，压在船牌边上——够撑到中午。
+
+妇人收了钱，目光却没跟着离开你，而是往你空出来的那只手边上一瞟，像是要认一认这只手还借走了别的什么。不远处的窄道尽头，那盏河纹旗下的油灯又晃了一下；老舵手仍蹲在石阶边，缆绳在掌心里被水汽泡得发亮，他终于抬了抬下巴，冲潮音渡口的方向低声道：
+
+「响第二声了。船，今日怕是不肯离岸。」</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>余额不足</b><small>6.8 秒 · 4 次 API · 1 次返修</small></summary><p class="player">我还想花100枚钱币买下全部货物，但不借债，也没有别的财物可换。</p><div class="prose">你没急着把钱袋抖开，只把袋口往那只空手上倒了倒——三枚铜钱滚出来，在掌心里摊开成一排，第九枚已经是最后一枚的边缘。你抬眼看了看摊后那堆货：十几块河灵石碎料、两串珠子、一只豁口的瓷碗，全加起来也换不来一百枚钱。瘦脸妇人顺着你的视线扫过货堆，又扫过你空荡荡的袖口和指节上的旧茧，眼皮不抬地摇了摇头，什么也没说，只把那方匣子往自己身前挪了半寸——那意思很清楚：没得谈。
+
+你收回手。干饼还压在袖袋里，硬得硌手。窄道那头，老舵手的话音刚落，河面又是一阵闷响，油灯晃了第三下，褪色的河纹旗角抖落一小片水珠。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>日常观察</b><small>8.6 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我不买东西，也不接任务，只静静看一会儿这里的人各自忙什么。</p><div class="prose">你没买东西，也没挪步，只把身子往棚柱的阴影里靠了靠，看人怎么过这个早晨。
+
+瘦脸妇人把木匣合上，顺手用油腻的围裙角擦了擦匣盖，那三枚铜钱在她袖口的暗袋里滚了一下发出轻响。她不招呼你了，转去应付一个拎着湿竹篮的汉妇，两人为几块碎料低声磨价，手指在布上点来点去，谁也不肯先松。
+
+金牙老头不知何时绕到了你那排摊子的斜对面，货担搁在地上，人却靠着柱子剔牙，眼珠子不落在自己的货上，倒跟着往来的人脚走——哪个往水脉祠方向的窄道去，他便多瞧一眼。刚才那挑担的力工喝完粥，抹了把嘴站起来，其中一个往回走时经过你身旁，脚下一滑，扶了下棚柱，抬头正撞上你的视线，慌忙避开，扁担上的湿粗布巾还在滴水。
+
+石阶边，老舵手把缆绳又绕了一圈攥紧，抬眼往河面扫了一遭。顺着他的视线，那几尾翻肚皮的死鱼已经漂过石堤拐角，白花花一片贴着岸缓缓打转，没人去捞。更远的潮音渡口方向，隔水传来零星的人声，一高一低，像在争执，可具体词句被河风一撕就散，只剩下点断续的尾音。
+
+脚下青石板又轻轻颤了一下，比前两回都沉。棚顶油布上的水珠跟着抖落一串，砸在摊面的碎料上，碎光乱跳。老舵手按刀的那只手紧了紧，喉咙里滚出一句含混的话，随即又咽了回去，眼睛仍盯着水面，不知是在看鱼，还是在看别的什么。</div><p class="caption">金币 9 · 第 1 天 / 时段 1 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>回忆承诺</b><small>6.3 秒 · 3 次 API · 1 次返修</small></summary><p class="player">我检查自己的行程，回想之前答应归还的东西是什么、什么时候在哪里归还。</p><div class="prose">你把袖袋口捏住，指腹隔着粗布摸到两样东西：硬的一角是那块干饼，软一点的、叠得方正的，是一把折好的蓝伞——不，是伞的凭据，一把你昨日借来、说好要还回去的旧蓝布伞的伞骨缠绳。伞眼下不在这里。
+
+你闭了闭眼，把昨日的事一节节顺过来。
+
+就在这河灵石市，就在那个围着油渍围裙的瘦脸妇人摊前——她递给你的不只是这块干饼。撑伞的时辰你记不清了，只记得她当时把伞从棚柱边抽出来，塞进你怀里，说日头毒、水汽重，你这一身病气淋不得。你答应她：明日中午，回这个摊位把伞还回来。中午。就是今天往后的那个中午。
+
+也就是说，你此刻手里那把蓝伞，并不属于你。它还压在某个你借伞人那里，而你还欠着归还的一句话。九枚铜钱还在袋里，一个没动。
+
+你想把这条压在心里的约，跟眼前这档子事排一排——债主堵在断桨酒馆门口，同伴卷了货契先走，潮音渡口的老船工得去问。眼下才是清早，离中午还有半天。半天的工夫，够你从石市走到渡口再折回来。
+
+你正这么盘算着，脚底的青石板又轻轻一颤，比方才那几下都实。
+
+窄道那头，老舵手忽然直起身，拽缆绳的手猛地收紧。他没喊，只是喉咙里滚出一个短促的音节，像是把一句骂掖回了肚子里。石阶下的水线在退——退得太快，露出湿乎乎、泛着白沫的堤根，一串死鱼被撇在干处，尾巴还在无意识地拍。
+
+紧接着，一声脆响从棚后传来。不是渡口方向，是石市这边。挑担力工里那个刚才使眼色的汉子霍地站起，扁担撞翻了粥碗，白粥泼在青石上，他骂了一句粗话，招呼都不打，担子也不挑，拔腿就往镇门方向跑。另两人跟着撂下碗就跑。棚子底下霎时乱起来，买粥的、看货的、等船的，全都扭过头去望那声脆响的来处。
+
+瘦脸妇人一手按住她的木匣，另一手飞快地把摊面上的河灵石碎料往围裙里一兜。她没看你，只从牙缝里挤出半句：「收摊了。要还伞，趁早。」</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>离开探索</b><small>11.6 秒 · 4 次 API · 1 次返修</small></summary><p class="player">我走出当前场所，在门口附近观察来往的人和道路，暂时不接新任务。</p><div class="prose">你转身迈出河灵石市的门坊，脚下一级石阶，两排木棚落在背后。
+
+门口这条横街比棚子里宽敞些，青石板上踩出的凹槽积着浅水，映出天光。早市还没散尽，往镇门那头去的路上，三个挑担汉子正连跑带颠地挤在人堆里，扁担横七竖八，撞翻了一筐咸鱼，鱼腥味就地翻起来。卖鱼的妇人骂了两句，见追不上，只好弯腰去捡。
+
+沿街再看：左边一间卖香烛纸马的小铺刚起了半扇门板，一个系着灰布头巾的老妇坐在门槛上数念珠，眼睛却不看珠，一直朝天边瞟；右边墙根下蹲着两个补网的后生，竹梭在指间走了两下就停住，其中一个用下巴朝河面点了点，另一个便把手里的活搁下。
+
+巷口正对处，一名穿灰短打、腰里别着半截竹牌的中年汉子靠着墙，一手嗑瓜子，一手指节在墙上轻轻敲，像是等人，也像是放哨。他见你出来，眼睛在你脸上停了一停，随即转开，嗑瓜子的手没停。
+
+横街尽头往左是通往镇门，往右是水脉祠方向，褪色的河纹旗在那头湿风里抖。老舵手昨儿蹲的石阶还在斜对面，缆绳已经收了，乌篷船窄窄的一条，靠着湿岸，船头压着水线——比先前沉得多。
+
+石板又轻颤一下。这回离得近，你能听见那震动是从河底顺着堤根爬上来的，闷，不急，像谁在很远处慢慢擂鼓。满街的人不约而同停了半拍，念珠的老妇停手，嗑瓜子的汉子也停嘴，只有咸鱼摊的鱼还在筐里翻尾。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>回到原处</b><small>9.4 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我回到刚才买干粮的地方（venue_0），看看之前遇见的人是否还在。</p><div class="prose">你转身折回河灵石市的门坊，脚下那级石阶还泛着水光。棚顶的油布仍在滴水，可市里已经不是方才的样子了。窄道两侧，摊主们正把东西往怀里、往箱底塞：河灵石碎料倒进围裙兜，珠子连串卷进袖，几个卖杂货的干脆把油布一裹，扛上肩就往外挪。方才还挤挤挨挨的过道，此刻空出一半，湿青石上留着踩乱的粥渍和半截扁担印。
+
+瘦脸妇人还在。她的木匣抱在怀里，摊面上只剩几块最次的碎石和一只豁口瓷碗。她没走，背靠着棚柱站着，眼睛盯着窄道两头的动静，一见你回来，眉毛先是一皱，随即认出是你，神色松了半分，又绷紧。
+
+「你倒回来得快。」她低声说，眼睛没离开过道上往来的人，「伞呢？我说的是中午，日头正毒那会儿。你这时候回来，伞带来没有？」
+
+她问了，你手里却并没有伞——缠绳还压在袖袋底下，伞在别处。她看你不答，像是也明白了，只把手里的木匣又抱紧了些，喉头动了动，将一句要出口的催促咽了回去，改成：「那你回来做什么。」
+
+旁边那间卖香烛纸马的铺子半扇门板还开着，灰布头巾的老妇已经不坐门槛了，念珠挂在门环上，人不知去了哪。再往巷口看，嗑瓜子的灰短打汉子还靠着墙，竹牌别在腰间，瓜子皮在脚边落了一小堆；他这回不再装看不见你，视线正正地压过来，手指在墙上停止敲击。
+
+你脚底的青石板没有再颤。河底那阵闷响像是沉了下去——但方才水线退得太快留下的潮湿堤痕，还清清楚楚地摊在斜对面石阶上，一串死鱼被撇在干处。乌篷船靠着湿岸，船头吃水线比先前深，老舵手却已经不在了，缆绳一圈圈绕在系船柱上，绳结打得又紧又生。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>等待到次日中午</b><small>14.6 秒 · 5 次 API · 2 次返修</small></summary><p class="player">我在此休息到明天中午，不购买任何东西。留意周围的人和先前的事情有没有变化。</p><div class="prose">你把话咽回去，没再同妇人纠缠。她也不催你了，只把那方木匣往棚柱后挪了挪，人贴着柱子坐下去，眼睛半阖，像是在等一个中午。你退回巷口那截墙根，选了个既能看见石市棚口、又能望见斜对面系船柱的位置，靠着湿墙歇下。
+
+头一段时光，市里还在收摊。卖河灵石碎料的、串珠子的、卖杂货的，一个接一个扛着油布卷往镇门那头走，过道上的脚步声由密转疏。巷口那名灰短打汉子还靠着墙，瓜子壳在脚边堆成一小撮，他没走，也没再正眼看你，只偶尔抬头望一眼水脉祠方向那面褪色的河纹旗。补网的两个后生在墙根打了个盹，竹梭滑到水里，其中一个惊醒了，骂了一声，把梭子捞回来接着走线。
+
+日头一点点爬上来，把窄道照成一条亮缝。水汽散得比寻常快，湿青石先干，后头那截堤根也白翘起来。石阶下那串死鱼被日头晒得发硬，翻在干处没人管，几尾的肚皮已经泛出灰斑。乌篷船吃水又深了一线，船头几乎贴着水皮，拴船的绳结越绷越直，木桩被拽得咯吱咯吱地响。河面偶尔有闷响从底下翻上来，比清早更沉，也更长，像什么东西在河心底下翻了个身。
+
+晌午前，那灰布头巾的老妇从香烛铺里出来了，招呼都不打，径直往镇门方向去，念珠还挂在门环上没收。与此同时，一个衣衫半旧的妇人抱着孩子从窄道里出来，跟你说的一样，蹲在棚口等了个把时辰，问过四五拨从渡口折回来的人，问一句就被摇头打断一句，最后抱着孩子往东边巷子挪走了。斜对面系船柱边陆续有三四个人来看船，其中一个拿手在水里探了两回，皱眉上岸，摇着头走开：船沉得只敢看不敢动。
+
+到了正午，日头正毒。石市棚子下头几近空了，只剩瘦脸妇人和另外两个摊主守着家当，谁家都不肯先走。妇人坐在柱子边，木匣抱在膝上，见日头到了头顶，便朝棚口那条窄道张望，一次，两次，三次。她朝你靠着墙的方向望了一眼——那意思明白：时辰到了，伞呢。你手里仍没有伞。
+
+往渡口去的人回来说，潮音渡那边今日水涨得早，船夫都不接客，码头上的缆桩被拖得吱嘎响。有人提起中午前镇门那头又出了声脆响，像是庙里一支香案腿断了，也有人说是堤下石笼崩了一角，没人说得清。老舵手一整午没回来，他系的那条乌篷船还在原地，沉得只剩个船头，缆绳在木桩上死死勒着，像谁也没敢解开。</div><p class="caption">金币 9 · 第 2 天 / 时段 1 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>归还蓝伞</b><small>10.1 秒 · 4 次 API · 0 次返修</small></summary><p class="player">到了约好的时间，我在约好的摊位试着归还借来的蓝伞；先寻找出借人，不假定一定能见到。</p><div class="prose">你从墙根起身，正午的日头把巷子晒得发白。石市棚口那头，瘦脸妇人已经挪到柱子正下，木匣搁在膝上，眼睛盯着窄道尽头，每隔一会儿就抬一次下巴。日影从她脚边挪到摊中央的时候，她望见了你——你朝摊位走来。
+
+她先是一愣：你两手空空，袖口也没鼓，伞没在手上。她站起身，木匣往怀里一收，脸上那点等着收货的绷劲慢慢垮下来，换成一种说不清的沉。
+
+「陆怀渠。」她把你的名字咬得很平，不像招呼，像对账，「中间这半晌，我没走。你也没把伞带来。」
+
+她没提高声，也没骂，只用指节在自己围裙上敲了两下——油渍洇出的位置，恰好是昨天把钱拨进木匣时那处。旁边守着家当的另两个摊主往这边瞥了瞥，又扭回去拨自己箱底的货。
+
+「伞是我从棚柱边抽给你的，蓝布面，缠绳你收着了，对吧。」她说的是实话，你袖袋里那把伞骨缠绳还叠得方正。「日头底下我拿它遮你，是看你病气重，淋不得。我说的是今日中午——就是眼下这个中午。」
+
+她顿住，目光越过你肩头往巷口那边扫。巷口那截墙根下，嗑瓜子的灰短打汉子还靠着，瓜子壳堆得比早上高了一小撮，他没起身，手指又恢复在墙上轻敲，一下，一下。妇人的视线在他身上停了停，又收回来，落回你脸上。
+
+「伞呢？」她问，第二次，还是那句话，「带去了哪里，还是被人拿走了？」</div><p class="caption">金币 9 · 第 2 天 / 时段 1 · 回放 一致</p></details><h3 class="world-title">瑞光学院联邦 <small>isekai</small></h3><details class="story"><summary><label class="adopt">已提交</label><b>购买干粮</b><small>7.9 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我按摊位标价买一份3枚钱币的干粮，现在付款。</p><div class="prose">你把三枚通用钱币推到摊主面前。戴单边铜框眼镜的女人终于停下那没完没了的擦拭，眼皮一抬，目光在你脸上和钱币之间来回扫了两遍——像在核账，又像在确认你没少给。
+
+「行。」她把干粮用旧报纸裹了三层，递过来时手指还多按了一下，「集市里最近不太平，吃口热乎的比什么都实在。」
+
+硬邦邦的两块压实麦饼躺在你掌心，垫着那层报纸——边角上印着一行被油浸得半透明的小字，你看不太清，只看得出是个日期，比今天早了些时候。
+
+远处那盏琉璃灯的火苗又无风偏了一下，还是朝着东边旧校舍的方向。
+
+你把干粮塞进怀里，钱袋瘪了一角。九枚，还剩九枚。摆摊的、管账的、擦报的，各忙各的，谁也不看谁。这座镇子安静得像是刚被人掐住了钟摆。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>余额不足</b><small>6.6 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我还想花100枚钱币买下全部货物，但不借债，也没有别的财物可换。</p><div class="prose">你补了一句——想用一百枚钱币把整摊的货全包下。
+
+单边铜框眼镜后的眼睛抬起来，看了你足足几秒。
+
+「一百？」她把绒布往台面上一搁，声音不高，却让斜对过擦报纸的手停了一下，「小兄弟，你怀里现在有多少，自己心里没数？」
+
+你翻了翻钱袋。九枚。刚才那份干粮你已经拿在手上了。
+
+女人摇摇头，没笑也没恼，只是把晶石盘稳稳往回收了收：「不赊账，不换东西，这是集市的老规矩。想包摊，等你钱凑齐了再来。」她顿了顿，又低头擦起石头，「反正这集啊，一时半会儿散不了。」
+
+三枚钱币从你指尖落回顾主的掌纹里，麦饼也递了回来，换成两张铜板塞回你手心。这笔直接交易，黄了。
+
+你退到一旁，钱袋还是九枚，沉甸甸地压着膝盖。摊前的雾气被脚步声搅动，几缕灰白的绒毛种子打着旋，贴着断墙那张泡烂的告示绕了一圈，最后粘在“陨”字上。
+
+斜对面档案室的玻璃后，灰发校工叠报的动作慢了下来，眼帘掀了掀，正往你这边看。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>日常观察</b><small>7.3 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我不买东西，也不接任务，只静静看一会儿这里的人各自忙什么。</p><div class="prose">你没动。就那么站在原地，把钱袋往怀里按了按，看这些人各忙各的。
+
+擦拭晶石的女人把同一排石头擦到第三遍，绒布在盘沿蹭出细响，嘴里那句「钟楼都不响了」已经念了不知第几回，像坏了循环的录音。斜对面的灰发校工叠报纸，一份叠成方块，又拆开，再叠一次，抬手抹一下报头的位置——动作精确得让人起鸡皮疙瘩，像代码里有段 return 忘了写出口。
+
+紫金长袍的管事在储藏箱那头翻账本。每翻一页，食指在纸面停半秒，笔尖在边角洇一个小点。他手边那盏琉璃灯的火苗又朝东偏了偏。你数了一下，这是今早第三回。
+
+屋檐下那几只契约猫竖着耳朵，绿眼睛齐刷刷钉在断墙那半张告示上。告示上只剩一个「陨」字，边缘还粘着一缕灰白的蒲公英绒。风从你背后穿过去，把石缝里那株瘦蒲公英又薅秃了一撮。
+
+没人看你，可你总觉得有人在看你。摊主擦石头的手，收账的笔，擦报的袖口——三样动作，节奏莫名地卡在一个点上，像被同一根线牵着。
+
+你指尖捻了捻还剩的九枚钱币。这集市安静得不对劲，你脑子里冒出一句并不合适的吐槽：这不是冷清，这是进程挂起了。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>回忆承诺</b><small>4.1 秒 · 2 次 API · 0 次返修</small></summary><p class="player">我检查自己的行程，回想之前答应归还的东西是什么、什么时候在哪里归还。</p><div class="prose">你把手伸进怀里，指尖先碰到硬邦邦的麦饼，再是那只瘪了一角的钱袋。九枚，数了两遍，还是九枚。
+
+然后你想起来了。
+
+——一把蓝伞。
+
+今早天还没亮透的时候，你在这个摊位前躲雨，摊主随手把伞递过来，说「借你用用」。伞柄上缠着一圈褪色的红线，收起来的时候，伞尖滴下的水在石板缝里砸出小小的坑。
+
+「明日中午。」她当时只说了这四个字，就又低头擦她的晶石去了。
+
+你抬头看了眼摊子。戴单边铜框眼镜的女人正把一摞晶石盘码进木匣，绒布搭在肩上，眼角余光扫过来——没催，也没提，就那么扫了一下，像是料准了你会想起来。
+
+斜对面的玻璃窗后，灰发校工又一次把报纸叠成方块，这回你没看错：他叠完，抬起眼，正对着你的方向。
+
+你把伞的位置在脑子里标了个坐标——摊位左手边第三格木架，伞尖朝外，红线朝上。这个时间点，伞还在那儿立着。
+
+还有一天。明天中午，牌位不会跑，摊位也散不了。你摸了摸钱袋，九枚铜板沉甸甸的，够垫这一顿，不够掀这一摊。</div><p class="caption">金币 9 · 第 1 天 / 时段 0 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>离开探索</b><small>6.9 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我走出当前场所，在门口附近观察来往的人和道路，暂时不接新任务。</p><div class="prose">你从摊前退开半步，绕过码晶石盘的木匣，往集市入口的方向走。
+
+棚布下投下的光斜斜地铺了一地。你走到两排摊位之间的过道上站定，背对着身后那面矮墙——墙上那张被雨泡烂的告示还粘着，只剩一个「陨」字。
+
+门口的人流不算密。一个挑担的老农把扁担换了个肩，担子两头的竹筐里传来细碎的、像纸页摩擦的声响。三名穿灰袍的学院杂役推着一辆板车过去，车上的木箱敞着盖，露出几枚裹了草绳的封魔匣，走一段停一段，像在等按货单核对什么。
+
+再往镇里望，主道上铺着被车辙压出凹痕的青石。远处钟楼的方向安静得反常——按说这个时辰该敲的钟声，没有响。
+
+你注意到几件事：
+一，往东那条岔路通向旧校舍，路口立着一块褪了色的客栈招幌，幌子上的字被人用炭笔改过，添了两笔，变成了另一个意思，你看不清具体是什么。
+二，斜对过档案室的窗还开着，灰发校工这会儿不在窗后了，玻璃上只留着一圈他常坐的木椅磨出的亮痕。
+三，有个身影一直在你斜后方晃——不算近，但总在你换位置的时候同步挪一挪步。你回头，只看见半截淡紫的袍角。
+
+你把两只手插进腰侧，没急着往任何一个方向走。石板缝里那株蒲公英还立着，绒毛被风一带，慢悠悠地飘进了旁边的排水沟。</div><p class="caption">金币 9 · 第 1 天 / 时段 1 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>回到原处</b><small>6.3 秒 · 3 次 API · 0 次返修</small></summary><p class="player">我回到刚才买干粮的地方（venue_0），看看之前遇见的人是否还在。</p><div class="prose">你沿着两排摊位之间的过道折回去，脚下那几道被板车铁轮碾出的浅沟还在，踩上去咯吱一声。蒲公英的绒毛贴在地上，被你的鞋尖带起又落下。
+
+干粮摊还在。戴单边铜框眼镜的女人正把那只木匣的盖子合上，绒布搭在肩头，听见脚步只抬了抬眼皮。
+
+「回来了。」她说，不是问句。
+
+你站定。左手边第三格木架上，那把蓝伞还立着，伞尖朝外，红线缠在伞柄上，朝上。跟早上你记下的坐标一模一样。
+
+她没提伞，也没催。只是把木匣往台面里推了推，腾出个能搁东西的空位——像是早给你留好的。斜对过档案室那扇窗还开着，灰发校工不在，窗前那圈木椅磨出的亮痕空落落地晾在玻璃上。
+
+集市里那点细碎的声响还在响，挑担的脚步声远了，独轮车卡进石缝的一下刮擦也过去了。你身后斜方那半截淡紫的袍角，暂时没再跟上来。</div><p class="caption">金币 9 · 第 1 天 / 时段 1 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>等待到次日中午</b><small>11.1 秒 · 4 次 API · 0 次返修</small></summary><p class="player">我在此休息到明天中午，不购买任何东西。留意周围的人和先前的事情有没有变化。</p><div class="prose">你往摊位旁边的矮墙根一靠，把后背交给那面糊着半张烂告示的墙，谁也不挡谁的路。
+
+戴单边铜框眼镜的女人没赶你，也没搭理你。她把木匣推到台面下，从箱底翻出一只豁了口的小陶壶，就着门口的风口慢慢喝。喝两口，瞥你一眼；再喝两口，瞥你一眼。像在算你能不能挨到明天。
+
+你就这么坐着。中午的日头一寸一寸往西挪，棚布下的影子跟着挪，先盖住你的鞋尖，再盖住你的膝盖。斜对过档案室那扇窗，灰发校工回来过两次。第一次他把一摞报纸从窗内搬到窗外的窗台上晾，第二次又全搬了回去，动作一模一样，只是顺序反了。他始终没往你这边看。
+
+下午过半，集市里的人和货在悄悄换班。挑担的老农出镇去了，那个筐里纸页摩擦的声响没再响。三名灰袍杂役空着手从东边岔路回来，板车上的封魔匣不知卸去了哪里。管事那盏琉璃灯还是那样，火苗隔一阵就朝旧校舍的方向偏一偏，他翻账本的手指在某一页上按了很久，久到你以为他睡着了，他才翻过去。
+
+天黑得比预想的快。棚布收了边，摊主们陆续把值钱的货锁进脚边的铁箱，有几个人嘀嘀咕咕挤在一处，说的是同一件事：客栈那块招幌上的字，今天下午被人重新描过了，描成了什么谁也说不准。你隔着人影望了一眼，路口那幌子还在，字迹还是看不清。
+
+那半截淡紫的袍角又出现过两次。一次在路口卖灯的摊子后面，一次在你正对面那排储物箱的拐角。都是你换姿势的时候，余光里一闪，等你定住，它就不见了。没人朝你走过来，也没人开口问你要什么。
+
+夜里冷。棚顶漏下的风直往领口里钻，你把两张麦饼啃掉一张半，剩下的半张揣回怀里垫着。钱袋还是那个钱袋，九枚铜板，一枚没动。你靠在墙上打盹，睁眼的时候月亮已经偏了，斜对面那扇窗黑着，只剩上一圈木椅磨出的白痕，在月光里看得比白天还清楚。
+
+你数着更次挨到天亮，又挨过一个上午。日头爬到棚顶正中的时候，你站起来——正好是昨天她说「明日中午」的那个点。
+
+干粮摊还开着。戴单边铜框眼镜的女人抬起眼皮，看见你，又垂下眼去。左手边第三格木架上，那把蓝伞还立在原处，伞尖朝外，褪色的红线缠在伞柄上，朝上，一步没挪过地方。</div><p class="caption">金币 9 · 第 2 天 / 时段 1 · 回放 一致</p></details><details class="story"><summary><label class="adopt">已提交</label><b>归还蓝伞</b><small>8.4 秒 · 5 次 API · 1 次返修</small></summary><p class="player">到了约好的时间，我在约好的摊位试着归还借来的蓝伞；先寻找出借人，不假定一定能见到。</p><div class="prose">到了约好的点，你站到摊位前，先没伸手去碰那把伞。
+
+规矩是先找到出借的人。你把视线放低，越过台面，钻进摊子后头那一小片棚布阴影里——昨天你数更次那一夜，她就是从这片阴影里翻出陶壶的。
+
+空的。摊面只留着那只合了盖的木匣、绒布搭在一角，靠门的风口还摆着豁了口的小陶壶，壶底压着圈干了的水渍。人不在。
+
+你退开半步。左手边第三格，蓝伞照旧立着，伞尖朝外，褪色的红线缠在柄上朝上，坐标纹丝没动。
+
+斜对过档案室那扇窗开着。灰发校工在，正把一叠旧报纸按某一个顺序码齐——不是昨天那两趟，是一趟新的，他码得很慢，指腹在报头位置来回抹。他抬眼，恰好和你对上，又不动声色地垂下去。
+
+集市里的人比往常少。三名灰袍杂役从东边岔路回来，板车空着，车轮压过青石的一声刮擦比昨天更脆。管事的位置没变，还是那盏琉璃灯，火苗照旧时不时往旧校舍方向偏一偏。
+
+远处钟楼，依旧没有响。
+
+你就这么站在摊前，两手插在腰侧，看了一会儿空着的摊主位——它表明这个人会回来，只是没告诉你什么时候。</div><p class="caption">金币 9 · 第 2 天 / 时段 1 · 回放 一致</p></details></section><section id="world"><div class="num">04 / WORLD CONTINUITY</div><h2>玩家行动之外，世界如何保持连续</h2><div class="grid"><div class="panel"><h3>事件、事实、信念、摘要各有用途</h3><p>事件保留发生过什么；事实索引回答现在是什么；知识记录谁相信什么。玩家只读 POV 视图，未知的 NPC 私有目标留给幕后系统。</p><p>每回合刷新当前状态和带日期的事实锚点。聊天缓存只留 8 组对话；同场景也按 6 回合分块，最近 2 块保留原文，早期内容进入摘要。</p><p>60 回合同场景专测得到 10 个记忆块，提示保留最近 12 条原文；事件日志仍保留全部 60 条。摘要是有损的派生记忆，需要事实约束。</p></div><div class="panel"><h3>可复现的随机提示</h3><p>新增安静日常、感官、人物习惯、对话节奏、既有后果和空间关系等选择。由战役种子、动作序号、地点生成抽样，尽量排除最近两项。</p><p>风格包可覆盖同名表；经典和异世界各有配置，未来科幻或日常题材可用同一接口。抽签记录在事件中，撤销后能复现。</p><p class="note">随机提示只影响创作方向，不能创造事实、判定成败或强迫接任务。尚无盲评证据证明它一定让文学质量更好；原有导演过度制造危机仍需后续节奏实验。</p></div></div></section><section id="claude"><div class="num">05 / INDEPENDENT REVIEW</div><h2>对 Claude 建议的取舍</h2><p>找到的原报告来自 2026-09-07、同一 Claude session。发现清单用于排查，实施决策则依赖独立反例与测试。</p><div class="toolbar"><button data-filter="all" class="active">全部</button><button data-filter="adopt" class="">落实</button><button data-filter="change" class="">调整</button><button data-filter="reject" class="">否决</button><button data-filter="hold" class="">后续</button></div><div class="decisions"><article class="decision" data-kind="adopt"><label class="adopt">落实</label><h3>原子提交、可见性、事实索引</h3><p>独立复现后采用，并扩展到持久回执、版本检查、字段信念及完整动作撤销。</p></article><article class="decision" data-kind="change"><label class="change">调整</label><h3>散文先行，再事后抽取记账</h3><p>漏扣与重复扣款改变了方案：明确资源先裁定，未通过的行动不发布正文。</p></article><article class="decision" data-kind="reject"><label class="reject">否决</label><h3>投影报错就跳过事件</h3><p>错误可能已经产生半个效果。选择在事务前预演，保留最后健康状态。</p></article><article class="decision" data-kind="hold"><label class="hold">后续研究</label><h3>把 13 个系统直接砍到 6 个</h3><p>保留领域边界，新增资源系统后共 14 个。目录或模块数量不是体验指标。</p></article><article class="decision" data-kind="hold"><label class="hold">后续研究</label><h3>立即把所有后台都改成异步</h3><p>先统一提交和版本，再研究任务生命周期、取消、倒带及跨回合因果关系。</p></article><article class="decision" data-kind="change"><label class="change">修正</label><h3>完全删除多轮历史</h3><p>保留可重建的短会话，每轮刷新当前世界；真实重复问题新增发布关口，长期效果仍需比较。</p></article><article class="decision" data-kind="reject"><label class="reject">否决该收益口径</label><h3>“同模型 126 秒变 3 秒”</h3><p>原图混入估算。不同模型、首句与完整回合的耗时不能当作同条件提速证明。</p></article></div></section><section id="target"><div class="num">06 / EXTENSION & LIMITS</div><h2>可扩展性保留；未证明的能力不宣称完成</h2><div class="grid"><div class="panel"><h3>规则从场景包进入</h3><p>保留 pack.json 的 voice、tone、select_hints 与原 oracle 表。新增 narrative_variations.json 及可选 resources。资源名来自数据，氧气、燃料、钱币都能复用。</p><pre>{&quot;resources&quot;: {&quot;oxygen&quot;: {
+  &quot;initial&quot;: 100, &quot;type&quot;: &quot;integer&quot;,
+  &quot;min&quot;: 0, &quot;max&quot;: 100, &quot;label&quot;: &quot;氧气&quot;
+}}}</pre><p>领域仍通过 ContextSystem 注册校验、事件、投影。通用 fact_rules 支持类型、上下界、枚举与不可变字段。</p></div><div class="panel"><h3>实际边界</h3><ul><li>资源模块覆盖明确支出与不足拒绝；奖励、偷窃、双方交易和物品转移需要更多效果处理。登记余额的自由改写会被拒绝。</li><li>意图解析仍由模型完成，算术正确不保证它理解了每句话。</li><li>模型仍会补写既往细节、混淆持有关系；正文检测不是语义证明器。</li><li>旧地图未标记实体默认公开；摘要、暗线文本还需更广的秘密测试。</li><li>后台随动作同步运行，没有离线持续 tick 的服务器；16 个最终轮动作不等于千回合真实验收。</li></ul></div></div><div style="margin-top:24px"><div class="scroll"><table><thead><tr><th>下一步</th><th>为什么需要</th><th>通过条件</th></tr></thead><tbody><tr><td>有来源的行动效果、交换与奖励</td><td>补完资源裁定范围，保持物品和资金守恒。</td><td>买卖双方、奖励权限、失败交易、重试和撤销；模型不得擅自换购。</td></tr><tr><td>结构化承诺与持有关系</td><td>文字锚点仍挡不住模型补写借伞人、地点与过去。</td><td>100+ 真实回合保持人物、借出/借入方向、绝对日期、持有人一致，重开和压缩后仍正确。</td></tr><tr><td>有版本的异步世界任务</td><td>有了提交边界，才适合减少同步等待。</td><td>任务取消、超时、切图、撤销及旧分支完成都不污染当前世界，测完整可行动时间。</td></tr><tr><td>多题材盲评与记忆评估</td><td>证明随机性降低同质化，而不牺牲事实一致性。</td><td>固定世界、动作、模型预算，对照有无随机表；评估角色差异、玩家选择权、重复与事实偏差。</td></tr></tbody></table></div></div></section><section id="run"><div class="num">07 / RUN & REPRODUCE</div><h2>使用改进后的引擎</h2><div class="grid"><div class="panel"><h3>专用启动入口</h3><pre>cd /root/rpg-engine-app
+./run-deepseek.sh \
+  --campaign /root/games/my-new-adventure \
+  --flavor isekai \
+  --pitch '轻快的异世界旅行，从普通人的生活开始'</pre><p>密钥保存在项目外的 0600 文件。此入口新局启用资源规则，可在创建前设置 RPG_RESOURCE_RULES=0 使用原自由记账方式。规则随存档持久化；原 Zhipu run.sh 保留。</p></div><div class="panel"><h3>复查入口</h3><pre>python3 -m pytest -q
+
+python3 /root/rpg-engine-audit-20261003/experiments/implemented_endurance.py</pre><p>真实测试有 API 调用预算，使用新目录且拒绝覆盖旧实验。按调用记录工具、token、修复和耗时。</p><p class="caption">DeepSeek 按官方 <a href="https://api-docs.deepseek.com/zh-cn/guides/json_mode/">JSON Output</a> 与 <a href="https://api-docs.deepseek.com/zh-cn/guides/thinking_mode/">思考/工具协议</a> 适配。结构化调用使用 JSON 模式，工具回合保留完整 assistant 消息组。</p></div></div></section><section id="evidence"><div class="num">08 / EVIDENCE</div><h2>源码、实验与原报告入口</h2><div class="sources"><a href="evidence/provenance.json">目录与 Claude 会话出处</a><a href="recovered/rpg-engine-audit.html">Claude 原始审核</a><a href="recovered/rpg-engine-architecture.html">Claude 原架构建议</a><a href="evidence/probes.json">原架构探针</a><a href="evidence/implementation-tests.xml">当前全量回归</a><a href="evidence/implemented-live-review.json">真实游玩人工复核</a><a href="evidence/implemented-live-play.json">最终轮全部模型输出</a><a href="evidence/implemented-live-play-v1-failures.json">V1 漏账与格式失败</a><a href="evidence/implemented-live-play-v2-failures.json">V2 重复扣款</a><a href="evidence/implemented-live-play-v3-mixed.json">V3 状态通过、正文有问题</a><a href="evidence/implemented-endurance.json">120 动作持续测试</a><a href="evidence/legacy-replay-implemented.json">7 份旧存档兼容</a><a href="evidence/index-benchmark-implemented.json">当前代码性能</a><a href="evidence/live-summary-baseline.json">初始 Author / Hybrid 对照</a><a href="implementation-progress.json">持续任务记录</a><a href="changes.patch">实现变更补丁</a><a href="../../../docs/action-integrity.md">运行与扩展文档</a></div><p class="note">正常流程测试夹具补齐了必填段；原来期待“部分成功”的测试改为拒绝行动、零写入。离线创世夹具显式允许 stub，生产失败另作注入验证；没有删除旧测试。</p><p class="caption">本报告为自包含 HTML，支持桌面、手机及打印；完整包带证据与补丁，不含密钥。</p></section><footer class="foot">独立审核与实施 · 2026-10-03 · 基线 fb7ebd8 → 当前工作区。<br>已实施、已验证与后续候选分别标注。请以验收范围和原始证据理解结果。</footer></main><script>document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".decision").forEach(c=>c.hidden=b.dataset.filter!=="all"&&c.dataset.kind!==b.dataset.filter)}));</script></body></html>

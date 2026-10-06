@@ -60,7 +60,7 @@ class TimeSystem(ContextSystem):
             if entity is None:
                 log.warning("time_advanced dangling id=%s; last_update not stamped", pid)
             else:
-                entity.attrs["last_update"] = event["day"]
+                entity.attrs["last_update"] = max(entity.attrs.get('last_update', 0), event["day"])
                 log.debug("time_advanced stamped last_update=%d for id=%s", event["day"], pid)
         # If no id: pure elapse carrier — projection sets meta.day via kernel
 

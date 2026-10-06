@@ -225,7 +225,7 @@ def main(
     )
     parser.add_argument(
         "--provider", default="fake",
-        choices=["fake", "openai", "zhipu", "anthropic"],
+        choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
         help="LLM provider (default: fake)",
     )
     parser.add_argument(
@@ -295,6 +295,30 @@ def main(
              "Orthogonal to --verbosity (length). Alt source: env RPG_NARRATION_STYLE. "
              "Default empty = neutral.",
     )
+    # Genesis world-premise overrides — pin an otherwise engine-rolled dial without
+    # writing a blueprint file. Empty/unset = engine decides (tone is pitch-biased).
+    # These win over a --genesis blueprint (explicit per-run intent).
+    parser.add_argument(
+        "--tone", default=None, dest="tone",
+        help="Pin the world tone instead of the pitch-biased roll (e.g. 治愈/热血/悬疑/生存).",
+    )
+    parser.add_argument(
+        "--magic-system", default=None, dest="magic_system",
+        help="Pin the world's magic/power source instead of rolling it.",
+    )
+    parser.add_argument(
+        "--power-ladder", default=None, dest="power_ladder",
+        help="Pin the world's strength/rank ladder instead of rolling it.",
+    )
+    parser.add_argument(
+        "--world-tension", default=None, dest="world_tension",
+        help="Pin the world's central tension/backdrop instead of rolling it.",
+    )
+    parser.add_argument(
+        "--flavor", default=None, dest="flavor",
+        help="World flavor pack: classic (硬核西幻/武侠) | isekai (日式轻小说·异世界穿越). "
+             "Default: auto-selected by pitch keywords, else classic.",
+    )
     parser.add_argument(
         "--max-tool-rounds", default=None, type=int, dest="max_tool_rounds",
         help="Max POV tool-call rounds per turn (default 12 / env RPG_MAX_TOOL_ROUNDS). "
@@ -349,8 +373,28 @@ def main(
     _interactive = inputs is None
 
     # Resolve input source; wrap in an iterator for the reroll loop.
+    # Interactive TTY → a readline-backed input() reader so arrow keys do line
+    # editing / history instead of leaking raw escapes (^[[A/^[[B) into the game.
+    # The "▶ 你：" prompt doubles as the input framing, so play_loop skips its own
+    # echo (echo_input=False). Non-TTY (pipe/tests) keeps raw stdin + the echo.
+    def _tty_line_reader(prompt: str = "▶ 你："):
+        while True:
+            try:
+                yield input(prompt)
+            except EOFError:
+                return
+
+    _tty_prompt = False
     if inputs is None:
-        inputs = sys.stdin
+        if sys.stdin.isatty():
+            try:
+                import readline  # noqa: F401 (enables line editing + history for input())
+            except ImportError:
+                pass  # no readline (rare) → input() still works, just without editing
+            inputs = _tty_line_reader()
+            _tty_prompt = True
+        else:
+            inputs = sys.stdin
     inputs_iter = iter(inputs)
 
     # Seed a new game if the store is empty
@@ -408,7 +452,36 @@ def main(
         except BlueprintError as e:
             out(f"[开局错误] 无法读取开局设定文件：{e}")
             return
-        result = new_game(engine, pitch, spec=spec, progress=_progress_cb)
+
+        # CLI world-premise overrides (--tone/--magic-system/--power-ladder/
+        # --world-tension) pin an otherwise engine-rolled dial without a blueprint;
+        # they overlay (and win over) the resolved spec's world_premise.
+        _cli_premise = {k: v for k, v in {
+            "tone": args.tone,
+            "magic_system": args.magic_system,
+            "power_ladder": args.power_ladder,
+            "world_tension": args.world_tension,
+        }.items() if v}
+        if _cli_premise:
+            _wp = dict(spec.get("world_premise") or {})
+            _wp.update(_cli_premise)
+            spec = {**spec, "world_premise": _wp}
+            out(f"[开局] 手动锁定：{'、'.join(f'{k}={v}' for k, v in _cli_premise.items())}")
+
+        # Resolve the flavor pack (--flavor → pitch select_hints → classic) and set
+        # its default narration voice (explicit --style/STYLE= still overrides).
+        from loop.flavor import resolve_flavor
+        from engine.oracle import load_pack_manifest
+        from engine import settings as _eng_settings
+        try:
+            _flavor = resolve_flavor(getattr(args, "flavor", None), pitch)
+        except ValueError as e:
+            out(f"[开局错误] {e}")
+            return
+        _manifest = load_pack_manifest(_flavor)
+        _eng_settings.set_pack_voice(_manifest.get("voice", ""))
+        out(f"[开局] 风味：{_manifest.get('name', _flavor)}")
+        result = new_game(engine, pitch, spec=spec, progress=_progress_cb, flavor=_flavor)
 
         # Print rich INTRO block so the player can review the new world (Fix #2)
         _print_intro(result, out)
@@ -477,12 +550,19 @@ def main(
             inputs_iter = itertools.chain([_first_action], inputs_iter)
     else:
         out(f"[载入存档] 已读取 {len(events)} 条事件。")
+        # Recover the campaign's flavor voice so resumed narration keeps its style
+        # (explicit --style/STYLE= still overrides via get_style()).
+        from loop.flavor import stored_flavor
+        from engine.oracle import load_pack_manifest
+        from engine import settings as _eng_settings
+        _eng_settings.set_pack_voice(load_pack_manifest(stored_flavor(engine.store)).get("voice", ""))
         _print_resume_recap(engine, out)   # #R1: compact 'continue' recap on load
 
     transcript_path = Path(args.transcript) if args.transcript else (campaign_dir / "transcript.jsonl")
     out(f"[transcript] 逐回合记录写入 {transcript_path}")
     play_loop(engine, inputs=inputs_iter, out=out, compare=args.compare,
-              transcript_path=transcript_path, max_repairs=args.max_repairs)
+              transcript_path=transcript_path, max_repairs=args.max_repairs,
+              echo_input=not _tty_prompt)
 
 
 if __name__ == "__main__":

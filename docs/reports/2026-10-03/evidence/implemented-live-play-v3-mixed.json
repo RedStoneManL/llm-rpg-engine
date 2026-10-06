@@ -1,0 +1,2953 @@
+{
+  "status": "completed_requires_review",
+  "started_at": "2026-10-03 14:33:08",
+  "model": "deepseek-flash",
+  "call_budget": 160,
+  "api_calls": [
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 90,
+        "total_tokens": 361,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 143
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.3104390520602465
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 423,
+        "completion_tokens": 163,
+        "total_tokens": 586,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 423
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.5960328858345747
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 472,
+        "completion_tokens": 126,
+        "total_tokens": 598,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 472
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.33850715495646
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 591,
+        "completion_tokens": 228,
+        "total_tokens": 819,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 591
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.186415756121278
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 412,
+        "completion_tokens": 136,
+        "total_tokens": 548,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 412
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.5557203721255064
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 541,
+        "completion_tokens": 260,
+        "total_tokens": 801,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 541
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.92914872802794
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 384,
+        "completion_tokens": 790,
+        "total_tokens": 1174,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 384
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 6.372994996607304
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 622,
+        "completion_tokens": 745,
+        "total_tokens": 1367,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 622
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 5.225422682240605
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 605,
+        "completion_tokens": 295,
+        "total_tokens": 900,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 605
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.3777665477246046
+    },
+    {
+      "phase": "classic/genesis",
+      "n_tools_offered": 0,
+      "json_mode": null,
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 558,
+        "completion_tokens": 652,
+        "total_tokens": 1210,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 558
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.947992416098714
+    },
+    {
+      "phase": "classic/pay",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 182,
+        "completion_tokens": 14,
+        "total_tokens": 196,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 182
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.5162245035171509
+    },
+    {
+      "phase": "classic/pay",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5010,
+        "completion_tokens": 510,
+        "total_tokens": 5520,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 1938
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.3548813834786415
+    },
+    {
+      "phase": "classic/pay",
+      "n_tools_offered": 0,
+      "json_mode": null,
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 642,
+        "completion_tokens": 631,
+        "total_tokens": 1273,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 642
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.042124409228563
+    },
+    {
+      "phase": "classic/insufficient",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 186,
+        "completion_tokens": 14,
+        "total_tokens": 200,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 186
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.5863911360502243
+    },
+    {
+      "phase": "classic/insufficient",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5742,
+        "completion_tokens": 297,
+        "total_tokens": 6039,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 2670
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.7617077343165874
+    },
+    {
+      "phase": "classic/insufficient",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 4631,
+        "completion_tokens": 240,
+        "total_tokens": 4871,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 2839
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.347479458898306
+    },
+    {
+      "phase": "classic/quiet",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 181,
+        "completion_tokens": 5,
+        "total_tokens": 186,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 181
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.5727344658225775
+    },
+    {
+      "phase": "classic/quiet",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6238,
+        "completion_tokens": 418,
+        "total_tokens": 6656,
+        "prompt_tokens_details": {
+          "cached_tokens": 3328
+        },
+        "prompt_cache_hit_tokens": 3328,
+        "prompt_cache_miss_tokens": 2910
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.2652042377740145
+    },
+    {
+      "phase": "classic/quiet",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5128,
+        "completion_tokens": 601,
+        "total_tokens": 5729,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048
+        },
+        "prompt_cache_hit_tokens": 2048,
+        "prompt_cache_miss_tokens": 3080
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.0615992695093155
+    },
+    {
+      "phase": "classic/recall",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 180,
+        "completion_tokens": 5,
+        "total_tokens": 185,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 180
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.756092494353652
+    },
+    {
+      "phase": "classic/recall",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5697,
+        "completion_tokens": 547,
+        "total_tokens": 6244,
+        "prompt_tokens_details": {
+          "cached_tokens": 3200
+        },
+        "prompt_cache_hit_tokens": 3200,
+        "prompt_cache_miss_tokens": 2497
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.151392474770546
+    },
+    {
+      "phase": "classic/recall",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5199,
+        "completion_tokens": 73,
+        "total_tokens": 5272,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 3407
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.8054639864712954
+    },
+    {
+      "phase": "classic/explore",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 183,
+        "completion_tokens": 5,
+        "total_tokens": 188,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 183
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.39127188362181187
+    },
+    {
+      "phase": "classic/explore",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6719,
+        "completion_tokens": 486,
+        "total_tokens": 7205,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 3647
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.9864788334816694
+    },
+    {
+      "phase": "classic/explore",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5610,
+        "completion_tokens": 665,
+        "total_tokens": 6275,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 3818
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.0464682076126337
+    },
+    {
+      "phase": "classic/return",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 183,
+        "completion_tokens": 5,
+        "total_tokens": 188,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 183
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.830621050670743
+    },
+    {
+      "phase": "classic/return",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 7827,
+        "completion_tokens": 417,
+        "total_tokens": 8244,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 4243
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.7163727916777134
+    },
+    {
+      "phase": "classic/return",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6717,
+        "completion_tokens": 636,
+        "total_tokens": 7353,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 4285
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.6981643848121166
+    },
+    {
+      "phase": "classic/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 184,
+        "completion_tokens": 5,
+        "total_tokens": 189,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 184
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.6277747452259064
+    },
+    {
+      "phase": "classic/wait",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 8956,
+        "completion_tokens": 443,
+        "total_tokens": 9399,
+        "prompt_tokens_details": {
+          "cached_tokens": 4224
+        },
+        "prompt_cache_hit_tokens": 4224,
+        "prompt_cache_miss_tokens": 4732
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.6602959744632244
+    },
+    {
+      "phase": "classic/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 7846,
+        "completion_tokens": 646,
+        "total_tokens": 8492,
+        "prompt_tokens_details": {
+          "cached_tokens": 2944
+        },
+        "prompt_cache_hit_tokens": 2944,
+        "prompt_cache_miss_tokens": 4902
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.819874223321676
+    },
+    {
+      "phase": "classic/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 8481,
+        "completion_tokens": 92,
+        "total_tokens": 8573,
+        "prompt_tokens_details": {
+          "cached_tokens": 7552
+        },
+        "prompt_cache_hit_tokens": 7552,
+        "prompt_cache_miss_tokens": 929
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.258126299828291
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 191,
+        "completion_tokens": 5,
+        "total_tokens": 196,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 191
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.352042268961668
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 9930,
+        "completion_tokens": 514,
+        "total_tokens": 10444,
+        "prompt_tokens_details": {
+          "cached_tokens": 4736
+        },
+        "prompt_cache_hit_tokens": 4736,
+        "prompt_cache_miss_tokens": 5194
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.500783005729318
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 8822,
+        "completion_tokens": 441,
+        "total_tokens": 9263,
+        "prompt_tokens_details": {
+          "cached_tokens": 3456
+        },
+        "prompt_cache_hit_tokens": 3456,
+        "prompt_cache_miss_tokens": 5366
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.356989860534668
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 9349,
+        "completion_tokens": 172,
+        "total_tokens": 9521,
+        "prompt_tokens_details": {
+          "cached_tokens": 8448
+        },
+        "prompt_cache_hit_tokens": 8448,
+        "prompt_cache_miss_tokens": 901
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.426944026723504
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 9606,
+        "completion_tokens": 52,
+        "total_tokens": 9658,
+        "prompt_tokens_details": {
+          "cached_tokens": 9472
+        },
+        "prompt_cache_hit_tokens": 9472,
+        "prompt_cache_miss_tokens": 134
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.6341671999543905
+    },
+    {
+      "phase": "classic/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 2758,
+        "completion_tokens": 137,
+        "total_tokens": 2895,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2758
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.2675006613135338
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 265,
+        "completion_tokens": 78,
+        "total_tokens": 343,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 137
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.8688464798033237
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 398,
+        "completion_tokens": 107,
+        "total_tokens": 505,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 398
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.3427013829350471
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 446,
+        "completion_tokens": 111,
+        "total_tokens": 557,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 446
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.3104490209370852
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 588,
+        "completion_tokens": 187,
+        "total_tokens": 775,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 588
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.6545939929783344
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 377,
+        "completion_tokens": 137,
+        "total_tokens": 514,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 377
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.5357295107096434
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 481,
+        "completion_tokens": 298,
+        "total_tokens": 779,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 481
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.87791333720088
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 844,
+        "completion_tokens": 293,
+        "total_tokens": 1137,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 204
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.4459462370723486
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 364,
+        "completion_tokens": 666,
+        "total_tokens": 1030,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 364
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.307339996099472
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 613,
+        "completion_tokens": 856,
+        "total_tokens": 1469,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 613
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 5.815286602824926
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 596,
+        "completion_tokens": 546,
+        "total_tokens": 1142,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 596
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.066980365663767
+    },
+    {
+      "phase": "isekai/genesis",
+      "n_tools_offered": 0,
+      "json_mode": null,
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 586,
+        "completion_tokens": 730,
+        "total_tokens": 1316,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 586
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 5.284231944009662
+    },
+    {
+      "phase": "isekai/pay",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 182,
+        "completion_tokens": 14,
+        "total_tokens": 196,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 182
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.0367797277867794
+    },
+    {
+      "phase": "isekai/pay",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5041,
+        "completion_tokens": 205,
+        "total_tokens": 5246,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 1969
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.7618580553680658
+    },
+    {
+      "phase": "isekai/pay",
+      "n_tools_offered": 0,
+      "json_mode": null,
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 655,
+        "completion_tokens": 665,
+        "total_tokens": 1320,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 655
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.343620743602514
+    },
+    {
+      "phase": "isekai/insufficient",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 186,
+        "completion_tokens": 14,
+        "total_tokens": 200,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 186
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.46283020451664925
+    },
+    {
+      "phase": "isekai/insufficient",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5576,
+        "completion_tokens": 224,
+        "total_tokens": 5800,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 2504
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.2567514162510633
+    },
+    {
+      "phase": "isekai/insufficient",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 4465,
+        "completion_tokens": 224,
+        "total_tokens": 4689,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 2673
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.2490695752203465
+    },
+    {
+      "phase": "isekai/quiet",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 181,
+        "completion_tokens": 5,
+        "total_tokens": 186,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 181
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.4817907717078924
+    },
+    {
+      "phase": "isekai/quiet",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5816,
+        "completion_tokens": 249,
+        "total_tokens": 6065,
+        "prompt_tokens_details": {
+          "cached_tokens": 3200
+        },
+        "prompt_cache_hit_tokens": 3200,
+        "prompt_cache_miss_tokens": 2616
+      },
+      "tool_calls": [
+        "map_query",
+        "ambient_query"
+      ],
+      "finish_reason": "tool_calls",
+      "seconds": 2.01282387599349
+    },
+    {
+      "phase": "isekai/quiet",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6055,
+        "completion_tokens": 459,
+        "total_tokens": 6514,
+        "prompt_tokens_details": {
+          "cached_tokens": 5760
+        },
+        "prompt_cache_hit_tokens": 5760,
+        "prompt_cache_miss_tokens": 295
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.410414759069681
+    },
+    {
+      "phase": "isekai/recall",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 180,
+        "completion_tokens": 5,
+        "total_tokens": 185,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 180
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.5970524083822966
+    },
+    {
+      "phase": "isekai/recall",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5445,
+        "completion_tokens": 234,
+        "total_tokens": 5679,
+        "prompt_tokens_details": {
+          "cached_tokens": 3968
+        },
+        "prompt_cache_hit_tokens": 3968,
+        "prompt_cache_miss_tokens": 1477
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.0923139192163944
+    },
+    {
+      "phase": "isekai/recall",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 4634,
+        "completion_tokens": 56,
+        "total_tokens": 4690,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920
+        },
+        "prompt_cache_hit_tokens": 1920,
+        "prompt_cache_miss_tokens": 2714
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.6882301606237888
+    },
+    {
+      "phase": "isekai/explore",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 183,
+        "completion_tokens": 5,
+        "total_tokens": 188,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 183
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.8322913758456707
+    },
+    {
+      "phase": "isekai/explore",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5915,
+        "completion_tokens": 297,
+        "total_tokens": 6212,
+        "prompt_tokens_details": {
+          "cached_tokens": 3072
+        },
+        "prompt_cache_hit_tokens": 3072,
+        "prompt_cache_miss_tokens": 2843
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.837170075625181
+    },
+    {
+      "phase": "isekai/explore",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 4804,
+        "completion_tokens": 524,
+        "total_tokens": 5328,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 3012
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.3582730796188116
+    },
+    {
+      "phase": "isekai/return",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 183,
+        "completion_tokens": 5,
+        "total_tokens": 188,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 183
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.5176813285797834
+    },
+    {
+      "phase": "isekai/return",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6814,
+        "completion_tokens": 182,
+        "total_tokens": 6996,
+        "prompt_tokens_details": {
+          "cached_tokens": 3328
+        },
+        "prompt_cache_hit_tokens": 3328,
+        "prompt_cache_miss_tokens": 3486
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.6554861329495907
+    },
+    {
+      "phase": "isekai/return",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 5703,
+        "completion_tokens": 237,
+        "total_tokens": 5940,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048
+        },
+        "prompt_cache_hit_tokens": 2048,
+        "prompt_cache_miss_tokens": 3655
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.8467418774962425
+    },
+    {
+      "phase": "isekai/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 184,
+        "completion_tokens": 5,
+        "total_tokens": 189,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 184
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.7824925519526005
+    },
+    {
+      "phase": "isekai/wait",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 7230,
+        "completion_tokens": 615,
+        "total_tokens": 7845,
+        "prompt_tokens_details": {
+          "cached_tokens": 3712
+        },
+        "prompt_cache_hit_tokens": 3712,
+        "prompt_cache_miss_tokens": 3518
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.511390149593353
+    },
+    {
+      "phase": "isekai/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 6122,
+        "completion_tokens": 701,
+        "total_tokens": 6823,
+        "prompt_tokens_details": {
+          "cached_tokens": 2560
+        },
+        "prompt_cache_hit_tokens": 2560,
+        "prompt_cache_miss_tokens": 3562
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 4.53764440305531
+    },
+    {
+      "phase": "isekai/wait",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 388,
+        "completion_tokens": 147,
+        "total_tokens": 535,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 388
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 1.0883051119744778
+    },
+    {
+      "phase": "isekai/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 191,
+        "completion_tokens": 5,
+        "total_tokens": 196,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 191
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 0.6290775407105684
+    },
+    {
+      "phase": "isekai/promise",
+      "n_tools_offered": 6,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 8419,
+        "completion_tokens": 308,
+        "total_tokens": 8727,
+        "prompt_tokens_details": {
+          "cached_tokens": 3968
+        },
+        "prompt_cache_hit_tokens": 3968,
+        "prompt_cache_miss_tokens": 4451
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 2.6673766653984785
+    },
+    {
+      "phase": "isekai/promise",
+      "n_tools_offered": 0,
+      "json_mode": {
+        "type": "json_object"
+      },
+      "ok": true,
+      "model_returned": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 7308,
+        "completion_tokens": 570,
+        "total_tokens": 7878,
+        "prompt_tokens_details": {
+          "cached_tokens": 2688
+        },
+        "prompt_cache_hit_tokens": 2688,
+        "prompt_cache_miss_tokens": 4620
+      },
+      "tool_calls": [],
+      "finish_reason": "stop",
+      "seconds": 3.2904197219759226
+    }
+  ],
+  "campaigns": [
+    {
+      "flavor": "classic",
+      "pitch": "东方武侠，河港小镇，重日常生活与自由探索，不替主角做决定",
+      "turns": [
+        {
+          "label": "pay",
+          "action": "我按摊位标价买一份3枚钱币的干粮，现在付款。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把三枚通用钱币搁在那缺门牙老妇的篷布角上，指腹蹭过摊板上那排刻纹骨片，凉得像浸过河水。老妇不急着看钱，先抬眼扫了一下你的手背——那上面有戍边留下的旧疤——才把骨片收回怀里，从篷布底下摸出一只油纸包，纸角被河气熏得发潮发软。\n\n「干粮，河藻混粟米压的，顶到日中不饿。」她把纸包推过来，指缝里漏出一句很轻的话，「钱我收了。可你这人脸上写着没吃饱的样，不是肚子，是别的什么。」话音未落，集市中心那赤膊执事又是重重一拍木箱，绳结乱晃：「潮头晌午就到！今日谁再赊账囤粮，明日水退了自己走去河源捞！」围拢的人哄散开一条缝，几个船夫模样的人正从那缝里往河神庙方向挤，怀里裹紧的物件顶得布面鼓起一角，不像鱼，也不像祭品。你身后半步，那灰衣青年盯着那几个人的背影，喉结滚了一下，手指还在摸腰间的木牌。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [
+              {
+                "id": "npc_huizhu",
+                "op": "create",
+                "sketch": "总站在你身侧半步、说话前先瞥退路的灰衣青年；腰间一块磨得发亮的旧木牌，似有来历，眼下盯着往河神庙去的那伙船夫，神色不定",
+                "goal": "确认你是哪一头的人，再决定要不要把知道的告诉一个刚进镇的生面孔",
+                "name": "灰衣青年"
+              }
+            ],
+            "facts": [
+              {
+                "subject": "protagonist",
+                "predicate": "coins",
+                "value": 9
+              },
+              {
+                "subject": "protagonist",
+                "predicate": "持有干粮",
+                "value": "河藻混粟米压制的油纸包干粮一份"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "protagonist",
+                "fact_key": "npc_huizhu.来历",
+                "value": "集市上主动搭话的灰衣青年，腰间挂着来历不明的旧木牌，似在判断主角的立场"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "集市内买干粮、环顾四周，前后不过片刻，时段未变"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 15,
+          "receipt": {
+            "action_id": "2d0cb112-4ffe-47e3-81f0-9f6648efa85d",
+            "first_seq": 59,
+            "last_seq": 73,
+            "revision": 3,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            1
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "consequence",
+              "hint": "如有已提交事件的可见后果，自然提及一个；没有就略过。",
+              "flavor": "classic",
+              "seed": 222709599821882,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "character_created",
+            "clock_advanced",
+            "fact_asserted",
+            "knowledge_set",
+            "lore_advanced",
+            "lore_created",
+            "lore_seeded",
+            "narration_recorded",
+            "quest_created",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 12
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": "coins",
+            "requested_amount": 3,
+            "outcome": "spent"
+          },
+          "accounting_ok": true,
+          "seconds": 7.950990561395884,
+          "calls": 3
+        },
+        {
+          "label": "insufficient",
+          "action": "我还想花100枚钱币买下全部货物，但不借债，也没有别的财物可换。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "老妇把油纸包往回收了半寸，指腹压住纸角，像按住一只要飞的东西。她上下打量你一遍，眼神在你腰间那只空瘪的旧布袋上停了停——那袋子装过断箭镞、装过铜钱，如今什么也压不出声。「一百枚，把我这摊子全收了？」她嗤了一声，露出豁牙，「年轻人，你这身子骨倒像能打，可钱袋子比我还瘦。我数给你听：三枚一份的干粮，你这手心里拢共也就那么几把。做买卖二十年，我认钱不认骨头，也不赊不换——你拿什么来，我就给你称什么。」她把推出去的半寸又挪回来，指着篷布上那排刻纹骨片：「有东西抵，再说。空手喊价，河上都笑不出声。」",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一段摊位前的对话，时间未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 9,
+          "receipt": {
+            "action_id": "41e18cd4-7d55-4ebd-b522-d6209577ae9a",
+            "first_seq": 74,
+            "last_seq": 82,
+            "revision": 4,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            2
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "quiet",
+              "hint": "允许一段平常而具体的生活；安静行动不必附赠危机或任务。",
+              "flavor": "classic",
+              "seed": 261235599741830,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "director_fired",
+            "lore_advanced",
+            "narration_recorded",
+            "oracle_roll",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": "coins",
+            "requested_amount": 100,
+            "outcome": "insufficient"
+          },
+          "accounting_ok": true,
+          "seconds": 5.751840144395828,
+          "calls": 3
+        },
+        {
+          "label": "quiet",
+          "action": "我不买东西，也不接任务，只静静看一会儿这里的人各自忙什么。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把刚掏出来的钱币又收回了掌心，没再往篷布上搁。老妇看了你一眼，也不催，只把那只油纸包收回篷布底下，重新用拇指摩挲她摊上那排刻纹骨片，仿佛方才那笔没做成的买卖从没发生过。\n\n你就站在原地，看。\n\n集市中心那个赤膊执事还在木箱上踩着，肩头水神宗的金绳随他每一下重拍而晃荡，声音压过半个码头的嘈杂。围拢的人换了一茬又一茬——有挑担的脚夫听他喊完两句便低头走开，也有脸色发白的外乡人凑得更近，像是把他那番话当成了什么可以下注的东西。他喊的字句翻来覆去就那么几句，可喊到「河源」时，总有几双眼睛不自觉往河神庙的方向瞟。\n\n你脚边一摊浅水里的天光在晃，风从河上过来，带着一股子凉腥。\n\n几步外那个瘦长账房仍倚在歪柱上，腰里成串的当票骨牌碰出细碎声响。他不看人，只看水——看港里那几艘吃水浅得反常的货船，嘴唇跟着吃水的深浅一动一动，像在心里给它们过秤。一艘船靠岸卸货时，他把身子探出去半尺，随后又不着痕迹地缩回来，指节在骨牌上敲了一下。\n\n河神庙方向的静又回来了。先前几个裹紧布包往那边走的船夫不见了踪影，那头的篷布压得比别处低，低得几乎罩住整条巷口。你眼角的余光里，篷布下沿有个地方鼓出一小团，慢慢挪了一下，又停住——是风掀的，还是有人在布后头弯腰走过，你分不清。摊上老妇煮河藻糊那口小锅正是这时候又咕嘟冒起泡来，甜腻的香气浮上来，盖住了水腥，也盖住了别处一些说不上来的味道。\n\n你身旁半步，那个灰衣青年一直没走。他不看你，视线却跟着你刚才看过的每一样东西——执事、账房、河神庙方向——转了一圈，最后落回你脸上。他手指仍旧摩挲着腰里那块磨得发亮的木牌，半晌，才极轻地吐出一句，像只对自己说：「今天这集，比往常安静。」",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "主角驻足旁观，同一时段内的静观，时间未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 8,
+          "receipt": {
+            "action_id": "ba955810-914b-40bc-8dc9-d41ab058deb9",
+            "first_seq": 83,
+            "last_seq": 90,
+            "revision": 5,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            3
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "sensory",
+              "hint": "从声音、触感或气味中选一种适合当下环境的具体细节，避免重复惯用意象。",
+              "flavor": "classic",
+              "seed": 236041457318736,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "accounting_ok": true,
+          "seconds": 7.994239147752523,
+          "calls": 3
+        },
+        {
+          "label": "recall",
+          "action": "我检查自己的行程，回想之前答应归还的东西是什么、什么时候在哪里归还。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把背上那只半旧的褡裢卸到膝头，借着篷布的阴影翻检起来——断箭镞、旧铜钱、半枚河神符，一件件都是沉甸甸的旧账，指腹拂过去，像在点自己的岁数。摸到底层，你指尖一顿：那里压着一截叠得极齐整的蓝布，是别人借你的伞收拢后包好的那一卷，布角还留着一点被水汽洇出的深色。你把它抽出来掂了掂，伞骨轻响。记忆随之落定：昨日你空手进集市，遇雨，借了旁人一把蓝伞遮身；临走时你当着一摊之隔说过——明日正午，回这摊子来，把伞还了。你没忘借伞那人的脸，也没忘这伞是在哪一排篷布底下过的夜。你把蓝布卷重新塞回褡裢底层，心里那点没吃饱的空，稍稍被这桩干净的小事压住了半寸。\n\n就在你低头收绳的工夫，集市那头的声响变了。不是赤膊执事拍木箱的响，是另一种——短促、闷，带着器物磕在船板上的震。你抬头，只见往河神庙去的那条窄道上，几个船夫模样的人陡然停住，怀里裹紧的布包掉了一只在地上，布面松开，露出半截黑亮的长条，不像鱼，倒像一截被水泡透后凝了壳的老木。\n\n它动了。\n\n那截黑木贴着湿地一拱，贴地的积水轰地从它四周凹下去一圈，像被什么吸走。最近的一个船夫腿一软跪下去，喉咙里挤出一声变了调的哭喊，转身就跑，膝盖把青石磕得直响。灰衣青年猛地拽了你肘后一把，往篷布后头缩了半步，声音压得极低：「别看那东西，跟我来——河港这边有暗沟！」他话音未落，那截黑木已经贴着地面朝人群的方向滑过来，集市上的人开始朝两边散，木箱、鱼篓、倒扣的酒瓮被踢翻一地，腥水漫过每个人的脚背，冷得刺骨。\n\n你右手已经摸到了腰间。那里没有刀——刀留在戍边。空瘪的旧布袋底下，只有那半枚河神符，边缘硌着掌心，凉，却比脚下这滩水暖了一分。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "主角仍在潮汐集市同一时段内翻检行囊、核对还伞之事，随后遭遇突发危险，时间未跨时段"
+              }
+            ]
+          },
+          "repairs": 1,
+          "events": 8,
+          "receipt": {
+            "action_id": "cd551820-1fc7-4cc3-8e04-d5879f125b0a",
+            "first_seq": 91,
+            "last_seq": 98,
+            "revision": 7,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            3
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "sensory",
+              "hint": "从声音、触感或气味中选一种适合当下环境的具体细节，避免重复惯用意象。",
+              "flavor": "classic",
+              "seed": 236041457318736,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "accounting_ok": true,
+          "seconds": 5.765140367671847,
+          "calls": 3
+        },
+        {
+          "label": "explore",
+          "action": "我走出当前场所，在门口附近观察来往的人和道路，暂时不接新任务。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把背上那只半旧的褡裢卸到膝头，借着篷布的阴影翻检起来——断箭镞、旧铜钱、半枚河神符，一件件都是沉甸甸的旧账，指腹拂过去，像在点自己的岁数。摸到底层，你指尖一顿：那里压着一截叠得极齐整的蓝布，是别人借你的伞收拢后包好的那一卷，布角还留着一点被水汽洇出的深色。你把它抽出来掂了掂，伞骨轻响。记忆随之落定：昨日你空手进集市，遇雨，借了旁人一把蓝伞遮身；临走时你当着一摊之隔说过——明日正午，回这摊子来，把伞还了。你没忘借伞那人的脸，也没忘这伞是在哪一排篷布底下过的夜。你把蓝布卷重新塞回褡裢底层，心里那点没吃饱的空，稍稍被这桩干净的小事压住了半寸。\n\n就在你低头收绳的工夫，集市那头的声响变了。不是赤膊执事拍木箱的响，是另一种——短促、闷，带着器物磕在船板上的震。你抬头，只见往河神庙去的那条窄道上，几个船夫模样的人陡然停住，怀里裹紧的布包掉了一只在地上，布面松开，露出半截黑亮的长条，不像鱼，倒像一截被水泡透后凝了壳的老木。\n\n它动了。\n\n那截黑木贴着湿地一拱，贴地的积水轰地从它四周凹下去一圈，像被什么吸走。最近的一个船夫腿一软跪下去，喉咙里挤出一声变了调的哭喊，转身就跑，膝盖把青石磕得直响。灰衣青年猛地拽了你肘后一把，往篷布后头缩了半步，声音压得极低：「别看那东西，跟我来——河港这边有暗沟！」他话音未落，那截黑木已经贴着地面朝人群的方向滑过来，集市上的人开始朝两边散，木箱、鱼篓、倒扣的酒瓮被踢翻一地，腥水漫过每个人的脚背，冷得刺骨。\n\n你右手已经摸到了腰间。那里没有刀——刀留在戍边。空瘪的旧布袋底下，只有那半枚河神符，边缘硌着掌心，凉，却比脚下这滩水暖了一分。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "protagonist",
+                "fact_key": "protagonist.promise",
+                "value": "答应在明日中午回到这个摊位归还借来的蓝伞",
+                "via": "翻检褡裢时回想起来"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仍在同一时段、同一场集市骚动之中，仅有低头翻检与一瞬抬头，时间未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 11,
+          "receipt": {
+            "action_id": "d9d3dc65-3b2f-407a-87b8-5f114475017a",
+            "first_seq": 99,
+            "last_seq": 109,
+            "revision": 8,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            4
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "consequence",
+              "hint": "如有已提交事件的可见后果，自然提及一个；没有就略过。",
+              "flavor": "classic",
+              "seed": 244705617406494,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "knowledge_set",
+            "lore_advanced",
+            "narration_recorded",
+            "oracle_roll",
+            "resources_resolved",
+            "thread_open",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 7.471241569146514,
+          "calls": 3
+        },
+        {
+          "label": "return",
+          "action": "我回到刚才买干粮的地方（venue_0），看看之前遇见的人是否还在。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把背上那只半旧的褡裢卸到膝头，借着篷布的阴影翻检起来——断箭镞、旧铜钱、半枚河神符，一件件都是沉甸甸的旧账，指腹拂过去，像在点自己的岁数。摸到底层，你指尖一顿：那里压着一截叠得极齐整的蓝布，是别人借你的伞收拢后包好的那一卷，布角还留着一点被水汽洇出的深色。你把它抽出来掂了掂，伞骨轻响。记忆随之落定：昨日你空手进集市，遇雨，借了旁人一把蓝伞遮身；临走时你当着一摊之隔说过——明日正午，回这摊子来，把伞还了。你没忘借伞那人的脸，也没忘这伞是在哪一排篷布底下过的夜。你把蓝布卷重新塞回褡裢底层，心里那点没吃饱的空，稍稍被这桩干净的小事压住了半寸。\n\n就在你低头收绳的工夫，集市那头的声响变了。不是赤膊执事拍木箱的响，是另一种——短促、闷，带着器物磕在船板上的震。你抬头，只见往河神庙去的那条窄道上，几个船夫模样的人陡然停住，怀里裹紧的布包掉了一只在地上，布面松开，露出半截黑亮的长条，不像鱼，倒像一截被水泡透后凝了壳的老木。\n\n它动了。\n\n那截黑木贴着湿地一拱，贴地的积水轰地从它四周凹下去一圈，像被什么吸走。最近的一个船夫腿一软跪下去，喉咙里挤出一声变了调的哭喊，转身就跑，膝盖把青石磕得直响。灰衣青年猛地拽了你肘后一把，往篷布后头缩了半步，声音压得极低：「别看那东西，跟我来——河港这边有暗沟！」他话音未落，那截黑木已经贴着地面朝人群的方向滑过来，集市上的人开始朝两边散，木箱、鱼篓、倒扣的酒瓮被踢翻一地，腥水漫过每个人的脚背，冷得刺骨。\n\n你右手已经摸到了腰间。那里没有刀——刀留在戍边。空瘪的旧布袋底下，只有那半枚河神符，边缘硌着掌心，凉，却比脚下这滩水暖了一分。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "protagonist",
+                "predicate": "持有蓝伞",
+                "value": "一把借来的蓝伞，收拢后以蓝布卷好，压在褡裢底层"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仍停留在晨间集市的同一段紧张场景，时间未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 7,
+          "receipt": {
+            "action_id": "12c0a826-1164-41ed-a9c3-797222173223",
+            "first_seq": 110,
+            "last_seq": 116,
+            "revision": 9,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            5
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "routine",
+              "hint": "让在场人物继续一件符合已有身份的小事；他们的日常不必围着主角转。",
+              "flavor": "classic",
+              "seed": 173380129391064,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "fact_asserted",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 7.3054123148322105,
+          "calls": 3
+        },
+        {
+          "label": "wait",
+          "action": "我在此休息到明天中午，不购买任何东西。留意周围的人和先前的事情有没有变化。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把手从腰间收回来，指节压了压那半枚河神符，随后顺着灰衣青年的手势，猫腰退到倒扣的酒瓮与一摞湿透的旧帆布之间。集市早乱成一锅粥——踢翻的鱼篓里腥水漫过脚背，赤膊执事在木箱上厉声呼喝要人让出中间那条道，围拢的人却一味往两边墙根挤，谁也不敢沾那截贴着地面滑动的黑木半点。你背靠篷布立定，只做一件事：看。\n\n你没再往前走，也不接任何人递过来的眼神，只把一整个白天耗在这片篷布的阴影里。晌午的潮头依那执事所言准点压上涨满河港，水线漫过最外侧那排木桩半尺才退回；退潮后，往河神庙去的窄道上多了两条湿漉漉的拖痕，船夫们默不作声地拿沙土去盖，一队水神宗佩绳的武者在庙门口进出，比平日多了三四张生面孔。断流酒馆方向飘来的酒气比晨时淡了，门口的灯却早早点上了。\n\n天黑前，你在斜对过的杂货摊上又瞥见那瘦长账房，他仍眯眼数船，只是这回指节一直在搓一串当票，像是算不平一笔账。入夜后集市收了半边篷，你把褡裢当枕，靠着酒瓮数了半晌河声，才沉沉睡去。夜里下过一场急雨，篷布积的水滴在被角上，腥里带一点甜。\n\n次日天光一亮，你就醒了，没走远，只在附近几排篷布间踱了踱，耳朵留神着昨日的动静。而那截引来祸事的黑木——你再没见着。听摆摊的说，后半夜让河神庙的武者用一层浸过药的麻布裹了，抬进庙里去了，抬的时候，布面鼓起的那一角，隐约透出一道细纹。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "protagonist",
+                "predicate": "等待至",
+                "value": "第2天中午前仍留在潮汐集市,未曾离开"
+              },
+              {
+                "subject": "venue_1",
+                "predicate": "昨夜异动",
+                "value": "黑木被武者以浸药麻布裹走抬入庙内，布面透出一道细纹",
+                "secrecy": "restricted"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "protagonist",
+                "fact_key": "河神庙.昨夜异动",
+                "value": "黑木被武者以浸药麻布裹走抬入庙内，布面透出一道细纹",
+                "via": "在集市篷布间亲见耳闻"
+              }
+            ],
+            "clock": [
+              {
+                "advance": true,
+                "days": 1,
+                "bands": 0,
+                "reason": "从第1天晨休息至第2天晨，跨过一整天，时段停在晨"
+              }
+            ]
+          },
+          "repairs": 1,
+          "events": 10,
+          "receipt": {
+            "action_id": "5733e89d-c3ed-43dc-905c-a20201a287ba",
+            "first_seq": 117,
+            "last_seq": 126,
+            "revision": 10,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 2,
+          "turn_groups": [
+            6
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "sensory",
+              "hint": "从声音、触感或气味中选一种适合当下环境的具体细节，避免重复惯用意象。",
+              "flavor": "classic",
+              "seed": 129550619830998,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "fact_asserted",
+            "knowledge_set",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "scene_advanced",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 10.454867843538523,
+          "calls": 4
+        },
+        {
+          "label": "promise",
+          "action": "到了约好的时间，我在约好的摊位试着归还借来的蓝伞；先寻找出借人，不假定一定能见到。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你卡着日头挪到篷顶正中的光斑，回到卖干粮的那排摊位。老妇还在，缺门牙的嘴抿着，正把新晒的骨片一片片码上篷布——只是她身后多了一只半开的木匣，匣沿搁着一支没削完的竹签。你把褡裢肩带往上一提，目光先在她脸上停了一停，又顺着她手边那排摊子一张张扫过去：卖鱼浆饼的、补渔网的、蹲在木箱后替人代写家书的，都不是借伞那人的模样。你没急着开口，也没把兵刃——那本就不在——往明处亮，只是把压在褡裢底层的那卷蓝布往里按了按，先听摊子间的话头，看看这张脸还认不认得回来。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [
+              {
+                "id": "npc_laofu",
+                "op": "create",
+                "sketch": "缺门牙的老妇摊主，收过你三枚钱，说话像在替河记账；今日篷布上多出一只半开的木匣与一支没削完的竹签，仍在这排摊位守着。",
+                "goal": "守住自己的摊子与匣子里的东西，掂量每个凑上来的生人带着哪种'河'的来路。",
+                "name": "缺门牙的老妇"
+              }
+            ],
+            "facts": [
+              {
+                "subject": "protagonist",
+                "predicate": "归还蓝伞进展",
+                "value": "已到约定日（第2天）的约定时段，正在目标摊位寻人，出借人尚未露面"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "protagonist",
+                "fact_key": "protagonist.promise",
+                "value": "已经走到约定的摊位前，动手寻找借伞人；此时尚未找到对方",
+                "via": "依约前来"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仍停留于第2天中午前后的同一段寻人行动中，时间未实质推移"
+              }
+            ]
+          },
+          "repairs": 2,
+          "events": 9,
+          "receipt": {
+            "action_id": "3fa81dc6-9c69-4ff0-b4c2-66de3eaea512",
+            "first_seq": 127,
+            "last_seq": 135,
+            "revision": 11,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 2,
+          "turn_groups": [
+            7
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "quiet",
+              "hint": "允许一段平常而具体的生活；安静行动不必附赠危机或任务。",
+              "flavor": "classic",
+              "seed": 176248305102350,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "character_created",
+            "clock_advanced",
+            "directive_consumed",
+            "fact_asserted",
+            "knowledge_set",
+            "narration_recorded",
+            "resources_resolved",
+            "scene_summarized",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 11.68111027032137,
+          "calls": 6
+        }
+      ],
+      "status": "completed",
+      "campaign_directory": "/root/rpg-engine-audit-20261003/experiments/implemented-play-v3/classic",
+      "genesis": {
+        "seconds": 29.875280180945992,
+        "calls": 10,
+        "summary": {
+          "world_name": "汐河镇·血脉江湖",
+          "tone": "冒险",
+          "central_conflict": "维系小镇命脉的“汐河灵脉”日渐枯竭，觉醒了血脉异能、侍奉各方神祇的阶位武者纷纷涌入争夺最后的河源；日常生计、江湖道义与神授权柄在河港水道上彼此倾轧，小镇居民必须在自保、结盟与隐忍之间自行抉择。",
+          "n_regions": 5,
+          "n_factions": 4,
+          "n_npcs": 3,
+          "n_lore": 4,
+          "narration_excerpt": "你踩上潮汐集市那片被河水泡得发软的青石地面时，脚底传来一阵若有若无的震颤——那是汐河在石缝底下流动，水声被集市的喧嚣压得很低，却始终没断过。集市修在河港的旧码头上，半边架在木桩上探向水面，半边嵌进镇墙，篷布一层叠着一层，像扯不开的旧帆。空气",
+          "opening": "你踩上潮汐集市那片被河水泡得发软的青石地面时，脚底传来一阵若有若无的震颤——那是汐河在石缝底下流动，水声被集市的喧嚣压得很低，却始终没断过。集市修在河港的旧码头上，半边架在木桩上探向水面，半边嵌进镇墙，篷布一层叠着一层，像扯不开的旧帆。空气里有鱼腥、湿木头、廉价灯油和一股说不清的甜腻香气混在一起的味道，那是有人在角落煮着汐河特有的河藻糊。\n\n一个灰衣青年不知何时已站在你身侧半步远的地方，肩膀微微朝后收着，像是随时准备退开。他看你一眼，又飞快地瞟向身后那条窄巷，才开口：“刚到的吧？潮汐集市这名字听着热闹，其实一年比一年水浅了。你要是找人——我劝你先想清楚要站在哪一头。”他没再说下去，手指无意识地摸了摸腰间一块磨得发亮的木牌。\n\n几步外，一个瘦长身形的账房正倚着一根歪斜的柱子，腰上挂满成串的当票和骨牌，走起路来会发出细碎的碰撞声。他不用看水面就能说出潮头什么时候到、哪条水道今年只剩半个船身深。此刻他正眯眼打量着河港上几艘吃水极浅的货船，嘴唇微动，像在默算。\n\n更近处，一阵拍案似的声音从集市中心传来。一个赤着上身、肩缠水神宗金绳的执事正踩在一只倒扣的木箱上，冲围拢的人高声说着什么。他每说一句就重重拍一下箱子，绳结随着动作晃荡：“灵脉还没断！水神宗还没闭眼！谁再敢说汐河要枯，先来跟我这条河上走一趟！”围观的人有的点头，有的低头看脚，没人接话。他目光扫过来时在你身上停了一瞬，像在掂量你是看客还是来下注的。\n\n你左手边的篷布摊上摆着一排刻了纹路的骨片，摊主是个缺了门牙的老妇，正用拇指摩挲其中一片。见你看过去，她也不抬头，只把骨片往你这边推了推半寸：“纹路认人，河认血。年轻人，你的血是哪条河养的？”\n\n话音未落，集市尽头靠近河神庙的方向忽然静了一瞬。很短暂，像是水面被什么东西压了一下。几个船夫打扮的人正往那边走，腰间鼓鼓囊囊，有人怀里抱着用布裹紧的物件，形状不像是鱼，也不像是祭品。\n\n你脚边浅浅的积水映出头顶交错翻动的篷布和一小片灰白的天。水纹晃了一下——是你的影子动了，还是水底有什么东西刚刚游过去，你看不清。\n\n集市依旧嘈杂，河港依旧有船进出。但每个人似乎都在等下一波潮，或者，在等某个人先开口。",
+          "protagonist_name": "陆拾遗",
+          "protagonist_origin": "曾在汐河镇外戍边十二年的老兵，卸甲后带着一身刀疤和一箱子捡来的'破烂'回到故里——断箭镞、旧铜钱、半枚河神符，都是旁人笑话的行当。他本以为余生就守着潮汐集市边的小摊，混口热汤饭便罢，直到昔日同袍把灵脉引水的暗号卖给了外来的血脉武者，他才明白这镇子早已容不下一个只想安稳的人。",
+          "protagonist_goal": "查清当年戍边同袍背叛的真相，并为自己和镇上愿意留下的人，在这条日渐枯竭的汐河上挣出一条能活下去的路。",
+          "objective": "眼下他正揣着从旧物里翻出的半枚河神符，混进潮汐集市的人流，打听那个背叛他的同袍是否已把断流酒馆当成了落脚点——他要在河源被彻底分干净之前，先一步摸清对方与哪方神祇的武者搭上了线。"
+        },
+        "events": 50
+      },
+      "undo": {
+        "removed_turn": 3,
+        "revision_increased": true,
+        "remaining_turns": [
+          0,
+          1,
+          2
+        ],
+        "quiet_narration_removed": true
+      },
+      "reopen_equal": true,
+      "final_event_count": 127
+    },
+    {
+      "flavor": "isekai",
+      "pitch": "明亮轻快的异世界日常冒险；以普通旅人视角探索，不是救世主",
+      "turns": [
+        {
+          "label": "pay",
+          "action": "我按摊位标价买一份3枚钱币的干粮，现在付款。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把三枚钱币搁在柜台上，铜片磕在木面，叮的一小声。执事看也没看那钱，只把木匣往你这边推了推——「干粮在里间货架上，自取便是。要我让人替你去拿？还是你亲自挑。」\n\n袖中的契印还在发烫。你数了数剩下的：九枚。够撑几天，不够撑到入学试。\n\n内间帘子半掀着，隐约飘来一股炒米混着松子的味道。哑仆不知何时已扫到门口，扫帚尖一顿，那对低垂的眼帘又往帘子那边斜了一寸。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一段买干粮的短暂交易，时段未变"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 14,
+          "receipt": {
+            "action_id": "a434f7e5-bf57-447d-9cd3-c70eec3c89ea",
+            "first_seq": 54,
+            "last_seq": 67,
+            "revision": 3,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            1
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "quiet",
+              "hint": "给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。",
+              "flavor": "isekai",
+              "seed": 46374421515363,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "director_fired",
+            "lore_advanced",
+            "lore_created",
+            "lore_seeded",
+            "narration_recorded",
+            "oracle_roll",
+            "quest_created",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 12
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": "coins",
+            "requested_amount": 3,
+            "outcome": "spent"
+          },
+          "accounting_ok": true,
+          "seconds": 7.180871397256851,
+          "calls": 3
+        },
+        {
+          "label": "insufficient",
+          "action": "我还想花100枚钱币买下全部货物，但不借债，也没有别的财物可换。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把三枚钱币搁在柜台上，铜片磕在木面，叮的一小声。执事看也没看那钱，只把木匣往你这边推了推——「干粮在里间货架上，自取便是。要我让人替你去拿？还是你亲自挑。」\n\n袖中的契印还在发烫。你数了数剩下的：九枚。够撑几天，不够撑到入学试。\n\n内间帘子半掀着，隐约飘来一股炒米混着松子的味道。哑仆不知何时已扫到门口，扫帚尖一顿，那对低垂的眼帘又往帘子那边斜了一寸。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前的同一段对话与取粮动作，时段未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 9,
+          "receipt": {
+            "action_id": "d2faf14d-f25e-4574-8696-332947162b98",
+            "first_seq": 68,
+            "last_seq": 76,
+            "revision": 4,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            2
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "routine",
+              "hint": "让配角忙于自己已有的生活小事，用一笔动作展示这个世界并非只为主角而存在。",
+              "flavor": "isekai",
+              "seed": 219371518052225,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": "coins",
+            "requested_amount": 100,
+            "outcome": "insufficient"
+          },
+          "accounting_ok": true,
+          "seconds": 4.012329431250691,
+          "calls": 3
+        },
+        {
+          "label": "quiet",
+          "action": "我不买东西，也不接任务，只静静看一会儿这里的人各自忙什么。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你不动声色地往墙边退了半步，靠在格架旁，任时间自己流过去。\n\n长案那头，三个描图的学生里有一个明显坐不住。他笔尖悬着一枚新契印，画两笔就偷瞄一眼同伴的卷轴，被旁边那个圆脸少年肘了一下，才讪讪地继续描。「你这第三道符脚又描反了，」圆脸少年压着嗓子，「先生说过，勾连精怪的是尾不是头。」坐不住的少年嘟囔：「反正也没真精怪给我勾……」两人嘀咕几句，又埋头下去，毛笔在纸上沙沙地走。\n\n柜台后，执事没再理你，而是取出一卷发黄的契书，摊在案上，一列一列看过去，指腹在纸面某处顿了很久，随即缓缓卷起，收进柜下。动作里没什么起伏，看不出去处。\n\n门口的哑仆扫完了最后一片落叶，把扫帚靠墙一搁，弯腰从门缝底下抽出一小片被踩皱的纸，就近丢进灶膛边的废纸篓——他没多看那纸一眼，像做了几百遍。\n\n内间帘子忽然一动，探出个扎着围裙的矮胖厨工，朝外间喊了声「炒米好了，谁要热乎的」，见没人应，又缩回去，帘子落下的缝隙里飘出一股更浓的焦香。\n\n整间铺子就这么不紧不慢地转着，像一册翻开了却没人在读的旧书。而你袖中的契印，热度不知何时退了下去，凉凉地贴着腕子，仿佛在等什么。\n\n（暂无新的事件发生在你身上。你可以随时开口、走动，或者继续看下去——铺子里的日光正一寸寸往中午挪。）",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "原地静静观察片刻，同一时段内，时间未实质推进"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 6,
+          "receipt": {
+            "action_id": "7984ea39-a2a1-4ff0-b3d3-eff321a3a5c1",
+            "first_seq": 77,
+            "last_seq": 82,
+            "revision": 5,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            3
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "voice",
+              "hint": "以轻快短对白或一个停顿体现人物差异；吐槽基于主角既有性格，不替玩家下决定。",
+              "flavor": "isekai",
+              "seed": 188581628270576,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "accounting_ok": true,
+          "seconds": 5.978128232061863,
+          "calls": 3
+        },
+        {
+          "label": "recall",
+          "action": "我检查自己的行程，回想之前答应归还的东西是什么、什么时候在哪里归还。",
+          "expected_coins": 9,
+          "accepted": true,
+          "narration": "你把袖口那枚还温着的契印按住，闭上眼把这两天的行程在脑子里过了一遍。\n\n——蓝伞。试灵台往西那条巷口，一个摆摊的老货郎借你的。说好明日中午，回原地还他。\n\n你心里默念了一遍这三个要点，像抄契文时给自己划重点：明天、中午、那个摊位。\n\n「……我记得的。」你小声嘀咕，指尖无意识蹭了蹭被契印发烫的袖子里侧，「才借了没多会儿就催自己别忘，这毛病，前世就是这样。」\n\n柜台后的执事没接话，只把木匣又往你这边挪了半寸，笑意周到得像一份盖好章、只等你签名的文书。\n\n九枚钱。你数得清清楚楚。撑得住几天，撑不到入学试——可那是另一笔账了。\n\n帘子后头，炒米混着松子的香气还在悠悠往外飘。哑仆的扫帚停在门槛外，没有第六下。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "主角仅在原地回想行程与承诺，无实际时间推进，仍处晨时"
+              }
+            ]
+          },
+          "repairs": 1,
+          "events": 6,
+          "receipt": {
+            "action_id": "dfeb016c-50b5-4ce3-ac2b-e8ae30cc9e09",
+            "first_seq": 83,
+            "last_seq": 88,
+            "revision": 7,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            3
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "voice",
+              "hint": "以轻快短对白或一个停顿体现人物差异；吐槽基于主角既有性格，不替玩家下决定。",
+              "flavor": "isekai",
+              "seed": 188581628270576,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "accounting_ok": true,
+          "seconds": 3.4566238801926374,
+          "calls": 3
+        },
+        {
+          "label": "explore",
+          "action": "我走出当前场所，在门口附近观察来往的人和道路，暂时不接新任务。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把袖口那枚还温着的契印按住，闭上眼把这两天的行程在脑子里过了一遍。\n\n——蓝伞。试灵台往西那条巷口，一个摆摊的老货郎借你的。说好明日中午，回原地还他。\n\n你心里默念了一遍这三个要点，像抄契文时给自己划重点：明天、中午、那个摊位。\n\n「……我记得的。」你小声嘀咕，指尖无意识蹭了蹭被契印发烫的袖子里侧，「才借了没多会儿就催自己别忘，这毛病，前世就是这样。」\n\n柜台后的执事没接话，只把木匣又往你这边挪了半寸，笑意周到得像一份盖好章、只等你签名的文书。\n\n九枚钱。你数得清清楚楚。撑得住几天，撑不到入学试——可那是另一笔账了。\n\n帘子后头，炒米混着松子的香气还在悠悠往外飘。哑仆的扫帚停在门槛外，没有第六下。紧接着，你抬手把竹帘掀开，跨出门槛，站在契文斋门前的石阶上。秋日晨光正好，斜斜压在整条石板街上，把两边铺子的幌子影子投得又细又长。你拢了拢袖子，没有急着走，只是靠在檐柱边，漫不经心地看起街上来。\n\n背行囊的年轻面孔三三两两往试灵台方向去，腰间契印或新或旧，有人边走边低声争着什么，声音压得很紧，只漏出半句「……未定契的带回去，究竟是福是祸」。对面酒肆刚上了门板，伙计挑着水桶从巷口拐出来，桶面晃出一圈亮。哑仆没跟你出来，扫帚声在门里停了，换成一记很轻的、拖长的门轴响——帘子被从里面挂上了。\n\n檐下那块空木牌的边角在风里磕着柱身，笃、笃，两声。你听着，没去管它。",
+          "sections": {
+            "moves": [
+              {
+                "who": "protagonist",
+                "to": "venue_0"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仅在门口停留观察，未实质推进时间"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 9,
+          "receipt": {
+            "action_id": "ee99779d-73d5-4500-82c7-060d87bc773c",
+            "first_seq": 89,
+            "last_seq": 97,
+            "revision": 8,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            4
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "consequence",
+              "hint": "若先前行动已有可见后果，以轻巧的生活变化呈现，避免重复解释。",
+              "flavor": "isekai",
+              "seed": 87843634704125,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "entity_moved",
+            "lore_advanced",
+            "narration_recorded",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 7.117055382579565,
+          "calls": 3
+        },
+        {
+          "label": "return",
+          "action": "我回到刚才买干粮的地方（venue_0），看看之前遇见的人是否还在。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你掀帘回到契文斋。柜台后的执事还站在原处，姿态和周遭几乎没变——货架、长案、描摹契文的学生，连竹帘垂下的弧度都像被人掐着没放。\n\n他抬眼，视线在你身上停了一息，又落回你襟前那枚契印。\n\n「回来了，」他慢条斯理地开口，语气像在核对你袖上那枚旧印，「货架上的干粮还在原处。方才问过你，是你自己挑，还是我让人替你拿。你还没答。」\n\n矮凳边那把扫帚靠在原处，柄上褪色的布条被晨光磨得发白。门外哑仆的扫帚声一下一下，节奏没变。\n\n你袖中的契印，不烫了。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "进出铺子、原地查看，仍在同一早晨时段"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 11,
+          "receipt": {
+            "action_id": "d2d179e8-8338-4185-8e03-cd3bb5a06442",
+            "first_seq": 98,
+            "last_seq": 108,
+            "revision": 9,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            5
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "sensory",
+              "hint": "用一处具体的声响、触感或生活器物点亮环境，少堆形容词。",
+              "flavor": "isekai",
+              "seed": 250761648695032,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "quest_surfaced",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 4.077955882996321,
+          "calls": 3
+        },
+        {
+          "label": "wait",
+          "action": "我在此休息到明天中午，不购买任何东西。留意周围的人和先前的事情有没有变化。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把袖口那枚还温着的契印按住，闭上眼把这两天的行程在脑子里过了一遍。\n\n——蓝伞。试灵台往西那条巷口，一个摆摊的老货郎借你的。说好明日中午，回原地还他。\n\n你心里默念了一遍这三个要点，像抄契文时给自己划重点：明天、中午、那个摊位。\n\n「……我记得的。」你小声嘀咕，指尖无意识蹭了蹭被契印发烫的袖子里侧，「才借了没多会儿就催自己别忘，这毛病，前世就是这样。」\n\n柜台后的执事没接话，只把木匣又往你这边挪了半寸，笑意周到得像一份盖好章、只等你签名的文书。\n\n九枚钱。你数得清清楚楚。撑得住几天，撑不到入学试——可那是另一笔账了。\n\n帘子后头，炒米混着松子的香气还在悠悠往外飘。哑仆的扫帚停在门槛外，没有第六下。\n\n你不再接他的话，径直退回矮凳，把背往柜台边的墙上一靠。既然打定主意在这儿耗到明天中午，那眼下最省事的法子，就是把每一枚钱都当最后一枚捂紧了。\n\n「就坐着。」你摆摆手，「不吃你们的，也不拿你们的。等个时辰，等个人。」\n\n执事似乎并不意外，只把那枚旧契印在袖里又摩挲了一下，重新挂回那副周到的笑。「客人随意。铺里有账、有茶、有闲话，缺什么只管唤一声。」他转身去核长案上学徒描的契纹，脚步轻得像没沾地。\n\n于是整个上午就这么在笔尖的沙沙声里一寸寸挪过去。你半阖着眼，做的是「歇脚」的样子，耳朵却一刻没闲着——\n\n来问价的多是替你这样的年轻面孔。一个束发的少年盯着货架半尺,问未定契的精怪还能收几天；执事答得滴水不漏，说什么「定与未定，从来不在收与不收，在谁签的名」。那少年听不懂，你却听懂了一半，心里默默记下一笔。\n\n晌午前后，哑仆换了第四趟水，扫帚的节奏始终没乱，只是每次经过内间帘子都慢半拍。你有两次瞥见帘缝里探出一角灰布——像是有谁躲在里头，看外头，又缩回去。\n\n日头慢慢爬到屋檐正中，石板街上的影子短得几乎看不见。你掏了掏袖子，九枚钱还在，一枚没动。你不碰货架，也不上茶，就这么坐着，把「明天中午、试灵台往西的巷口、还那把蓝伞」在心里又刻了一遍——刻得比抄契文还工整。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 0,
+                "bands": 2,
+                "reason": "主角在契文斋从晨坐候至晌午，跨过晨、中午两个时段，未到明日中午"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 8,
+          "receipt": {
+            "action_id": "6fa50ff0-04a8-4bf3-8532-34293e7cc3de",
+            "first_seq": 109,
+            "last_seq": 116,
+            "revision": 10,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 1,
+          "turn_groups": [
+            6
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "voice",
+              "hint": "以轻快短对白或一个停顿体现人物差异；吐槽基于主角既有性格，不替玩家下决定。",
+              "flavor": "isekai",
+              "seed": 92577283650267,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "lore_advanced",
+            "narration_recorded",
+            "quest_demoted",
+            "resources_resolved",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 11.01480122283101,
+          "calls": 4
+        },
+        {
+          "label": "promise",
+          "action": "到了约好的时间，我在约好的摊位试着归还借来的蓝伞；先寻找出借人，不假定一定能见到。",
+          "expected_coins": null,
+          "accepted": true,
+          "narration": "你把袖口那枚还温着的契印按住，闭上眼把这两天的行程在脑子里过了一遍。\n\n——蓝伞。试灵台往西那条巷口，一个摆摊的老货郎借你的。说好明日中午，回原地还他。\n\n你心里默念了一遍这三个要点，像抄契文时给自己划重点：明天、中午、那个摊位。\n\n「……我记得的。」你小声嘀咕，指尖无意识蹭了蹭被契印发烫的袖子里侧，「才借了没多会儿就催自己别忘，这毛病，前世就是这样。」\n\n柜台后的执事没接话，只把木匣又往你这边挪了半寸，笑意周到得像一份盖好章、只等你签名的文书。\n\n九枚钱。你数得清清楚楚。撑得住几天，撑不到入学试——可那是另一笔账了。\n\n帘子后头，炒米混着松子的香气还在悠悠往外飘。哑仆的扫帚停在门槛外，没有第六下。转眼一天从指缝里漏完，你窝在矮凳上熬过了整个下午与长夜，中间只就着冷水嚼了自带的最后一点干硬饼屑，倒也没人再过来搭话。\n\n天亮，日头一点点爬到屋檐正中。约好的时辰到了。\n\n你起身，把袖口按了按——那枚契印今天不烫，安静得像一枚寻常旧章。你掀帘出门，沿着石板街往试灵台的方向走，过了两家幌子半卷的铺面，往西拐进那条窄巷。\n\n巷口的风比主街凉，卷着墙根一层薄薄的落叶。你一眼扫过去——\n\n没瞧见那个摊位。\n\n更准确地说，原本该支摊的那片墙根空着，只剩地上几道陈旧的竹竿压痕，和一小滩早已渗进石缝的水渍。旁边修鞋的老汉低着头纳线，看也没看那条空巷口。\n\n你站在空摊前面，捏着袖里那把还没拿出来的蓝伞。约好了的时辰、约好了的地方，人却不在。",
+          "sections": {
+            "moves": [
+              {
+                "who": "protagonist",
+                "to": "venue_0"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 1,
+                "bands": 2,
+                "reason": "从当日下午在铺中歇息，熬过整个夜晚到达次日中午（跨下午→夜晚→晨→中午，共两个时段切换并进位一天）"
+              }
+            ]
+          },
+          "repairs": 0,
+          "events": 12,
+          "receipt": {
+            "action_id": "d0473b63-f416-46f2-a1cf-fd09e3a41232",
+            "first_seq": 117,
+            "last_seq": 128,
+            "revision": 11,
+            "duplicate": false,
+            "mirror_pending": false
+          },
+          "coins": 9,
+          "day": 3,
+          "turn_groups": [
+            7
+          ],
+          "replay_equal": true,
+          "variation": [
+            {
+              "id": "routine",
+              "hint": "让配角忙于自己已有的生活小事，用一笔动作展示这个世界并非只为主角而存在。",
+              "flavor": "isekai",
+              "seed": 174448125288814,
+              "version": 1
+            }
+          ],
+          "event_types": [
+            "clock_advanced",
+            "directive_consumed",
+            "director_fired",
+            "entity_moved",
+            "lore_advanced",
+            "narration_recorded",
+            "oracle_roll",
+            "resources_resolved",
+            "scene_advanced",
+            "variation_sampled"
+          ],
+          "canary_leaked": false,
+          "resource_resolution": {
+            "subject": "protagonist",
+            "before": {
+              "coins": 9
+            },
+            "after": {
+              "coins": 9
+            },
+            "resource": null,
+            "requested_amount": 0,
+            "outcome": "none"
+          },
+          "seconds": 6.669343687593937,
+          "calls": 3
+        }
+      ],
+      "status": "completed",
+      "campaign_directory": "/root/rpg-engine-audit-20261003/experiments/implemented-play-v3/isekai",
+      "genesis": {
+        "seconds": 30.663442447781563,
+        "calls": 11,
+        "summary": {
+          "world_name": "黎曜学宫大陆",
+          "tone": "学园",
+          "central_conflict": "曜煌帝国末年，腐朽皇权垄断精怪契约的立约秘法，各地学宫弟子为争夺最后一批未定契的精怪而掀起层层境界的明争暗斗，普通旅人则在帝国余晖与精怪横行的夹缝中寻找自己的道途",
+          "n_regions": 4,
+          "n_factions": 3,
+          "n_npcs": 2,
+          "n_lore": 6,
+          "narration_excerpt": "你是在午后抵达曜初镇的。秋日的日光从曜辉山脊的方向斜斜泼下来，把整条石板街染成半透明的琥珀色，空气里飘着一种说不清的墨香，混着远处松露酒肆飘来的发酵甜味，还有一丝极淡的、类似于烧焦兽皮的气息。镇上的行人不多，多是些背着行囊的年轻面孔，腰间或",
+          "opening": "你是在午后抵达曜初镇的。秋日的日光从曜辉山脊的方向斜斜泼下来，把整条石板街染成半透明的琥珀色，空气里飘着一种说不清的墨香，混着远处松露酒肆飘来的发酵甜味，还有一丝极淡的、类似于烧焦兽皮的气息。镇上的行人不多，多是些背着行囊的年轻面孔，腰间或袖口露出一枚半旧不新的契印，匆匆往试灵台的方向去，偶尔低声交谈几句\"未定契的精怪还剩几只\"之类的话，声音一压低，就淹没在脚下踩着碎叶的窸窣声里。\n\n契文斋的门楣比两旁的铺子高出半截，檐下挂着一排木牌，用朱砂写着各类契约文书的名称，最末一块却空着，只隐约看得见被刮去的旧字痕迹。你掀开半旧的竹帘踏进去，迎面是满墙的格架，格架上卷轴林立，有的新得还透着松烟墨的光，有的则卷边发黄，像被翻阅了几十遍。铺子里很安静，只有笔尖划过纸面的细微声响，几名学生模样的客人正伏在长案上描摹契文图谱，谁也没抬头。\n\n你还没站稳，袖中便传来一阵极轻的凉意，你低头看，是自己那枚契印不知何时微微发烫，印面上的纹路像是被什么牵引着，正对着柜台的方向闪了一下。\n\n柜台后面站着一位身着缀金曜纹官袍的中年人，袍角熨得笔挺，笑意周到地朝你点头，右手却始终笼在袖中，指腹一下一下摩挲着什么旧物，动作轻得几乎看不出来。他的目光落在你襟前那枚契印上，停留了一息，又自然移开，始终没有真正对上你的眼睛。\n\n\"远道而来的客人，\"他开口，声音温缓得像在念一段文书，\"契文斋代写各类契书，也收、也鉴、也传。要歇脚、要打听、要寻人，都可以坐下说。\"\n\n他侧身，让出柜台后一张矮凳，凳脚边靠着一把扫帚，柄上缠着褪色的布条。门外，一个肩背佝偻的哑仆正一下一下扫着落叶，扫帚划过第三下时，他停了停，低垂的眼帘似乎往铺内方向偏了偏，随即又缓慢地续上第四下、第五下，动作里透着某种无声的节奏。\n\n柜台角落放着一只敞口的木匣，里头散着几枚碎裂的鳞片，在斜照进来的光里泛出清冷的虹彩——那是精怪的鳞。你隐约能看见鳞片背面刻着极细的字，却看不真切。\n\n执事顺着你的视线扫过木匣，笑意未变，只把袖中那只手又往深处收了收。\n\n\"这几枚，是今早从观星台拾回来的。\"他说，\"每隔七日，总要添几枚。也没人晓得是谁放的。\"\n\n他说完便不再多言，只是站着看你，像一份摊开等你落笔的空白契书。铺子外的日光一寸寸移过门槛，把那些描摹契文的学生影子拉长，又缩短。松露酒肆那边传来一阵哄笑，随即归于沉寂。\n\n而你袖中的契印，还在轻轻发烫。",
+          "protagonist_name": "陈序",
+          "protagonist_origin": "曜煌帝国边陲小城出身的寒门学徒，自幼被送入曜初镇的契文斋做杂役，耳濡目染间背下了大半精怪契约的基础符文。他总说自己是从别处「猝死」转生来的，动辄念叨「这不科学」，却对学宫里那套凭灵契定境界的体系格外较真。",
+          "protagonist_goal": "考上黎曜学宫的正籍弟子，弄明白精怪契约背后的规则到底能不能被拆解、被复现，而不是只能靠师承与血脉垄断。",
+          "objective": "眼下在契文斋谋了个抄录契约残卷的差事，白天替掌柜整理未定契精怪的图鉴，晚上溜去试灵台偷偷练手，想办法凑齐一份能参加学宫入学试的契约。"
+        },
+        "events": 45
+      },
+      "undo": {
+        "removed_turn": 3,
+        "revision_increased": true,
+        "remaining_turns": [
+          0,
+          1,
+          2
+        ],
+        "quiet_narration_removed": true
+      },
+      "reopen_equal": true,
+      "final_event_count": 122
+    }
+  ]
+}

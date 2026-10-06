@@ -1,0 +1,8 @@
+{
+  "id": "E17",
+  "baseline_unknown_goal_leaks": true,
+  "candidate_unknown_goal_leaks": false,
+  "public_sketch_preserved": true,
+  "false_belief_preserved": true,
+  "scope": "POV recall, explicit visibility fixture; not all DM prompt paths"
+}

@@ -23,6 +23,7 @@ Steps:
      Return one string.
 """
 from __future__ import annotations
+import json
 
 from kernel.registry import Registry
 from kernel.assembler import assemble, render, LAYER_ORDER
@@ -31,6 +32,7 @@ from kernel.contextsystem import Fragment
 from memory.recall import rank, embed_query
 from context.viewpoint import build_viewpoint
 from facts.graph import FactGraph
+from context.access import pov_world
 from engine.log import get_logger
 import systems.narrative as nmod
 
@@ -62,6 +64,7 @@ def assemble_context(
     Returns:
         A single string with stable→scene→volatile cache layer ordering.
     """
+    world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
     # ------------------------------------------------------------------
@@ -155,6 +158,22 @@ def assemble_context(
     # Render the base inject fragments first (includes NarrativeSystem.inject scene-raw
     # and LoreSystem.inject (明账) — both force-pushed, query-independent).
     base = render(frags)
+    # Fact anchors are repeated independently of free-form recap. Date-stamped
+    # commitments must not acquire an invented history after a context reset.
+    if g is not None and protagonist:
+        anchors = []
+        for fact in g.facts:
+            if not fact.is_current() or fact.predicate.startswith('knows:'):
+                continue
+            entity = g.get_entity(fact.subject)
+            if fact.subject == protagonist or (entity and entity.etype == 'Object' and fact.secrecy == 'public'):
+                anchors.append(f'{fact.subject}.{fact.predicate} = {json.dumps(fact.value, ensure_ascii=False)} '
+                               f'（确立于第 {fact.event_time_start} 天）')
+        if anchors:
+            base += ('\n\n【事实锚点·当前有效】\n' + '\n'.join(anchors[-24:]) + '\n'
+                '回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。'
+                '发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。'
+                '未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。')
 
     # ------------------------------------------------------------------
     # Step 4a: Recap stable-summary block (PUSH, spec §1 — query-independent)
@@ -170,7 +189,7 @@ def assemble_context(
     # Aged buckets: those beyond the recent-N window that have a summary
     aged_with_summary = [
         b for idx, b in enumerate(buckets)
-        if idx < len(buckets) - nmod.RECAP_RAW_SCENES and b.get("summary")
+        if ns.get('summarized_through_index', 0) <= idx < len(buckets) - nmod.RECAP_RAW_SCENES and b.get("summary")
     ]
     if super_summary or aged_with_summary:
         recap_summary_lines.append("## [stable]")

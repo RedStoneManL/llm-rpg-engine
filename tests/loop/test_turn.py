@@ -168,10 +168,10 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
 # Task 2c: commit stays invalid all attempts → section dropped, valid applied
 # ---------------------------------------------------------------------------
 
-def test_run_turn_drop_fallback_still_invalid_sections():
-    """If a section stays invalid after max_repairs, it's dropped; valid sections apply."""
+def test_run_turn_rejects_still_invalid_sections_without_partial_state():
+    """An incomplete action publishes neither valid fragments nor its narration."""
     from loop.strategy import AuthorStrategy
-    from loop.turn import run_turn, TurnResult
+    from loop.turn import run_turn, TurnRejected
 
     registry = _make_registry()
     world = empty_world(registry)
@@ -188,22 +188,13 @@ def test_run_turn_drop_fallback_still_invalid_sections():
 
     store = _open_temp_store(registry)
     try:
-        result = run_turn(
-            registry, store, world, scene, "I act",
-            strategy=AuthorStrategy(), provider=provider,
-            max_repairs=3,
-        )
+        with pytest.raises(TurnRejected):
+            run_turn(registry, store, world, scene, "I act",
+                     strategy=AuthorStrategy(), provider=provider, max_repairs=3)
+        assert list(store.iter_events()) == []
+        assert store.revision == 0
     finally:
         store.close()
-
-    # The 'facts' section should be in dropped_sections
-    assert "facts" in result.dropped_sections
-    # The 'entities' section had no errors (real_hero is valid), so real_hero exists
-    g = result.world.get("systems", {}).get("ontology")
-    assert g is not None
-    assert g.get_entity("real_hero") is not None
-    # ghost_entity was never added (the facts section was dropped, and no entities for it)
-    assert g.get_entity("ghost_entity") is None
 
 
 # ---------------------------------------------------------------------------

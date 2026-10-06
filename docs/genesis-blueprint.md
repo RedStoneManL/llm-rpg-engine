@@ -5,7 +5,7 @@ blueprint is a JSON or YAML file passed with `--genesis PATH`. See
 [`genesis.example.yaml`](../genesis.example.yaml) for a complete, commented
 template.
 
-Design spec: [`docs/superpowers/specs/2026-06-23-player-definable-genesis-design.md`](superpowers/specs/2026-06-23-player-definable-genesis-design.md).
+Design spec: [`docs/archive/superpowers/specs/2026-06-23-player-definable-genesis-design.md`](archive/superpowers/specs/2026-06-23-player-definable-genesis-design.md).
 
 ## The required floor
 

@@ -1,0 +1,23 @@
+{
+  "project": "/root/rpg-engine-app",
+  "head": "fb7ebd8",
+  "older_copy": "/root/llm-rpg-engine",
+  "claude_session_id": "3f2736aa-1b06-454d-8ad8-0f987c6b0a9f",
+  "claude_session_file": "/root/.claude/projects/-root-rpg-engine-app/3f2736aa-1b06-454d-8ad8-0f987c6b0a9f.jsonl",
+  "claude_requests_utc": [
+    "2026-09-07T02:19:11Z",
+    "2026-09-07T03:46:00Z"
+  ],
+  "existing_dirty_files": [
+    "run.sh"
+  ],
+  "artifacts": [
+    "/root/rpg-engine-audit-20261003/recovered/rpg-engine-audit.html",
+    "/root/rpg-engine-audit-20261003/recovered/rpg-engine-architecture.html"
+  ],
+  "git_status_at_handoff": " M run.sh\n?? run-deepseek.sh\n",
+  "original_run_sh_preserved": true,
+  "runtime": "3.12.3 (main, Jan 22 2026, 20:57:42) [GCC 13.3.0]",
+  "key_location": "/root/.config/llm-rpg-engine/deepseek.env",
+  "key_permissions": "0o600"
+}

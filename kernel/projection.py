@@ -20,8 +20,13 @@ def project(registry: Registry, events) -> dict:
     for ev in events:
         if ev.get("retracted"):
             continue
-        world["meta"]["day"] = ev["day"]
-        world["meta"]["scene"] = ev["scene"]
+        # Late historical annotations must not move the current scene/clock back.
+        # System projections still receive every event and enforce their own
+        # temporal invariants; a corrupt state transition is never skipped.
+        current_day = world['meta'].get('day')
+        if current_day is None or ev['day'] >= current_day:
+            world["meta"]["day"] = ev["day"]
+            world["meta"]["scene"] = ev["scene"]
         world["meta"]["timeline"].append(
             {"day": ev["day"], "scene": ev["scene"], "summary": ev["summary"]})
         owner = registry.owner_of_event(ev["type"])

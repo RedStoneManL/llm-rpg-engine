@@ -18,13 +18,15 @@ HybridStrategy (丙):
 from __future__ import annotations
 
 import abc
+import json
 import re
 from typing import Any
 
 from context.assembler import assemble_context
 from kernel.registry import Registry
+from kernel.clock import band_name
 from kernel.turncommit import TurnCommit
-from llm.provider import _parse_json_object
+from llm.provider import _parse_json_object, json_call
 from llm.tools import build_tool_registry
 from engine.log import get_logger
 from engine import settings as _settings
@@ -32,10 +34,30 @@ from loop.lore_disclosure import station_push_fragment
 
 log = get_logger("loop.strategy")
 
+# Compaction: when a turn's prompt tokens cross COMPACTION_RATIO of the model
+# context window, flag the next fresh turn to rebuild full context (re-assemble
+# the index/recent/summary tiers + reset the running thread).
+CONTEXT_WINDOW = 200_000
+COMPACTION_RATIO = 0.70
+
 # Neutral fallback shown when the model output can't be parsed AND no narration
 # can be salvaged. NEVER show the raw blob — it carries the structured commit
 # (incl. secrecy="secret" facts). (#R5)
 _PARSE_FAIL_NARRATION = "（这一刻，周遭并无明显变化。）"
+
+# Re-ask sent after a native tool loop returned bare prose (no JSON envelope). It
+# reuses the researched context already in the working messages, so no re-research
+# happens — it only asks the model to wrap the turn it just wrote as the structured
+# commit. A genuine "nothing changed" turn is expressed as empty sections ([]), not
+# a parse failure.
+_REASK_JSON = (
+    "停。你刚才用散文写了这一回合，但漏了要求的 JSON 外壳。现在请【只】输出一个 JSON 对象，"
+    "不要任何额外文字、不要 ``` 代码围栏：\n"
+    "- narration：就用你刚写的那段叙事（原文照搬）。\n"
+    "- 其余结构化段（moves/places/cast/facts/knowledge/clock 等）：只写这一回合【真正发生】"
+    "的变更；某段这一回合没有变化就给空数组 []（空数组=合法的“本段无变化”）。\n"
+    "直接输出以 { 开头的 JSON。"
+)
 
 
 def _salvage_narration(raw) -> str | None:
@@ -80,6 +102,17 @@ def _data_or_safe(raw) -> dict:
         log.warning("produce: model output not valid JSON; salvaged narration only, "
                     "dropped structured sections (no raw leak)")
         return {"narration": salvaged}
+    # Reasoning models — especially after a native tool loop — often drop the JSON
+    # envelope entirely and answer in pure prose. Bare prose is NOT the #R5 leak
+    # risk: that risk is a broken JSON commit blob carrying secrecy='secret' facts,
+    # which always contains '{'. So when there is no JSON object anywhere, use the
+    # whole output as the turn's narration rather than discarding a good turn to the
+    # neutral fallback. (Structured sections are simply absent this turn.)
+    stripped = raw.strip() if isinstance(raw, str) else ""
+    if stripped and "{" not in stripped:
+        log.warning("produce: model emitted bare prose (no JSON envelope); using it "
+                    "as narration — no structured sections this turn")
+        return {"narration": stripped}
     log.warning("produce: model output not valid JSON and no narration salvageable; "
                 "using neutral fallback")
     return {"narration": _PARSE_FAIL_NARRATION}
@@ -136,22 +169,23 @@ _SYSTEM_PROMPT_TEMPLATE = """\
 
 __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。
 
-【结构】除 narration 外，按本回合【真实发生】的变化给出可选段落（每段都是对象数组）：
-- moves: [{"who":移动的实体id, "to":目标地点id}]   （who、to 均必填）
-- places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]（kind 只能取列出的五个值之一，别自造如 ruin/forest 等）
-- cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]（叙事中**新登场且有戏**的 NPC 在此 create 并给 sketch/goal,加 "name" 标其名字便于后续引用;只是路过的纯路人可不声明,引擎会按名字自动建轻量占位）
-- entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
-- facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]（subject/predicate/value 必填；只记确有意义的客观事实，勿把布景滥造成 fact）。secrecy 可选，取 "public"|"restricted"|"secret"：街坊皆知的常识/明面事实标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写】（默认不进公开层、绝不外泄）
-- relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
-- knowledge: 记录"谁知道了什么"（可选）——详见下【信息视野】
-- world: 区域/世界级事件波及的地点（可选）——详见下【世界事件】
-- quests: 记录"任务的开启/浮现/推进/收束"（可选）——详见下【任务系统】
-- clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**每回合必给，恰好一个元素**）——本回合游戏内时间推进多少：advance 是否推进；一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填，写清推进这么多的依据，或【为何本回合不推进】。判定要诀：先想清动作结束时落在哪个时段，再据此给 days/bands。同一时段内的细碎动作（几秒几分钟、一次冲刺/夺取/交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}——切勿为小动作多推一段。
+【输出格式】返回**一个 JSON 对象**；下列每段都显式标了【必填】或【可选】，照此输出（文末另有一个完整范例，照抄它的结构）：
+- 【必填】narration：字符串，本回合面向玩家的叙事散文。
+- 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪；**没人移动 → 给 []**。
+- 【必填】places：[{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——本回合**新出现**的地点；**没有 → 给 []**；kind 只能取列出的五个值，别自造（如 ruin/forest）。
+- 【必填】cast：[{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——**新登场且有戏**的 NPC（op=create，必须 id+sketch+goal 三者齐全；给 name 便于后续引用）或既有角色的变化（op=evolve）；**没有 → 给 []**；只是路过的纯路人可不写，引擎会按名字自动建轻量占位。**若 characters_query 显示某 NPC 已在场（co_present），就用它返回的那个 id 以 op=evolve 推进，切勿为同一个已在场的人另起新 id（会造成重复实体）。**
+- 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——本回合确立的**客观事实**（subject/predicate/value 必填）；**没有 → 给 []**；只记确有意义的事实，勿把布景滥造成 fact；**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。secrecy 取 "public"|"restricted"|"secret"：街坊皆知的标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写该字段】（默认不进公开层、绝不外泄）。
+- 【必填】clock：[{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。诀窍：先想清动作结束时落在哪个时段，再据此给 days/bands。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}。
+- 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
+- 【可选】relations：[{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+- 【可选】knowledge：记录"谁知道了什么"——详见下【信息视野】
+- 【可选】world：区域/世界级事件波及的地点——详见下【世界事件】
+- 【可选】quests：任务的开启/浮现/推进/收束——详见下【任务系统】
 
 
-【必填·防遗漏】moves / places / cast / facts 四项每回合都要交代：有变化就给对象数组；若确无变化，必须在顶层 reasons 对象里写明【为什么】没有（强制你逐项确认、而非漏写），例如 reasons:{"moves":"主角停在原地未移动","places":"未离开当前地点，无新地点"}。不允许某必填项既无内容又无 reason。另外 clock 段每回合必给（恰好一个元素，描述本回合时间推进），不可省略、不可为空。
+【铁律】上面 6 个【必填】段每回合都必须出现：narration 给散文、clock 给恰好一个元素、moves/places/cast/facts **没有该类变化就给 []（空数组）**。条目**要么字段齐全、要么根本别放**——宁可给 [] 也别塞一个缺字段的半成品（缺字段会被打回、拖慢一整局）。【可选】段没有就直接省略、不要硬凑。
 
-【信息视野·knowledge（可选段）】本引擎追踪"谁知道什么"。当本回合有角色【得知 / 识破 / 被告知 / 无意获悉 / 主动透露】重要信息——尤其是秘密、线索、真相或谎言——用 knowledge 段记录信息的流动：
+【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。当本回合有角色【得知 / 识破 / 被告知 / 无意获悉 / 主动透露】重要信息——秘密、线索、真相、谎言、关键数值——用 knowledge 段记录信息的流动。**尤其:凡本回合主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于"失忆"、POV 工具也查不到。**
 - told:      [{"op":"told","knower":知情者id,"fact_key":"实体.属性","value":其所知内容,"via":得知途径(可选)}]
 - broadcast: [{"op":"broadcast","fact_key":...,"value":...,"audience":{"faction":阵营id}或{"place":地点id}}]（一群人同时获悉）
 fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商队首领.真实身份"），与世界事实同名——系统据此判断主角是否已知、并在叙事中对其未知之事保密。无人获得新信息时本段可省略（不必写 reason）。
@@ -167,6 +201,16 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
 - resolve: 收束一条已在"任务明账"中的明线任务
 无任务变化时省略本段。
 
+【完整范例】一个"对话中得知一个秘密、没移动、没新地点"的回合长这样——照抄这个结构（注意：空的必填段就给 []）：
+{"narration":"你压低声音问起那场大火。老者的手停在药罐上，半晌才道：「纵火的，是镖局的人。」",
+ "moves":[],
+ "places":[],
+ "cast":[],
+ "facts":[{"subject":"npc_laozhe","predicate":"火灾真凶","value":"镖局所为","secrecy":"secret"}],
+ "knowledge":[{"op":"told","knower":"protagonist","fact_key":"npc_laozhe.火灾真凶","value":"镖局所为","via":"老者亲口"}],
+ "clock":[{"advance":false,"days":0,"bands":0,"reason":"同一段对话，时间未实质推进"}]}
+——若主角移动了：moves 给 [{"who":"protagonist","to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
+
 规则：
 1. 只在剧情真正发生该变化时才给对应段落；不要把布景细节（石板、树冠、手掌等）滥造成 entity。
 2. 输出合法 JSON 对象，必含 "narration" 字段；只输出 JSON，不附 markdown 代码块或其他包装。
@@ -175,7 +219,7 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
 _NARRATE_PROMPT_TEMPLATE = """\
 你是主持人（DM），以主角视角进行沉浸式叙事。
 
-__STYLE__【文风】融合细腻描写与戏剧张力：重环境氛围、角色的神态动作与内心、以及有张力的对话；多用具体可感的细节，少堆空泛形容。
+__STYLE__【文风】以具体可感的细节叙事，少堆空泛形容。
 【写法】
 1. 第一/第三人称散文皆可（以中文为主）；__NARRATE_VERBOSITY__
 2. 展示而非告知：设定、过往、人物关系通过此刻的细节、动作与后果自然流露，不要直接复述资料。
@@ -236,18 +280,18 @@ _SYSTEM_PROMPT_HYBRID = """\
 规则：
 1. 只记录散文中【真实发生】的世界变化；不要新增散文里没有的人物/地点/事件。
 2. 上文给出了当前世界状态与已存在实体的 canonical id——散文指向已知对象（主角、已知 NPC、已知地点）时必须复用其原有 id，只为散文中首次出现的新对象创建新 id。
-3. 每个段落都是对象数组：
-   - moves: [{"who":实体id, "to":地点id}]
-   - places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]（kind 只能取列出五值之一）
-   - cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]（叙事中**新登场且有戏**的 NPC 在此 create 并给 sketch/goal,加 "name" 标其名字便于后续引用;只是路过的纯路人可不声明,引擎会按名字自动建轻量占位）
-   - entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
-   - facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]（subject/predicate/value 必填）。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
-   - relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
-   - knowledge: 记录"谁知道了什么"（可选）——见第 5 条
-   - world: 区域/世界级事件波及的地点（可选）——见第 7 条
-   - quests: 记录"任务的开启/浮现/推进/收束"（可选）——见第 8 条
-   - clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**每回合必给，恰好一个元素**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
-4. 【必填·防遗漏】moves / places / cast / facts 四项每回合都要交代：散文有对应变化就给数组；确无变化则在顶层 reasons 里写明为什么没有（如 reasons:{"moves":"散文中主角未移动"}）；不允许既无内容又无 reason。尤其——散文里主角移动了就必须有 moves、出现新地点就必须有 places，绝不能写了却漏记。clock 段每回合必给（恰好一个元素），不可省略。
+3. 每个段落都是对象数组，下面标了【必填】/【可选】：
+   - 【必填】moves: [{"who":实体id, "to":地点id}]——散文里谁移动了；**没有就给 []**
+   - 【必填】places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——散文里**新出现**的地点；**没有就给 []**；kind 只能取列出五值之一
+   - 【必填】cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——散文里**新登场且有戏**的 NPC（create 须 id+sketch+goal 齐全；name 便于后续引用）或既有角色变化（evolve）；**没有就给 []**；纯路人可不写，引擎按名字自动占位
+   - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——散文确立的客观事实（subject/predicate/value 必填）；**没有就给 []**。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
+   - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
+   - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
+   - 【可选】relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+   - 【可选】knowledge: 记录"谁知道了什么"——见第 5 条
+   - 【可选】world: 区域/世界级事件波及的地点——见第 7 条
+   - 【可选】quests: 记录"任务的开启/浮现/推进/收束"——见第 8 条
+4. 【铁律】上面 5 个【必填】段（moves/places/cast/facts/clock）每回合都必须出现：clock 给恰好一个元素，moves/places/cast/facts **散文里没有该类变化就给 [](空数组)**。条目要么字段齐全、要么根本别放——宁可 [] 也别塞缺字段的半成品。尤其：散文里主角移动了就必须有 moves、出现新地点就必须有 places，写了却漏记不行。【可选】段没有就直接省略。
 5. 【信息视野·knowledge（可选段）】散文中若有角色【得知/识破/被告知/无意获悉/主动透露】重要信息（秘密、线索、真相、谎言），记录到 knowledge 段：told 项 {"op":"told","knower":知情者id,"fact_key":"实体.属性","value":其所知,"via":途径(可选)}；一群人同时获悉用 broadcast 项 {"op":"broadcast","fact_key":...,"value":...,"audience":{"faction":id}或{"place":id}}。fact_key 尽量用 "实体.属性" 形式、与世界事实同名。散文未提及信息易手时省略本段。
 6. 只输出合法 JSON（不含 narration），不附任何 markdown 代码块或其他包装。
 7. 【世界事件·world（可选段）】散文中若描写了区域级或世界级的大事（灾难、战争、瘟疫、政权更替、重大变故），用 world 段点名所有受影响地点：world: [{"areas":[受影响地点id,...],"level":1|2|3,"summary":"一句话事件"}]。areas 用已存在或本回合刚创建的地点 id；你有完整世界视野，可点名任意位置。寻常个人场景省略本段。
@@ -308,6 +352,46 @@ class TurnStrategy(abc.ABC):
         """
         raise NotImplementedError("repair_sections not implemented")
 
+    def commit_to_thread(self, narration: str) -> None:
+        """Append the just-succeeded turn to the strategy's persistent multi-turn
+        thread (if it keeps one). No-op by default."""
+        return None
+
+
+def _build_delta(registry, world: dict, scene: dict, player_input: str) -> str:
+    """Compact continuing-turn message for the running conversation.
+
+    The model already holds the world in-thread; this carries only what's new:
+    a time/place header, any backstage 暗线 push (station_push_fragment), and the
+    player's action. Cheap (no embedder recall — that is a compaction-time cost).
+    """
+    meta = (world or {}).get("meta", {}) or {}
+    day = (scene or {}).get("day") or meta.get("day") or 1
+    band = meta.get("band") or 0
+    loc = (scene or {}).get("location") or ""
+    header = f"【此刻】第 {day} 天 · {band_name(band)}"
+    if loc:
+        header += f" · 在 {loc}"
+    parts = [header]
+    # Conversation history is a narrative cache, not the source of world truth.
+    # Include current projections on every turn so backstage changes, discoveries
+    # and repaired state reach the narrator without waiting for compaction.
+    current = assemble_context(registry, world, scene, query=player_input) if registry is not None else ''
+    if current:
+        parts.append('【最新已提交的世界状态；若与旧对话冲突，以此为准】\n' + current)
+    try:
+        frag = station_push_fragment(registry, world, scene)
+    except Exception:
+        frag = None
+    if frag:
+        parts.append(frag)
+    if scene.get('_variation_prompt'):
+        parts.append(scene['_variation_prompt'])
+    if scene.get('_resolution_prompt'):
+        parts.append(scene['_resolution_prompt'])
+    parts.append(f"[player] {player_input}")
+    return "\n\n".join(parts)
+
 
 # ---------------------------------------------------------------------------
 # AuthorStrategy (甲) — one main-LLM call
@@ -321,7 +405,41 @@ class AuthorStrategy(TurnStrategy):
     incrementally (agent loop), instead of re-prompting blind each round.
     """
 
-    _messages: list | None = None  # authoring conversation for the current turn
+    _messages: list | None = None       # transient working list for the current turn
+    _thread: list | None = None         # persistent multi-turn conversation (multiturn)
+    _pending_user: str | None = None    # user msg for the in-flight turn (committed on success)
+    _compaction_due: bool = False       # set when usage crosses 70%; consumed next fresh turn
+
+    def reset(self) -> None:
+        """Discard derived conversation after rewind, reload or a failed cache write."""
+        self._messages = self._thread = self._pending_user = None
+        self._pending_action = None
+        self._compaction_due = False
+
+    def commit_to_thread(self, narration: str) -> None:
+        """Append [pending user delta, narration prose] to the persistent thread on
+        a successful turn. Narration only — raw JSON / repair / tool messages stay
+        in the transient _messages. No-op in stateless mode (_thread is None)."""
+        if self._thread is not None and self._pending_user is not None:
+            pending_action = getattr(self, '_pending_action', None)
+            content = ('[player] ' + pending_action) if pending_action is not None else self._pending_user
+            self._thread.append({"role": "user", "content": content})
+            self._thread.append({"role": "assistant", "content": narration})
+            self._pending_user = None
+            self._pending_action = None
+            # Keep eight recent exchanges. Facts and long-term recall live in
+            # projections and are refreshed independently of this bounded cache.
+            if len(self._thread) > 17:
+                self._thread = self._thread[:1] + self._thread[-16:]
+
+    def _maybe_flag_compaction(self, provider) -> None:
+        """Flag the next fresh turn to rebuild full context when the last call's
+        prompt size crossed the compaction threshold. Relies on provider.last_usage
+        (None when the provider reports no usage → never flags)."""
+        usage = getattr(provider, "last_usage", None)
+        tok = usage.get("input") if usage else None
+        if tok and tok > CONTEXT_WINDOW * COMPACTION_RATIO:
+            self._compaction_due = True
 
     def produce(
         self,
@@ -334,56 +452,118 @@ class AuthorStrategy(TurnStrategy):
         embedder=None,
         repair: str | None = None,
     ) -> TurnCommit:
-        if repair is None or self._messages is None:
-            # Fresh turn: open the conversation with context + player input.
+        multiturn = (_settings.get_conversation_mode() == "multiturn")
+        if repair is None:
+            self._pending_action = player_input
+
+        if repair is not None and self._messages is not None:
+            # Repair: continue the working list in place (prior assistant output is
+            # already there, so the model fixes in place). Never touches the thread.
+            self._messages.append({"role": "user", "content": repair})
+        elif multiturn and self._thread is not None and not self._compaction_due:
+            # Continuing turn: append a compact delta onto a copy of the thread.
+            delta = _build_delta(registry, world, scene, player_input)
+            self._pending_user = delta
+            self._messages = list(self._thread) + [{"role": "user", "content": delta}]
+        else:
+            # First turn / compaction / stateless: full context rebuild.
             ctx = assemble_context(registry, world, scene,
                                    query=player_input, embedder=embedder)
-
-            # Always append station_push_fragment (暗 ambient B disclosure).
-            # Returns None when no 暗 lines are in range or no LoreSystem →
-            # no-op for worlds without lore (existing tests unaffected).
+            # station_push_fragment: 暗 ambient B disclosure; None when no 暗 lines
+            # in range or no LoreSystem → no-op for worlds without lore.
             frag = station_push_fragment(registry, world, scene)
             if frag:
                 ctx = (ctx + "\n\n" + frag) if ctx else frag
-
             parts = []
             if ctx:
                 parts.append(ctx)
+            if scene.get('_variation_prompt'):
+                parts.append(scene['_variation_prompt'])
+            if scene.get('_resolution_prompt'):
+                parts.append(scene['_resolution_prompt'])
             parts.append(f"[player] {player_input}")
+            full_user = "\n\n".join(parts)
+            self._pending_user = full_user
             self._messages = [
                 {"role": "system", "content": _system_prompt()},
-                {"role": "user", "content": "\n\n".join(parts)},
+                {"role": "user", "content": full_user},
             ]
-        else:
-            # Repair: append the validation errors as the next user turn; the prior
-            # assistant output is already in the thread, so the model fixes in place.
-            self._messages.append({"role": "user", "content": repair})
+            if multiturn:
+                # Reset the thread to a bare system base; the turn's user + narration
+                # are appended by commit_to_thread on success (so no duplication).
+                self._thread = [{"role": "system", "content": _system_prompt()}]
+                self._compaction_due = False
 
-        log.debug("AuthorStrategy.produce msgs=%d repair=%r", len(self._messages), bool(repair))
+        log.debug("AuthorStrategy.produce msgs=%d repair=%r multiturn=%s",
+                  len(self._messages), bool(repair), multiturn)
 
-        # DD6 capability gate: use the tool loop ONLY on fresh turns when the
-        # provider supports it and the POV tool registry is non-empty.
-        # Repair rounds always use plain complete_messages (no re-research).
+        # DD6 capability gate: tool loop ONLY on fresh turns when the provider
+        # supports it and the POV tool registry is non-empty. Repairs use plain
+        # complete_messages (no re-research).
         if repair is None and provider.supports_tools():
             tool_reg = build_tool_registry(registry, world, scene)  # POV set (dm=False)
             schemas = tool_reg.schemas()
             if schemas:
                 rounds = _settings.get_max_tool_rounds()
-                raw = provider.complete_with_tools(
+                raw = json_call(provider.complete_with_tools,
                     self._messages, schemas, tool_reg.execute,
                     max_tool_rounds=rounds,
                 )
+                # Reasoning models routinely answer the final turn in bare prose
+                # after a tool loop, dropping the JSON envelope. Re-ask ONCE for the
+                # structured commit before falling back to prose-as-narration.
+                if _parse_json_object(raw) is None:
+                    raw = self._reask_json(raw, provider)
                 self._messages.append({"role": "assistant", "content": raw})
+                if repair is None and multiturn:
+                    self._maybe_flag_compaction(provider)
                 data = _data_or_safe(raw)
                 return TurnCommit.from_dict(data)
 
-        # Existing path: plain complete_messages (unchanged for all non-tool providers
-        # and all repair turns — DD6 guarantees the 1180-test suite is byte-for-byte
-        # identical when provider.supports_tools() is False).
-        raw = provider.complete_messages(self._messages)
+        # Plain complete_messages (all non-tool providers + all repair turns).
+        # In stateless mode the else-branch above runs every fresh turn and _thread
+        # stays None → this reproduces the original control flow byte-for-byte.
+        raw = json_call(provider.complete_messages, self._messages)
         self._messages.append({"role": "assistant", "content": raw})
+        if repair is None and multiturn:
+            self._maybe_flag_compaction(provider)
         data = _data_or_safe(raw)
         return TurnCommit.from_dict(data)
+
+    def _reask_json(self, prose: str, provider) -> str:
+        """After a tool loop returned bare prose, ask once for the JSON commit.
+
+        Reuses the current working messages (tool results already in them → no
+        re-research). Returns the re-asked output if it parses as JSON, else the
+        original prose (which `_data_or_safe` salvages as narration). The re-ask
+        exchange is NOT persisted onto `self._messages`; only the final chosen
+        `raw` is appended by the caller, keeping the thread clean.
+        """
+        reask_msgs = self._messages + [
+            {"role": "assistant", "content": prose},
+            {"role": "user", "content": _REASK_JSON},
+        ]
+        try:
+            reasked = json_call(provider.complete_messages, reask_msgs)
+        except Exception:
+            log.warning("produce: JSON re-ask call failed; keeping bare prose")
+            return prose
+        data = _parse_json_object(reasked)
+        if data is not None:
+            # This call wraps existing prose; it may omit narration while
+            # producing valid JSON. Preserve the already-authored visible text.
+            # Only bare prose is safe to preserve verbatim. A malformed JSON
+            # envelope may contain private fields and must never become prose.
+            if prose.strip() and '{' not in prose:
+                data['narration'] = prose
+            else:
+                recovered = data.get('narration')
+                if not isinstance(recovered, str) or '{' in recovered:
+                    data['narration'] = _salvage_narration(prose) or _PARSE_FAIL_NARRATION
+            log.info("produce: recovered structured commit via JSON re-ask")
+            return json.dumps(data, ensure_ascii=False)
+        log.warning("produce: JSON re-ask still not valid JSON; keeping bare prose")
+        return prose
 
     def repair_sections(
         self,
@@ -422,14 +602,18 @@ class AuthorStrategy(TurnStrategy):
             f"上一条提交中以下段有校验错误：\n"
             + "\n".join(error_lines)
             + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
-            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
+            + (
+                "，narration 给本回合新散文字符串，只回应玩家最后一条动作，不复制历史；其它段保持不变。"
+                if "narration" in failing_sections else
+                "，不要重写 narration 或其它段，不要包含任何其它内容。"
+            )
         )
 
         self._messages.append({"role": "user", "content": repair_instruction})
         log.debug("AuthorStrategy.repair_sections failing=%s msgs=%d",
                   sorted(failing_sections), len(self._messages))
 
-        raw = provider.complete_messages(self._messages)
+        raw = json_call(provider.complete_messages, self._messages)
         self._messages.append({"role": "assistant", "content": raw})
 
         data = _parse_json_object(raw) or {}
@@ -468,6 +652,10 @@ class HybridStrategy(TurnStrategy):
             narrate_parts = []
             if ctx:
                 narrate_parts.append(ctx)
+            if scene.get('_variation_prompt'):
+                narrate_parts.append(scene['_variation_prompt'])
+            if scene.get('_resolution_prompt'):
+                narrate_parts.append(scene['_resolution_prompt'])
             narrate_parts.append(f"[player] {player_input}")
             prose = provider.complete(_narrate_prompt(), "\n\n".join(narrate_parts))
             self._frozen_prose = prose
@@ -488,7 +676,7 @@ class HybridStrategy(TurnStrategy):
             log.debug("HybridStrategy.produce: re-structure on repair (frozen prose, msgs=%d)",
                       len(self._messages))
 
-        raw = provider.complete_messages(self._messages)
+        raw = json_call(provider.complete_messages, self._messages)
         self._messages.append({"role": "assistant", "content": raw})
         data = _parse_json_object(raw) or {}
         data["narration"] = prose
@@ -527,14 +715,18 @@ class HybridStrategy(TurnStrategy):
             f"上一条提交中以下段有校验错误：\n"
             + "\n".join(error_lines)
             + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
-            f"，不要重写 narration 或其它段，不要包含任何其它内容。"
+            + (
+                "，narration 给本回合新散文字符串，只回应玩家最后一条动作，不复制历史；其它段保持不变。"
+                if "narration" in failing_sections else
+                "，不要重写 narration 或其它段，不要包含任何其它内容。"
+            )
         )
 
         self._messages.append({"role": "user", "content": repair_instruction})
         log.debug("HybridStrategy.repair_sections failing=%s msgs=%d",
                   sorted(failing_sections), len(self._messages))
 
-        raw = provider.complete_messages(self._messages)
+        raw = json_call(provider.complete_messages, self._messages)
         self._messages.append({"role": "assistant", "content": raw})
 
         data = _parse_json_object(raw) or {}

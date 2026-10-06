@@ -239,28 +239,28 @@ def test_validate_commit_cross_section_move_to_new_place():
     assert w["systems"]["ontology"].get_entity("新城") is None
 
 
-def test_validate_commit_required_sections_need_content_or_reason():
-    """A required section that's empty must carry a reason (force the model to
-    confirm it didn't just forget); bare [] no longer satisfies."""
+def test_validate_commit_empty_required_sections_ok_except_clock():
+    """An empty required section is given as a bare [] meaning 'no change this turn'
+    — VALID, no `reasons` needed (the narration prompt teaches this). The sole
+    exception is clock: it must be present as a non-empty array every turn."""
     from kernel.validation import validate_commit
     from kernel.turncommit import TurnCommit
     r = _reg()
     w = _world_with_place("王都")
     w["systems"]["ontology"].add_entity("主角", "Person")
     req = frozenset({"moves", "places"})
-    # empty + no reason -> empty_no_reason for both
-    errs = validate_commit(r, TurnCommit(narration="x", sections={}), w,
-                           required_sections=req)
-    assert {e.section for e in errs if e.code == "empty_no_reason"} == {"moves", "places"}
-    # bare empty [] still NOT enough — must justify
-    errs2 = validate_commit(r, TurnCommit(narration="x", sections={"moves": [], "places": []}),
-                            w, required_sections=req)
-    assert {e.section for e in errs2 if e.code == "empty_no_reason"} == {"moves", "places"}
-    # content satisfies one; a reason satisfies the other
-    c = TurnCommit(narration="x", sections={"moves": [{"who": "主角", "to": "王都"}]},
-                   reasons={"places": "未发现新地点"})
-    ok = validate_commit(r, c, w, required_sections=req)
-    assert [e for e in ok if e.code == "empty_no_reason"] == []
+    # bare [] for required sections -> NO empty_no_reason (valid)
+    errs = validate_commit(r, TurnCommit(narration="x", sections={"moves": [], "places": []}),
+                           w, required_sections=req)
+    assert [e for e in errs if e.code == "empty_no_reason"] == []
+    # absent sections -> also fine (omission == no change)
+    errs2 = validate_commit(r, TurnCommit(narration="x", sections={}), w,
+                            required_sections=req)
+    assert [e for e in errs2 if e.code == "empty_no_reason"] == []
+    # clock IS still required as a non-empty array; absent clock -> clock_required
+    errc = validate_commit(r, TurnCommit(narration="x", sections={}), w,
+                           required_sections=frozenset({"clock"}))
+    assert "clock_required" in {e.code for e in errc}
 
 
 # ---------------------------------------------------------------------------

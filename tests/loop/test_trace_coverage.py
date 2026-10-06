@@ -259,7 +259,7 @@ def _make_turn_engine(tmp_path):
     bootstrap_world(engine, "回合测试")
 
     # Now swap in a FakeLLMProvider for the actual turn
-    valid_commit = {
+    valid_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
         "narration": "你环顾四周，发现这是一片宁静的旷野。",
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "时间未推进"}],
     }
@@ -304,11 +304,11 @@ class _RepairFakeProvider:
 
     def __init__(self):
         self._calls = 0
-        self._bad = json.dumps({
+        self._bad = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "坏的回合输出",
             # Missing required 'clock' section — will fail validate_commit
         })
-        self._good = json.dumps({
+        self._good = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "修复后的输出，你环顾四周。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
         })
@@ -435,7 +435,7 @@ def test_player_input_event_recorded(tmp_path, monkeypatch):
     bootstrap_world(engine, "事件追踪测试")
 
     # Swap to a FakeLLMProvider for the actual turn
-    valid_commit = {
+    valid_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
         "narration": "你环顾四周，发现这是一片宁静的旷野。",
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
     }

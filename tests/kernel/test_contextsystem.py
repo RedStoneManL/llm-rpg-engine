@@ -11,7 +11,6 @@ def test_base_system_defaults_are_inert():
     assert s.to_events("x", None, turn=1, day=1, scene="s1") == []
     assert s.inject({}, {}) is None
     assert s.recall("q", {}) == []
-    assert s.digest_extract("prose", {}) == {}
 
 
 def test_dataclasses_carry_fields():

@@ -1,0 +1,14 @@
+{
+  "actions": 120,
+  "injected_write_failures": 12,
+  "whole_action_undos": 10,
+  "reopens": 8,
+  "salt_replays": 10,
+  "failures": [],
+  "status": "passed",
+  "seconds": 8.14740726724267,
+  "final_fuel": 880,
+  "active_events": 644,
+  "campaign": "/root/rpg-engine-audit-20261003/experiments/shipped-endurance-up9v3tjw",
+  "scope": "deterministic provider, actual run_turn and SQLite; not model narrative quality"
+}

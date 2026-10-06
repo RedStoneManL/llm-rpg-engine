@@ -22,7 +22,13 @@ TurnResult: dataclass holding narration, world, commit, events,
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import copy
 from typing import Any
+from uuid import uuid4
+from loop.resources import prepare_resources, validate_resources
+from loop.narration_guard import validate_narration
+
+from engine.store import EventBatch, RevisionConflict
 
 from kernel.registry import Registry
 from kernel.projection import project
@@ -61,10 +67,17 @@ class TurnResult:
     events: list[dict]
     repair_attempts: int
     dropped_sections: list[str] = field(default_factory=list)
+    receipt: dict = field(default_factory=dict)
+
+
+class TurnRejected(ValueError):
+    """The proposed action has no coherent, validated result to publish."""
 
 
 def _next_turn(store) -> int:
     """Compute turn number = max existing event turn + 1, or 1 if none."""
+    if hasattr(store, 'next_turn'):
+        return store.next_turn()
     max_turn = 0
     for ev in store.iter_events():
         t = ev.get("turn") or 0
@@ -174,6 +187,8 @@ def produce_turn(
     _aug_day = (scene or {}).get("day", 0)
     augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
     errors = validate_commit(registry, commit, world, required_sections=required_sections)
+    errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
+    errors.extend(validate_narration(commit, world))
 
     while errors and attempts < max_repairs:
         failing = {e.section for e in errors}
@@ -187,11 +202,10 @@ def produce_turn(
                 # by convention — reconstruct rather than mutate in place).
                 from kernel.turncommit import TurnCommit as _TC
                 merged_sections = dict(commit.sections)
-                merged_sections.update(repaired)
+                merged_sections.update({k:v for k,v in repaired.items() if k != 'narration'})
                 commit = _TC(
-                    narration=commit.narration,
+                    narration=repaired.get('narration', commit.narration),
                     sections=merged_sections,
-                    reasons=commit.reasons,
                 )
             except NotImplementedError:
                 # Legacy fallback: full re-author (for strategies that don't
@@ -204,6 +218,8 @@ def produce_turn(
                 )
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_commit(registry, commit, world, required_sections=required_sections)
+        errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
+        errors.extend(validate_narration(commit, world))
         attempts += 1
 
     # --------------------------------------------------------------------------
@@ -223,6 +239,7 @@ def produce_turn(
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
     log.debug("produce_turn: done repair_attempts=%d dropped=%s", attempts, dropped_sections)
+    # Persistent conversation is advanced only by run_turn after durable commit.
     return commit, attempts, dropped_sections
 
 
@@ -259,15 +276,14 @@ def apply_turn(
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
-    for ev in events:
-        store.append(ev)
+    store.append_many(events, preflight=lambda history: project(registry, history))
     new_world = project(registry, store.iter_events())
 
     log.debug("apply_turn: turn=%d events_appended=%d", turn_num, len(events))
     return new_world
 
 
-def run_turn(
+def _run_turn_staged(
     registry: Registry,
     store,
     world: dict,
@@ -316,11 +332,20 @@ def run_turn(
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
         )
+        if dropped_sections:
+            raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
 
         scene_id = scene.get("id") or scene.get("location") or "scene"
         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day
 
         new_world = apply_turn(registry, store, commit, day=day, scene=scene_id)
+        # The visible story is part of the action, never an optional digest side
+        # effect. A failing reflection hook cannot lose a successfully shown turn.
+        if commit.narration and registry.owner_of_event('narration_recorded') is not None:
+            store.append(kernel_event('narration_recorded', day=day, scene=scene_id,
+                summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration},
+                turn=turn_num_before))
+            new_world = project(registry, store.iter_events())
 
         # Collect newly appended events (those with turn == turn_num_before)
         events: list[dict] = [
@@ -336,12 +361,13 @@ def run_turn(
         # P2: also feeds narration_text + recap_provider for recap maintenance.
         try:
             with get_tracer().span("digest_fleet", turn=turn_num_before):
-                appended_events = digest_fleet(
+                appended_events = _backstage_call(store, digest_fleet,
                     registry, store, events, new_world,
                     provider=provider,
                     narration_text=commit.narration,
+                    record_narration=False,
                     scene=scene_id,
-                    recap_provider=cascade_provider,
+                    recap_provider=cascade_provider or provider,
                 )
             if appended_events:
                 new_world = project(registry, store.iter_events())  # fold arc/narr facts into world
@@ -354,7 +380,7 @@ def run_turn(
         # in. Same shape as digest_fleet: post-apply, tracer span, never fatal.
         try:
             with get_tracer().span("director", turn=turn_num_before):
-                dir_events = run_director(registry, store, new_world)
+                dir_events = _backstage_call(store, run_director, registry, store, new_world)
             if dir_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: director appended %d event(s)", len(dir_events))
@@ -366,7 +392,7 @@ def run_turn(
         # never fatal, re-project on append.
         try:
             with get_tracer().span("cascade", turn=turn_num_before):
-                cas_events = run_cascade(registry, store, new_world,
+                cas_events = _backstage_call(store, run_cascade, registry, store, new_world,
                                          scene=scene_id, provider=provider,
                                          cascade_provider=cascade_provider)
             if cas_events:
@@ -384,7 +410,7 @@ def run_turn(
         _prev_scene = prev_scene if prev_scene is not None else {}
         try:
             with get_tracer().span("catchup", turn=turn_num_before):
-                cat_events = run_catchup(registry, store, new_world,
+                cat_events = _backstage_call(store, run_catchup, registry, store, new_world,
                                          prev_scene=_prev_scene, new_scene=scene,
                                          provider=provider,
                                          catchup_provider=catchup_provider)
@@ -399,7 +425,7 @@ def run_turn(
         # Same shape as digest/director/cascade: post-apply, tracer span, non-fatal.
         try:
             with get_tracer().span("lore", turn=turn_num_before):
-                lore_events = run_lore(registry, store, new_world)
+                lore_events = _backstage_call(store, run_lore, registry, store, new_world)
             if lore_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: lore appended %d event(s)", len(lore_events))
@@ -411,7 +437,7 @@ def run_turn(
         # Guarded by registry ownership (quest_demoted) and non-fatal (like other hooks).
         try:
             if registry.owner_of_event("quest_demoted") is not None:
-                _run_demote_on_leave(
+                _backstage_call(store, _run_demote_on_leave,
                     registry, store, new_world, protagonist, provider,
                     turn_num=turn_num_before, day=day, scene=scene_id,
                 )
@@ -428,7 +454,7 @@ def run_turn(
         try:
             with get_tracer().span("density", turn=turn_num_before):
                 if registry.owner_of_event("lore_seeded") is not None:
-                    dens_events = run_density(
+                    dens_events = _backstage_call(store, run_density,
                         registry, store, new_world, protagonist,
                         provider=(cascade_provider or provider),
                         day=day, scene=scene_id, turn=turn_num_before,
@@ -467,10 +493,77 @@ def run_turn(
             narration=commit.narration,
             world=new_world,
             commit=commit,
-            events=events,
+            events=[ev for ev in store.iter_events() if ev.get('turn') == turn_num_before],
             repair_attempts=attempts,
             dropped_sections=dropped_sections,
         )
+
+
+def _backstage_call(store, function, *args, **kwargs):
+    with store.savepoint():
+        return function(*args, **kwargs)
+
+
+def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
+             embedder=None, max_repairs=3, required_sections=frozenset(),
+             cascade_provider=None, catchup_provider=None, prev_scene=None,
+             action_id=None, expected_revision=None) -> TurnResult:
+    """Prepare one complete action without a lock, then atomically publish it.
+
+    Foreground effects, narration and backstage consequences share one turn.
+    A stale proposal or failed write changes neither the database nor the
+    narrator's committed conversation. Callers may supply an action identity.
+    """
+    batch = EventBatch(store, preflight=lambda history: project(registry, history))
+    version = expected_revision if expected_revision is not None else world.get('_revision')
+    if version is not None and version != batch.revision:
+        raise RevisionConflict('refresh the world before preparing another action')
+    cached_revision = getattr(strategy, '_committed_revision', None)
+    if cached_revision is not None and cached_revision != batch.revision and hasattr(strategy, 'reset'):
+        strategy.reset()
+    old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
+    try:
+        if registry.owner_of_event('resources_resolved') is not None:
+            resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
+            if resolution:
+                batch.append(resolution)
+                world = project(registry, batch.iter_events())
+                scene = {**scene, '_resolved_values':expected, '_resolution_prompt':prompt,
+                         '_resolved_clock':resolution['deltas'].get('wait_until')}
+        from loop.variation import prepare_variation, variation_fragment
+        variation = prepare_variation(registry, world, scene, batch.turn)
+        if variation:
+            batch.append(variation)
+            scene = {**scene, '_variation_prompt': variation_fragment(variation)}
+        result = _run_turn_staged(registry, batch, world, scene, player_input,
+            strategy=strategy, provider=provider, embedder=embedder,
+            max_repairs=max_repairs, required_sections=required_sections,
+            cascade_provider=cascade_provider, catchup_provider=catchup_provider,
+            prev_scene=prev_scene)
+        graph = result.world.get('systems', {}).get('ontology')
+        for (subject, predicate), value in scene.get('_resolved_values', {}).items():
+            if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:
+                raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
+        receipt = batch.publish(action_id=action_id or str(uuid4()))
+    except BaseException:
+        if hasattr(strategy, '__dict__'):
+            strategy.__dict__.clear()
+            strategy.__dict__.update(old_state)
+        raise
+    result.receipt = receipt
+    result.world['_revision'] = receipt['revision']
+    strategy._committed_revision = receipt['revision']
+    try:
+        commit_thread = getattr(strategy, 'commit_to_thread', None)
+        if commit_thread:
+            commit_thread(result.narration)
+    except Exception:
+        # Persistence already succeeded. Rebuild this derivative cache next turn
+        # instead of telling the caller that the committed action failed.
+        log.exception('Conversation cache update failed after commit')
+        if hasattr(strategy, 'reset'):
+            strategy.reset()
+    return result
 
 
 # ---------------------------------------------------------------------------

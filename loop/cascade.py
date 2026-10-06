@@ -414,6 +414,8 @@ def _last_nonharness_turn(events: list[dict]) -> int:
 
 def _next_cascade_turn(store) -> int:
     """Max turn in the store + 1 (cascade events get their own slot)."""
+    if hasattr(store, 'next_turn'):
+        return store.next_turn()
     max_t = 0
     for ev in store.iter_events():
         t = ev.get("turn") or 0

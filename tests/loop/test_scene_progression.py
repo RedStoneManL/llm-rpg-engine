@@ -54,7 +54,7 @@ def _scene(world):
 
 
 def _no_change_commit(narr="原地。"):
-    return {"narration": narr,
+    return {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": narr,
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地"}],
             "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
 
@@ -78,7 +78,7 @@ def test_no_boundary_keeps_scene():
 def test_location_change_advances_scene():
     store = _store(_registry())
     r, world = _seed(store)
-    move_commit = {"narration": "我走到市集。",
+    move_commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "我走到市集。",
                    "places": [{"id": "market", "level": 2, "kind": "settlement", "seed": "集市"}],
                    "moves": [{"who": "hero", "to": "market"}],
                    "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "几步路"}],
@@ -95,7 +95,7 @@ def test_location_change_advances_scene():
 def test_day_change_advances_scene():
     store = _store(_registry())
     r, world = _seed(store)
-    overnight = {"narration": "一夜过去。",
+    overnight = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "一夜过去。",
                  "clock": [{"advance": True, "days": 1, "bands": 0, "reason": "宿了一夜"}],
                  "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
     res = run_turn(r, store, world, _scene(world), "睡一觉",
@@ -131,7 +131,7 @@ def test_multi_scene_run_creates_distinct_recap_buckets():
     # 3 turns, each moving to a fresh place => 3 scene boundaries.
     commits = []
     for i in range(1, 4):
-        commits.append({"narration": f"第{i}站的见闻。",
+        commits.append({**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": f"第{i}站的见闻。",
                         "places": [{"id": f"place{i}", "level": 2, "kind": "settlement", "seed": "x"}],
                         "moves": [{"who": "hero", "to": f"place{i}"}],
                         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "赶路"}],

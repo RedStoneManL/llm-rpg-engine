@@ -33,6 +33,7 @@ from llm.provider import FakeLLMProvider
 # ---------------------------------------------------------------------------
 
 class ScriptedProvider:
+    is_offline = True  # Canned offline fixture permits stub fallback.
     """Returns canned strings in order; repeats the last one if exhausted."""
     def __init__(self, replies):
         self._r = list(replies)
@@ -113,6 +114,12 @@ def _make_scripted_replies(attempt: int = 0) -> list:
             for i in range(_N_NPCS)
         ]
     })
+    codex_reply = json.dumps({
+        "entries": [
+            {"kind": "实力等级", "title": f"力量阶序_{attempt}", "body": "由低到高层层递进。"},
+            {"kind": "编年史", "title": f"世事简史_{attempt}", "body": "古往今来，世事变迁。"},
+        ]
+    })
     campaign_threads_reply = json.dumps({
         "lines": [
             {
@@ -147,6 +154,7 @@ def _make_scripted_replies(attempt: int = 0) -> list:
         protagonist_reply,
         factions_reply,
         npcs_reply,
+        codex_reply,
         campaign_threads_reply,
         prot_threads_reply,
         opening_reply,

@@ -1,0 +1,2 @@
+# A unified diff needs its single-space context prefixes, including blank lines.
+docs/reports/2026-10-03/changes.patch -whitespace

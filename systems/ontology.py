@@ -3,6 +3,7 @@ from __future__ import annotations
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
 from facts.graph import FactGraph
+from facts.rules import check_value
 from engine.log import get_logger
 
 log = get_logger("systems.ontology")
@@ -60,7 +61,7 @@ class OntologySystem(ContextSystem):
             subject = d.get("subject")
             predicate = d.get("predicate")
             value = d.get("value")
-            if not subject or not predicate or value is None:
+            if not subject or not predicate or 'value' not in d:
                 log.warning(
                     "fact_asserted event missing subject/predicate/value in deltas; skipping. "
                     "event_id=%s deltas=%r", event.get("id"), d
@@ -141,6 +142,9 @@ class OntologySystem(ContextSystem):
                         hint="实体声明必须是对象 (dict)",
                     ))
                     continue
+                if 'attrs' in item and not isinstance(item['attrs'], dict):
+                    errs.append(ValidationError(section, f'[{i}].attrs', 'bad_shape',
+                        'attrs 必须是对象 {}，不能是字符串、数组或 null'))
                 if not item.get("id") or not isinstance(item.get("id"), str):
                     errs.append(ValidationError(
                         section=section,
@@ -191,6 +195,12 @@ class OntologySystem(ContextSystem):
                 # basic type check above (so we don't double-error on missing subject)
                 if g and item.get("subject") and isinstance(item.get("subject"), str):
                     subject = item["subject"]
+                    if isinstance(item.get('predicate'), str) and 'value' in item:
+                        history = g.fact_history(subject, item['predicate'])
+                        rule_error = check_value(g.get_entity(subject), item['predicate'], item['value'],
+                                                 history[-1] if history else None)
+                        if rule_error:
+                            errs.append(ValidationError(section, f'[{i}].value', 'fact_rule', rule_error))
                     if g.get_entity(subject) is None:
                         errs.append(ValidationError(
                             section=section,

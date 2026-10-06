@@ -199,13 +199,15 @@ def test_map_query_pov_not_in_scene_errors():
     assert "error" in out
 
 
-def test_map_query_pov_present_npc_allowed():
-    """A pov entity that IS in scene["present"] is valid (DD5)."""
+def test_map_query_pov_present_npc_requires_dm_registry():
+    """Physical presence does not grant access to another mind."""
     from llm.tools import build_tool_registry
     r, w = _world_with_map(knows_gate=False)
     scene = _scene(present=["hero", "ally"])
     reg = build_tool_registry(r, w, scene)
-    # 'ally' is present; should not return an error (may return empty facts for ally)
+    out = json.loads(reg.execute("map_query", {"q": "gate", "pov": "ally"}))
+    assert "error" in out
+    reg = build_tool_registry(r, w, scene, dm=True)
     out = json.loads(reg.execute("map_query", {"q": "gate", "pov": "ally"}))
     assert "error" not in out
 
@@ -514,6 +516,37 @@ def test_characters_query_known_sketch_returned():
     )
 
 
+def test_characters_query_finds_colocated_mentioned_npc_by_sketch():
+    """I2: a co-located mentioned NPC (e.g. the opening scholar at the venue) must be
+    findable by descriptive name/sketch and reported co_present with its visible
+    sketch — even though it's not in scene['present'] (tracked-only). This is what
+    prevents the turn-1 tool flail (query by '老学者' against id 'npc_0')."""
+    from llm.tools import build_tool_registry
+    r = _reg_with_characters()
+    evs = [
+        kernel_event("character_created", day=1, scene="g", summary="hero",
+                     deltas={"id": "hero", "sketch": "旅人", "goal": "x",
+                             "tier": "protagonist"}, turn=1),
+        kernel_event("character_created", day=1, scene="g", summary="scholar",
+                     deltas={"id": "npc_0", "sketch": "身披星脉守望者灰袍的老学者",
+                             "goal": "破译符文", "tier": "mentioned"}, turn=1),
+        kernel_event("place_created", day=1, scene="g", summary="venue",
+                     deltas={"id": "venue_0", "level": 3, "kind": "venue", "seed": "酒馆"}, turn=1),
+        kernel_event("entity_moved", day=1, scene="g", summary="scholar here",
+                     deltas={"who": "npc_0", "to": "venue_0"}, turn=1),
+    ]
+    w = project(r, iter(evs))
+    scene = {"protagonist": "hero", "present": ["hero"], "day": 1, "location": "venue_0"}
+    reg = build_tool_registry(r, w, scene)
+    out = json.loads(reg.execute("characters_query", {"q": "老学者"}))
+    matches = out.get("matches", [])
+    npc = next((m for m in matches if m.get("id") == "npc_0"), None)
+    # Found by sketch (id is 'npc_0'), and reported co_present so the model can
+    # reference him by id. (sketch stays fog-gated until the protagonist learns it.)
+    assert npc is not None, f"co-located scholar not found by sketch: {out}"
+    assert npc.get("co_present") is True, npc
+
+
 def test_characters_query_unknown_goal_omitted():
     """When protagonist does NOT know informant.goal, it must be absent from result."""
     from llm.tools import build_tool_registry
@@ -577,10 +610,8 @@ def test_characters_query_never_met_returns_known_false():
     assert "垄断情报市场" not in out_str, (
         "fog-leak: goal of never-met NPC leaked"
     )
-    # The result should signal the character exists but is unknown
-    assert "known" in out_str and ("false" in out_str.lower() or "False" in out_str), (
-        "never-met NPC should be returned with known:false marker"
-    )
+    # An unknown identity must not become an existence oracle.
+    assert out["matches"] == []
 
 
 def test_characters_query_co_present_existence_visible():

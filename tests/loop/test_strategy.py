@@ -204,3 +204,11 @@ def test_author_strategy_falls_back_when_tools_unsupported():
     assert provider.supports_tools() is False
 
 
+
+
+def test_narrate_template_has_no_hardcoded_voice():
+    """The literary voice lean moved into the flavor pack (classic/pack.json.voice),
+    injected via __STYLE__ — it must no longer be hardcoded in the 丙 template."""
+    from loop import strategy
+    assert "融合细腻描写与戏剧张力" not in strategy._NARRATE_PROMPT_TEMPLATE
+    assert "重环境氛围" not in strategy._NARRATE_PROMPT_TEMPLATE

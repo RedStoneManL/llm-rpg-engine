@@ -49,6 +49,23 @@ def test_unknown_person_name_mints_cast_and_zhenming():
     assert zm and zm[0]["value"] == "卡恩"
 
 
+def test_resolve_name_ref_to_colocated_npc_no_remint():
+    """#I3: a name-ref describing an NPC already co-located with the protagonist
+    resolves to that NPC's id instead of minting a duplicate (the play5 4×-scholar
+    bug). '老学者' matches co-located npc_0's sketch → moves.who becomes npc_0."""
+    g = FactGraph()
+    g.add_entity("protagonist", "Person", tier="tracked")
+    g.add_entity("venue_0", "Place")
+    g.add_entity("npc_0", "Person", tier="mentioned")
+    g.assert_fact("npc_0", "sketch", "身披星脉守望者灰袍的老学者", day=1, turn=0, source_event="t")
+    g.add_relation("protagonist", "located_in", "venue_0", day=1, turn=0, source_event="t")
+    g.add_relation("npc_0", "located_in", "venue_0", day=1, turn=0, source_event="t")
+    c = _commit(moves=[{"who": "老学者", "to": "venue_0"}])
+    minted = augment_unresolved_refs(c, _world(g), scene="venue_0", day=1)
+    assert minted == [], f"minted a duplicate instead of resolving: {minted}"
+    assert c.sections["moves"][0]["who"] == "npc_0"
+
+
 def test_unknown_place_name_mints_places():
     g = FactGraph()
     g.add_entity("protagonist", "Person")

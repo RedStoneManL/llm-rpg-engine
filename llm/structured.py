@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from engine.log import get_logger
 from llm.provider import _parse_json_object
+from llm.generation_guard import record_failure
 
 log = get_logger("llm.structured")
 
@@ -80,6 +81,7 @@ def complete_structured(
     last parsed object (or None). NEVER raises.
     """
     if provider is None:
+        record_failure(log_label, ['no provider'])
         return None, ["no provider"]
     messages = [
         {"role": "system", "content": system},
@@ -89,10 +91,12 @@ def complete_structured(
     errors: list[str] = ["no response"]
     for attempt in range(max_repairs + 1):
         try:
-            raw = provider.complete_messages(messages)
+            from llm.provider import json_call
+            raw = json_call(provider.complete_messages, messages)
         except Exception:
             log.exception("complete_structured[%s]: complete_messages failed (attempt %d)",
                           log_label, attempt)
+            record_failure(log_label, ['provider call failed'])
             return obj, errors
         obj = _parse_json_object(raw)
         if not isinstance(obj, dict):
@@ -114,4 +118,5 @@ def complete_structured(
                              "content": build_structured_repair(errors, schema_reminder=schema_reminder)})
     log.warning("complete_structured[%s]: did not conform after %d attempt(s): %s",
                 log_label, max_repairs + 1, "; ".join(errors)[:200])
+    record_failure(log_label, errors)
     return obj, errors

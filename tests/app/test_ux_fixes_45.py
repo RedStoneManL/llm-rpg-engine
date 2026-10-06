@@ -36,7 +36,7 @@ from llm.provider import FakeLLMProvider
 
 def _canned_provider():
     return FakeLLMProvider(json_responses=[
-        {
+        {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你环顾四周，发现这是一片宁静的旷野。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
         }
@@ -261,6 +261,22 @@ class TestPlayLoopFraming:
         # The input text must follow the marker
         assert "看看四周" in combined
 
+    def test_echo_input_false_suppresses_player_echo(self, tmp_path):
+        """With echo_input=False (an interactive readline '▶ 你：' prompt already
+        showed the line), play_loop must NOT re-echo — otherwise it appears twice."""
+        from app.play import play_loop
+        engine = _build_engine(tmp_path, _canned_provider())
+        engine.provider = _canned_provider()
+        collected = []
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            play_loop(engine, inputs=["看看四周", "/quit"],
+                      out=collected.append, echo_input=False)
+        combined = "\n".join(collected)
+        assert "> 你：" not in combined and "▶ 你：" not in combined, (
+            f"player echo must be suppressed when echo_input=False; got {combined!r}"
+        )
+        assert "你环顾四周" in combined   # DM narration still printed
+
     def test_dm_narration_under_dm_header(self, tmp_path):
         """The DM narration must appear under a [DM] header."""
         collected = self._run_one_turn(tmp_path, ["看看四周", "/quit"])
@@ -386,11 +402,11 @@ class TestCompareModeFix45:
     def test_compare_mode_player_echo_and_dm_framing(self, tmp_path):
         """In compare mode: player input is echoed + spinner runs + DM framing present."""
         from app.play import play_loop
-        jia = {
+        jia = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "甲策略叙述：你踏入小路。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "无"}],
         }
-        bing = {
+        bing = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "丙策略叙述：小路延伸。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "无"}],
         }

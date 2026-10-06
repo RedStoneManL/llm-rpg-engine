@@ -1,0 +1,109 @@
+{
+  "model": "deepseek-flash",
+  "calls": [
+    {
+      "label": "thinking_first_tool_request",
+      "http": 200,
+      "seconds": 0.8111401274800301,
+      "usage": {
+        "prompt_tokens": 303,
+        "completion_tokens": 42,
+        "total_tokens": 345,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 18
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 303
+      },
+      "model_returned": "deepseek-flash",
+      "finish_reason": "tool_calls"
+    },
+    {
+      "label": "legacy_adapter_followup",
+      "http": 200,
+      "seconds": 0.7018914334475994,
+      "usage": {
+        "prompt_tokens": 361,
+        "completion_tokens": 2,
+        "total_tokens": 363,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 233
+      },
+      "model_returned": "deepseek-flash",
+      "finish_reason": "stop"
+    },
+    {
+      "label": "full_assistant_message_followup",
+      "http": 200,
+      "seconds": 0.8212375342845917,
+      "usage": {
+        "prompt_tokens": 361,
+        "completion_tokens": 2,
+        "total_tokens": 363,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 233
+      },
+      "model_returned": "deepseek-flash",
+      "finish_reason": "stop"
+    },
+    {
+      "label": "legacy_adapter_thinking_disabled",
+      "http": 200,
+      "seconds": 0.6168735921382904,
+      "usage": {
+        "prompt_tokens": 279,
+        "completion_tokens": 23,
+        "total_tokens": 302,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 279
+      },
+      "model_returned": "deepseek-flash",
+      "finish_reason": "tool_calls"
+    },
+    {
+      "label": "legacy_adapter_thinking_disabled",
+      "http": 200,
+      "seconds": 0.43763059563934803,
+      "usage": {
+        "prompt_tokens": 318,
+        "completion_tokens": 1,
+        "total_tokens": 319,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 190
+      },
+      "model_returned": "deepseek-flash",
+      "finish_reason": "stop"
+    }
+  ],
+  "scope": "synthetic read-only tool; real HTTP protocol, not full game acceptance",
+  "first_tool_count": 1,
+  "reasoning_field_present": true,
+  "legacy_answer": "7",
+  "preserved_message_answer": "7",
+  "preserved_message_ok": true,
+  "disabled_thinking_answer": "7",
+  "disabled_thinking_tool_calls": 1,
+  "disabled_thinking_ok": true,
+  "status": "completed"
+}

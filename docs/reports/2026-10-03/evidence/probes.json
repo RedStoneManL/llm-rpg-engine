@@ -1,0 +1,199 @@
+[
+  {
+    "id": "E01",
+    "status": "observed",
+    "elapsed_s": 0.1502,
+    "baseline": {
+      "validation_errors": 0,
+      "persisted_poison_events": 1,
+      "apply_error": "TypeError",
+      "reopen_error": "TypeError"
+    },
+    "candidate": {
+      "rejected_before_write": true,
+      "replay_ok": true
+    },
+    "verdict": "preflight gate verified"
+  },
+  {
+    "id": "E02",
+    "status": "observed",
+    "elapsed_s": 0.1551,
+    "baseline_partial_events": 1,
+    "candidate_partial_events": 0,
+    "candidate_revision": 0,
+    "verdict": "batch rollback verified"
+  },
+  {
+    "id": "E03",
+    "status": "observed",
+    "elapsed_s": 0.1533,
+    "baseline_raised_after_durable_commit": "FileNotFoundError",
+    "candidate_committed": true,
+    "candidate_export_pending": true,
+    "retry_duplicate": true,
+    "different_payload_rejected": true,
+    "verdict": "durable receipt + idempotency verified; production outbox pending"
+  },
+  {
+    "id": "E04",
+    "status": "observed",
+    "elapsed_s": 0.1438,
+    "baseline_replay_broken": true,
+    "candidate_last_valid_value": 5,
+    "candidate_extra_events": 0,
+    "verdict": "keep strict graph invariant; reject invalid batch"
+  },
+  {
+    "id": "E05",
+    "status": "observed",
+    "elapsed_s": 0.0507,
+    "baseline_thread_committed_before_db": 1,
+    "baseline_undo_retains_retracted_prose": true,
+    "candidate_discarded_staged_thread": true,
+    "verdict": "staged memory boundary verified; rewind must invalidate cache"
+  },
+  {
+    "id": "E06",
+    "status": "observed",
+    "elapsed_s": 0.0311,
+    "player_turns": 7,
+    "max_event_turn": 28,
+    "last_narration_turn": 26,
+    "undo_event_types": [
+      "lore_advanced",
+      "lore_advanced"
+    ],
+    "retracted": 2,
+    "last_narration_survives": true,
+    "verdict": "Claude undo defect reproduced on save copy"
+  },
+  {
+    "id": "E07",
+    "status": "observed",
+    "elapsed_s": 0.1132,
+    "actual_run_turn_staged_events": 4,
+    "root_turn_ids": [
+      1
+    ],
+    "event_types": [
+      "clock_advanced",
+      "fact_asserted",
+      "narration_recorded",
+      "quest_created"
+    ],
+    "undo_restores_coins": 10,
+    "stale_tick_rejected_after_undo": true,
+    "verdict": "single action grouping and revision check verified; not full hook migration"
+  },
+  {
+    "id": "E08",
+    "status": "observed",
+    "elapsed_s": 0.0451,
+    "baseline_leaks": {
+      "map_query": true,
+      "ambient_query": true,
+      "recall_query": true
+    },
+    "candidate_leaks": {
+      "map_query": false,
+      "ambient_query": false,
+      "recall_query": false
+    },
+    "public_place_kept": true,
+    "discovery_reveals_place": true,
+    "verdict": "entity read projection verified for map/ambient/recall"
+  },
+  {
+    "id": "E09",
+    "status": "observed",
+    "elapsed_s": 0.0562,
+    "same_npc_recall_leaks_unknown_goal": true,
+    "characters_query_hides_same_goal": true,
+    "verdict": "additional cross-tool knowledge inconsistency; entity visibility alone insufficient"
+  },
+  {
+    "id": "E10",
+    "status": "observed",
+    "elapsed_s": 0.0001,
+    "baseline_narration_length": 0,
+    "candidate_narration_length": 15,
+    "verdict": "reask source narration preservation verified"
+  },
+  {
+    "id": "E11",
+    "status": "observed",
+    "elapsed_s": 0.1411,
+    "prose": "你付清十枚金币，钱袋空了。",
+    "committed_coins": 10,
+    "dropped_sections": [
+      "facts"
+    ],
+    "candidate_gate_rejects": true,
+    "candidate_events_written": 0,
+    "verdict": "prose-first + silent drop rejected for consequential outcomes"
+  },
+  {
+    "id": "E12",
+    "status": "observed",
+    "elapsed_s": 0.6143,
+    "baseline_persisted_events": 48,
+    "baseline_raised": null,
+    "candidate_provider_failures": 10,
+    "candidate_published_events": 0,
+    "verdict": "staged genesis failure gate verified; checkpoint/resume not implemented"
+  },
+  {
+    "id": "E13",
+    "status": "observed",
+    "elapsed_s": 0.0,
+    "after_skip": {
+      "inventory": [],
+      "coins": 10
+    },
+    "verdict": "blanket apply exception swallowing rejected; not atomic"
+  },
+  {
+    "id": "E14",
+    "status": "observed",
+    "elapsed_s": 0.0,
+    "thinking_explicitly_disabled": false,
+    "reasoning_content_lost": true,
+    "configured_launcher_tool_rounds": 0,
+    "verdict": "tool-enabled DeepSeek profile requires protocol adapter; real service unverified"
+  },
+  {
+    "id": "E15",
+    "status": "observed",
+    "elapsed_s": 0.0482,
+    "latest_game_day": 9,
+    "projected_meta_day": 1,
+    "projected_scene": "old-scene",
+    "verdict": "event metadata must not authoritatively set simulation clock"
+  },
+  {
+    "id": "E16",
+    "status": "observed",
+    "elapsed_s": 0.0428,
+    "declared_required": [
+      "cast",
+      "clock",
+      "facts",
+      "moves",
+      "places"
+    ],
+    "present": [
+      "clock"
+    ],
+    "validation_errors": 0,
+    "verdict": "required section contract does not match implementation"
+  },
+  {
+    "id": "E18",
+    "status": "observed",
+    "elapsed_s": 0.0411,
+    "default_multiturn_delta_includes_new_state": false,
+    "rebuilt_context_includes_new_state": true,
+    "verdict": "thread must ingest committed state deltas or rebuild after revision; deleting all history not required"
+  }
+]

@@ -1,0 +1,251 @@
+rpg-engine 全量审计
+目录
+1 · 结论
+2 · 现在在哪
+3 · 架构与缺陷
+4 · 实测数据
+5 · 问题清单
+6 · 分模块现状
+7 · 测试与文档
+8 · 建议顺序
+附 · 方法与数据
+全量审计报告 · 只读
+rpg-engine 全量审计
+【此刻】2026-09-07 · 分支 app @ fb7ebd8 · 距上次提交 62 天 · 工作区有未提交的 run.sh 改动
+源码 17.6K 行 / 9 个包
+测试 31.7K 行 / 1717 通过
+提交 435（06-16 → 07-07）
+实战存档 7 局（play2–play8）
+6 名审计 subagent + 主审实验
+§1
+结论
+骨架是对的，功能面已经超过了设计文档，但今天还不能安心交给一个真玩家：8 条 P0 里有 4 条会让存档永久报废，2 条让「重来」形同虚设，1 条把战争迷雾在实体层捅穿，1 条会给玩家一个空白回合。项目在 7 月 7 日停在风味包的最后一步，此后两个月没有动。
+做到哪了
+设计文档的 S0–S5 与「活世界」A–E 全部落地：13 个可插拔系统、47 类事件、1717 个测试全绿。7 局实战，最近一局（play8）7 回合零报错、零丢段，回合中位 76 秒。风味包 9 个任务完成 7 个、2 个半成品，run.sh 的旋钮还挂在工作区没提交。
+最要命的
+四条「存档变砖」路径（K-01 事件先落库后投影、K-02 校验闸五个洞、K-03 时间单调硬 raise、L-14 坏 key 静默造桩世界）；纠错失效（A-01 /undo 撤的是后台事件、A-02 倒带不重置对话线程）；迷雾泄漏（M-01 隐秘地点的描述直接喂给叙事模型）；空白回合（M-02）；半截创世被当存档（L-06）。每一条都有探针在真实存档副本或引擎上复现，都是玩家会撞上的，都不是靠多补一条校验规则能堵住的。
+架构判断
+微内核经受住了审计：投影是纯折叠、与注册顺序无关、13 个系统零越权，fact 层的迷雾门控反复试探都没漏。缺陷集中在骨架之上的编排层，三处结构性问题：写路径没有事务也没有干跑（先落库后投影）；回合号被五个后台钩子各自分配（一个玩家回合吃掉 4 个号）；后台舰队同步阻塞叙事显示（设计文档说「非阻塞」）。再往下是 world.meta 没有 owner、FactGraph 没有索引（投影 O(F²)）、两代架构同仓共存。
+测试与文档
+测试质量高于预期：1688 个测试里没有一条 assert True，抽样 87% 是强断言。盲区是结构性的：默认游玩模式 multiturn 只有 16 个测试跑过；创世崩溃、倒带后的线程、校验闸的洞、apply 异常这些失败面是空白。根 README 与 SKILL.md 描述的是已冻结的第一代；自称 canonical 的 MODULE_INDEX 落后了一周的工作量。
+建议
+先做四件事，每件都在两三百行以内：写路径事务化加投影不可崩；回合号统一加倒带同步线程；迷雾实体层门控加重问回填散文；创世完成标记加全失败中止。做完这四件再谈风味包收尾、遗留层退役和性能。详见 §8。
+§2
+项目现在在哪
+三周冲刺（6 月 16 日到 7 月 7 日，435 次提交）把设计文档里的 S0–S5 和「活世界」A–E 全部落地，跑通了 7 局实战。最后一个特性「风味包」在 7 月 7 日做到第 8 步后停下，之后 62 天没有提交。
+时间线
+06-16已并入skill 分支：hermes 内嵌版 DM 引擎（engine/ + bin/rpg + hooks/ + SKILL.md，142 测试）。app 分支从它长出，领先 51 个提交，两个分支没有分叉。
+06-17已建「究极 harness」设计：事件溯源微内核 + ContextSystem 注册表。S0 内核与可观测 → S1 本体图 + 地点/角色/物品/势力/认知 → S2 召回/评分/反思 → S3 分层上下文 → S4 校验修复 + 后台舰队 + 甲丙双策略 → S5 CLI 与 LLM 客户端。六步全部有代码和测试。
+06-19 → 06-21已建活世界层：暗骰 Director（B）、cascade 波及（C）、时间与 catch-up（D）、倒带（E，但见 A-01）；再加 lore 暗线 L1–L3、场景推进、世界时钟、density 生成、endgame。
+06-22 → 06-25已建实战反馈批次 #1–#11、R1–R8：酒馆卡/世界书导入、玩家自定义创世（session zero / 蓝图）、debug trace 查看器、多轮对话线程 + 70% 压缩标记、429 退避、文风/详略旋钮。
+06-30 → 07-01已修play5 法医式复盘 I1–I9：校验器误拒空段、开场 NPC 对工具不可见、实体重复造人、知识不落账、主角同质化等。文档整合出 MODULE_INDEX。
+07-07进行中风味包系统：classic / isekai 两个包，9 个任务提交了 8 个；run.sh 的 FLAVOR/TONE/MAGIC/POWER/TENSION 旋钮改了但没有提交。
+07-11停止最后一局实战 play8（7 回合，零报错、零丢段、只修复 1 次）。此后没有提交、没有实战。
+设计文档 vs 实现
+设计项内容状态备注
+S0微内核：事件库、投影 / 校验 / 组装 / recall 五 driver、ContextSystem 注册表、可观测层已建digest driver 已在 F2 删除；Langfuse 分支零测试且 SDK 未装
+S1本体事实图 + 地点 / 角色 / 物品 / 势力 / 认知已建多值关系无法退出（K-07）；create 覆写（K-04）
+S2召回 + 重要度评分 + 反思 / 压缩名不副实语义召回链断、评分永不触发反思、压缩只是丢弃线程重建（M-12、L-12）
+S3分层上下文组装、POV / 护栏已建护栏无界倾泻（M-03）；层头重复、顺序倒置（K-16）
+S4校验修复 + 后台舰队 + 甲丙双策略 + compare已建舰队同步阻塞（A-03）；compare 绕开线程（A-06）
+S5CLI + LLM 客户端已建无流式、Ctrl-C 裸崩（M-06）
+A–E活世界：Director 暗骰、cascade 波及、时间 / catch-up、倒带已建倒带 = 撤最后一个后台事件（A-01）；开局阶段级联触发不了（L-03）
+L1–L3暗线：掷骰推进、环境推送、密度生成、终局已建主角线过早了结 / 永久休眠（L-01、L-02）；backstop 僵尸线（L-04）
+风味包classic / isekai 内容包 + voice + 持久化7 / 9开场不接 voice、读档忽略 --flavor、run.sh 未提交（L-16、P-03、D-04）
+hermes第一代 skill 层：bin/rpg + hooks + SKILL.md停机hermes 配置里 hooks 为空，与 app 事件协议不相通（A-08）
+§3
+架构与设计缺陷
+骨架是对的：事件是唯一写入口，世界由纯函数从事件折出，系统按事件类型和提交段一对一注册，叙事模型只能通过校验闸写、通过迷雾工具读。问题集中在骨架之上的「编排层」，那里把几个本该只做一次的事情做了很多次，把本该在后台的事情放在了玩家面前。
+一个玩家回合在 run_turn 里的真实路径
+loop/turn.py · app/play.py 的调用顺序。橙色是本报告指出的三个结构性问题所在。
+玩家输入
+produce
+工具循环 ≤8 轮 · 主模型
+校验 / 修复
+≤3 轮 · 失败即丢段
+commit_to_thread
+线程先记住叙事 A-05
+apply_turn
+事件逐条入库 · 回合号 N
+project ①
+全量重放
+后台舰队——设计文档写「post-apply · 非阻塞 · 廉价模型」，实现是同线程串行，见 A-03
+digest 史官摘要 · 反思 · 兜底
+director 暗骰seeded d100
+cascade 波及线程池 · LLM
+catch-up 追赶离场实体 · LLM
+lore 暗线每线独立掷骰
+demote 降格明→暗 · LLM
+density 密度生成新暗线 · LLM
+scene 场景换地或换天
+project ②
+project ③
+project ④
+project ⑤
+project ⑥
+project ⑦（无变化也跑）
+project ⑧
+project ⑨
+回合号 +1
+回合号 +1
+回合号 +1
+回合号 +1
+回合号 +1
+沿用 N
+沿用 N
+沿用 N（乱序）
+A-04：每个钩子之后都从 seq=1 全量重放一次投影，一回合最多 9 次
+A-01：五个钩子各自领新回合号，一个玩家回合吃掉 4 个号，/undo 撤的是最后那个号
+显示叙事给玩家
+app/play.py · run_turn 返回后
+A-03：玩家在整条链的末尾才看到文字。
+play8 第 1 回合：produce 54 s + density 72 s = 等 126 s 才出第一段。
+一回合的写路径。叙事在 produce 阶段就已经写好，但要等八个后台钩子全部跑完（其中五个可能再调 LLM）才打印；每个钩子后都全量重放投影；五个钩子各自分配回合号，把「回合」这个倒带用的对齐键打散了。
+站得住的部分
+投影是真的纯函数。内核审计用 23 个事件 × 13 个系统投影两次深比较、截断重放、软撤回重放，四项全等；47 类事件交叉喂给 13 个系统零越权；30 次随机打乱注册顺序结果 100% 一致。倒带在数据层面是可信的。
+fact 层的迷雾是严密的。knows() 门控加 secrecy 白名单，用未标记的秘密反复试探一条都没漏；未知 secrecy 值 fail-closed。
+provider 缝做得干净。工具循环抽成纯函数、请求构造可离线测、只有一个 HTTP 缝，1687 个测试零网络。
+校验闸的形状层是硬的。字符串、裸 dict、非 dict 元素都被转成可修复错误而不是异常；工具执行层任何畸形参数都只返回 error。
+结构性缺陷
+写路径没有事务，投影不可崩这条不变量没人守。apply_turn 逐条 append、每条一个 commit，之后才投影；投影对单事件 apply 零防护；启动重放没有兜底。于是任何一个过闸的畸形事件都是永久变砖，而校验闸现在就有五个洞。这是所有 P0 的公共根因。（K-01、K-02、K-03、A-05）
+「回合」这个键被过载了。它同时是玩家可见序号、倒带对齐键、级联触发窗口、导演冷却键，又被三种互相矛盾的方式分配（玩家号 / max+1 / 每次 append 后再 max+1）。/undo 撤错东西、级联在开局触发不了、回合号乱序，全是这一处过载。（A-01、L-03）
+后台舰队不是后台。设计文档承诺 post-apply、非阻塞、廉价模型；实现是同线程串行，玩家在整条链末尾才看到文字，demote 还在用主模型。（A-03、L-10）
+多轮线程与事件库是两个真相源，而且只有一方参与倒带。线程先于事件提交、倒带不通知线程、压缩只靠 usage 字段。事件溯源的可倒带性在对话层面失效。（A-02、A-05、L-12）
+world.meta 没有 owner。kernel、TimeSystem、SceneSystem、DirectorSystem 四方共写，day 和 scene 的语义是「最后一条事件说了算」，后台事件一来就倒退。这是设计里唯一违反「一个键一个 owner」的地方。（K-03 路径 2、K-08）
+迷雾只在 fact 层设防，实体层没有「是否已发现」的概念。Place 上明明有 tier，POV 工具从不读；三个工具殊途同归地交出隐秘地点的描述。（M-01、M-04）
+FactGraph 只有「append + 线性找」一种原语。投影 O(F²)、多值关系无法退出、create 覆写，三个不同层面的问题共享这一个根因；一个 (subject, predicate) 索引加一个 close_relation 原语能一起解决。（A-04、K-07、K-04）
+两代架构同仓共存。第一代的 engine/{cli,projection,seed,check,compact,archive,recall,vectorstore,rewind} 加 bin/ 加 hooks/ 加 SKILL.md 加 README，95 个绿色测试守着一个与主线零数据交集、且在部署环境里从未醒来的子系统。（A-08、D-01）
+系统 × 状态存放位置
+系统共享 FactGraph私有 slice写 world.meta重复表示
+ontology是（slice 就是图）无无无
+place / character / object / faction / knowledge是：实体 + 关系 + 事实空无无
+timeattrs.last_update空band进位算式与 advanced_day 各写一份
+cascadestate / populace / world_change 事实queue、changes、consumed_through_turn无changes[] 与事实历史重复
+director无pending、threadscampaign_seedthreads 与 lore.lines 概念重复
+lore只引用 place id，无引用校验lines、gen无同上
+narrative无scenes[raw, summary]无散文与事件 deltas、events.jsonl 三份
+scene无空scene_no、scene_anchor无
+codex无entries无无
+kernel 本身无无day、scene、timelinetimeline 无人读取
+表格来自内核审计对 13 个系统 apply 的逐行核对。四个「写 world.meta」的红格就是 meta 没有 owner 的具体位置。
+§4
+实测数据
+下面的数字全部来自真实存档（/root/games/play3 6 月 24 日、/root/games/play8 7 月 11 日）的 trace.jsonl / events.jsonl / transcript.jsonl，以及在存档副本上跑的探针脚本。没有调用过任何在线模型。
+修复批次前后的对比：play3 → play8
+指标play3（06-24）play8（07-11）读法
+玩家回合数127两局都是短局
+回合耗时中位数168 s76 sI1 修掉「每回合 3 次无效修复」后减半
+最长回合568 s126 s最长的都是第 1 回合（冷启动 + density）
+校验修复轮数（全局）231play3 有 7 个回合打满 3 轮修复
+有丢段的回合5 / 120 / 7丢段 = 该回合的世界变更没有生效
+每回合 LLM 调用5.84.1play8 几乎全是 produce 的工具循环（27 次 / 7 回合）
+创世耗时 / 调用数280 s / 9365 s / 10gen_codex 新增 52 s，gen_threads 57 s
+knowledge_set : fact_asserted24 : 508 : 20I4 的知识落账提示后比例在 0.4 左右
+玩家回合 : 事件回合号12 : 317 : 28每个玩家回合吃掉约 4 个回合号（A-01）
+play8 每个玩家回合的时间去向
+秒。按 trace.jsonl 里 turn span 的直接子 span 汇总；digest / director / cascade / catch-up / lore 都在 0.1 s 内，没有触发 LLM。
+produce：叙事生成，含工具循环density：后台生成新暗线repair：校验修复
+叙事生成占绝对大头。每回合 54–82 秒里 4 次左右的模型调用（工具循环 + 最终输出）；第 1 回合额外被同步执行的 density 拖了 72 秒，这正是 A-03 的代价。
+投影重放的规模曲线
+事件数一次 project() 耗时一回合 9 次来源
+216（play3 真实）7 ms63 ms存档副本
+1,956（合成）38 ms0.34 splay3 事件复制 10 份
+7,176（合成）353 ms3.2 s复制 40 份；事件 ×3.7 → 耗时 ×9.2，超线性
+今天最长的存档只有 216 个事件，所以还感觉不到；按 play8 每回合约 10 个事件推算，700 回合后每回合仅投影就要 3 秒以上。
+提交节奏：2026-06-16 → 07-07
+每日提交数。7 月 7 日之后为零，图上省略。
+三周冲刺，然后静止。峰值一天 85 个提交；6 月 26 日到 29 日、7 月 2 日到 5 日没有提交；最后一次提交是 7 月 7 日的风味包第 8 步。
+§5
+问题清单
+按严重度排序。P0 = 玩家会直接撞上的正确性 / 数据一致性 / 静默失效；P1 = 明显 bug 或设计缺陷，有绕路；P2 = 债务与风险；P3 = 小问题。每条标注了验证方式：实验复现 指在真实存档副本或探针脚本上触发过；代码核对 指按行读代码确认；待验证 指推断。编号前缀 = 领域（A 架构、L 编排、K 内核/系统、M 模型/上下文、P 入口、T 测试、D 文档/数据）。
+§6
+分模块现状
+每个领域由一名 subagent 独立审计（括号内为模型），主审复核了全部 P0 / P1 的证据链。「半成品」指代码里有但没起作用、只做了标记、或文档承诺了但实现没有的部分。
+领域已建成且有测试半成品 / 名不副实 / 死代码
+内核 / 系统Opus · 15 个探针
+ContextSystem 十钩子契约、Registry 1:1 路由、纯折叠投影、bitemporal FactGraph、形状层校验、场景推进、惰性 Langfuse。tests/kernel + facts + systems 535 个测试全绿。
+REQUIRED_SECTIONS 只有 clock 生效；MODULE_INDEX 列的 kernel/digest.py 不存在；place.navigate 的跨层路由与广播的子树解析都标 DEFERRED；object 的 _RESERVED_KEYS 定义了没用；明态任务永不过期。
+编排 loopFable · 11 个探针
+produce → augment → 校验 / 模块化修复 → 丢段 → 事件 → 投影 → 7 个后台钩子的完整管线；创世 9 步 + provided 覆盖 + reroll；实体自动解析与同场去重；暗线推送与明账；风味包解析 / 持久化 / voice 注入。
+「70% 压缩」是丢弃线程重建，没有摘要；missing_section 是死约定；arrive_day 与单调图不兼容；开场不接 voice；//steer 占位；bootstrap.py 的 re-export 兼容层被 30 多处测试绑住删不掉。
+LLM / 上下文Opus · 14 个探针
+四个可用适配器（Fake / ScriptedTool / OpenAI / Zhipu）；统一重试（429 / 5xx / Retry-After）；usage 归一化；六个只读 POV 工具且执行层全兜底；结构化输出的通用修复收敛器；三层上下文 + 三视角。
+dm_world_query 从未启用；语义召回整条链断（embedder 默认 None、候选分数写死）；importance / reflection 永不触发；AnthropicProvider 没有工具循环；engine/{archive,recall,vectorstore,rewind} 被 MODULE_INDEX 标 Active，实际只服务第一代 CLI。
+入口 / CLISonnet · 8 个实验
+新局 / 读档 / 酒馆卡导入 / 蓝图 / 五个世界旋钮 / reroll 循环 / 全套 OOC 命令 / spinner 与分色 / debug trace 查看器。tests/app 199 个测试全绿。
+五个世界旋钮读档时静默失效；//steer 只有壳；创世无事务无完成标记；内容校验只有结构层；RPG_PROVIDER 兜底路径不可达；.env.local.example 里两个幽灵旋钮。
+遗留层 engine/Opus + Sonnet
+oracle / settings / log / store / embed / director 六个文件是主线真基础设施。
+projection / seed / check / compact / cli / archive / recall / vectorstore / rewind 九个文件 + bin/ + hooks/ + SKILL.md：与主线事件协议交集 4 / 47 类，注入产物是 31 字符空壳，hermes 配置里 hooks 为空，部署目录的存档停在 6 月 16 日。95 个测试守着它。结论：整体删除或搬进 _legacy。
+数据表Sonnet
+classic 对创世链路引用的 12 张表完整；default 对导演链路的 6 张完整；isekai 有意只覆盖 4 张 + pack.json，回落链验证不会 FileNotFoundError；24 个 JSON 全部可解析；weight 字段统一；pack.json 字段与代码读取点完全对上；tone 分类 8/8、7/7 全覆盖。
+default/ 与 classic/ 下同名不同义的 npc_roles / npc_traits；pack.json 的 desc 字段无消费点。
+文档Sonnet
+活且基本准确：MODULE_INDEX（有过期点）、playtest-issues、genesis-blueprint、debug-mode、docs/README（索引自洽）。历史档案归档正确。
+活但过期：根 README（整份第一代）、backlog B1、架构图的「最大空洞」、genesis.example.yaml；风味包计划零回写；codegraph 只画第一代且引用已删除的索引。
+§7
+测试与文档健康
+测试套件
+目录文件测试占比
+tests/loop4359135.0%
+tests/systems2046927.8%
+tests/app1219911.8%
+tests/ 根目录1917510.4%
+tests/llm91227.2%
+tests/kernel11482.8%
+tests/memory3432.5%
+tests/context · facts · engine7402.4%
+根目录 175 个 = 95 个真遗留层（archive / check / cli / compact / determinism / hook_pre_llm / projection / recall / rewind / seed / vectorstore）+ 80 个错放的活跃基础设施测试（settings 33、store 10、schema 8、embed 7、oracle 7、director 6、log 5、scheduler 4）。
+质量结论。AST 扫描全部 1688 个测试：assert True 0 处；只靠「不抛异常」24 处，其中 23 处是刻意的畸形事件防御测试；mock 只查调用不看结果 0 处。随机抽样 30 个逐条读断言：26 个强断言、4 个中等、0 个重言式。「fake 太乖导致测试形同虚设」这个假设在本仓库不成立，JSON 畸形 / 散文 / 修复耗尽反而是覆盖最扎实的一条线。
+盲区是结构性的。conftest 把全套件钉在 stateless，生产默认的 multiturn 只有 16 个测试；创世中途崩溃、倒带后的线程、bad_shape / validator_error 两个校验码、apply 异常、工具循环跑满的胶水层、play_loop 的顶层兜底，这些失败面全部零测试。跑 tests/loop/test_bootstrap.py 的 106 个测试只要 13 秒，e2e 用 fake 并没有制造虚假的厚重感。
+关键失败路径覆盖
+失败路径覆盖代表测试或证据
+模型返回纯散文 / 坏 JSON强test_strategy_safe_parse 系列，含 R5 防泄漏
+修复轮数耗尽强test_modular_repair、test_density_generate
+后台钩子内部异常强test_cascade_provider_raises_turn_still_completes
+429 / 超时：重试成功有test_rate_limit_r6、test_do_post_retries_on_read_timeout
+429 / 超时：重试耗尽后向上传播无耗尽后 raise 的后果到 play_loop / bootstrap 均无测试
+工具循环跑满轮数单元有，集成无AuthorStrategy.produce 处理跑满结果的胶水层未测（T-04）
+创世中途失败无bootstrap.py 零 try/except，106 个测试全是 happy path（L-06）
+乱序时间的崩溃传播单元有，集成无graph 层有 non_monotonic_raises；project 与启动重放无兜底、无测试（K-03）
+multiturn + /rewind无结构性 bug（A-02）
+resume 后线程重建无进程重启后 _thread 从零开始，无测试断言这是预期
+七个节奏 / 叙事类系统的畸形 deltas无六个实体类系统有 12 个 no_raise 测试，其余七个为零（T-05）
+Langfuse 追踪无SDK 未装，零引用（T-06）
+文档
+文档状态问题
+README.md失效整份描述第一代：142 测试、分支 master、.venv、bin/rpg、storage/ 布局；不提 app 分支存在（D-01）
+SKILL.md脱钩给模型读的宪法，事件枚举与 app 引擎的 47 类不相通（A-08）
+docs/MODULE_INDEX.md过期一周kernel/digest.py 已删、genesis/ 已改名 classic/、不知道风味包、flags 列了 10 个实有 22 个、把四个遗留文件标 Active（D-05）
+docs/backlog.md矛盾B1 说 Retry-After 未做，代码一周前已做且用同一 ticket 号（D-02）
+docs/2026-06-19-architecture-world-model.md过期「最大空洞：没有场景推进」在起草次日就被填上（D-03）
+docs/superpowers/plans/…flavor-pack…零回写7 done、2 partial，checkbox 一个没勾（D-06）
+docs/playtest-issues-2026-06-30.md基本准确但 I5 标「已修」实际只修了一个分支（L-01）
+docs/README.md · debug-mode · genesis-blueprint活索引不知道活的 superpowers/ 目录；蓝图字段表缺三个新字段（D-07）
+§8
+建议的处理顺序
+顺序按「玩家会不会撞上 × 修起来要不要动架构」排。前四步是一批，每步都在两三百行以内、互不依赖、能各自出一个提交；做完这一批之后这套引擎才算「可以交给一个真玩家」。
+写路径事务化，投影不可崩apply_turn 先在世界副本上干跑投影，通过才在一个 SQLite 事务里批量 append；project 对单事件 apply 加 try/except 记 poisoned 并跳过；meta.day 改 max 且单调、meta.scene 交给 SceneSystem；EventStore.append 拒绝 day 倒退。一次性消灭 K-01 / K-02 / K-03 / K-08 / A-05 五条，堵住所有「存档变砖」的路。
+回合号只分配一次，倒带同步线程run_turn 分配一次回合号下发给全部后台钩子（density 与 scene 已经这么做）；/undo 撤「最后一个含玩家提交的回合号」；dispatch_ooc 拿到 strategy，倒带后置 _thread 为 None；commit_to_thread 移到 apply 成功之后。修 A-01 / A-02 / L-03，补一条带后台钩子的 undo 端到端测试。
+迷雾实体层门控，重问回填散文统一 visible_to(pov, entity, day)，ambient / map / recall / characters 四个工具的枚举与匹配都过这一道，未发现实体不给 seed 与 sketch、拒绝空串枚举；_reask_json 成功后强制用原散文覆盖 narration。修 M-01 / M-02 / M-04。
+创世完成标记，全失败中止bootstrap 末尾写 genesis_completed；启动时发现不完整就撤回并提示重做；关键步骤全部落桩时抛出明确的 GenesisError 且不留半个存档；把 _gen_threads_fallback 挪到正确的模块。修 L-06 / L-14 / L-05 / P-01 的一半。
+先显示叙事，再跑后台把 run_turn 拆成 produce+apply 与 backstage 两段，play_loop 在中间打印；demote 与 density 改用 cascade_provider；main() 接住 Ctrl-C。玩家体感延迟从 126 秒回到 54 秒，A-03 / L-10 / M-06 的一半。流式输出留作后续。
+对齐提示词与校验器，删掉 backstopcast evolve 教 predicate / value；places 教 parent 并给自动铸造的地点默认 parent；删 backstop 或给它上限；主角线豁免检查点救场与休眠门；空闲降格豁免玩家接的任务。这一步让每回合少烧一轮修复、让暗线引擎在探索中不再静默冻结。修 L-08 / L-09 / L-04 / L-01 / L-02 / L-10。
+压缩兜底与 provider 异常分类按消息长度估算触发压缩、窗口按模型配置、上下文超长错误强制重置线程；定义 LLMError 家族（限流 / 超时 / 拒答 / 畸形响应 / 上下文超长）在适配器边界翻译一次，给玩家人话提示；_openai_parse 防御化。修 L-12 / M-05 / P-06，也是接流式的前置。
+风味包收尾gen_opening 接 voice；读档时对 --flavor 等五个旋钮打印提示或写迁移事件；补 test_flavor_resume 与 test_flavor_cli；/style clear 三态；提交 run.sh；回写计划 checkbox。修 L-16 / P-03 / M-08 / D-04 / D-06。
+退役第一代决定并执行：engine/{cli,projection,seed,check,compact,archive,recall,vectorstore,rewind} + bin/ + hooks/ + SKILL.md + reference/ + 95 个根目录测试整体删除或搬进 _legacy；80 个错放的活跃测试搬到对应目录；根 README 重写为 app 分支入口。修 A-08 / D-01 / T-03，一次性消除最大的认知负债。
+FactGraph 索引与增量投影(subject, predicate) 当前索引与 (rel, dst) 倒排索引让投影回到线性、给 close_relation 与 upsert_entity 原语；一回合只投影一次；再往后做快照。这是随规模最先崩的地方，但今天的存档还感觉不到，所以排在功能正确性之后。修 A-04 / K-07 / K-04 / K-13。
+决定 S2 的去留，补测试盲区语义召回 / 重要度 / 反思要么补齐（RecallHit 带真实 day 与重要度、默认开 fastembed、重做词表），要么删掉 rank 换成 hits[:k]；给七个系统补畸形 deltas 测试、给主线回合加一份 multiturn 变体、修 compare 测试的重言式。修 M-12 / T-01 / T-02 / T-05。
+附录
+方法与数据来源
+做了什么
+全量测试：PYTHONPATH=. python3 -m pytest -p no:cacheprovider，1717 通过、1 跳过（需要下载模型的 slow 用例）、0 失败。
+六名只读 subagent 分领域审计，按难度分配模型：loop/ 编排 → Fable；kernel/ facts/ systems/ 与 llm/ context/ memory/ engine/ → Opus；app/ 入口、测试质量、文档与数据一致性 → Sonnet。每名审计员只能读、只能在临时目录写探针，不能改仓库。
+主审亲自读了编排核心（loop/turn.py、loop/strategy.py、app/engine.py、app/play.py、kernel 契约），并在真实存档副本上做实验：投影重放计时、/undo 撤销范围、trace 逐回合拆解。
+没有做：没有调用在线模型；没有跑 hermes 运行时；没有超过 7,000 事件的规模测试；没有做安全渗透。
+探针脚本
+probe_project.py：在 play3 副本上计时 iter_events / project / _next_turn，并合成 ×10、×40 事件。
+probe_undo.py：在 play8 副本上复现 dispatch_ooc 的 /undo 路径（last_turn → rewind）。
+probe_trace2.py：按 span_start / span_end 配对，汇总每个 turn 的直接子 span 与 gen 调用数。
+probe_play8.py：事件类型、每回合事件数、transcript 的修复与丢段统计。
+报告中的行号以 app @ fb7ebd8 为准。

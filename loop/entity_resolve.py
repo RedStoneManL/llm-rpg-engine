@@ -81,6 +81,41 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
             if nm:
                 name2id.setdefault(nm, fct["subject"])
 
+    # ---- co-located NPCs (for #I3 dedup) --------------------------------------
+    # A name-ref like "老学者" that describes an NPC already standing in the scene
+    # should resolve to that NPC, not mint a duplicate. Build (id, haystack) for
+    # Persons co-located with the protagonist (真名 + sketch).
+    colocated: list[tuple[str, str]] = []
+    try:
+        protag = next((eid for eid, e in g.entities.items()
+                       if e.etype == "Person" and getattr(e, "tier", "") == "tracked"), None)
+        here = None
+        if protag:
+            plocs = g.neighbors(protag, "located_in", day)
+            here = plocs[0] if plocs else None
+        if here:
+            for eid, e in g.entities.items():
+                if e.etype != "Person" or eid == protag:
+                    continue
+                elocs = g.neighbors(eid, "located_in", day)
+                if elocs and elocs[0] == here:
+                    hay = _norm(" ".join(str(x) for x in (
+                        g.value_at(eid, "真名", day) or "",
+                        g.value_at(eid, "sketch", day) or "")))
+                    colocated.append((eid, hay))
+    except Exception:
+        colocated = []
+
+    def _colocated_match(ref_norm: str) -> str | None:
+        # A co-located NPC whose 真名/sketch contains the (>=2-char) ref → almost
+        # certainly that NPC; resolve to it rather than minting a duplicate. (#I3)
+        if len(ref_norm) < 2:
+            return None
+        for eid, hay in colocated:
+            if hay and ref_norm in hay:
+                return eid
+        return None
+
     # ids that will exist after this commit applies (so refs to them resolve)
     pending: set[str] = set()
     for c in _items("cast"):
@@ -138,6 +173,11 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         nm = _norm(r)
         if nm in name2id:
             return name2id[nm]
+        if kind == "person":
+            match = _colocated_match(nm)
+            if match:
+                name2id[nm] = match
+                return match
         mid = _mint(kind, r)
         name2id[nm] = mid
         return mid

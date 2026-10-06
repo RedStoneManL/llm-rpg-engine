@@ -13,32 +13,51 @@ import re
 import time
 import urllib.error
 import urllib.request
+from contextvars import ContextVar
 from typing import Any
 
 from engine.log import get_logger
 from kernel.observability import get_tracer
 
 log = get_logger("llm")
+_JSON_OUTPUT = ContextVar('rpg_json_output', default=False)
+
+
+def json_call(function, *args, **kwargs):
+    """Request native JSON only for structured calls; preserve prose interfaces."""
+    token = _JSON_OUTPUT.set(True)
+    try:
+        return function(*args, **kwargs)
+    finally:
+        _JSON_OUTPUT.reset(token)
+
+
+def _norm_usage(usage: dict) -> dict | None:
+    """Normalize an OpenAI/Anthropic usage block to {input,output,total}, or None
+    when empty. input=prompt/input tokens; output=completion/output tokens."""
+    if not usage:
+        return None
+    inp = usage.get("prompt_tokens")
+    if inp is None:
+        inp = usage.get("input_tokens")
+    out = usage.get("completion_tokens")
+    if out is None:
+        out = usage.get("output_tokens")
+    return {"input": inp, "output": out, "total": usage.get("total_tokens")}
 
 
 def _record_usage(gen, parsed: dict) -> None:
     """Push usage AND the completion text onto a generation handle. Never raises."""
     try:
-        usage = parsed.get("usage") or {}
-        norm = {
-            "input": usage.get("prompt_tokens") if usage.get("prompt_tokens") is not None
-                     else usage.get("input_tokens"),
-            "output": usage.get("completion_tokens") if usage.get("completion_tokens") is not None
-                      else usage.get("output_tokens"),
-            "total": usage.get("total_tokens"),
-        }
+        norm = _norm_usage(parsed.get("usage") or {}) or {}
         norm = {k: v for k, v in norm.items() if v is not None}
         # Output text: OpenAI/zhipu shape choices[0].message.content; fall back to the
         # whole message (tool-call turns have content=None) or the raw parsed object.
         out = None
         try:
             msg = (parsed.get("choices") or [{}])[0].get("message") or {}
-            out = msg.get("content") or (json.dumps(msg, ensure_ascii=False) if msg else None)
+            visible = {k:v for k,v in msg.items() if k != 'reasoning_content'}
+            out = msg.get("content") or (json.dumps(visible, ensure_ascii=False) if visible else None)
         except Exception:
             out = None
         gen.finish(output=out, usage=norm or None)
@@ -92,6 +111,14 @@ class LLMProvider(abc.ABC):
     complete_json(system, user, schema, **kw) -> dict
         Calls complete + parses JSON; retries once on parse failure.
     """
+
+    last_usage: dict | None = None  # {input,output,total} of the most recent call
+
+    def _post(self, url: str, headers: dict, body: dict, **kw) -> dict:
+        """_do_post + capture normalized token usage onto self.last_usage."""
+        resp = _do_post(url, headers, body, **kw)
+        self.last_usage = _norm_usage(resp.get("usage") or {})
+        return resp
 
     @abc.abstractmethod
     def complete(self, system: str, user: str, *,
@@ -323,14 +350,16 @@ def _retry_after_seconds(e) -> int | None:
         return None
 
 
-def _do_post(url: str, headers: dict, body: dict, timeout: int = 300,
+def _do_post(url: str, headers: dict, body: dict, timeout: int = 600,
              *, max_retries: int = 4) -> dict:
     """Perform a JSON POST and return the parsed response body.
 
-    timeout defaults to 300s because reasoning models (glm-4.7/5.1) hold the
+    timeout defaults to 600s because reasoning models (glm-4.7/5.1) hold the
     (non-streaming) connection open while they think + write chapter-length
-    output; the old 30s default timed out mid-generation. For full 32K-token
-    turns, prefer streaming or raise this further.
+    output; a 300s read-timeout was cutting slow generations mid-stream (the
+    trace showed single tool-loop calls at 400-566s → timeout → wasted retry,
+    which reads to the player as a truncated/stuck turn). Streaming is the real
+    fix; until then this lets a slow generation finish in one shot.
     """
     data = json.dumps(body).encode("utf-8")
     # One generation observation per logical LLM call (spanning any retries).
@@ -395,15 +424,19 @@ def _openai_parse(resp: dict) -> tuple[str | None, list[dict]]:
     """
     choice = resp["choices"][0]
     msg = choice["message"]
-    if choice.get("finish_reason") == "tool_calls" and msg.get("tool_calls"):
+    if msg.get("tool_calls"):
         calls = []
-        for tc in msg["tool_calls"]:
+        assistant = {k:v for k,v in msg.items() if k in {'role', 'content', 'reasoning_content', 'tool_calls'}}
+        assistant.setdefault('role', 'assistant')
+        for index, tc in enumerate(msg["tool_calls"]):
             fn = tc["function"]
             calls.append({
                 "id": tc["id"],
                 "name": fn["name"],
                 "arguments": json.loads(fn.get("arguments") or "{}"),
                 "arguments_raw": fn.get("arguments") or "{}",
+                "_assistant": assistant,
+                "_first": index == 0,
             })
         return None, calls
     return msg.get("content"), []
@@ -415,6 +448,11 @@ def _openai_append_result(messages: list[dict], call: dict, result_str: str) -> 
     OpenAI requires the assistant message echoing the tool_calls to appear
     BEFORE the tool result message.
     """
+    if '_assistant' in call:
+        if call['_first']:
+            messages.append(call['_assistant'])
+        messages.append({'role': 'tool', 'tool_call_id': call['id'], 'content': result_str})
+        return
     messages.append({
         "role": "assistant",
         "content": None,
@@ -468,7 +506,7 @@ class OpenAIProvider(LLMProvider):
         url, headers, body = self._build_request(system, user,
                                                   max_tokens=mt, model=model)
         log.debug("OpenAIProvider.complete url=%s model=%s max_tokens=%d", url, body["model"], mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["choices"][0]["message"]["content"]
 
     def complete_messages(self, messages: list[dict], *,
@@ -478,7 +516,7 @@ class OpenAIProvider(LLMProvider):
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         body = _openai_chat_body(model or self.model, messages, mt)
         log.debug("OpenAIProvider.complete_messages url=%s msgs=%d max_tokens=%d", url, len(messages), mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["choices"][0]["message"]["content"]
 
     def supports_tools(self) -> bool:
@@ -495,7 +533,7 @@ class OpenAIProvider(LLMProvider):
 
         def post(msgs, tls):
             body = _openai_chat_body(m, msgs, mt, tools=tls)
-            return _do_post(url, headers, body)
+            return self._post(url, headers, body)
 
         with get_tracer().span("tool_loop"):
             return _run_tool_loop(
@@ -504,6 +542,28 @@ class OpenAIProvider(LLMProvider):
                 append_result=_openai_append_result,
                 max_tool_rounds=max_tool_rounds,
             )
+
+
+class DeepSeekProvider(OpenAIProvider):
+    """Explicit DeepSeek profile; preserve native tool messages and control thinking."""
+
+    DEFAULT_BASE_URL = 'https://api.deepseek.com'
+    DEFAULT_MAX_TOKENS = 16384
+
+    def __init__(self, model, api_key, base_url=None, max_tokens=None, *, thinking=None):
+        super().__init__(model, api_key, base_url, max_tokens)
+        self.thinking = thinking or os.environ.get('DEEPSEEK_THINKING', 'disabled')
+        if self.thinking not in {'enabled', 'disabled'}:
+            raise ValueError('DEEPSEEK_THINKING must be enabled or disabled')
+
+    def _prepare_body(self, body):
+        body = {**body, 'thinking': {'type': self.thinking}}
+        if _JSON_OUTPUT.get():
+            body['response_format'] = {'type':'json_object'}
+        return body
+
+    def _post(self, url, headers, body, **kwargs):
+        return super()._post(url, headers, self._prepare_body(body), **kwargs)
 
 
 class ZhipuProvider(LLMProvider):
@@ -548,7 +608,7 @@ class ZhipuProvider(LLMProvider):
         url, headers, body = self._build_request(system, user,
                                                   max_tokens=mt, model=model)
         log.debug("ZhipuProvider.complete url=%s model=%s max_tokens=%d", url, body["model"], mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["choices"][0]["message"]["content"]
 
     def complete_messages(self, messages: list[dict], *,
@@ -558,7 +618,7 @@ class ZhipuProvider(LLMProvider):
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         body = _openai_chat_body(model or self.model, messages, mt)
         log.debug("ZhipuProvider.complete_messages url=%s msgs=%d max_tokens=%d", url, len(messages), mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["choices"][0]["message"]["content"]
 
     def supports_tools(self) -> bool:
@@ -575,7 +635,7 @@ class ZhipuProvider(LLMProvider):
 
         def post(msgs, tls):
             body = _openai_chat_body(m, msgs, mt, tools=tls)
-            return _do_post(url, headers, body)
+            return self._post(url, headers, body)
 
         with get_tracer().span("tool_loop"):
             return _run_tool_loop(
@@ -625,7 +685,7 @@ class AnthropicProvider(LLMProvider):
         url, headers, body = self._build_request(system, user,
                                                   max_tokens=mt, model=model)
         log.debug("AnthropicProvider.complete url=%s model=%s max_tokens=%d", url, body["model"], mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["content"][0]["text"]
 
     def complete_messages(self, messages: list[dict], *,
@@ -640,7 +700,7 @@ class AnthropicProvider(LLMProvider):
         body = {"model": model or self.model, "max_tokens": mt,
                 "system": system, "messages": convo}
         log.debug("AnthropicProvider.complete_messages url=%s msgs=%d max_tokens=%d", url, len(convo), mt)
-        resp = _do_post(url, headers, body)
+        resp = self._post(url, headers, body)
         return resp["content"][0]["text"]
 
 
@@ -651,12 +711,14 @@ class AnthropicProvider(LLMProvider):
 _PROVIDER_MAP = {
     "fake": None,  # special-cased below
     "openai": OpenAIProvider,
+    "deepseek": DeepSeekProvider,
     "zhipu": ZhipuProvider,
     "anthropic": AnthropicProvider,
 }
 
 _ENV_KEY_MAP = {
     "openai": "OPENAI_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
     "zhipu": "ZHIPU_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
 }

@@ -4,6 +4,7 @@ from typing import Any
 from engine.log import get_logger
 from facts.entity import Entity
 from facts.fact import Fact, Relation
+from facts.rules import check_value
 
 log = get_logger("facts.graph")
 
@@ -19,12 +20,32 @@ class FactGraph:
         self.entities: dict[str, Entity] = {}
         self.facts: list[Fact] = []
         self.relations: list[Relation] = []
+        self._fact_current: dict[tuple[str, str], Fact] = {}
+        self._fact_history: dict[tuple[str, str], list[Fact]] = {}
+        self._facts_by_subject: dict[str, dict[str, Fact]] = {}
+
+    def reindex_facts(self) -> None:
+        """Rebuild derived indexes after constructing a filtered graph view."""
+        self._fact_current = {}
+        self._fact_history = {}
+        self._facts_by_subject = {}
+        for fact in self.facts:
+            self._fact_history.setdefault((fact.subject, fact.predicate), []).append(fact)
+            if fact.is_current():
+                self._fact_current[(fact.subject, fact.predicate)] = fact
+                self._facts_by_subject.setdefault(fact.subject, {})[fact.predicate] = fact
 
     # ------------------------------------------------------------------
     # Entity CRUD
     # ------------------------------------------------------------------
 
     def add_entity(self, id: str, etype: str, tier: str = "mentioned", **attrs: Any) -> Entity:
+        prior = self.entities.get(id)
+        # A duplicate entity declaration cannot erase scenario constraints.
+        if prior and 'fact_rules' in prior.attrs:
+            if attrs.get('fact_rules', prior.attrs['fact_rules']) != prior.attrs['fact_rules']:
+                raise ValueError('cannot replace existing fact_rules through entity creation')
+            attrs['fact_rules'] = prior.attrs['fact_rules']
         e = Entity(id=id, etype=etype, tier=tier, attrs=dict(attrs))
         self.entities[id] = e
         log.debug("add_entity id=%s etype=%s tier=%s", id, etype, tier)
@@ -55,16 +76,15 @@ class FactGraph:
         secrecy: str | None = None,
     ) -> Fact:
         # Close the prior current fact for this (subject, predicate)
-        for f in self.facts:
-            if f.subject == subject and f.predicate == predicate and f.is_current():
-                if f.event_time_start > day:
-                    raise ValueError(
-                        f"non-monotonic assert: day={day} < prior start={f.event_time_start}; "
-                        "out-of-order/flashback not supported"
-                    )
-                f.event_time_end = day
-                log.debug("supersede fact subject=%s predicate=%s at day=%d", subject, predicate, day)
-                break
+        key = (subject, predicate)
+        prior = self._fact_current.get(key)
+        rule_error = check_value(self.get_entity(subject), predicate, value, prior)
+        if rule_error:
+            raise ValueError(rule_error)
+        if prior is not None:
+            if prior.event_time_start > day:
+                raise ValueError(f'non-monotonic assert: day={day} < prior start={prior.event_time_start}; out-of-order/flashback not supported')
+            prior.event_time_end = day
         new_fact = Fact(
             subject=subject,
             predicate=predicate,
@@ -75,23 +95,29 @@ class FactGraph:
             secrecy=secrecy,
         )
         self.facts.append(new_fact)
+        self._fact_current[key] = new_fact
+        self._fact_history.setdefault(key, []).append(new_fact)
+        current = self._facts_by_subject.setdefault(subject, {})
+        # Preserve the historical list's assertion order when a fact is replaced.
+        current.pop(predicate, None)
+        current[predicate] = new_fact
         log.debug("assert_fact subject=%s predicate=%s value=%s day=%d", subject, predicate, value, day)
         return new_fact
 
     def current_facts(self, subject: str) -> list[Fact]:
         """All currently-open facts for a subject (no event_time_end)."""
-        return [f for f in self.facts if f.subject == subject and f.is_current()]
+        return list(self._facts_by_subject.get(subject, {}).values())
 
     def value_at(self, subject: str, predicate: str, day: int) -> object | None:
         """The value of the fact for (subject, predicate) valid at day, or None."""
-        for f in self.facts:
-            if f.subject == subject and f.predicate == predicate and f.valid_at(day):
+        for f in self._fact_history.get((subject, predicate), []):
+            if f.valid_at(day):
                 return f.value
         return None
 
     def fact_history(self, subject: str, predicate: str) -> list[Fact]:
         """All fact records for (subject, predicate), ordered by assertion time."""
-        return [f for f in self.facts if f.subject == subject and f.predicate == predicate]
+        return list(self._fact_history.get((subject, predicate), []))
 
     # ------------------------------------------------------------------
     # Relations (bitemporal, (src, rel)-scoped supersession)

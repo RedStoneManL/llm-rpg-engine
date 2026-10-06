@@ -73,6 +73,8 @@ def _primary_subject(event: dict) -> str | None:
 
 def _next_turn_in_store(store) -> int:
     """Return max existing event turn + 1, or 1 if none."""
+    if hasattr(store, 'next_turn'):
+        return store.next_turn()
     max_t = 0
     for ev in store.iter_events():
         t = ev.get("turn") or 0
@@ -182,6 +184,7 @@ def digest_fleet(
     threshold: float = 30,
     importance_provider=None,
     narration_text: str | None = None,
+    record_narration: bool = True,
     scene: str | None = None,
     recap_provider=None,
 ) -> list[dict]:
@@ -266,7 +269,7 @@ def digest_fleet(
     # ------------------------------------------------------------------
     # Phase 2: P2 recap maintenance (narration recording)
     # ------------------------------------------------------------------
-    if narration_text and scene:
+    if record_narration and narration_text and scene:
         try:
             # Get the next turn number to stamp the narration event
             next_turn = _next_turn_in_store(store)
@@ -298,7 +301,7 @@ def digest_fleet(
             if aged is not None:
                 # Find the aged bucket's raw texts
                 aged_bucket = next(
-                    (b for b in ns.get("scenes", []) if b["scene"] == aged),
+                    (b for b in ns.get("scenes", []) if b["scene"] == aged and b.get('summary') is None),
                     None,
                 )
                 if aged_bucket and aged_bucket.get("raw"):
@@ -317,17 +320,19 @@ def digest_fleet(
                             post2 = project(registry, store.iter_events())
                             ns2 = post2.get("systems", {}).get("narrative") or {}
                             buckets2 = ns2.get("scenes", [])
-                            summarized_buckets = [
-                                b for b in buckets2
-                                if b.get("summary") is not None
-                            ]
+                            through = ns2.get('summarized_through_index', 0)
+                            pending_summaries = [(i, b) for i, b in enumerate(buckets2)
+                                if i >= through and b.get('summary') is not None]
+                            summarized_buckets = [b for i, b in pending_summaries]
                             if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
                                 # Summarize the oldest summaries into super_summary
                                 oldest_summaries = [
                                     f"〔{b['scene']}〕{b['summary']}"
                                     for b in summarized_buckets[: nmod.RECAP_SUMMARY_FANOUT]
                                 ]
-                                user_rc = "以下是多个场景的摘要，请压成一段总概要：\n\n" + "\n".join(oldest_summaries)
+                                previous = ns2.get('super_summary') or ''
+                                user_rc = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
+                                           + previous + '\n' + '\n'.join(oldest_summaries))
                                 rc_obj, rc_errors = complete_structured(
                                     recap_provider,
                                     system=_RECOMPRESS_SYSTEM,
@@ -346,7 +351,7 @@ def digest_fleet(
                                         summary="recap recompressed",
                                         deltas={
                                             "super_summary": rc_summary,
-                                            "summarized_through_index": len(summarized_buckets),
+                                            "summarized_through_index": pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1,
                                         },
                                         turn=_next_turn_in_store(store),
                                     )

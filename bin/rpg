@@ -1,0 +1,65 @@
+#!/root/.hermes/skills/openclaw-imports/rpg-dm/.venv/bin/python
+import argparse
+import json
+import pathlib
+import sqlite3
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+from engine import cli  # noqa: E402
+
+
+def main():
+    p = argparse.ArgumentParser(prog="rpg")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    n = sub.add_parser("new"); n.add_argument("id"); n.set_defaults(fn=cli.cmd_new)
+    le = sub.add_parser("log-event"); le.add_argument("json", nargs="?")
+    le.add_argument("--campaign"); le.set_defaults(fn=cli.cmd_log_event)
+    pr = sub.add_parser("project"); pr.add_argument("--campaign")
+    pr.add_argument("--rebuild", action="store_true"); pr.set_defaults(fn=cli.cmd_project)
+    st = sub.add_parser("status"); st.add_argument("--campaign"); st.set_defaults(fn=cli.cmd_status)
+    lt = sub.add_parser("log-turn"); lt.add_argument("json", nargs="?")
+    lt.add_argument("--campaign"); lt.set_defaults(fn=cli.cmd_log_turn)
+    rc = sub.add_parser("recall"); rc.add_argument("query", nargs="?", default="")
+    rc.add_argument("--campaign"); rc.add_argument("--k", type=int, default=5)
+    rc.add_argument("--entity"); rc.add_argument("--day", type=int)
+    rc.add_argument("--anchor"); rc.add_argument("--actor")
+    rc.add_argument("--semantic", dest="semantic", action="store_true", default=True)
+    rc.add_argument("--no-semantic", dest="semantic", action="store_false")
+    rc.set_defaults(fn=cli.cmd_recall)
+    ri = sub.add_parser("reindex"); ri.add_argument("--campaign"); ri.set_defaults(fn=cli.cmd_reindex)
+    cp = sub.add_parser("compact"); cp.add_argument("--campaign"); cp.set_defaults(fn=cli.cmd_compact)
+    rw = sub.add_parser("rewind")
+    rw.add_argument("turn", nargs="?", type=int)
+    rw.add_argument("--campaign"); rw.add_argument("--last", action="store_true")
+    rw.add_argument("--to-scene"); rw.set_defaults(fn=cli.cmd_rewind)
+    dr = sub.add_parser("director"); dr.add_argument("--campaign")
+    dr.add_argument("--dry-run", action="store_true"); dr.add_argument("--reroll", action="store_true")
+    dr.set_defaults(fn=cli.cmd_director)
+    rp2 = sub.add_parser("recap"); rp2.add_argument("--campaign"); rp2.set_defaults(fn=cli.cmd_recap)
+    dc = sub.add_parser("doctor"); dc.set_defaults(fn=cli.cmd_doctor)
+    sd = sub.add_parser("seed"); sd.add_argument("genre", nargs="?", default="default")
+    sd.add_argument("--campaign"); sd.add_argument("--commit", action="store_true")
+    sd.add_argument("--reroll", action="store_true"); sd.set_defaults(fn=cli.cmd_seed)
+    th = sub.add_parser("threads"); th.add_argument("action", choices=["next"])
+    th.add_argument("--campaign"); th.set_defaults(fn=cli.cmd_threads_next)
+    ck = sub.add_parser("check"); ck.add_argument("--campaign"); ck.set_defaults(fn=cli.cmd_check)
+    se = sub.add_parser("session"); se.add_argument("action", choices=["on", "off", "status"])
+    se.add_argument("--campaign"); se.set_defaults(fn=cli.cmd_session)
+    hk = sub.add_parser("hooks"); hk.add_argument("action", choices=["show"])
+    hk.set_defaults(fn=cli.cmd_hooks)
+
+    args = p.parse_args()
+    from engine.log import configure_logging; configure_logging()
+    try:
+        args.fn(args)
+    except SystemExit:
+        raise
+    except (ValueError, json.JSONDecodeError, TypeError, sqlite3.Error) as e:
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

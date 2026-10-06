@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-03",
+  "sources": [
+    "https://api-docs.deepseek.com/zh-cn/",
+    "https://api-docs.deepseek.com/zh-cn/api/list-models/"
+  ],
+  "retrieval": "official documentation retrieved through web search tool",
+  "expected": {
+    "base_url": "https://api.deepseek.com",
+    "completion_path": "/chat/completions",
+    "authorization": "Bearer",
+    "model": "deepseek-flash",
+    "display_name": "DeepSeek-V4.1-Flash"
+  },
+  "local_config_matches": true,
+  "network_diagnosis": "socket creation denied with EPERM before HTTP or authentication",
+  "credential_validated": false,
+  "real_model_completed_calls": 0
+}

@@ -1,0 +1,85 @@
+{
+  "scope": "12 synthetic one-turn scenes; 6 per strategy; thinking disabled; tools disabled; max_repairs=1",
+  "strategies": [
+    {
+      "strategy": "author",
+      "n": 6,
+      "accepted": 6,
+      "accounting_ok": 6,
+      "repairs": 1,
+      "api_calls": 7,
+      "median_seconds": 2.8005629805848002,
+      "seconds": [
+        3.338704852387309,
+        1.0177997946739197,
+        2.9157478529959917,
+        2.685378108173609,
+        3.3907101787626743,
+        2.522734098136425
+      ]
+    },
+    {
+      "strategy": "hybrid",
+      "n": 6,
+      "accepted": 3,
+      "accounting_ok": 3,
+      "repairs": 5,
+      "api_calls": 17,
+      "median_seconds": 4.893300507217646,
+      "seconds": [
+        3.094480112195015,
+        3.0473520141094923,
+        5.548102868720889,
+        4.984411733224988,
+        5.175651215016842,
+        4.802189281210303
+      ]
+    }
+  ],
+  "real_output_gate_replays": [
+    {
+      "scenario": "payment",
+      "repeat": 1,
+      "dropped": [
+        "clock"
+      ],
+      "rejected": true,
+      "events_added": 0,
+      "note": "Replay of saved real model output through candidate gate; no new API call"
+    },
+    {
+      "scenario": "insufficient_funds",
+      "repeat": 0,
+      "dropped": [
+        "clock"
+      ],
+      "rejected": true,
+      "events_added": 0,
+      "note": "Replay of saved real model output through candidate gate; no new API call"
+    },
+    {
+      "scenario": "conversation",
+      "repeat": 1,
+      "dropped": [
+        "clock"
+      ],
+      "rejected": true,
+      "events_added": 0,
+      "note": "Replay of saved real model output through candidate gate; no new API call"
+    }
+  ],
+  "review_notes": [
+    "Accounting success means only the expected hero.coins value and local structural validation; it does not establish narrative quality.",
+    "The sample is small, order is counterbalanced, and provider caching differs by request; latency is descriptive, not a population estimate.",
+    "Some prose invents prior history or changes the seeded asking price; no claim of general story consistency.",
+    "Hybrid freezes its initial prose; failed structural output must not publish that prose as a completed action.",
+    "Official reasoning-content guidance and one live tool experiment differ: the legacy follow-up returned HTTP 200; do not label an inevitable HTTP 400."
+  ],
+  "real_api_calls": 24,
+  "usage": {
+    "prompt_tokens": 37725,
+    "completion_tokens": 5728,
+    "total_tokens": 43453
+  },
+  "status": "reviewed_with_limits"
+}

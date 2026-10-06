@@ -1,0 +1,34 @@
+{
+  "repetitions": 3,
+  "statistic": "median",
+  "fixture": "synthetic fact events through real kernel.project; 100 subjects x 17 predicates; no LLM, no I/O",
+  "differential_queries": 4320,
+  "facts_compared": 1500,
+  "projection_equal_at_all_sizes": true,
+  "rows": [
+    {
+      "events": 1000,
+      "baseline_ms": 17.258,
+      "indexed_ms": 3.027,
+      "speedup": 5.7
+    },
+    {
+      "events": 3000,
+      "baseline_ms": 73.47,
+      "indexed_ms": 16.59,
+      "speedup": 4.43
+    },
+    {
+      "events": 6000,
+      "baseline_ms": 374.161,
+      "indexed_ms": 19.624,
+      "speedup": 19.07
+    },
+    {
+      "events": 12000,
+      "baseline_ms": 2575.054,
+      "indexed_ms": 109.88,
+      "speedup": 23.44
+    }
+  ]
+}

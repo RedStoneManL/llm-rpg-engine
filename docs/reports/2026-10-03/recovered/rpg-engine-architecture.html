@@ -1,0 +1,599 @@
+<title>rpg-engine 架构评估</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F5F6F8; --card:#FFFFFF; --ink:#1B2430; --ink-2:#4E5A68; --ink-3:#7A8594;
+  --line:#D9DEE5; --line-soft:#E9EDF2;
+  --accent:#2F5FA8; --accent-ink:#2F5FA8; --accent-soft:#E3EBF7;
+  --hot:#D97A2B; --hot-soft:#FBEBDD;
+  --crit:#d03b3b; --good:#0ca30c;
+  --crit-soft:#FBE9E8; --good-soft:#E4F5E4; --neutral-soft:#EEF1F5; --code-bg:#EEF1F5;
+  --serif:"Noto Serif SC","Songti SC","SimSun","Noto Serif CJK SC",serif;
+  --sans:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,"Noto Sans SC",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161C; --card:#1A2029; --ink:#E6EAF0; --ink-2:#AEB7C4; --ink-3:#7E8896;
+    --line:#2C3440; --line-soft:#232B36;
+    --accent:#7FA3E6; --accent-ink:#8FB0EA; --accent-soft:#1F2C40;
+    --hot:#E08A45; --hot-soft:#3B2618;
+    --crit-soft:#3A1F1F; --good-soft:#1B3220; --neutral-soft:#232B36; --code-bg:#232B36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161C; --card:#1A2029; --ink:#E6EAF0; --ink-2:#AEB7C4; --ink-3:#7E8896;
+  --line:#2C3440; --line-soft:#232B36;
+  --accent:#7FA3E6; --accent-ink:#8FB0EA; --accent-soft:#1F2C40;
+  --hot:#E08A45; --hot-soft:#3B2618;
+  --crit-soft:#3A1F1F; --good-soft:#1B3220; --neutral-soft:#232B36; --code-bg:#232B36;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.75;margin:0;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid transparent}
+a:hover,a:focus-visible{border-bottom-color:currentColor;outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em;background:var(--code-bg);padding:.08em .38em;border-radius:3px;word-break:break-all}
+h1,h2,h3{font-family:var(--serif);font-weight:700;line-height:1.3;text-wrap:balance;margin:0}
+h1{font-size:34px;letter-spacing:.01em}
+h2{font-size:24px;margin:0 0 6px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:8px 0;max-width:68ch}
+ul,ol{margin:6px 0 10px;padding-left:1.4em;max-width:72ch}
+li{margin:4px 0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-family:var(--mono)}
+.page{display:grid;grid-template-columns:1fr;max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+@media (min-width:1080px){.page{grid-template-columns:210px minmax(0,1fr);gap:44px}}
+nav.toc{position:sticky;top:24px;align-self:start;display:none;font-size:13px;line-height:1.5}
+@media (min-width:1080px){nav.toc{display:block}}
+nav.toc .eyebrow{margin-bottom:10px}
+nav.toc ol{list-style:none;padding:0;margin:0;border-left:1px solid var(--line)}
+nav.toc li{margin:0}
+nav.toc a{display:block;padding:5px 0 5px 12px;color:var(--ink-2);border-bottom:none;border-left:2px solid transparent;margin-left:-1px}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--line)}
+nav.toc a.active{color:var(--accent-ink);border-left-color:var(--accent)}
+main{min-width:0}
+header.title{padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:28px}
+header.title .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px;font-size:13px;color:var(--ink-2);font-family:var(--mono)}
+header.title .meta b{color:var(--ink);font-weight:600}
+.now{display:inline-block;margin-top:14px;padding:6px 12px;border:1px solid var(--line);border-radius:3px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);background:var(--card)}
+section{margin:0 0 44px;scroll-margin-top:20px}
+section>.eyebrow{margin-bottom:4px}
+.lede{font-size:16.5px;max-width:66ch}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:18px 0 8px}
+.verdict{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px 16px 12px;border-top:4px solid var(--line)}
+.verdict.ok{border-top-color:var(--good)}
+.verdict.hot{border-top-color:var(--hot)}
+.verdict .k{font-size:12px;color:var(--ink-3);letter-spacing:.06em}
+.verdict .v{font-family:var(--serif);font-weight:700;font-size:20px;margin:4px 0 6px}
+.verdict .d{font-size:13.5px;color:var(--ink-2)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--card);margin:10px 0 14px}
+.tablewrap table{margin:0}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-weight:600;color:var(--ink-2);font-size:12.5px;letter-spacing:.02em;background:var(--neutral-soft);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+td.mono{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.6;border:1px solid transparent;white-space:nowrap}
+.tag.keep{background:var(--good-soft);border-color:var(--good)}
+.tag.narrow{background:var(--accent-soft);border-color:var(--accent)}
+.tag.merge{background:var(--hot-soft);border-color:var(--hot)}
+.tag.redo{background:var(--hot-soft);border-color:var(--hot)}
+.tag.drop{background:var(--crit-soft);border-color:var(--crit)}
+.tag.gap{background:var(--crit-soft);border-color:var(--crit)}
+.tag.part{background:var(--hot-soft);border-color:var(--hot)}
+.tag.ok{background:var(--good-soft);border-color:var(--good)}
+figure{margin:18px 0;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:16px 18px 12px}
+figure svg{max-width:100%;height:auto;display:block}
+figcaption{font-size:13px;color:var(--ink-2);margin-top:10px;max-width:76ch}
+figcaption b{color:var(--ink)}
+.chart-title{font-weight:600;font-size:14px;margin:0 0 2px}
+.chart-sub{font-size:12.5px;color:var(--ink-3);margin:0 0 10px}
+.diagram text{font-family:var(--sans);font-size:12px;fill:currentColor}
+.diagram .mono{font-family:var(--mono);font-size:10.5px}
+.diagram .sm{font-size:10.5px;fill:var(--ink-2)}
+.diagram .box{fill:var(--card);stroke:currentColor;stroke-width:1.1}
+.diagram .box.hot{stroke:var(--hot);stroke-width:1.8}
+.diagram .box.new{stroke:var(--hot);stroke-width:1.8;fill:var(--hot-soft)}
+.diagram .box.mute{stroke:var(--ink-3);stroke-dasharray:4 3}
+.diagram .box.infra{fill:var(--neutral-soft)}
+.diagram .lbl{fill:var(--ink-2);font-size:11px}
+.diagram .acc{fill:var(--accent-ink);font-family:var(--mono);font-size:10.5px}
+.diagram .hott{fill:var(--hot);font-size:11px;font-weight:700}
+.diagram .num{fill:var(--card);font-size:11px;font-weight:700}
+.diagram .numbg{fill:var(--hot)}
+.diagram line,.diagram path,.diagram polyline{stroke:currentColor;stroke-width:1.1;fill:none}
+.diagram .hotline{stroke:var(--hot);stroke-width:1.8}
+.diagram .muteline{stroke:var(--ink-3);stroke-dasharray:4 3}
+.diagram .bar{fill:var(--accent)}
+.diagram .bar.hot{fill:var(--hot)}
+.diagram .bar.mute{fill:var(--ink-3)}
+.diagram .axis line{stroke:var(--line)}
+.diagram .axis text{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+.twocol{display:grid;grid-template-columns:1fr;gap:12px 22px}
+@media (min-width:820px){.twocol{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:12px 16px}
+.card h3{margin-top:4px}
+.card.good{border-left:4px solid var(--good)}
+.card.bad{border-left:4px solid var(--hot)}
+.dec{padding:10px 0;border-top:1px solid var(--line-soft)}
+.dec:first-of-type{border-top:none}
+.dec b{display:block}
+.dec .why{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+.dec .fx{font-size:13px;margin-top:4px}
+.dec .fx::before{content:"对体验：";color:var(--ink-3)}
+.callout{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--card);padding:12px 16px;border-radius:4px;margin:14px 0;max-width:78ch}
+.callout.warn{border-left-color:var(--hot)}
+.callout p{margin:4px 0}
+.hotlist{list-style:none;padding:0;max-width:none;display:grid;grid-template-columns:1fr;gap:6px 18px;margin:10px 0}
+@media (min-width:820px){.hotlist{grid-template-columns:1fr 1fr}}
+.hotlist li{display:grid;grid-template-columns:24px 1fr;gap:8px;font-size:13.5px}
+.hotlist .n{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--hot);color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:20px;font-family:var(--mono)}
+.roadmap{counter-reset:step;list-style:none;padding:0;max-width:none}
+.roadmap li{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)}
+.roadmap li:first-child{border-top:none}
+.roadmap li::before{counter-increment:step;content:counter(step);font-family:var(--serif);font-weight:700;font-size:20px;color:var(--accent-ink);line-height:1.1}
+.roadmap b{display:block}
+.roadmap .why{color:var(--ink-2);font-size:13.5px}
+.muted{color:var(--ink-3)}
+.small{font-size:13px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+@media print{nav.toc{display:none}.page{grid-template-columns:1fr}}
+</style>
+
+<div class="page">
+<nav class="toc" aria-label="目录">
+  <div class="eyebrow">目录</div>
+  <ol>
+    <li><a href="#s1">1 · 可行性结论</a></li>
+    <li><a href="#s2">2 · 目标倒推硬要求</a></li>
+    <li><a href="#s3">3 · 现状架构图</a></li>
+    <li><a href="#s4">4 · 模块清单与判定</a></li>
+    <li><a href="#s5">5 · 合理与不合理</a></li>
+    <li><a href="#s6">6 · 一回合的时间线</a></li>
+    <li><a href="#s7">7 · 目标架构</a></li>
+    <li><a href="#s8">8 · 改造顺序</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="title">
+  <div class="eyebrow">架构评估 · 顶层</div>
+  <h1 style="margin-top:6px">rpg-engine 架构评估</h1>
+  <div class="now">目标：在一个由模型构建的、鲜活的异世界里冒险 · 评估对象：app @ fb7ebd8 · 2026-09-07</div>
+  <div class="meta">
+    <span>9 个包 <b>17.6K</b> 行</span>
+    <span>13 个系统 / <b>47</b> 类事件</span>
+    <span>模型调用点 <b>35</b> 处（loop 26）</span>
+    <span>细节问题见 <a href="https://claude.ai/code/artifact/dc7df0cc-f7f3-4925-af7a-5c859f6e680c">全量审计（78 条）</a></span>
+  </div>
+</header>
+
+<!-- ======================= 1 ======================= -->
+<section id="s1">
+  <div class="eyebrow">§1</div>
+  <h2>可行性结论</h2>
+  <p class="lede">这条路走得通，而且骨架不是垃圾。「状态放在模型外面、事件溯源、战争迷雾、骰子表驱动的意外」这四条核心决定是对的，已经跑通的 7 局证明模型撑得起一个有暗线、有设定典、会藏秘密的世界。走不通的是现在的走法：把写散文、查资料、记账三件事塞进同一次模型调用，再把整支后台舰队串在玩家面前，所以一回合一两分钟、重来会失效、秘密会漏。要改的不是理念，是数据在一回合里流动的顺序。</p>
+  <div class="verdicts">
+    <div class="verdict ok"><div class="k">这条路</div><div class="v">可行</div><div class="d">模型擅长即兴与文笔，不擅长长期一致、守秘密、算数和节奏。引擎正是补这四样的。方向没错。</div></div>
+    <div class="verdict ok"><div class="k">现有骨架</div><div class="v">保留约六成</div><div class="d">事实图、事件库与纯投影、迷雾的 fact 层、Oracle 表与风味包、provider 缝与 1700 个离线测试，都值得留。</div></div>
+    <div class="verdict hot"><div class="k">需要重排</div><div class="v">回合流程</div><div class="d">叙事必须先流式出来，记账和世界模拟必须离开玩家的等待路径。这一处改动决定体验，也顺带消灭大半 P0。</div></div>
+    <div class="verdict hot"><div class="k">需要收窄</div><div class="v">13 → 6 个系统</div><div class="d">五套「活世界」机制、三套记忆、两代架构同仓。复杂度堆在错的地方，P0 就长在那里。</div></div>
+  </div>
+  <div class="callout">
+    <p><b>一句话判断。</b>这是一个「地基优先、所有系统一步到位」的工程，设计文档原话是「不走可玩切片，简化版无意义」。对一个想尽快在异世界里玩起来的人，这个顺序反了：先让一回合又快又鲜活又不失忆，再往上堆机制。好消息是地基是好的，重排比重写便宜得多。</p>
+  </div>
+</section>
+
+<!-- ======================= 2 ======================= -->
+<section id="s2">
+  <div class="eyebrow">§2</div>
+  <h2>从你要的体验倒推引擎的硬要求</h2>
+  <p>「vivid 的异世界冒险」拆开是六件事。每一件对应引擎的一层；表里标了现在做到哪、差在哪一层，这样后面看架构图时知道该盯哪个格子。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>体验要求</th><th>引擎要做到</th><th>现在</th><th>差距在哪一层</th></tr></thead>
+    <tbody>
+      <tr><td><b>快</b></td><td>第一句话 3 秒内出现，整段 15 秒内读完，后台工作不让你等</td><td><span class="tag gap">54–126 s 才出第一个字</span></td><td class="small">回合流程：无流式；叙事在 8 个后台钩子之后才显示；一次调用里做三件事</td></tr>
+      <tr><td><b>记得住</b></td><td>几十回合前的承诺、人名、恩怨不丢，也不靠模型硬背</td><td><span class="tag part">有事实图，检索退化</span></td><td class="small">记忆：语义召回链断、评分与反思永不触发、「压缩」是丢弃重建、多轮线程与事件库两个真相</td></tr>
+      <tr><td><b>人是活的</b></td><td>NPC 有自己的目的，你不在时也在做事，再见面时有变化</td><td><span class="tag part">机制在，很少触发</span></td><td class="small">世界模拟：catch-up / cascade 同步阻塞且触发条件苛刻；重新介绍老 NPC 会把他降级成路人</td></tr>
+      <tr><td><b>世界会动</b></td><td>暗线自己推进，会有你没预料的事，节奏由骰子而不是模型的惯性决定</td><td><span class="tag part">两套暗线，主线会被系统了结</span></td><td class="small">故事线：director.threads 与 lore.lines 重复；主角线过早了结或永久休眠；每回合造一条僵尸线</td></tr>
+      <tr><td><b>有秘密</b></td><td>NPC 知道你不知道的，模型不会漏，但线索能被你挖出来</td><td><span class="tag gap">fact 层严密，实体层漏</span></td><td class="small">迷雾：隐秘地点的描述直接喂给叙事模型；护栏把全世界的秘密塞进 prompt 再叮嘱它别说</td></tr>
+      <tr><td><b>你说了算</b></td><td>能重来，重来了就真的回到那一刻，模型也不再记得被撤销的事</td><td><span class="tag gap">/undo 撤错东西</span></td><td class="small">回合与倒带：五个后台钩子各领回合号；倒带不重置对话线程</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">六条里有四条卡在同一个地方：回合流程的顺序。这就是为什么下面说「重排」而不是「重写」。</p>
+</section>
+
+<!-- ======================= 3 ======================= -->
+<section id="s3">
+  <div class="eyebrow">§3</div>
+  <h2>现状架构图</h2>
+  <p>按包画，箭头是真实的 import 关系（脚本核对过，数字是引用处数）。橙色编号是顶层问题所在。</p>
+  <figure>
+    <p class="chart-title">app 分支的模块与依赖，2026-09-07</p>
+    <p class="chart-sub">左列是玩家到事实图的调用栈；右列是基础设施、模型 API、存档与遗留层。</p>
+    <svg class="diagram" viewBox="0 0 980 600" role="img" aria-label="现状架构：玩家终端调用 app，app 调用 loop 并直接注册 13 个系统；loop 是最厚的一层，调用 context、llm、memory、kernel、engine 与模型 API，并反向依赖 app；systems 依赖 kernel，kernel 依赖 facts；右侧是 engine 基础设施、数据表、存档目录和一个无人调用的遗留层。">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" stroke="none"/></marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#D97A2B" stroke="none"/></marker>
+      </defs>
+      <!-- player -->
+      <rect class="box" x="20" y="22" width="120" height="40" rx="3"/>
+      <text x="80" y="40" text-anchor="middle">玩家</text>
+      <text class="mono lbl" x="80" y="54" text-anchor="middle">终端 · run.sh</text>
+      <line x1="142" y1="42" x2="166" y2="42" marker-end="url(#a1)" marker-start="url(#a1)"/>
+      <!-- app -->
+      <rect class="box" x="170" y="20" width="470" height="44" rx="3"/>
+      <text x="182" y="38">app/ <tspan class="mono lbl">1.7K 行</tspan></text>
+      <text class="sm" x="182" y="54">CLI · 新局 / 读档 · reroll · OOC 命令 · play_loop · trace 查看器</text>
+      <!-- loop -->
+      <rect class="box hot" x="170" y="90" width="470" height="86" rx="3"/>
+      <text x="182" y="109">loop/ <tspan class="mono lbl">7.4K 行 · 全仓 42% · 26 处模型调用</tspan></text>
+      <text class="sm" x="182" y="126">回合管线：produce（工具循环 ≤8 轮）→ 校验/修复 ≤3 → apply → 7 个后台钩子串行 → 场景</text>
+      <text class="sm" x="182" y="142">创世 9 步（frame / regions / map / 主角 / 势力 / NPC / codex / 暗线 / 开场）· 风味包</text>
+      <text class="sm" x="182" y="158">甲 / 丙两套策略与提示词 · 多轮线程 · 实体自动解析 · 暗线推送</text>
+      <line x1="405" y1="64" x2="405" y2="88" marker-end="url(#a1)"/>
+      <text class="acc" x="412" y="80">13</text>
+      <!-- loop -> app reverse -->
+      <line class="hotline" x1="215" y1="90" x2="215" y2="66" marker-end="url(#a2)" stroke-dasharray="3 3"/>
+      <text class="hott" x="222" y="78">反向依赖 ×2</text>
+      <!-- context / llm / memory -->
+      <rect class="box" x="170" y="204" width="140" height="58" rx="3"/>
+      <text x="180" y="222">context/ <tspan class="mono lbl">0.3K</tspan></text>
+      <text class="sm" x="180" y="238">三层上下文组装</text>
+      <text class="sm" x="180" y="252">POV / 护栏 / NPC 视角</text>
+      <rect class="box hot" x="325" y="204" width="155" height="58" rx="3"/>
+      <text x="335" y="222">llm/ <tspan class="mono lbl">1.8K</tspan></text>
+      <text class="sm" x="335" y="238">provider 适配 · 重试</text>
+      <text class="sm" x="335" y="252">6 个 POV 只读工具</text>
+      <rect class="box mute" x="495" y="204" width="145" height="58" rx="3"/>
+      <text x="505" y="222">memory/ <tspan class="mono lbl">0.4K</tspan></text>
+      <text class="sm" x="505" y="238">重要度评分 · 反思</text>
+      <text class="sm" x="505" y="252">排序召回（主线未生效）</text>
+      <line x1="240" y1="176" x2="240" y2="202" marker-end="url(#a1)"/>
+      <line x1="402" y1="176" x2="402" y2="202" marker-end="url(#a1)"/>
+      <text class="acc" x="408" y="192">13</text>
+      <line x1="567" y1="176" x2="567" y2="202" marker-end="url(#a1)"/>
+      <!-- systems -->
+      <rect class="box" x="170" y="290" width="470" height="60" rx="3"/>
+      <text x="182" y="308">systems/ <tspan class="mono lbl">3.5K 行 · 13 个 ContextSystem</tspan></text>
+      <text class="sm" x="182" y="325">ontology · place · character · object · faction · knowledge · time · scene</text>
+      <text class="sm" x="182" y="340">lore（暗线）· director（暗骰 + threads）· cascade · narrative · codex</text>
+      <line x1="240" y1="262" x2="240" y2="288" marker-end="url(#a1)"/>
+      <line x1="402" y1="262" x2="402" y2="288" marker-end="url(#a1)"/>
+      <!-- app -> systems direct wiring via left rail -->
+      <polyline points="170,42 152,42 152,320 168,320" marker-end="url(#a1)"/>
+      <text class="lbl" x="22" y="300">app 直接注册</text>
+      <text class="lbl" x="22" y="314">13 个系统 ×13</text>
+      <!-- kernel -->
+      <rect class="box" x="170" y="378" width="470" height="52" rx="3"/>
+      <text x="182" y="396">kernel/ <tspan class="mono lbl">0.7K</tspan></text>
+      <text class="sm" x="182" y="412">注册表（事件类型 / 提交段 1:1）· 纯投影（全量重放）· 校验闸 · 组装 · 时钟 · 追踪</text>
+      <line x1="405" y1="350" x2="405" y2="376" marker-end="url(#a1)"/>
+      <text class="acc" x="412" y="366">23</text>
+      <!-- loop -> kernel via right rail -->
+      <polyline points="640,133 658,133 658,404 642,404" marker-end="url(#a1)"/>
+      <text class="acc" x="662" y="270">33 → kernel</text>
+      <!-- facts -->
+      <rect class="box" x="170" y="458" width="470" height="44" rx="3"/>
+      <text x="182" y="476">facts/ <tspan class="mono lbl">0.2K</tspan></text>
+      <text class="sm" x="182" y="492">双时态事实图：实体（tier）· 事实（有效区间 · secrecy）· 关系 —— 没有索引，线性扫描</text>
+      <line x1="405" y1="430" x2="405" y2="456" marker-end="url(#a1)"/>
+      <!-- right column -->
+      <rect class="box hot" x="690" y="90" width="270" height="52" rx="3"/>
+      <text x="700" y="108">模型 API（GLM）</text>
+      <text class="sm" x="700" y="124">主模型 5.1（10–130 s / 次）· 快模型 4.7 靠环境变量</text>
+      <text class="sm" x="700" y="138">无流式 · 600 s 超时 × 5 次重试</text>
+      <line class="hotline" x1="640" y1="112" x2="688" y2="112" marker-end="url(#a2)"/>
+      <text class="hott" x="600" y="86">叙事 · 修复 · 创世 · 后台</text>
+      <polyline class="muteline" points="600,204 600,160 688,130" marker-end="url(#a1)"/>
+      <text class="lbl" x="606" y="196">评分 / 反思</text>
+      <text class="lbl" x="606" y="209">（从未触发）</text>
+      <rect class="box infra" x="690" y="290" width="270" height="60" rx="3"/>
+      <text x="700" y="308">engine/ <tspan class="mono lbl">基础设施部分</tspan></text>
+      <text class="sm" x="700" y="325">oracle（seeded 骰子 / 表）· settings（进程全局）</text>
+      <text class="sm" x="700" y="340">log · store（SQLite + JSONL）· embed · director 数学</text>
+      <polyline points="620,176 675,176 675,318 688,318" marker-end="url(#a1)"/>
+      <text class="acc" x="662" y="240">29</text>
+      <rect class="box infra" x="690" y="378" width="270" height="44" rx="3"/>
+      <text x="700" y="396">data/oracles/</text>
+      <text class="sm" x="700" y="412">classic · isekai · default 三套表 + pack.json</text>
+      <line x1="825" y1="350" x2="825" y2="376" marker-end="url(#a1)"/>
+      <rect class="box infra" x="690" y="458" width="270" height="44" rx="3"/>
+      <text x="700" y="476">存档目录</text>
+      <text class="sm" x="700" y="492">events.db（真相）+ events.jsonl · trace.jsonl</text>
+      <polyline points="640,404 700,404 700,456" marker-end="url(#a1)"/>
+      <!-- legacy -->
+      <rect class="box mute" x="690" y="526" width="270" height="62" rx="3"/>
+      <text x="700" y="544">遗留层 · 第一代 hermes-skill</text>
+      <text class="sm" x="700" y="560">engine/{cli,projection,seed,check,compact,archive,recall,vectorstore,rewind}</text>
+      <text class="sm" x="700" y="574">bin/rpg · hooks/ · SKILL.md · README · 95 个测试</text>
+      <text class="hott" x="700" y="604"></text>
+      <!-- hotspot numbers -->
+      <circle class="numbg" cx="626" cy="98" r="9"/><text class="num" x="626" y="102" text-anchor="middle">1</text>
+      <circle class="numbg" cx="626" cy="160" r="9"/><text class="num" x="626" y="164" text-anchor="middle">2</text>
+      <circle class="numbg" cx="626" cy="212" r="9"/><text class="num" x="626" y="216" text-anchor="middle">3</text>
+      <circle class="numbg" cx="466" cy="212" r="9"/><text class="num" x="466" y="216" text-anchor="middle">4</text>
+      <circle class="numbg" cx="946" cy="534" r="9"/><text class="num" x="946" y="538" text-anchor="middle">5</text>
+      <circle class="numbg" cx="296" cy="78" r="9"/><text class="num" x="296" y="82" text-anchor="middle">6</text>
+      <circle class="numbg" cx="626" cy="298" r="9"/><text class="num" x="626" y="302" text-anchor="middle">7</text>
+    </svg>
+    <ul class="hotlist">
+      <li><span class="n">1</span><span><b>回合是串行的，叙事排在最后。</b>叙事在 produce 阶段就写好了，却要等记账、修复和 7 个后台钩子跑完才打印。</span></li>
+      <li><span class="n">2</span><span><b>后台钩子各自写库、各领回合号。</b>digest / director / cascade / catch-up / lore 每个都算一次「下一个回合号」，一个玩家回合吃掉 4 个号，倒带因此撤错东西。</span></li>
+      <li><span class="n">3</span><span><b>记忆分散在五处半成品。</b>narrative 摘要、kernel 子串召回、语义召回（断）、重要度与反思（永不触发）、多轮线程（不会摘要）。</span></li>
+      <li><span class="n">4</span><span><b>迷雾在实体层没有门。</b>POV 工具只按 fact 过滤，隐秘地点的描述照样交给叙事模型。</span></li>
+      <li><span class="n">5</span><span><b>遗留层孤岛。</b>九个文件加脚本加宪法文档，与主线零引用、协议不通、部署里从未醒来。</span></li>
+      <li><span class="n">6</span><span><b>编排层反向依赖入口层。</b>loop 从 app 取常量，说明「谁拥有主角 id」没有想清楚。</span></li>
+      <li><span class="n">7</span><span><b>13 个系统里有重复概念。</b>director.threads 与 lore.lines 都是「未浮出的故事线」；time 与 scene 都写 meta；ontology 只是图的壳。</span></li>
+    </ul>
+    <figcaption><b>读法。</b>loop 一层 7.4K 行、占全仓 42%、26 处模型调用，是全部业务逻辑的所在；它下面的 kernel 和 facts 只有 0.9K 行却是最干净的部分。复杂度堆在编排层而不是领域层，这本身就是最重要的架构信号。</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= 4 ======================= -->
+<section id="s4">
+  <div class="eyebrow">§4</div>
+  <h2>模块清单与判定</h2>
+  <p>判定只有五种：保留、收窄、合并、重做、删除。「重做」指职责保留但流程要重写；「收窄」指砍掉一半功能保留另一半。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>模块</th><th class="num">行数</th><th>职责</th><th>判定</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">facts/</td><td class="num">202</td><td>双时态事实图</td><td><span class="tag keep">保留</span></td><td class="small">模型最核心的资产；只需加 (subject, predicate) 索引、close_relation 与 upsert，把「非单调即 raise」改成告警。</td></tr>
+      <tr><td class="mono">kernel/</td><td class="num">683</td><td>注册表 · 投影 · 校验 · 组装 · 时钟</td><td><span class="tag keep">保留</span></td><td class="small">审计证明投影是纯的、与顺序无关。要补：meta 归属化、投影快照、单事件 apply 不可崩。</td></tr>
+      <tr><td class="mono">systems/</td><td class="num">3455</td><td>13 个可插拔领域系统</td><td><span class="tag narrow">收窄到 6</span></td><td class="small">留 place / character / object / faction / knowledge，把 lore + director 合成 storylines；ontology 并入 kernel 的图，time + scene 并入 kernel meta；cascade / narrative / codex 瘦身成 world tick 与记忆子系统的一部分。</td></tr>
+      <tr><td class="mono">loop/</td><td class="num">7396</td><td>回合管线 · 创世 · 后台钩子 · 策略</td><td><span class="tag redo">重做流程</span></td><td class="small">职责都要，顺序全错。拆成 narrate → scribe → commit → tick 四段；7 个钩子合成一个异步 world tick；甲 / 丙合成 prose-first 一种；创世改先深后广的 JIT。</td></tr>
+      <tr><td class="mono">context/ + memory/</td><td class="num">707</td><td>上下文组装 · 召回排序 · 评分 · 反思</td><td><span class="tag merge">合并</span></td><td class="small">做成一个记忆子系统：实体卡 + 场景摘要 + 情节检索。退化的 rank、永不触发的 reflect 删掉，语义检索要么真接上要么用 FTS。</td></tr>
+      <tr><td class="mono">llm/</td><td class="num">1760</td><td>provider · 工具循环 · 结构化修复</td><td><span class="tag narrow">收窄</span></td><td class="small">provider 缝留；加流式与错误分类；6 个 POV 工具改成上下文构建阶段的预取（叙事者不再跑 8 轮工具），可见性判定上移到实体层。</td></tr>
+      <tr><td class="mono">app/</td><td class="num">1742</td><td>CLI · 会话 · OOC · trace 查看</td><td><span class="tag keep">保留</span></td><td class="small">改成异步会话（边流式边跑后台），倒带拿到记忆子系统，配置四层压成两层。</td></tr>
+      <tr><td class="mono">engine/（基础设施）</td><td class="num">≈700</td><td>oracle · settings · log · store · embed</td><td><span class="tag keep">保留</span></td><td class="small">store 加事务与 append_many；settings 的 style 改三态；其余不动。</td></tr>
+      <tr><td class="mono">engine/（遗留）+ bin + hooks + SKILL.md</td><td class="num">≈950</td><td>第一代 hermes-skill 后端</td><td><span class="tag drop">删除</span></td><td class="small">与主线零引用、事件协议交集 4/47、部署里 hooks 为空。留着只有认知税；要 hermes 集成就用 kernel 重写 20 行钩子。</td></tr>
+      <tr><td class="mono">data/oracles/</td><td class="num">24 表</td><td>classic / isekai / default 种子表</td><td><span class="tag keep">保留并扩</span></td><td class="small">这是「vivid」最便宜的杠杆；isekai 包正对目标。要扩的是 NPC 动机、事件、地点氛围表，让 world tick 有料可掷。</td></tr>
+      <tr><td class="mono">tests/</td><td class="num">31.7K</td><td>1688 个离线测试</td><td><span class="tag keep">保留</span></td><td class="small">质量高（0 条 assert True）。删 95 个遗留层测试；重做流程后把主线集成测试跑在真实默认模式下。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================= 5 ======================= -->
+<section id="s5">
+  <div class="eyebrow">§5</div>
+  <h2>哪些设计是对的，哪些不对</h2>
+  <p>标准只有一个：对「vivid 异世界冒险」这个目标，这个决定让体验更好还是更差。不看工程审美。</p>
+  <div class="twocol">
+    <div class="card good">
+      <h3>对的，留下</h3>
+      <div class="dec"><b>状态放在模型外面，模型只负责「怎么写」</b><div class="why">模型记不住几十回合、会自己改设定。事实图 + 事件库是解决失忆和漂移的唯一可靠办法。</div><div class="fx">没有它，第 30 回合的世界就不是第 1 回合的世界。</div></div>
+      <div class="dec"><b>事件溯源 + 纯投影</b><div class="why">世界 = 事件的折叠，所以天然可倒带、可重算、可调试。审计用探针证明它真的是纯的。</div><div class="fx">「重来」这个功能的地基。现在坏掉的是上层用法，不是这一层。</div></div>
+      <div class="dec"><b>战争迷雾作为一等公民</b><div class="why">「谁知道什么」是事实图里的事实，POV 工具据此过滤。fact 层反复试探没漏。</div><div class="fx">秘密、误会、背叛都靠它；没有迷雾的世界不 vivid。</div></div>
+      <div class="dec"><b>seeded 骰子表 + 风味包</b><div class="why">便宜、可复现、防止模型每次生成同一种主角。isekai 包已经把社畜穿越、状态面板、女神外挂这些做进去了。</div><div class="fx">「意外」和「风味」最便宜的来源，直接对准你的目标。</div></div>
+      <div class="dec"><b>写入必须过校验闸</b><div class="why">模型输出不可信，写世界之前要检查引用是否存在、字段是否合法。</div><div class="fx">原则对。错在让叙事者亲自产出待校验的 JSON，见右栏。</div></div>
+      <div class="dec"><b>暗线有自己的节奏与生命周期</b><div class="why">暗 → 明 → 了结，由骰子而不是模型决定何时浮出，这是「世界会动」的正确抽象。</div><div class="fx">保留概念，合并两套实现。</div></div>
+      <div class="dec"><b>provider 缝与离线测试</b><div class="why">一个 HTTP 缝、可脚本化的假模型、1687 个测试零网络。</div><div class="fx">重排流程时的安全网。</div></div>
+    </div>
+    <div class="card bad">
+      <h3>不对的，改掉</h3>
+      <div class="dec"><b>「地基优先、所有系统一步到位、不走可玩切片」</b><div class="why">设计文档明写的建造策略。结果是 17.6K 行、13 个系统、五套活世界机制，而一回合的手感从未被打磨。</div><div class="fx">两个月停更的根本原因：加功能比让它好玩容易。</div></div>
+      <div class="dec"><b>叙事者一次调用干三件事：写散文、跑工具查资料、产出 8 段 JSON 记账</b><div class="why">这是回合慢、修复轮多、提示词与校验器打架、空白回合的共同来源。写作与记账是两种能力，硬塞给一次调用。</div><div class="fx">散文质量被 JSON 拖累，延迟被记账拖累。</div></div>
+      <div class="dec"><b>后台舰队在玩家的等待路径上同步跑</b><div class="why">设计文档写「非阻塞、廉价模型」，实现是同线程串行，density 一次 72 到 107 秒。</div><div class="fx">play8 第 1 回合等 126 秒，其中 72 秒与叙事无关。</div></div>
+      <div class="dec"><b>没有流式输出</b><div class="why">整个 provider 层是请求响应式，玩家面对一个转圈 spinner 一到两分钟。</div><div class="fx">沉浸感的第一杀手，与模型能力无关，纯架构选择。</div></div>
+      <div class="dec"><b>两个记忆真相并存：多轮对话线程 vs 世界状态</b><div class="why">stateless 重建与 multiturn 线程两条路都保留，线程不参与倒带，「压缩」只是整段丢弃。</div><div class="fx">重来之后模型还记得被撤销的剧情。</div></div>
+      <div class="dec"><b>记忆拆成五个半成品</b><div class="why">摘要、子串召回、语义召回、重要度评分、反思各自为政，两处从未在主线生效。</div><div class="fx">「记得住」只做到了一半：有事实，没有有效的回忆。</div></div>
+      <div class="dec"><b>护栏把全世界的秘密塞进 prompt，再叮嘱模型别说</b><div class="why">不按场景、不按相关性，30 个远方 NPC 的秘密全在；实体层又没有可见性判定。</div><div class="fx">秘密越多越容易漏，且上下文随战役单调膨胀。</div></div>
+      <div class="dec"><b>五套活世界机制互相重叠</b><div class="why">director threads、lore lines、density、cascade、catch-up、demote、endgame，各有自己的触发、模型调用和 bug。</div><div class="fx">机制越多，世界反而越安静：主线被了结、暗线永久休眠、级联触发不了。</div></div>
+      <div class="dec"><b>创世一次性生成整个世界</b><div class="why">10 次调用、6 分钟，生成完就固定；密度生成再在前台补。</div><div class="fx">开局慢，而且远处的世界是「生成过」而不是「活着」。</div></div>
+      <div class="dec"><b>模型分级靠环境变量</b><div class="why">叙事、记账、模拟、嵌入需要不同的模型与调用方式，现在只有主模型加一个可选的快模型开关。</div><div class="fx">没法给叙事用最会写的、给记账用最便宜的。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 6 ======================= -->
+<section id="s6">
+  <div class="eyebrow">§6</div>
+  <h2>一回合的时间线：现在 vs 应该</h2>
+  <figure>
+    <p class="chart-title">玩家按下回车之后发生了什么</p>
+    <p class="chart-sub">秒。上面一行是 play8 第 1 回合的真实 trace；下面两行是目标流程的估算，按 GLM 当前速度、叙事者流式输出计。</p>
+    <svg class="diagram" viewBox="0 0 900 230" role="img" aria-label="时间线：现在玩家在 126 秒后才看到文字，其中叙事生成 54 秒、后台密度生成 72 秒；目标流程第 3 秒出现首句、15 秒读完，记账与世界模拟在后台 15 到 45 秒完成，玩家在阅读时后台已经跑完。">
+      <g class="axis">
+        <line x1="150" y1="30" x2="150" y2="200"/>
+        <line x1="150" y1="200" x2="860" y2="200"/>
+        <text x="150" y="216" text-anchor="middle">0</text>
+        <text x="314" y="216" text-anchor="middle">30 s</text>
+        <text x="478" y="216" text-anchor="middle">60 s</text>
+        <text x="642" y="216" text-anchor="middle">90 s</text>
+        <text x="806" y="216" text-anchor="middle">120 s</text>
+        <line x1="314" y1="30" x2="314" y2="200"/><line x1="478" y1="30" x2="478" y2="200"/><line x1="642" y1="30" x2="642" y2="200"/><line x1="806" y1="30" x2="806" y2="200"/>
+      </g>
+      <!-- row 1: now -->
+      <text class="lbl" x="140" y="58" text-anchor="end">现在 · 前台</text>
+      <rect class="bar" x="150" y="44" width="295" height="18"/>
+      <text class="sm" x="160" y="57" fill="#fff" style="fill:#fff">produce 54 s（工具循环 4 次调用）</text>
+      <rect class="bar hot" x="447" y="44" width="392" height="18"/>
+      <text class="sm" x="457" y="57" style="fill:#fff">density 72 s（同步后台，一次快模型调用）</text>
+      <line class="hotline" x1="839" y1="36" x2="839" y2="70"/>
+      <text class="hott" x="835" y="82" text-anchor="end">126 s 玩家才看到第一个字</text>
+      <!-- row 2: target foreground -->
+      <text class="lbl" x="140" y="118" text-anchor="end">目标 · 前台</text>
+      <rect class="bar" x="161" y="104" width="71" height="18"/>
+      <text class="sm" x="166" y="117" style="fill:#fff">叙事流式 3–15 s</text>
+      <line class="hotline" x1="166" y1="96" x2="166" y2="130"/>
+      <text class="hott" x="172" y="94">3 s 首句出现，边写边读</text>
+      <!-- row 3: target background -->
+      <text class="lbl" x="140" y="160" text-anchor="end">目标 · 后台</text>
+      <rect class="bar mute" x="232" y="146" width="55" height="18"/>
+      <text class="sm" x="236" y="159" style="fill:#fff">记账 15–25 s</text>
+      <rect class="bar hot" x="289" y="146" width="110" height="18"/>
+      <text class="sm" x="294" y="159" style="fill:#fff">世界 tick 25–45 s</text>
+      <text class="lbl" x="408" y="159">玩家还在阅读或输入，下一回合开始前已完成</text>
+    </svg>
+    <figcaption><b>同样的模型、同样的调用次数，玩家的等待从 126 秒变成 3 秒。</b>差别只在顺序：先把散文流出来，记账和世界模拟挪到玩家阅读的这段时间里。工具循环的 4 次调用也可以省掉大半：上下文构建阶段直接把在场角色卡、当前地点、相关往事预取进 prompt，叙事者不必自己去查。</figcaption>
+  </figure>
+</section>
+
+<!-- ======================= 7 ======================= -->
+<section id="s7">
+  <div class="eyebrow">§7</div>
+  <h2>目标架构</h2>
+  <p>不是推倒重来。事实图、事件库、投影、迷雾的 fact 层、骰子表原样保留；改的是箭头的方向和框的数量。橙色是新增或改变，虚线灰是删除。</p>
+  <figure>
+    <p class="chart-title">重排之后一回合的数据流</p>
+    <p class="chart-sub">叙事者只写散文并流式给玩家；记账员和世界 tick 在后台把散文变成事件；记忆子系统从事件库长出上下文。</p>
+    <svg class="diagram" viewBox="0 0 980 540" role="img" aria-label="目标架构：玩家与异步会话交互；上下文构建从记忆子系统与世界状态取材；叙事者流式输出散文直接给玩家；记账员从散文提取变更并经校验写入事件库，每回合一个事务；世界 tick 异步读世界状态并写一批事件；事件库投影成世界状态，世界状态喂记忆子系统；倒带只撤回回合 id 并重建上下文。删除多轮线程、8 轮工具循环、7 个独立钩子和遗留层。">
+      <defs>
+        <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" stroke="none"/></marker>
+        <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#D97A2B" stroke="none"/></marker>
+      </defs>
+      <!-- player + session -->
+      <rect class="box" x="20" y="120" width="110" height="44" rx="3"/>
+      <text x="75" y="138" text-anchor="middle">玩家</text>
+      <text class="mono lbl" x="75" y="152" text-anchor="middle">终端</text>
+      <rect class="box new" x="160" y="100" width="150" height="84" rx="3"/>
+      <text x="170" y="118">会话（异步）</text>
+      <text class="sm" x="170" y="134">输入 · 流式输出</text>
+      <text class="sm" x="170" y="148">OOC 命令 · 进度提示</text>
+      <text class="sm" x="170" y="162">后台任务在此 join</text>
+      <line x1="132" y1="142" x2="158" y2="142" marker-end="url(#b1)" marker-start="url(#b1)"/>
+      <!-- context builder -->
+      <rect class="box new" x="350" y="40" width="190" height="90" rx="3"/>
+      <text x="360" y="58">上下文构建</text>
+      <text class="sm" x="360" y="74">稳定前缀：世界圣经 · 主角卡 ·</text>
+      <text class="sm" x="360" y="88">在场角色卡（缓存友好）</text>
+      <text class="sm" x="360" y="102">易变后缀：最近场景原文 · 检索到的</text>
+      <text class="sm" x="360" y="116">往事 · 本场 DM 笔记 · 玩家行动</text>
+      <line x1="312" y1="120" x2="348" y2="90" marker-end="url(#b1)"/>
+      <text class="lbl" x="300" y="98">行动</text>
+      <!-- narrator -->
+      <rect class="box new" x="590" y="40" width="170" height="72" rx="3"/>
+      <text x="600" y="58">叙事者（流式）</text>
+      <text class="sm" x="600" y="74">最会写的模型</text>
+      <text class="sm" x="600" y="88">只写散文，不产 JSON</text>
+      <text class="sm" x="600" y="102">看到的秘密只限本场</text>
+      <line x1="542" y1="80" x2="588" y2="80" marker-end="url(#b1)"/>
+      <!-- stream back to session -->
+      <polyline class="hotline" points="675,112 675,150 312,150" marker-end="url(#b2)"/>
+      <text class="hott" x="400" y="146">散文流式回玩家，首句 ≤ 3 s</text>
+      <!-- scribe -->
+      <rect class="box new" x="590" y="180" width="170" height="76" rx="3"/>
+      <text x="600" y="198">记账员（异步）</text>
+      <text class="sm" x="600" y="214">便宜模型，从散文 + 场景</text>
+      <text class="sm" x="600" y="228">提取变更；校验 / 修复只找它</text>
+      <text class="sm" x="600" y="242">条目级丢弃，永不改散文</text>
+      <line class="hotline" x1="720" y1="112" x2="720" y2="178" marker-end="url(#b2)"/>
+      <text class="lbl" x="726" y="150">散文</text>
+      <!-- event store -->
+      <rect class="box" x="800" y="180" width="160" height="76" rx="3"/>
+      <text x="810" y="198">事件库</text>
+      <text class="sm" x="810" y="214">每回合一个事务</text>
+      <text class="sm" x="810" y="228">一个回合 id 贯穿前后台</text>
+      <text class="sm" x="810" y="242">先干跑投影再落库</text>
+      <line class="hotline" x1="762" y1="218" x2="798" y2="218" marker-end="url(#b2)"/>
+      <!-- world state -->
+      <rect class="box" x="800" y="300" width="160" height="96" rx="3"/>
+      <text x="810" y="318">世界状态</text>
+      <text class="sm" x="810" y="334">投影（有快照）</text>
+      <text class="sm" x="810" y="348">6 个系统：地点 · 人物 ·</text>
+      <text class="sm" x="810" y="362">物品 · 势力 · 认知 · 故事线</text>
+      <text class="sm" x="810" y="376">时间 / 场景 meta 归 kernel</text>
+      <text class="sm" x="810" y="390">事实图带索引</text>
+      <line x1="880" y1="258" x2="880" y2="298" marker-end="url(#b1)"/>
+      <text class="lbl" x="886" y="282">投影</text>
+      <!-- world tick -->
+      <rect class="box new" x="590" y="300" width="170" height="96" rx="3"/>
+      <text x="600" y="318">世界 tick（异步）</text>
+      <text class="sm" x="600" y="334">便宜模型 + 骰子表</text>
+      <text class="sm" x="600" y="348">暗线推进 · 事件波及 ·</text>
+      <text class="sm" x="600" y="362">离场 NPC 各忙各的 ·</text>
+      <text class="sm" x="600" y="376">玩家附近的 JIT 生成</text>
+      <text class="sm" x="600" y="390">输出一批事件，同一回合 id</text>
+      <line x1="798" y1="330" x2="762" y2="330" marker-end="url(#b1)"/>
+      <text class="lbl" x="766" y="324">读</text>
+      <polyline class="hotline" points="700,298 700,270 800,270 800,250" marker-end="url(#b2)"/>
+      <text class="hott" x="706" y="284">写一批事件</text>
+      <!-- memory -->
+      <rect class="box new" x="350" y="300" width="190" height="96" rx="3"/>
+      <text x="360" y="318">记忆子系统</text>
+      <text class="sm" x="360" y="334">实体卡（人 / 地 / 物的现状）</text>
+      <text class="sm" x="360" y="348">场景摘要（分层，越老越短）</text>
+      <text class="sm" x="360" y="362">情节检索（FTS 或向量，二选一）</text>
+      <text class="sm" x="360" y="376">本场 DM 笔记（作用域内的秘密）</text>
+      <line x1="798" y1="380" x2="542" y2="380" marker-end="url(#b1)"/>
+      <text class="lbl" x="560" y="374"></text>
+      <line x1="445" y1="298" x2="445" y2="132" marker-end="url(#b1)"/>
+      <text class="lbl" x="452" y="220">取材</text>
+      <!-- oracle tables -->
+      <rect class="box infra" x="350" y="430" width="190" height="50" rx="3"/>
+      <text x="360" y="448">Oracle 表 · 风味包（保留）</text>
+      <text class="sm" x="360" y="464">创世与 world tick 共用同一批骰子表</text>
+      <line x1="542" y1="455" x2="620" y2="455" marker-end="url(#b1)"/>
+      <line x1="620" y1="455" x2="620" y2="398" marker-end="url(#b1)"/>
+      <!-- rewind -->
+      <rect class="box" x="160" y="300" width="150" height="70" rx="3"/>
+      <text x="170" y="318">倒带</text>
+      <text class="sm" x="170" y="334">撤回一个回合 id</text>
+      <text class="sm" x="170" y="348">重投影 → 重建上下文</text>
+      <text class="sm" x="170" y="362">没有线程状态要同步</text>
+      <line x1="235" y1="184" x2="235" y2="298" marker-end="url(#b1)"/>
+      <polyline points="312,335 330,335 330,420 880,420 880,398" marker-end="url(#b1)"/>
+      <!-- removed -->
+      <rect class="box mute" x="20" y="430" width="290" height="70" rx="3"/>
+      <text class="lbl" x="30" y="448">删除</text>
+      <text class="sm" x="30" y="464">多轮对话线程 · 叙事者的 8 轮工具循环 ·</text>
+      <text class="sm" x="30" y="478">7 个各自写库的钩子 · 甲 / 丙两套提示词 ·</text>
+      <text class="sm" x="30" y="492">director.threads 与 lore.lines 二选一 · 遗留层</text>
+    </svg>
+    <figcaption><b>三个箭头变了方向。</b>散文从叙事者直接流回玩家（不再等记账）；记账员而不是叙事者产出结构化变更（校验修复找便宜模型）；后台合成一个 tick 写一批事件（一个回合 id，倒带一次撤干净）。其余的框都是现有代码换个位置。</figcaption>
+  </figure>
+
+  <h3>这张图里每个框对应现在的什么</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>目标框</th><th>现有代码</th><th>要动的地方</th></tr></thead>
+    <tbody>
+      <tr><td>会话（异步）</td><td class="mono">app/play.py · app/__main__.py</td><td class="small">run_turn 拆两段；叙事一到就打印；后台任务在读下一条输入前 join；Ctrl-C 接住。</td></tr>
+      <tr><td>上下文构建</td><td class="mono">context/assembler.py · llm/tools.py 的查询函数</td><td class="small">把工具循环里模型会查的东西（在场角色、当前地点、相关往事）改成构建阶段预取；秘密只给本场作用域；固定前缀顺序以吃缓存。</td></tr>
+      <tr><td>叙事者（流式）</td><td class="mono">loop/strategy.py 的 _NARRATE_PROMPT（丙的第一步）· llm/provider.py</td><td class="small">provider 加 SSE 流式；叙事提示只剩文风与铁律，删掉 8 段 JSON 说明。</td></tr>
+      <tr><td>记账员</td><td class="mono">loop/strategy.py 的 _SYSTEM_PROMPT_HYBRID（丙的第二步）· kernel/validation.py · loop/entity_resolve.py</td><td class="small">丙的两步结构已经存在，改成主路径；用快模型；修复循环只对它；条目级丢弃。</td></tr>
+      <tr><td>事件库</td><td class="mono">engine/store.py · kernel/events.py · loop/turn.py apply_turn</td><td class="small">append_many 事务；先干跑投影；回合 id 由 run_turn 分配一次。</td></tr>
+      <tr><td>世界状态</td><td class="mono">kernel/projection.py · systems/* · facts/</td><td class="small">13 → 6；meta 归属化；事实图索引；投影快照。</td></tr>
+      <tr><td>世界 tick</td><td class="mono">loop/{fleet,director,cascade,time,lore,density,endgame}.py</td><td class="small">七个钩子合成一个函数：读世界，掷骰，最多两三次便宜模型调用，返回一批事件。JIT 生成从创世里挪过来。</td></tr>
+      <tr><td>记忆子系统</td><td class="mono">systems/narrative.py · context/viewpoint.py · memory/ · kernel/recall.py</td><td class="small">合并；删退化的 rank 与永不触发的 reflect；检索二选一真接上。</td></tr>
+      <tr><td>倒带</td><td class="mono">app/engine.py rewind</td><td class="small">按回合 id 撤回；删线程后无需同步。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================= 8 ======================= -->
+<section id="s8">
+  <div class="eyebrow">§8</div>
+  <h2>架构层面的改造顺序</h2>
+  <p>这是架构动作，不是 bug 清单；细节问题在审计报告的 §5 与 §8。顺序按「对体验的影响 ÷ 改动量」排，前三步做完，你就能坐下来玩了。</p>
+  <ol class="roadmap">
+    <li><b>回合流程重排：散文先流出来，记账异步，一个事务</b><span class="why">丙策略的两步结构已经存在，把它变成唯一路径；provider 加流式；apply 先干跑再事务写入。这一步同时消灭审计里 8 条 P0 中的 5 条（变砖三条、空白回合、半截回合）。改动集中在 loop/turn.py、loop/strategy.py、llm/provider.py、engine/store.py。</span></li>
+    <li><b>后台合成一个 world tick，异步，一个回合 id</b><span class="why">七个钩子合成一个函数，读世界、掷骰、最多两三次便宜模型调用、返回一批事件；回合 id 由 run_turn 分配一次。倒带从此一次撤干净；级联在开局也能触发；主角线不会被系统了结。</span></li>
+    <li><b>删多轮线程，记忆合成一个子系统</b><span class="why">回到 stateless 重建，但把前缀排成缓存友好的顺序（世界圣经、主角卡、在场卡不变；场景与检索在后）。narrative 摘要 + 实体卡 + 一种检索合成记忆子系统，删退化的 rank 与 reflect。倒带自然一致。</span></li>
+    <li><b>迷雾按场景作用域，实体层可见性</b><span class="why">统一的 visible_to(pov, entity)；叙事者只拿本场相关的 DM 笔记而不是全世界的秘密；POV 查询改成构建阶段预取，叙事者不再跑 8 轮工具。</span></li>
+    <li><b>系统收窄 13 → 6，故事线合一</b><span class="why">lore + director 合成 storylines（一个注册表、一个生命周期、一个来源字段）；time + scene 归 kernel meta；ontology 并入图；cascade / narrative / codex 拆进 tick 与记忆。系统少了，K-01 那类「某个 apply 抛异常」的面也小了。</span></li>
+    <li><b>创世改先深后广的 JIT</b><span class="why">开局只生成主角所在的镇及其周边（3–4 次调用、一分钟内），世界圣经与远方区域只生成骨架；world tick 在玩家接近时补全。开局快，远处的世界是「活着」而不是「生成过」。</span></li>
+    <li><b>模型分级做成一等公民</b><span class="why">配置里显式四个角色：叙事者（最会写、流式）、记账员（便宜、结构化）、模拟器（便宜、批量）、嵌入（可选）。不同角色允许不同厂商。这是把「快」与「好」分开买的前提。</span></li>
+    <li><b>删遗留层，README 重写</b><span class="why">一次性动作，消除最大的认知负债。</span></li>
+  </ol>
+  <div class="callout warn">
+    <p><b>不要碰的。</b>facts 的双时态模型、事件溯源与纯投影、Oracle 表与风味包的格式、POV 工具的 fact 层门控逻辑、tests/kernel 与 tests/systems 那 535 个测试。这些是花了三周才对的东西，重排流程时它们是安全网。</p>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+  const links = [...document.querySelectorAll("nav.toc a")];
+  const secs = links.map(a => document.querySelector(a.getAttribute("href")));
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries){ if (e.isIntersecting){ links.forEach(l => l.classList.toggle("active", l.getAttribute("href") === "#" + e.target.id)); } }
+  }, {rootMargin:"-10% 0px -80% 0px"});
+  secs.forEach(s => s && io.observe(s));
+})();
+</script>

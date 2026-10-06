@@ -158,8 +158,8 @@ def test_assembled_context_contains_pov_fact():
     assert "安全" in result
 
 
-def test_assembled_context_contains_guardrail_marker():
-    """Facts protagonist does NOT know but are in graph should have guardrail marker."""
+def test_assembled_context_excludes_unknown_truth():
+    """Unknown ground truth stays backstage even when another NPC knows it."""
     r, w = _build_world()
     scene = {
         "protagonist": "主角",
@@ -168,8 +168,8 @@ def test_assembled_context_contains_guardrail_marker():
         "location": "桥头",
     }
     result = assemble_context(r, w, scene)
-    # 密道.location is unknown to protagonist but true in graph — guardrail
-    assert "⚠️只约束·勿泄露" in result
+    assert "地窖" not in result
+    assert w["systems"]["ontology"].value_at("密道", "location", 1) == "地窖"
 
 
 def test_assembled_context_stable_before_scene_before_volatile():

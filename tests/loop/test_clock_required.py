@@ -1,10 +1,11 @@
 import os
 import tempfile
+import pytest
 
 from kernel.registry import Registry
 from kernel.projection import empty_world
 from kernel.events import open_store
-from loop.turn import run_turn, REQUIRED_SECTIONS
+from loop.turn import run_turn, REQUIRED_SECTIONS, TurnRejected
 from loop.strategy import AuthorStrategy, _SYSTEM_PROMPT, _SYSTEM_PROMPT_HYBRID
 from llm.provider import FakeLLMProvider
 from systems.ontology import OntologySystem
@@ -39,7 +40,7 @@ def test_missing_clock_is_repaired_via_gate():
     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "town", "location": "town"}
 
     # First attempt: every OTHER required section explained via reasons, but NO clock.
-    no_clock = {"narration": "原地。",
+    no_clock = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "原地。",
                 "reasons": {"moves": "未移动", "places": "无新地点",
                             "cast": "无人物变化", "facts": "无"}}
     # Repair attempt: now includes a no-advance clock.
@@ -59,21 +60,15 @@ def test_missing_clock_is_repaired_via_gate():
     assert result.world["meta"]["day"] == 1
 
 
-def test_clock_via_reasons_only_is_safe_no_advance():
-    """If the narrator answers every attempt with clock only in reasons (not as an
-    array), the turn completes without raising and the clock does NOT advance.
-
-    This documents that the reason-escape path is a safe no-advance, not a crash.
-    The clock section is dropped (never a valid array) after max_repairs exhausted,
-    and the turn proceeds with the pre-turn day/band unchanged.
-    """
+def test_clock_via_reasons_only_rejects_without_writes():
+    """A legacy reasons map cannot stand in for the required clock section."""
     r = _registry()
     world = empty_world(r)
     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "town", "location": "town"}
 
     # Every attempt returns reasons for all required sections but NO clock array.
-    # The gate will bounce it max_repairs times, then drop clock and proceed.
-    clock_via_reasons_only = {
+    # The gate repairs up to max_repairs, then rejects the entire action.
+    clock_via_reasons_only = {**{'moves': [], 'places': [], 'cast': [], 'facts': []},
         "narration": "原地踌躇。",
         "reasons": {
             "moves": "未移动",
@@ -88,18 +83,16 @@ def test_clock_via_reasons_only_is_safe_no_advance():
     provider = FakeLLMProvider(json_responses=[clock_via_reasons_only] * 4)
     store = _store(r)
     try:
-        result = run_turn(r, store, world, scene, "发呆",
-                          strategy=AuthorStrategy(), provider=provider,
-                          required_sections=REQUIRED_SECTIONS)
+        with pytest.raises(TurnRejected):
+            run_turn(r, store, world, scene, "发呆",
+                     strategy=AuthorStrategy(), provider=provider,
+                     required_sections=REQUIRED_SECTIONS)
+        assert list(store.iter_events()) == []
     finally:
         store.close()
 
-    # Turn must complete without raising
-    assert result is not None
-    # Clock must NOT have advanced (no valid clock array was ever supplied).
-    # empty_world starts with meta.day=None and band absent; both must be unchanged.
-    day_after = result.world["meta"].get("day")
-    band_after = result.world["meta"].get("band", 0)
+    day_after = world["meta"].get("day")
+    band_after = world["meta"].get("band", 0)
     assert day_after is None or day_after == 1, (
         f"Clock advanced unexpectedly: day={day_after}"
     )

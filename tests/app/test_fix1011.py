@@ -24,6 +24,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 class ScriptedProvider:
+    is_offline = True  # Canned offline fixture permits stub fallback.
     """Returns canned strings in order; repeats last one if exhausted."""
     def __init__(self, replies):
         self._r = list(replies)
@@ -536,7 +537,7 @@ class TestRerollLoopPreservesFirstAction:
     """A non-reroll first line must not be discarded; it must reach play_loop as turn 1."""
 
     def _make_turn_response(self):
-        return json.dumps({
+        return json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你走进了市集，感受到了热闹的气息。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
         })
@@ -563,7 +564,7 @@ class TestRerollLoopPreservesFirstAction:
         """The line '我去市集看看' must NOT be silently discarded (old bug)."""
         # This test uses a turn response that echoes the player action in narration.
         # The key assertion: the game must have actually RUN a turn (narration present).
-        turn_response = json.dumps({
+        turn_response = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你迈步走向市集，四周的叫卖声涌入耳中。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
         })
@@ -613,7 +614,7 @@ class TestRerollLoopPreservesFirstAction:
 
     def test_reroll_then_first_action_preserved(self, tmp_path):
         """After a reroll, a first real action still reaches play_loop as turn 1."""
-        turn_response = json.dumps({
+        turn_response = json.dumps({**{'moves': [], 'places': [], 'cast': [], 'facts': []},
             "narration": "你抵达了市集，耳边响起了嘈杂的喧嚣声。",
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "未推进"}],
         })

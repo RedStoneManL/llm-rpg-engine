@@ -37,6 +37,3 @@ class FakeNoteSystem(ContextSystem):
     def recall(self, query, world):
         notes = world.get("systems", {}).get("notes", {}).get("notes", [])
         return [RecallHit("notes", 1.0, n) for n in notes if query in n]
-
-    def digest_extract(self, prose, world):
-        return {"notes": [{"text": prose[:24]}]} if prose.strip() else {}

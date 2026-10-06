@@ -75,6 +75,34 @@ def _seed_protagonist_in_anchor(store, anchor_town="town"):
     ))
 
 
+def _complex_sk(lid):
+    return {"id": lid, "complexity": "complex", "about": "x", "anchor": "town",
+            "description": "d", "trigger": "t", "l3_anchor": "town_market",
+            "stages": [{"hint": f"s{i}"} for i in range(5)], "threshold": 100}
+
+
+def test_protagonist_line_exempt_from_autonomous_finale():
+    """I5: a complex pthread_* (protagonist) line with pending_finale must NOT
+    auto-resolve (quest_world_resolved / quest_catastrophe) — the player drives it.
+    A campaign thread with the same setup DOES finale."""
+    r = _reg()
+    store = _store(r)
+    create_lore_line(store, _complex_sk("pthread_1"), day=1, scene="s", turn=1)
+    create_lore_line(store, _complex_sk("thread_1"), day=1, scene="s", turn=1)
+    for lid in ("pthread_1", "thread_1"):
+        store.append(kernel_event("quest_finale_due", day=1, scene="s",
+                                  summary="finale due", deltas={"id": lid}, turn=2))
+    w = project(r, store.iter_events())
+    appended = run_lore(r, store, w)
+    pairs = {(e["deltas"].get("id"), e["type"]) for e in appended}
+    # protagonist line exempt — no autonomous resolution
+    assert ("pthread_1", "quest_world_resolved") not in pairs
+    assert ("pthread_1", "quest_catastrophe") not in pairs
+    # campaign line DID finale (rescue or catastrophe)
+    assert any(i == "thread_1" and t in ("quest_world_resolved", "quest_catastrophe")
+               for i, t in pairs), pairs
+
+
 def test_create_lore_line_appends_event():
     r = _reg(); store = _store(r)
     ev = create_lore_line(store, _SK, day=1, scene="s1", turn=1)
@@ -191,7 +219,7 @@ def test_run_turn_advances_lore_end_to_end():
     create_lore_line(store, _SK, day=1, scene="s1", turn=0)
     world = project(r, store.iter_events())
     scene = {"protagonist": "hero", "present": [], "day": 1, "id": "s1", "location": "town"}
-    commit = {"narration": "无事。",
+    commit = {**{'moves': [], 'places': [], 'cast': [], 'facts': []}, "narration": "无事。",
               "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地"}],
               "reasons": {"moves": "未动", "places": "无", "cast": "无", "facts": "无"}}
     res = run_turn(r, store, world, scene, "观察",

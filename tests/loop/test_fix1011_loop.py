@@ -28,6 +28,7 @@ from loop.bootstrap import (
 # ---------------------------------------------------------------------------
 
 class ScriptedProvider:
+    is_offline = True  # Canned offline fixture permits stub fallback.
     """Tiny scripted provider that replays canned replies."""
     def __init__(self, replies):
         self._r = list(replies)
