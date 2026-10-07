@@ -12,7 +12,7 @@ from __future__ import annotations
 from kernel.registry import Registry
 from engine.log import get_logger
 from loop.strategy import AuthorStrategy, HybridStrategy
-from loop.turn import produce_turn
+from loop.turn import produce_turn, _rewrite_repaired_narration
 
 log = get_logger("loop.compare")
 
@@ -68,6 +68,14 @@ def run_compare(
     )
     log.debug("run_compare: 丙 done narration=%r attempts=%d dropped=%s",
               str(bing_commit.narration)[:40], bing_attempts, bing_dropped)
+
+    # Candidates are displayed as complete alternatives. Reconcile only those
+    # whose validated physical outcomes changed; the apply gateway then reuses
+    # this text without another call.
+    for commit, dropped in ((jia_commit, jia_dropped), (bing_commit, bing_dropped)):
+        if not dropped and commit.narration_rewrite_required:
+            _rewrite_repaired_narration(registry, world, scene, player_input, commit,
+                                       provider=provider, required_sections=required_sections)
 
     return {
         "甲": (jia_commit, jia_attempts, jia_dropped),

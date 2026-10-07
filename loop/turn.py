@@ -23,10 +23,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import copy
+import json
 from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, registered_balances, validate_resources
 from loop.narration_guard import validate_narration
+from loop.repair_outcome import physical_signature, build_repair_outcome
 from systems.time import normalize_clock, validate_resolved_time
 from loop.strategy import AuthorOutputError
 
@@ -201,11 +203,10 @@ def produce_turn(
     #
     # An unusable Author response needs a WHOLE proposal, not missing-section
     # repair of fallback prose. Whole and modular retries share max_repairs.
-    # When a usable proposal fails validation, re-emit ONLY failing sections (not narration,
-    # not passing sections).  This is far cheaper than a full re-author (the
-    # usable narration is preserved for latency, not guaranteed semantically
-    # consistent with every repaired effect; full semantic reconciliation is a
-    # separate concern). Regeneration on every repair was measured at ~59s/repair.
+    # When a usable proposal fails validation, re-emit only failing sections.
+    # If the final physical/time declarations differ from their narration's
+    # whole-proposal baseline, _run_turn_staged rewrites prose once from the
+    # approved visible outcome before publishing. Other repairs retain prose.
     #
     # Flow per repair attempt:
     #   a. Compute failing section names from the error list.
@@ -234,14 +235,19 @@ def produce_turn(
         return result
 
     errors = validate(commit) if output_error is None else []
+    narrated_physical = physical_signature(commit, world) if commit is not None else None
+    preserved_prose_repair = False
+    inherited_rewrite = bool(getattr(commit, "narration_rewrite_required", False))
     while (output_error is not None or errors) and attempts < max_repairs:
         failing = {e.section for e in errors}
         log.debug("produce_turn: repair attempt=%d errors=%d failing=%s output_error=%s",
                   attempts + 1, len(errors), sorted(failing),
                   output_error.code if output_error is not None else None)
+        reset_narration_baseline = False
         with get_tracer().span("repair", attempt=attempts + 1):
             try:
                 if output_error is not None:
+                    reset_narration_baseline = True
                     commit = strategy.produce(
                         registry, world, scene, player_input,
                         provider=provider, embedder=embedder,
@@ -250,6 +256,7 @@ def produce_turn(
                 else:
                     try:
                         repaired = strategy.repair_sections(failing, errors, provider=provider)
+                        preserved_prose_repair = True
                         # Preserve passing sections only for a usable whole proposal.
                         from kernel.turncommit import TurnCommit as _TC
                         merged_sections = dict(commit.sections)
@@ -259,17 +266,28 @@ def produce_turn(
                             sections=merged_sections,
                         )
                     except NotImplementedError:
-                        # Third-party strategies retain the legacy re-author path.
+                        # Some strategies (notably Hybrid) may keep frozen prose.
+                        prior_narration = commit.narration
                         commit = strategy.produce(
                             registry, world, scene, player_input,
                             provider=provider, embedder=embedder,
                             repair=build_repair_request(errors),
                         )
+                        reset_narration_baseline = commit.narration != prior_narration
+                        preserved_prose_repair = not reset_narration_baseline
                 output_error = None
             except AuthorOutputError as exc:
                 commit, output_error = None, exc
         attempts += 1
         errors = validate(commit) if output_error is None else []
+        if output_error is not None:
+            narrated_physical = None
+            preserved_prose_repair = False
+            inherited_rewrite = False
+        elif reset_narration_baseline or narrated_physical is None:
+            narrated_physical = physical_signature(commit, world)
+            preserved_prose_repair = False
+            inherited_rewrite = False
 
     if output_error is not None:
         raise TurnRejected(
@@ -292,9 +310,50 @@ def produce_turn(
         from kernel.turncommit import TurnCommit
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
+    commit.narration_rewrite_required = bool(
+        not dropped_sections and (inherited_rewrite or (preserved_prose_repair
+        and narrated_physical != physical_signature(commit, world))))
     log.debug("produce_turn: done repair_attempts=%d dropped=%s", attempts, dropped_sections)
     # Persistent conversation is advanced only by run_turn after durable commit.
     return commit, attempts, dropped_sections
+
+
+def _rewrite_repaired_narration(registry, world, scene, player_input, commit, *,
+                                provider, required_sections=frozenset()):
+    """One text-only reconciliation before primary events; no stale-prose fallback."""
+    from llm.provider import json_call
+    before_sections = copy.deepcopy(commit.sections)
+    try:
+        packet = build_repair_outcome(registry, world, scene, commit, player_input)
+        messages = [
+            {"role": "system", "content": (
+                '你负责根据已校验的本回合可见结果写最终正文，不负责决定或修改事件。'
+                '玩家原话是请求，不等于动作已经成功；物品持有、位置和时间以before/after及'
+                'approved transitions为准。没有批准的交接或移动，不得写成已经交接或到达；'
+                '可写当下观察和反应，但不能编造先前发生的往事、付款或NPC已经知道的信息。'
+                '这里只覆盖主角本回合的前台结果，后台后续事件尚未发生，不要补写它们。'
+                '只返回严格JSON对象 {"narration":"给玩家阅读的中文正文"}，仅此一个键；'
+                '不输出事件、内部字段、判定过程、来源ID或这些说明。')},
+            {"role": "user", "content": json.dumps(packet, ensure_ascii=False)},
+        ]
+        with get_tracer().span("narration_reconcile"):
+            raw = json_call(provider.complete_messages, messages)
+        data = json.loads(raw)
+        if (not isinstance(data, dict) or set(data) != {'narration'}
+                or not isinstance(data['narration'], str) or not data['narration'].strip()):
+            raise ValueError('Narration-only schema not satisfied')
+        if commit.sections != before_sections:
+            raise ValueError('Narration rewrite changed effects')
+        from kernel.turncommit import TurnCommit
+        rewritten = TurnCommit(narration=data['narration'], sections=commit.sections)
+        errors = validate_commit(registry, rewritten, world, required_sections=required_sections)
+        errors.extend(validate_narration(rewritten, world))
+        if errors:
+            raise ValueError('Rewritten narration failed validation')
+        commit.narration = rewritten.narration
+        commit.narration_rewrite_required = False
+    except Exception as error:
+        raise TurnRejected('Unable to reconcile narration with repaired primary outcomes') from error
 
 
 def apply_turn(
@@ -317,6 +376,8 @@ def apply_turn(
     Returns:
         New projected world dict.
     """
+    if getattr(commit, 'narration_rewrite_required', False):
+        raise TurnRejected('Repaired physical outcomes require narration reconciliation before apply')
     if hasattr(store, 'snapshot'):
         source_revision, prior_events = store.snapshot()
         turn_num = max((event.get('turn') or 0 for event in prior_events
@@ -411,6 +472,9 @@ def _run_turn_staged(
         )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
+        if commit.narration_rewrite_required:
+            _rewrite_repaired_narration(registry, world, scene, player_input, commit,
+                                       provider=provider, required_sections=required_sections)
 
         scene_id = scene.get("id") or scene.get("location") or "scene"
         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day

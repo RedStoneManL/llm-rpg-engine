@@ -11,6 +11,8 @@ class TurnCommit:
     NOTE: "narration" is reserved and must not be used as a commit section name."""
     narration: str = ""
     sections: dict[str, Any] = field(default_factory=dict)
+    # Host-only signal; model from_dict/to_dict never read or emit this field.
+    narration_rewrite_required: bool = field(default=False, init=False, repr=False, compare=False)
 
     @classmethod
     def from_dict(cls, d: dict) -> "TurnCommit":

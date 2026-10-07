@@ -1,0 +1,54 @@
+{
+  "source_base": "358cdde65e162af4656e641ee76956a9e176f2b3",
+  "model": "native-gpt-6-astra",
+  "historical": {
+    "input_kind": "Exact recorded DeepSeek T14 original and items:[] repair, not fresh model generations",
+    "old_narration": "沈掌柜应了一声，转身掀帘进了里屋。片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」他退回柜台后，重新拨起算盘，没再多问。",
+    "fresh_rewritten_narration": "你仍在客栈里。查看随身物品时，你发现铜铃就在自己身上，并不在沈掌柜手中，也就无须再接回了。",
+    "approved_sections_unchanged": true,
+    "bell_holder": [
+      "player"
+    ],
+    "new_item_transfer_events": 0,
+    "saved_and_cached_match_display": true,
+    "fresh_model_completions": 1,
+    "prepublish_observation": {
+      "before_event_count": 81,
+      "while_rewrite_pending_count": 81,
+      "no_durable_action_yet": true,
+      "request_has_old_handover_prose": false,
+      "transitions": []
+    }
+  },
+  "fresh_player_case": {
+    "input_kind": "Actual normal play_loop with freshly generated native intent and narration",
+    "committed": true,
+    "narration": "你朝沈掌柜伸出手：「把铜铃还我吧。」\n话音刚落，你身上便传来一声轻轻的叮当。你伸手一摸，摸出的正是那只「雨燕」。\n沈掌柜看了看铃，又看了看你：「这不是就在你手上么？」\n……好，伸出去接东西的那只手，突然显得很多余。\n算盘珠子啪地一响。铜铃握在你掌心，这回并没有发生交接。",
+    "repair_attempts": 0,
+    "bell_holder": [
+      "player"
+    ],
+    "fresh_model_completions": 2,
+    "rewrite_calls": 0,
+    "saved_and_cached_match_display": true
+  },
+  "total_fresh_model_completions": 3,
+  "native_run_source_hashes": {
+    "loop/turn.py": "1c6d8e6f48b23b7430af56679f05ad53f03a6a9179f8b1155cbfb12683e66750",
+    "kernel/turncommit.py": "81ef7170247b2c8c6e19f1f5fcbf3834a7529d79dc76c584309c00fba564c3bf",
+    "loop/repair_outcome.py": "26f5cdd749b434651c397aa941e3808d773ec783e493c618ba274823c803f093"
+  },
+  "final_source_hashes": {
+    "kernel/turncommit.py": "81ef7170247b2c8c6e19f1f5fcbf3834a7529d79dc76c584309c00fba564c3bf",
+    "loop/turn.py": "bc0866ab3c24735473de67915f77629a9778615e1a3a300a296b00f53cad4477",
+    "loop/repair_outcome.py": "26f5cdd749b434651c397aa941e3808d773ec783e493c618ba274823c803f093",
+    "loop/compare.py": "87e1ccd92cc2bbbbd89fb7dc492612fd8c2f9514d33dc71576c2e0abdc98f092"
+  },
+  "limits": [
+    "Prepared/compare marker routing was added after these ordinary-path native samples and independently code-reviewed; comparison-mode generation was not sampled.",
+    "One observed rewrite and one fresh unchanged-valid action, not universal semantic alignment.",
+    "Failed rewrite rollback is code-reviewed, not exercised by a fabricated provider failure.",
+    "Background hooks run after primary narration; historical stale clock.reason produced a later backstop quest summary mentioning a handover.",
+    "No fresh DeepSeek calls or offline unit campaign."
+  ]
+}
