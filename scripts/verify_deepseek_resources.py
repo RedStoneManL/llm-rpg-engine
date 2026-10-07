@@ -73,9 +73,12 @@ def _request_json(url, headers, body=None):
 
 
 class BoundedDeepSeekProvider(DeepSeekProvider):
-    def __init__(self, api_key, *, api_budget=None):
+    def __init__(self, api_key, *, api_budget=None, max_posts=MAX_POSTS):
         if not api_key or not api_key.strip():
             raise ValueError("DEEPSEEK_API_KEY must be set in the environment")
+        if type(max_posts) is not int or not 1 <= max_posts <= 64:
+            raise ValueError("max_posts must be an integer in 1..64")
+        self.max_posts = max_posts
         super().__init__(MODEL, api_key, BASE_URL, MAX_OUTPUT_TOKENS, thinking="disabled")
         self.calls = []
         self.api_budget = api_budget
@@ -98,8 +101,8 @@ class BoundedDeepSeekProvider(DeepSeekProvider):
             raise RuntimeError("Exact-model /models preflight is required")
         if url != BASE_URL + "/chat/completions" or body.get("model") != MODEL:
             raise ValueError("Only the official endpoint and exact deepseek-flash model are allowed")
-        if len(self.calls) >= MAX_POSTS:
-            raise CallBudgetExceeded("16 HTTP POST budget exhausted")
+        if len(self.calls) >= self.max_posts:
+            raise CallBudgetExceeded(f"{self.max_posts} HTTP POST budget exhausted")
         body = self._prepare_body({**body, "max_tokens": min(body["max_tokens"], MAX_OUTPUT_TOKENS)})
         reservation = self.api_budget.reserve(body) if self.api_budget is not None else None
         entry = {"number": len(self.calls) + 1, "case": self.case_id, "phase": self.phase,

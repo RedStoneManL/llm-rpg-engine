@@ -1,0 +1,5896 @@
+{
+  "arm": "author_baseline",
+  "strategy": "AuthorStrategy",
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "status": "machine_checks_failed_manual_review_required",
+  "started_at": "2026-10-07T10:16:07.472442+00:00",
+  "ended_at": "2026-10-07T10:20:59.074252+00:00",
+  "fixture_sha256": "fa834fea6af333b1633f8083a277961fa35f11ce5ffdf31471788ac35174f7de",
+  "actions_sha256": "4d7682e5a1dcf9f1b5db117ed170b102148246d9f651e0354aa74aa35308e631",
+  "fixture_kind": "synthetic prior history; typed promise seeded, NL registration excluded",
+  "actions": [
+    "对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”",
+    "把铜铃托在手上给沈掌柜看，但不交给他。",
+    "将铜铃交给沈掌柜保管。",
+    "独自走到客栈院子。",
+    "留在院子看一会儿天色，不取放任何物品。",
+    "独自走到石桥。",
+    "问何桥守：“你亲耳听到我刚才在客栈给铜铃起的名字了吗？”",
+    "独自走到集市。",
+    "在集市观察街景，不买卖、不交接物品。",
+    "在此安静休息到第二天清晨。",
+    "独自返回客栈。",
+    "看看铜铃现在由谁保管，先不取回。",
+    "问沈掌柜：“这枚玉印是我从何桥守那里借来的，对吗？”",
+    "请沈掌柜把保管的铜铃交还给我，并接过。",
+    "问沈掌柜：“我第一天给铜铃起的名字是什么？当时排除的另一个名字是什么？”",
+    "把玉印归还沈掌柜。"
+  ],
+  "display_names": {
+    "player": "林舟",
+    "keeper": "沈掌柜",
+    "guard": "何桥守",
+    "inn": "客栈",
+    "courtyard": "客栈院子",
+    "bridge": "石桥",
+    "market": "集市",
+    "brass_bell": "铜铃",
+    "jade_seal": "玉印"
+  },
+  "limits": {
+    "http_posts": 64,
+    "max_output_tokens": 4096,
+    "max_input_tokens": 131072,
+    "temperature": 0,
+    "http_retries": 0,
+    "narration_repairs_per_action": 1
+  },
+  "compaction": {
+    "forced_before_turns": [
+      12,
+      15
+    ],
+    "label": "test-stress cache compaction, not natural token-threshold evidence",
+    "natural_threshold_tokens": 140000.0
+  },
+  "counts": {
+    "turns_completed": 16,
+    "failed_turns": 12,
+    "failed_checks": 14,
+    "refused_turns": 0,
+    "execution_errors": 0
+  },
+  "usage": {
+    "http_post_attempts": 34,
+    "reported_token_totals": {
+      "input": 97501,
+      "output": 3138,
+      "total": 100639
+    },
+    "calls_without_usage": 0
+  },
+  "base_commit": "c76365f163b8521ba582eb75260f45cce8ad6da4",
+  "raw_audit_note": "Full before/after world snapshots and raw requests retained in the companion synthetic audit archive; session budget omitted from public report. Repeated display-name snapshots and immutable evidence fields elided; narration events reference the same turn final_narration. Full raw archive is authoritative.",
+  "calls": [
+    {
+      "number": 1,
+      "case": "turn_01",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3172,
+        "completion_tokens": 249,
+        "total_tokens": 3421,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 1380
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你把铜铃托在掌心，铃舌轻晃，发出一声短促的脆响。「这枚，我叫它『雨燕』。」你说，「不是『归雁』。」\\n\\n沈掌柜正用抹布擦着柜台，闻言手上一顿，抬眼看了看那铃，又看了看你。「雨燕。」他重复了一遍，像是把这两个字在嘴里掂了掂分量，「行，你叫它什么，它就是什么。」他把抹布搭回肩上，语气里没什么波澜，只是末了补了一句：「不过林兄弟，名字这东西，叫得越顺口，越容易忘了它原本是谁的。」\\n\\n晨光从客栈门缝里斜切进来，落在柜台上，把铜铃的影子拉得细长。堂里还没什么客人，只有灶房那边传来水开的动静。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[{\"subject\":\"brass_bell\",\"predicate\":\"别名\",\"value\":\"雨燕\",\"secrecy\":\"public\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"柜台前的一段对话，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 2,
+      "case": "turn_02",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3600,
+        "completion_tokens": 128,
+        "total_tokens": 3728,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1424
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                                ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 3,
+      "case": "turn_02",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3794,
+        "completion_tokens": 51,
+        "total_tokens": 3845,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 210
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"仍在客栈柜台前的同一段对话，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 4,
+      "case": "turn_03",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3631,
+        "completion_tokens": 137,
+        "total_tokens": 3768,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 1327
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                                         ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 5,
+      "case": "turn_03",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3826,
+        "completion_tokens": 75,
+        "total_tokens": 3901,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 242
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[{\"subject\":\"brass_bell\",\"predicate\":\"保管人\",\"value\":\"keeper\",\"secrecy\":\"public\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"交接在同一段晨间对话内完成，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 6,
+      "case": "turn_04",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3680,
+        "completion_tokens": 124,
+        "total_tokens": 3804,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 1376
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                          ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 7,
+      "case": "turn_04",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3876,
+        "completion_tokens": 63,
+        "total_tokens": 3939,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 292
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[{\"who\":\"player\",\"to\":\"courtyard\"}],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"从客栈堂内走到院子，同一时段内的短距离移动\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 8,
+      "case": "turn_05",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3678,
+        "completion_tokens": 131,
+        "total_tokens": 3809,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 1246
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                                   ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 9,
+      "case": "turn_05",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3874,
+        "completion_tokens": 55,
+        "total_tokens": 3929,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 290
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"留在院中看天色，同一时段内的短暂停留，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 10,
+      "case": "turn_06",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3711,
+        "completion_tokens": 151,
+        "total_tokens": 3862,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 1279
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                                                       ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 11,
+      "case": "turn_06",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3906,
+        "completion_tokens": 62,
+        "total_tokens": 3968,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 322
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[{\"who\":\"player\",\"to\":\"bridge\"}],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":true,\"days\":0,\"bands\":1,\"reason\":\"从客栈院子走到石桥，晨间时段内的一次短程移动\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 12,
+      "case": "turn_07",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3780,
+        "completion_tokens": 105,
+        "total_tokens": 3885,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 1348
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                         ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 13,
+      "case": "turn_07",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3975,
+        "completion_tokens": 52,
+        "total_tokens": 4027,
+        "prompt_tokens_details": {
+          "cached_tokens": 3712
+        },
+        "prompt_cache_hit_tokens": 3712,
+        "prompt_cache_miss_tokens": 263
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"桥头问话，同一时段内，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 14,
+      "case": "turn_07",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 258,
+        "completion_tokens": 35,
+        "total_tokens": 293,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 258
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"你向沈掌柜展示铜铃并命名为“雨燕”，沈掌柜提醒名字叫得越顺口越容易忘记它原本是谁的。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 15,
+      "case": "turn_08",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3668,
+        "completion_tokens": 8,
+        "total_tokens": 3676,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 1236
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "        ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 16,
+      "case": "turn_08",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3862,
+        "completion_tokens": 59,
+        "total_tokens": 3921,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 278
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[{\"who\":\"player\",\"to\":\"market\"}],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":true,\"days\":0,\"bands\":1,\"reason\":\"从石桥走到集市，时段由中午推进到下午\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 17,
+      "case": "turn_08",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 83,
+        "completion_tokens": 12,
+        "total_tokens": 95,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 83
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"场景中周遭并无明显变化。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 18,
+      "case": "turn_09",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3671,
+        "completion_tokens": 163,
+        "total_tokens": 3834,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 1239
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                                                                   ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 19,
+      "case": "turn_09",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3866,
+        "completion_tokens": 49,
+        "total_tokens": 3915,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 282
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"在集市驻足观望，同一时段内的短暂停留\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 20,
+      "case": "turn_09",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 11,
+        "total_tokens": 86,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 75
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"这一刻周遭并无明显变化。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 21,
+      "case": "turn_10",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3508,
+        "completion_tokens": 131,
+        "total_tokens": 3639,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1332
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"集市的人声渐渐稀下去。你靠着桥头一段矮墙坐下，看摊贩收摊、灯笼一盏盏亮起又熄灭。夜风从河面吹上来，带着水腥气。你半睡半醒地挨过整夜，天光泛白时，早起的挑夫已经挑着担子从你面前走过。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":true,\"days\":1,\"bands\":2,\"reason\":\"从下午静坐到次日清晨，跨过夜晚与晨两个时段\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 22,
+      "case": "turn_10",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 74,
+        "completion_tokens": 12,
+        "total_tokens": 86,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 74
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"场景中周遭并无明显变化。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 23,
+      "case": "turn_11",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3641,
+        "completion_tokens": 115,
+        "total_tokens": 3756,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1465
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你从集市折回，穿过石桥，推开客栈的门。晨光斜进堂屋，柜台后沈掌柜正拨着算盘，听见门响抬了下眼，又低头继续。堂里只有两个赶早的客人低头喝粥。\",\"moves\":[{\"who\":\"player\",\"to\":\"inn\"}],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":true,\"days\":0,\"bands\":1,\"reason\":\"从集市走回客栈，晨间时段推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 24,
+      "case": "turn_11",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 75,
+        "completion_tokens": 14,
+        "total_tokens": 89,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 75
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"场景s4中周遭并无明显变化。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 25,
+      "case": "turn_12",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3452,
+        "completion_tokens": 196,
+        "total_tokens": 3648,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1276
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你走到柜台前，没提取回的事，只问了一句铜铃还在不在。沈掌柜从算盘上抬起眼，朝里屋方向扬了扬下巴：「在，搁在我柜里锁着，跑不了。」他顿了顿，又低头拨了两颗珠子，「你要用，说一声就是。」堂里那两个赶早的客人已经喝完粥走了，晨光挪到门槛上。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[{\"subject\":\"brass_bell\",\"predicate\":\"保管人\",\"value\":\"keeper\",\"secrecy\":\"public\"}],\"knowledge\":[{\"op\":\"told\",\"knower\":\"player\",\"fact_key\":\"brass_bell.保管人\",\"value\":\"keeper\",\"via\":\"沈掌柜亲口确认\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"柜台前几句问答，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 26,
+      "case": "turn_12",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 141,
+        "completion_tokens": 31,
+        "total_tokens": 172,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 141
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"叙述者在集市散去的桥头矮墙边半睡半醒地熬过一夜，直到天亮时挑夫经过。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 27,
+      "case": "turn_13",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3659,
+        "completion_tokens": 122,
+        "total_tokens": 3781,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1483
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                                                                                          ",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 28,
+      "case": "turn_13",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3855,
+        "completion_tokens": 49,
+        "total_tokens": 3904,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 271
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"同一段柜台前的对话，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 29,
+      "case": "turn_13",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 121,
+        "completion_tokens": 26,
+        "total_tokens": 147,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 121
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"我从集市返回客栈，沈掌柜在柜台拨算盘，堂内只有两名客人喝粥。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_summary"
+    },
+    {
+      "number": 30,
+      "case": "turn_13",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 187,
+        "completion_tokens": 66,
+        "total_tokens": 253,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 187
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"summary\": \"叙述者向沈掌柜展示铜铃并为其取名“雨燕”，沈掌柜提醒名字越顺口越容易忘记它原本是谁的；随后叙述者在集市散去的桥头矮墙边半睡半醒熬过一夜，直到天亮时挑夫经过，期间周遭无明显变化。\"}",
+      "finish_reason": "stop",
+      "wire_stage": "recap_recompression"
+    },
+    {
+      "number": 31,
+      "case": "turn_14",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3623,
+        "completion_tokens": 185,
+        "total_tokens": 3808,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1447
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "                                                       {\"narration\":\"沈掌柜应了一声，转身掀帘进了里屋。片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」他退回柜台后，重新拨起算盘，没再多问。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"items\":[{\"op\":\"transfer\",\"item\":\"brass_bell\",\"from\":\"keeper\",\"to\":\"player\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"柜台前一次交接，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 32,
+      "case": "turn_14",
+      "phase": "narration_repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3870,
+        "completion_tokens": 5,
+        "total_tokens": 3875,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 286
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"items\":[]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration_repair"
+    },
+    {
+      "number": 33,
+      "case": "turn_15",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3511,
+        "completion_tokens": 209,
+        "total_tokens": 3720,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1335
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"沈掌柜的算盘停了。他没立刻答，先看了你一眼，像在掂量这问题是不是玩笑。\\n\\n「雨燕。」他说，「你那天说，铃一响像燕子掠水。另一个你嫌太软，划掉了——叫什么来着……」他指尖在柜面上虚点两下，「『小满』。你说节气名太顺口，顺口的东西容易被人当成自己的。」\\n\\n他重新拨起算盘，珠子响得比刚才慢。「问这个做什么。」\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"knowledge\":[{\"op\":\"told\",\"knower\":\"player\",\"fact_key\":\"brass_bell.别名\",\"value\":\"雨燕（当时排除的备选名为「小满」）\",\"via\":\"沈掌柜复述\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"柜台前一段对话，时间未实质推进\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    },
+    {
+      "number": 34,
+      "case": "turn_16",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 3798,
+        "completion_tokens": 257,
+        "total_tokens": 4055,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1622
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你把玉印从怀里取出来，搁在柜台上，往沈掌柜那边推了推。「说好中午还的。」\\n\\n沈掌柜的算盘又停了。他看了看印，又看了看你，没急着收，先拿指腹在印面上抹了一下，像在确认是不是原物。然后他点点头，把玉印拢进掌心，转身掀帘进了里屋。\\n\\n帘子落下又掀起，他空着手出来，重新坐回柜台后。「账清了。」他说，拨了一颗珠子，「铃还在我柜里锁着，你要用，随时说。」\\n\\n堂里静下来，只剩算盘声。日头正毒，门槛外的石板白得晃眼。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"knowledge\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"归还玉印与几句对话，仍在中午同一时段内\"}],\"items\":[{\"op\":\"transfer\",\"item\":\"jade_seal\",\"from\":\"player\",\"to\":\"keeper\"}],\"promises\":[{\"op\":\"fulfill\",\"id\":\"fixture_return_jade_seal\"}]}",
+      "finish_reason": "stop",
+      "wire_stage": "narration"
+    }
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "action": "对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "你把铜铃托在掌心，铃舌轻晃，发出一声短促的脆响。「这枚，我叫它『雨燕』。」你说，「不是『归雁』。」\n\n沈掌柜正用抹布擦着柜台，闻言手上一顿，抬眼看了看那铃，又看了看你。「雨燕。」他重复了一遍，像是把这两个字在嘴里掂了掂分量，「行，你叫它什么，它就是什么。」他把抹布搭回肩上，语气里没什么波澜，只是末了补了一句：「不过林兄弟，名字这东西，叫得越顺口，越容易忘了它原本是谁的。」\n\n晨光从客栈门缝里斜切进来，落在柜台上，把铜铃的影子拉得细长。堂里还没什么客人，只有灶房那边传来水开的动静。",
+      "new_events": [
+        {
+          "seq": 35,
+          "id": "ev_743f1425df6f",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.别名=雨燕",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "别名",
+            "value": "雨燕",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 36,
+          "id": "ev_ec60c81cbdeb",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：柜台前的一段对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前的一段对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 37,
+          "id": "ev_592d50c390e0",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "inn",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:16:17.578878+00:00",
+          "narration": "你把铜铃托在掌心，铃舌轻晃，发出一声短促的脆响。「这枚，我叫它『雨燕』。」你说，「不是『归雁』。」\n\n沈掌柜正用抹布擦着柜台，闻言手上一顿，抬眼看了看那铃，又看了看你。「雨燕。」他重复了一遍，像是把这两个字在嘴里掂了掂分量，「行，你叫它什么，它就是什么。」他把抹布搭回肩上，语气里没什么波澜，只是末了补了一句：「不过林兄弟，名字这东西，叫得越顺口，越容易忘了它原本是谁的。」\n\n晨光从客栈门缝里斜切进来，落在柜台上，把铜铃的影子拉得细长。堂里还没什么客人，只有灶房那边传来水开的动静。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "别名",
+                "value": "雨燕",
+                "secrecy": "public"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前的一段对话，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 3172,
+          "output": 249,
+          "total": 3421
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 10.109087490000093,
+      "repair_attempts": 0,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 1,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 1,
+          "rejected_literal_count": 1
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "action": "把铜铃托在手上给沈掌柜看，但不交给他。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 38,
+          "id": "ev_6103335ea2eb",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：仍在客栈柜台前的同一段对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "仍在客栈柜台前的同一段对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 39,
+          "id": "ev_f5e6862f9ebf",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "inn",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:16:26.666678+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:16:26.666836+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:16:36.389020+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仍在客栈柜台前的同一段对话，时间未实质推进"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7394,
+          "output": 179,
+          "total": 7573
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 18.80628149200129,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 2,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 3,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "action": "将铜铃交给沈掌柜保管。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 40,
+          "id": "ev_053f91433382",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.保管人=keeper",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "保管人",
+            "value": "keeper",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 41,
+          "id": "ev_6a5e53aeee8b",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：交接在同一段晨间对话内完成，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "交接在同一段晨间对话内完成，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 42,
+          "id": "ev_ce785e5616b1",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "inn",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:16:48.076082+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:16:48.076213+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:16:56.464450+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "保管人",
+                "value": "keeper",
+                "secrecy": "public"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "交接在同一段晨间对话内完成，时间未实质推进"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": false,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7457,
+          "output": 212,
+          "total": 7669
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 20.074281266999606,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 4,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 5,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "action": "独自走到客栈院子。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 43,
+          "id": "ev_8acf8b16ad8b",
+          "type": "entity_moved",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 courtyard",
+          "deltas": {
+            "who": "player",
+            "to": "courtyard"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 44,
+          "id": "ev_4e9aea9eaabb",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：从客栈堂内走到院子，同一时段内的短距离移动",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "从客栈堂内走到院子，同一时段内的短距离移动"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 45,
+          "id": "ev_42df8c63e3d6",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "inn",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 46,
+          "id": "ev_112bd5d87c5e",
+          "type": "scene_advanced",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s2",
+          "deltas": {
+            "scene_id": "s2",
+            "scene_no": 2,
+            "location": "courtyard",
+            "day": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:17:04.469513+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:17:04.469656+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:17:11.853054+00:00",
+          "sections": {
+            "moves": [
+              {
+                "who": "player",
+                "to": "courtyard"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "从客栈堂内走到院子，同一时段内的短距离移动"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7556,
+          "output": 187,
+          "total": 7743
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 15.377655113999936,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 6,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 7,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 5,
+      "action": "留在院子看一会儿天色，不取放任何物品。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 47,
+          "id": "ev_0d8b034f0a57",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：留在院中看天色，同一时段内的短暂停留，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "留在院中看天色，同一时段内的短暂停留，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 5,
+          "retracted": false
+        },
+        {
+          "seq": 48,
+          "id": "ev_197a007334c4",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s2",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 5,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:17:20.424269+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:17:20.424407+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:17:29.815983+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "留在院中看天色，同一时段内的短暂停留，时间未实质推进"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7552,
+          "output": 186,
+          "total": 7738
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 17.95211287699931,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 8,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 9,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 6,
+      "action": "独自走到石桥。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 49,
+          "id": "ev_09313fe8779c",
+          "type": "entity_moved",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 bridge",
+          "deltas": {
+            "who": "player",
+            "to": "bridge"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 50,
+          "id": "ev_3cf08ab9b3b0",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "时间 +0天1段：从客栈院子走到石桥，晨间时段内的一次短程移动",
+          "deltas": {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "从客栈院子走到石桥，晨间时段内的一次短程移动"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 51,
+          "id": "ev_f0ea327a8bda",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s2",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 52,
+          "id": "ev_8252451e9347",
+          "type": "scene_advanced",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s3",
+          "deltas": {
+            "scene_id": "s3",
+            "scene_no": 3,
+            "location": "bridge",
+            "day": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:17:36.854133+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:17:36.854242+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:17:44.495860+00:00",
+          "sections": {
+            "moves": [
+              {
+                "who": "player",
+                "to": "bridge"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 0,
+                "bands": 1,
+                "reason": "从客栈院子走到石桥，晨间时段内的一次短程移动"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7617,
+          "output": 213,
+          "total": 7830
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 14.670555332999356,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 10,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 11,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 7,
+      "action": "问何桥守：“你亲耳听到我刚才在客栈给铜铃起的名字了吗？”",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 53,
+          "id": "ev_5524bc83d7cc",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：桥头问话，同一时段内，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "桥头问话，同一时段内，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 7,
+          "retracted": false
+        },
+        {
+          "seq": 54,
+          "id": "ev_9603b77cffc6",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 7,
+          "retracted": false
+        },
+        {
+          "seq": 55,
+          "id": "ev_da9ef10c3624",
+          "type": "scene_summarized",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: inn",
+          "deltas": {
+            "scene": "inn",
+            "summary": "你向沈掌柜展示铜铃并命名为“雨燕”，沈掌柜提醒名字叫得越顺口越容易忘记它原本是谁的。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 7,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:17:54.715125+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:17:54.715241+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:18:04.015216+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "桥头问话，同一时段内，时间未实质推进"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 8013,
+          "output": 192,
+          "total": 8205
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 31.16853418000028,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 12,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 13,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 6,
+          "rejected_literal_count": 3
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 14,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 1
+        }
+      ]
+    },
+    {
+      "turn": 8,
+      "action": "独自走到集市。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 2
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 56,
+          "id": "ev_6f45d9828e72",
+          "type": "entity_moved",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 market",
+          "deltas": {
+            "who": "player",
+            "to": "market"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 8,
+          "retracted": false
+        },
+        {
+          "seq": 57,
+          "id": "ev_0f2b02ce7f61",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间 +0天1段：从石桥走到集市，时段由中午推进到下午",
+          "deltas": {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "从石桥走到集市，时段由中午推进到下午"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 8,
+          "retracted": false
+        },
+        {
+          "seq": 58,
+          "id": "ev_591225c900e3",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "inn",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 8,
+          "retracted": false
+        },
+        {
+          "seq": 59,
+          "id": "ev_a11f7e932097",
+          "type": "scene_summarized",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s2",
+          "deltas": {
+            "scene": "s2",
+            "summary": "场景中周遭并无明显变化。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 8,
+          "retracted": false
+        },
+        {
+          "seq": 60,
+          "id": "ev_de8652f108c9",
+          "type": "scene_advanced",
+          "day": 1,
+          "scene": "s4",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s4",
+          "deltas": {
+            "scene_id": "s4",
+            "scene_no": 4,
+            "location": "market",
+            "day": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 8,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:18:25.115002+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:18:25.115117+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:18:31.784402+00:00",
+          "sections": {
+            "moves": [
+              {
+                "who": "player",
+                "to": "market"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 0,
+                "bands": 1,
+                "reason": "从石桥走到集市，时段由中午推进到下午"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 7613,
+          "output": 79,
+          "total": 7692
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 23.791570731998945,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 15,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 5,
+          "rejected_literal_count": 2
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 16,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 5,
+          "rejected_literal_count": 2
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 17,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 9,
+      "action": "在集市观察街景，不买卖、不交接物品。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 2
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 2
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 61,
+          "id": "ev_00cb6ade3e26",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s4",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：在集市驻足观望，同一时段内的短暂停留",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "在集市驻足观望，同一时段内的短暂停留"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 9,
+          "retracted": false
+        },
+        {
+          "seq": 62,
+          "id": "ev_b4654835e56f",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s4",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s4",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 9,
+          "retracted": false
+        },
+        {
+          "seq": 63,
+          "id": "ev_46620bc7f98e",
+          "type": "scene_summarized",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s3",
+          "deltas": {
+            "scene": "s3",
+            "summary": "这一刻周遭并无明显变化。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 9,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:18:48.424954+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:18:48.425080+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:18:55.936721+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "在集市驻足观望，同一时段内的短暂停留"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 7612,
+          "output": 223,
+          "total": 7835
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 23.87231353400057,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 18,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 5,
+          "rejected_literal_count": 2
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 19,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 5,
+          "rejected_literal_count": 2
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 20,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 10,
+      "action": "在此安静休息到第二天清晨。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 2
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "集市的人声渐渐稀下去。你靠着桥头一段矮墙坐下，看摊贩收摊、灯笼一盏盏亮起又熄灭。夜风从河面吹上来，带着水腥气。你半睡半醒地挨过整夜，天光泛白时，早起的挑夫已经挑着担子从你面前走过。",
+      "new_events": [
+        {
+          "seq": 64,
+          "id": "ev_baf54d72d8ec",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间 +1天2段：从下午静坐到次日清晨，跨过夜晚与晨两个时段",
+          "deltas": {
+            "advance": true,
+            "days": 1,
+            "bands": 2,
+            "reason": "从下午静坐到次日清晨，跨过夜晚与晨两个时段"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 10,
+          "retracted": false
+        },
+        {
+          "seq": 65,
+          "id": "ev_96c1501258b8",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 10,
+          "retracted": false
+        },
+        {
+          "seq": 66,
+          "id": "ev_392834da37f0",
+          "type": "scene_summarized",
+          "day": 3,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: inn",
+          "deltas": {
+            "scene": "inn",
+            "summary": "场景中周遭并无明显变化。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 10,
+          "retracted": false
+        },
+        {
+          "seq": 67,
+          "id": "ev_35b5657c6a4f",
+          "type": "scene_advanced",
+          "day": 3,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s5",
+          "deltas": {
+            "scene_id": "s5",
+            "scene_no": 5,
+            "location": "market",
+            "day": 3
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 10,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:19:13.938969+00:00",
+          "narration": "集市的人声渐渐稀下去。你靠着桥头一段矮墙坐下，看摊贩收摊、灯笼一盏盏亮起又熄灭。夜风从河面吹上来，带着水腥气。你半睡半醒地挨过整夜，天光泛白时，早起的挑夫已经挑着担子从你面前走过。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 1,
+                "bands": 2,
+                "reason": "从下午静坐到次日清晨，跨过夜晚与晨两个时段"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true,
+        "explicit_wait_reaches_day2_morning": false
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 3582,
+          "output": 143,
+          "total": 3725
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 20.645977594002034,
+      "repair_attempts": 0,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 21,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 22,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 11,
+      "action": "独自返回客栈。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "market"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "你从集市折回，穿过石桥，推开客栈的门。晨光斜进堂屋，柜台后沈掌柜正拨着算盘，听见门响抬了下眼，又低头继续。堂里只有两个赶早的客人低头喝粥。",
+      "new_events": [
+        {
+          "seq": 68,
+          "id": "ev_b4a66fcb09c7",
+          "type": "entity_moved",
+          "day": 3,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 inn",
+          "deltas": {
+            "who": "player",
+            "to": "inn"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 11,
+          "retracted": false
+        },
+        {
+          "seq": 69,
+          "id": "ev_443d262b6a89",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "时间 +0天1段：从集市走回客栈，晨间时段推进",
+          "deltas": {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "从集市走回客栈，晨间时段推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 11,
+          "retracted": false
+        },
+        {
+          "seq": 70,
+          "id": "ev_3161832a4759",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s5",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 11,
+          "retracted": false
+        },
+        {
+          "seq": 71,
+          "id": "ev_0999bda81b66",
+          "type": "scene_summarized",
+          "day": 3,
+          "scene": "s4",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s4",
+          "deltas": {
+            "scene": "s4",
+            "summary": "场景s4中周遭并无明显变化。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 11,
+          "retracted": false
+        },
+        {
+          "seq": 72,
+          "id": "ev_f7384f6249e0",
+          "type": "scene_advanced",
+          "day": 3,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s6",
+          "deltas": {
+            "scene_id": "s6",
+            "scene_no": 6,
+            "location": "inn",
+            "day": 3
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 11,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:19:37.790562+00:00",
+          "narration": "你从集市折回，穿过石桥，推开客栈的门。晨光斜进堂屋，柜台后沈掌柜正拨着算盘，听见门响抬了下眼，又低头继续。堂里只有两个赶早的客人低头喝粥。",
+          "sections": {
+            "moves": [
+              {
+                "who": "player",
+                "to": "inn"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 0,
+                "bands": 1,
+                "reason": "从集市走回客栈，晨间时段推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 3716,
+          "output": 129,
+          "total": 3845
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 20.90248490399972,
+      "repair_attempts": 0,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 23,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 24,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 12,
+      "action": "看看铜铃现在由谁保管，先不取回。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "你走到柜台前，没提取回的事，只问了一句铜铃还在不在。沈掌柜从算盘上抬起眼，朝里屋方向扬了扬下巴：「在，搁在我柜里锁着，跑不了。」他顿了顿，又低头拨了两颗珠子，「你要用，说一声就是。」堂里那两个赶早的客人已经喝完粥走了，晨光挪到门槛上。",
+      "new_events": [
+        {
+          "seq": 73,
+          "id": "ev_55b0c92d54f8",
+          "type": "fact_asserted",
+          "day": 3,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.保管人=keeper",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "保管人",
+            "value": "keeper",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 12,
+          "retracted": false
+        },
+        {
+          "seq": 74,
+          "id": "ev_d84db820f888",
+          "type": "knowledge_set",
+          "day": 3,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 brass_bell.保管人",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "brass_bell.保管人",
+            "value": "keeper",
+            "via": "沈掌柜亲口确认"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 12,
+          "retracted": false
+        },
+        {
+          "seq": 75,
+          "id": "ev_0ce299e66303",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：柜台前几句问答，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前几句问答，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 12,
+          "retracted": false
+        },
+        {
+          "seq": 76,
+          "id": "ev_28287461716b",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s6",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 12,
+          "retracted": false
+        },
+        {
+          "seq": 77,
+          "id": "ev_294489316304",
+          "type": "scene_summarized",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s3",
+          "deltas": {
+            "scene": "s3",
+            "summary": "叙述者在集市散去的桥头矮墙边半睡半醒地熬过一夜，直到天亮时挑夫经过。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 12,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:19:52.815530+00:00",
+          "narration": "你走到柜台前，没提取回的事，只问了一句铜铃还在不在。沈掌柜从算盘上抬起眼，朝里屋方向扬了扬下巴：「在，搁在我柜里锁着，跑不了。」他顿了顿，又低头拨了两颗珠子，「你要用，说一声就是。」堂里那两个赶早的客人已经喝完粥走了，晨光挪到门槛上。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "保管人",
+                "value": "keeper",
+                "secrecy": "public"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "player",
+                "fact_key": "brass_bell.保管人",
+                "value": "keeper",
+                "via": "沈掌柜亲口确认"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前几句问答，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 3593,
+          "output": 227,
+          "total": 3820
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 14.619271212999593,
+      "repair_attempts": 0,
+      "forced_compaction": true,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 25,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 26,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 13,
+      "action": "问沈掌柜：“这枚玉印是我从何桥守那里借来的，对吗？”",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "（这一刻，周遭并无明显变化。）",
+      "new_events": [
+        {
+          "seq": 78,
+          "id": "ev_58a2ab0247d8",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：同一段柜台前的对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一段柜台前的对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 13,
+          "retracted": false
+        },
+        {
+          "seq": 79,
+          "id": "ev_7d209c44b567",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 13,
+          "retracted": false
+        },
+        {
+          "seq": 80,
+          "id": "ev_76cf9ea86734",
+          "type": "scene_summarized",
+          "day": 3,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s5",
+          "deltas": {
+            "scene": "s5",
+            "summary": "我从集市返回客栈，沈掌柜在柜台拨算盘，堂内只有两名客人喝粥。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 13,
+          "retracted": false
+        },
+        {
+          "seq": 81,
+          "id": "ev_965d6d833a8c",
+          "type": "recap_recompressed",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "recap recompressed",
+          "deltas": {
+            "super_summary": "叙述者向沈掌柜展示铜铃并为其取名“雨燕”，沈掌柜提醒名字越顺口越容易忘记它原本是谁的；随后叙述者在集市散去的桥头矮墙边半睡半醒熬过一夜，直到天亮时挑夫经过，期间周遭无明显变化。",
+            "summarized_through_index": 6
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 13,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:20:08.867702+00:00",
+          "narration": "（这一刻，周遭并无明显变化。）",
+          "sections": {}
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:20:08.867845+00:00",
+          "sections": [
+            "cast",
+            "clock",
+            "facts",
+            "moves",
+            "places"
+          ],
+          "errors": [
+            {
+              "section": "cast",
+              "field": "",
+              "code": "missing_section",
+              "hint": "cast 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "facts",
+              "field": "",
+              "code": "missing_section",
+              "hint": "facts 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "moves",
+              "field": "",
+              "code": "missing_section",
+              "hint": "moves 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "places",
+              "field": "",
+              "code": "missing_section",
+              "hint": "places 段必须显式给出；没有变化时给空数组 []"
+            },
+            {
+              "section": "clock",
+              "field": "",
+              "code": "clock_required",
+              "hint": "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:20:15.249130+00:00",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一段柜台前的对话，时间未实质推进"
+              }
+            ]
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": false,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 4,
+        "reported_token_totals": {
+          "input": 7822,
+          "output": 263,
+          "total": 8085
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 28.830584388000716,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 27,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 28,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "recap_summary",
+          "post_number": 29,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 0,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "recap_recompression",
+          "post_number": 30,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 1,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 14,
+      "action": "请沈掌柜把保管的铜铃交还给我，并接过。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "沈掌柜应了一声，转身掀帘进了里屋。片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」他退回柜台后，重新拨起算盘，没再多问。",
+      "new_events": [
+        {
+          "seq": 82,
+          "id": "ev_23f89dd282e0",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：柜台前一次交接，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前一次交接，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 14,
+          "retracted": false
+        },
+        {
+          "seq": 83,
+          "id": "ev_68a7c216c92e",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 14,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:20:35.521099+00:00",
+          "narration": "沈掌柜应了一声，转身掀帘进了里屋。片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」他退回柜台后，重新拨起算盘，没再多问。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "brass_bell",
+                "from": "keeper",
+                "to": "player"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前一次交接，时间未实质推进"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T10:20:35.522038+00:00",
+          "sections": [
+            "items"
+          ],
+          "errors": [
+            {
+              "section": "items",
+              "field": "[0].to",
+              "code": "same_holder",
+              "hint": "物品已经由该对象持有；没有实际转移时请删除这条 transfer"
+            },
+            {
+              "section": "items",
+              "field": "[0].from",
+              "code": "stale_holder",
+              "hint": "from 与物品转移前持有者不符；核对可见物品记录，不得编造来源"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T10:20:42.642524+00:00",
+          "sections": {
+            "items": []
+          },
+          "narration": null
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": false,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 7493,
+          "output": 190,
+          "total": 7683
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 14.11590891599917,
+      "repair_attempts": 1,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 31,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        },
+        {
+          "stage": "narration_repair",
+          "post_number": 32,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 15,
+      "action": "问沈掌柜：“我第一天给铜铃起的名字是什么？当时排除的另一个名字是什么？”",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "open",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "沈掌柜的算盘停了。他没立刻答，先看了你一眼，像在掂量这问题是不是玩笑。\n\n「雨燕。」他说，「你那天说，铃一响像燕子掠水。另一个你嫌太软，划掉了——叫什么来着……」他指尖在柜面上虚点两下，「『小满』。你说节气名太顺口，顺口的东西容易被人当成自己的。」\n\n他重新拨起算盘，珠子响得比刚才慢。「问这个做什么。」",
+      "new_events": [
+        {
+          "seq": 84,
+          "id": "ev_afe633a06c3c",
+          "type": "knowledge_set",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 brass_bell.别名",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "brass_bell.别名",
+            "value": "雨燕（当时排除的备选名为「小满」）",
+            "via": "沈掌柜复述"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 85,
+          "id": "ev_38117f229f95",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：柜台前一段对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前一段对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 86,
+          "id": "ev_8c2f1c825bf0",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:20:50.539970+00:00",
+          "narration": "沈掌柜的算盘停了。他没立刻答，先看了你一眼，像在掂量这问题是不是玩笑。\n\n「雨燕。」他说，「你那天说，铃一响像燕子掠水。另一个你嫌太软，划掉了——叫什么来着……」他指尖在柜面上虚点两下，「『小满』。你说节气名太顺口，顺口的东西容易被人当成自己的。」\n\n他重新拨起算盘，珠子响得比刚才慢。「问这个做什么。」",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "player",
+                "fact_key": "brass_bell.别名",
+                "value": "雨燕（当时排除的备选名为「小满」）",
+                "via": "沈掌柜复述"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前一段对话，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 3511,
+          "output": 209,
+          "total": 3720
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 7.86617943300007,
+      "repair_attempts": 0,
+      "forced_compaction": true,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "recall_observation": {
+        "contains_chosen_literal": true,
+        "contains_rejected_literal": false,
+        "classification": "manual_review_required; uncertainty is a recall miss, not fabrication"
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 33,
+          "message_roles": [
+            "system",
+            "user"
+          ],
+          "chosen_literal_count": 2,
+          "rejected_literal_count": 0
+        }
+      ]
+    },
+    {
+      "turn": 16,
+      "action": "把玉印归还沈掌柜。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "keeper"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 3,
+          "band": 1
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "fulfilled",
+            "fulfilled_at": {
+              "day": 3,
+              "band": 1
+            }
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "expected": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "keeper"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "promise_status": "fulfilled",
+        "due": {
+          "day": 3,
+          "band": 1
+        }
+      },
+      "final_narration": "你把玉印从怀里取出来，搁在柜台上，往沈掌柜那边推了推。「说好中午还的。」\n\n沈掌柜的算盘又停了。他看了看印，又看了看你，没急着收，先拿指腹在印面上抹了一下，像在确认是不是原物。然后他点点头，把玉印拢进掌心，转身掀帘进了里屋。\n\n帘子落下又掀起，他空着手出来，重新坐回柜台后。「账清了。」他说，拨了一颗珠子，「铃还在我柜里锁着，你要用，随时说。」\n\n堂里静下来，只剩算盘声。日头正毒，门槛外的石板白得晃眼。",
+      "new_events": [
+        {
+          "seq": 87,
+          "id": "ev_80375516ff64",
+          "type": "clock_advanced",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：归还玉印与几句对话，仍在中午同一时段内",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "归还玉印与几句对话，仍在中午同一时段内"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 88,
+          "id": "ev_59f68eaf9047",
+          "type": "item_transferred",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "jade_seal 转移至 keeper",
+          "deltas": {
+            "op": "transfer",
+            "item": "jade_seal",
+            "from": "player",
+            "to": "keeper"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 89,
+          "id": "ev_5e7e5be1aba6",
+          "type": "item_return_fulfilled",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "物品归还承诺履行待核验",
+          "deltas": {
+            "id": "fixture_return_jade_seal"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 90,
+          "id": "ev_8551a1982054",
+          "type": "narration_recorded",
+          "day": 3,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text_reference": "this turn final_narration"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        }
+      ],
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T10:20:59.005438+00:00",
+          "narration": "你把玉印从怀里取出来，搁在柜台上，往沈掌柜那边推了推。「说好中午还的。」\n\n沈掌柜的算盘又停了。他看了看印，又看了看你，没急着收，先拿指腹在印面上抹了一下，像在确认是不是原物。然后他点点头，把玉印拢进掌心，转身掀帘进了里屋。\n\n帘子落下又掀起，他空着手出来，重新坐回柜台后。「账清了。」他说，拨了一颗珠子，「铃还在我柜里锁着，你要用，随时说。」\n\n堂里静下来，只剩算盘声。日头正毒，门槛外的石板白得晃眼。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "归还玉印与几句对话，仍在中午同一时段内"
+              }
+            ],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "jade_seal",
+                "from": "player",
+                "to": "keeper"
+              }
+            ],
+            "promises": [
+              {
+                "op": "fulfill",
+                "id": "fixture_return_jade_seal"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_requests": true,
+        "no_private_canary_in_prose": true
+      },
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 3798,
+          "output": 257,
+          "total": 4055
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 8.416576613999496,
+      "repair_attempts": 0,
+      "forced_compaction": false,
+      "provenance_observations": {
+        "borrowed_from_source_changed": false,
+        "note": "Reasserting the same keeper origin is not itself a semantic failure."
+      },
+      "request_observations": [
+        {
+          "stage": "narration",
+          "post_number": 34,
+          "message_roles": [
+            "system",
+            "user",
+            "assistant",
+            "user"
+          ],
+          "chosen_literal_count": 5,
+          "rejected_literal_count": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2060 @@
+{
+  "arm": "production_before_c76365f_no_automation_window",
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "started_at": "2026-10-07T13:50:39.099313+00:00",
+  "fixture_sha256": "fa834fea6af333b1633f8083a277961fa35f11ce5ffdf31471788ac35174f7de",
+  "effective_fixture_sha256": "decb8baf9db8cb92915a4ecb2d3864a67887b81c10fd3a2b191be5ef03526a76",
+  "actions_sha256": "4d7682e5a1dcf9f1b5db117ed170b102148246d9f651e0354aa74aa35308e631",
+  "actions": [
+    "对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”",
+    "把铜铃托在手上给沈掌柜看，但不交给他。",
+    "将铜铃交给沈掌柜保管。",
+    "独自走到客栈院子。",
+    "留在院子看一会儿天色，不取放任何物品。",
+    "独自走到石桥。",
+    "问何桥守：“你亲耳听到我刚才在客栈给铜铃起的名字了吗？”",
+    "独自走到集市。",
+    "在集市观察街景，不买卖、不交接物品。",
+    "在此安静休息到第二天清晨。",
+    "独自返回客栈。",
+    "看看铜铃现在由谁保管，先不取回。",
+    "问沈掌柜：“这枚玉印是我从何桥守那里借来的，对吗？”",
+    "请沈掌柜把保管的铜铃交还给我，并接过。",
+    "问沈掌柜：“我第一天给铜铃起的名字是什么？当时排除的另一个名字是什么？”",
+    "把玉印归还沈掌柜。"
+  ],
+  "profile": {
+    "source": "run-deepseek.sh",
+    "conversation_mode": "multiturn",
+    "verbosity": "concise",
+    "style": "flavor default",
+    "flavor": "isekai",
+    "campaign_seed": 72916001,
+    "play_loop_invocations": 1,
+    "cascade_provider": "same audited main-provider instance",
+    "all_normal_backstage_hooks_enabled": true,
+    "native_tools": true,
+    "no_guarantee_all_hooks_trigger": "fixture has no L2 town/genesis quests; enablement is not exercise coverage",
+    "effective_style": "日式轻小说笔法：短句为主、对白与主角内心吐槽驱动、环境点到即止、口语化、节奏轻快明亮、适度玩梗、少堆华丽长定语。"
+  },
+  "limits": {
+    "http_posts": null,
+    "max_output_tokens": 16384,
+    "max_input_tokens": 1048576,
+    "max_repairs": 3,
+    "max_tool_rounds": 3,
+    "temperature_override": null,
+    "http_retries": 0,
+    "http_timeout_seconds": 600,
+    "redirects": 0
+  },
+  "safety_exceptions": [
+    "shared strict session CNY ledger; no per-arm reset",
+    "no transport retries",
+    "fatal latch blocks new admissions; already-admitted concurrent calls finish and stay charged"
+  ],
+  "compaction": {
+    "forced_before_turns": [],
+    "natural_threshold_tokens": 140000.0
+  },
+  "counts": {
+    "turns_completed": 5,
+    "failed_turns": 0,
+    "failed_checks": 0,
+    "refused_turns": 0,
+    "execution_errors": 0
+  },
+  "status": "interrupted_production_baseline_after_not_tested",
+  "interruption": {
+    "status": "interrupted_proxy_tunnel_403_and_executor",
+    "completed_inputs": 5,
+    "uncommitted_input": 6,
+    "confirmed_post_responses": 16,
+    "post17": "URLError/OSError: proxy tunnel HTTP403; no usage; full reservation retained",
+    "failure_at": "2026-10-07T13:54:11.571361+00:00",
+    "exec_poll": "automatic approval review was cancelled; later same session Unknown process id",
+    "sqlite_active_max_turn": 5,
+    "evaluation": "Incomplete production baseline. Manual progress update without automation did not eliminate failure. Correlation with report time is not proof of root cause. No paired-after conclusion."
+  },
+  "source": {
+    "git_head": "c76365f163b8521ba582eb75260f45cce8ad6da4",
+    "source_sha256": "a798ae5061b3e560def649a7ccda96cbe8ddafe4970068a9b018eeaf6d448763",
+    "core_sha256": {
+      "loop/strategy.py": "80ca1bbbb6bd3899f4ca8aa4169ac1ddb4202e8bd26c69e39bfcdb47de0d6364",
+      "loop/turn.py": "9acc9dd7273d30c024a91ae531696113955b9cad73219b4e9972093fb33b006c",
+      "scripts/api_budget.py": "cbb285afd8aa121c307dbd85374db72726e3ad626a3dd7f0fb2f1f290c0a5918",
+      "scripts/benchmark_production_semantics.py": "d9623c6fb13fa1c2ff3b8cd02f83033556921d33f7cae87b1a9535ad2a85aeb0"
+    }
+  },
+  "calls": [
+    {
+      "number": 1,
+      "case": "turn_01",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1152,
+        "prompt_cache_miss_tokens": 140,
+        "prompt_tokens": 1292,
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        },
+        "total_tokens": 1297
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.843246249001822
+    },
+    {
+      "number": 2,
+      "case": "turn_01",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 220,
+        "prompt_cache_hit_tokens": 4480,
+        "prompt_cache_miss_tokens": 169,
+        "prompt_tokens": 4649,
+        "prompt_tokens_details": {
+          "cached_tokens": 4480
+        },
+        "total_tokens": 4869
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\":\"柜台后的沈掌柜正擦着一只茶盏，闻言停了手。\\n\\n「雨燕？」他把茶盏翻了个面，像是在掂量这两个字的斤两，「不叫归雁——那名字太老实了，一听就等着人还回来。」\\n\\n他笑了一下，眼角堆起细纹。「燕子倒是新，可燕子每年也是要回来的。林公子，你是想说它飞得远呢，还是想说……它本来就不打算回来？」\\n\\n铜铃在你袖口里没响。掌柜也没再多问，只是把擦干的茶盏摆回架上，顺手朝院里那口井的方向抬了抬下巴——意思是水还热着，要喝自己倒。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[{\"subject\":\"brass_bell\",\"predicate\":\"named_by_player\",\"value\":\"雨燕\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"柜台前的一段对话，时间未实质推进\"}]}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 15.851366618000611
+    },
+    {
+      "number": 3,
+      "case": "turn_02",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1152,
+        "prompt_cache_miss_tokens": 134,
+        "prompt_tokens": 1286,
+        "prompt_tokens_details": {
+          "cached_tokens": 1152
+        },
+        "total_tokens": 1291
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 12.327490833999036
+    },
+    {
+      "number": 4,
+      "case": "turn_02",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 134,
+        "prompt_cache_hit_tokens": 3584,
+        "prompt_cache_miss_tokens": 1416,
+        "prompt_tokens": 5000,
+        "prompt_tokens_details": {
+          "cached_tokens": 3584
+        },
+        "total_tokens": 5134
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "                                                                                                                                     ",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 16.465779385998758
+    },
+    {
+      "number": 5,
+      "case": "turn_02",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 246,
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 1610,
+        "prompt_tokens": 3786,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "total_tokens": 4032
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\":\"你把铜铃托在掌心，没往柜台上放。\\n\\n沈掌柜低头看了一眼。黄铜旧得发暗，铃身一圈细纹，系绳还是那根磨白的旧棉线。他伸手想碰，指尖停在离铃两寸的地方，又收回去，只是看。\\n\\n「好东西。」他说，「不是值钱的贵，是有年头的那种贵。」\\n\\n你把手合上，铜铃回到掌心。掌柜也不催，重新拿起那只茶盏，像是方才什么都没发生——只是眼角的笑有点耐人寻味。「林公子，你这是给我看，还是给我看别的东西，自己心里有数。」\\n\\n院里井水咕嘟响了一声。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[{\"subject\":\"brass_bell\",\"predicate\":\"外观\",\"value\":\"黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线\",\"secrecy\":\"public\"}],\"knowledge\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"同一段柜台对话，时间未实质推进\"}]}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.858512367998628
+    },
+    {
+      "number": 6,
+      "case": "turn_03",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 255,
+        "prompt_tokens": 1279,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "total_tokens": 1284
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 10.560160534001625
+    },
+    {
+      "number": 7,
+      "case": "turn_03",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 310,
+        "prompt_cache_hit_tokens": 3712,
+        "prompt_cache_miss_tokens": 1720,
+        "prompt_tokens": 5432,
+        "prompt_tokens_details": {
+          "cached_tokens": 3712
+        },
+        "total_tokens": 5742
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "                                                                                                                                                                                                                                                                                                                      ",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 12.692801521003275
+    },
+    {
+      "number": 8,
+      "case": "turn_03",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 592,
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 1916,
+        "prompt_tokens": 4220,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "total_tokens": 4812
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\": \"你把铜铃搁上柜台，没放下就松了手——黄铜磕在木头上，闷闷一响。\\n\\n「行。」沈掌柜把茶盏往旁边一挪，先不接，只伸出两根指头把铜铃拨到柜台里侧，像是确认这东西真的落了地。然后他才拿起来，搁进柜台下头那个带锁的抽屉。\\n\\n「几时来取，说一声。」钥匙在他掌心里转了一圈，收进袖口，「熟人经手，丢不了。」\\n\\n他说这话的时候，院门那边有人推开半扇门走进来，带进一阵清晨的凉气。来人挎着个布包袱，帽檐压低，进门先看柜台，再看你，目光在铜铃刚消失的那截台面上多停了一瞬。\\n\\n「沈老。」那人开口，嗓音有点哑，「上房还留着一间么？」\\n\\n沈掌柜抬眼看过去，脸上的笑纹没变，语气却慢了半拍：「客官来得巧。」\", \"moves\": [], \"places\": [], \"cast\": [{\"id\": \"npc_late_guest\", \"op\": \"create\", \"sketch\": \"清晨入店的客人，布包袱、压低的帽檐，进门先扫柜台再扫人，与沈掌柜似有旧识的客套；对铜铃消失的位置多看了一眼。\", \"goal\": \"投宿上房，并弄清客栈里近日往来的人与物\"}], \"facts\": [{\"subject\": \"brass_bell\", \"predicate\": \"代为保管人\", \"value\": \"keeper\"}, {\"subject\": \"npc_late_guest\", \"predicate\": \"与沈掌柜关系\", \"value\": \"似有旧识\"}, {\"subject\": \"npc_late_guest\", \"predicate\": \"关注点\", \"value\": \"留意到铜铃被收起的柜台\"}], \"items\": [{\"op\": \"transfer\", \"item\": \"brass_bell\", \"from\": \"player\", \"to\": \"keeper\"}], \"relations\": [{\"src\": \"keeper\", \"rel\": \"代为保管\", \"dst\": \"brass_bell\"}], \"knowledge\": [{\"op\": \"told\", \"knower\": \"npc_late_guest\", \"fact_key\": \"brass_bell.外观\", \"value\": \"黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线\", \"via\": \"进店时瞥见铜铃被收起\"}], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"同一清晨、客栈内的交接与来客，时间未实质推进\"}]}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 15.300436610999895
+    },
+    {
+      "number": 9,
+      "case": "turn_04",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 252,
+        "prompt_tokens": 1276,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "total_tokens": 1281
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.534326617998886
+    },
+    {
+      "number": 10,
+      "case": "turn_04",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 140,
+        "prompt_cache_hit_tokens": 3840,
+        "prompt_cache_miss_tokens": 1914,
+        "prompt_tokens": 5754,
+        "prompt_tokens_details": {
+          "cached_tokens": 3840
+        },
+        "total_tokens": 5894
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "                                                                                                                                            ",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.949176611997245
+    },
+    {
+      "number": 11,
+      "case": "turn_04",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 221,
+        "prompt_cache_hit_tokens": 2560,
+        "prompt_cache_miss_tokens": 1980,
+        "prompt_tokens": 4540,
+        "prompt_tokens_details": {
+          "cached_tokens": 2560
+        },
+        "total_tokens": 4761
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\":\"你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\\n\\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\\n\\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\\n\\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。\",\"moves\":[{\"who\":\"player\",\"to\":\"courtyard\"}],\"places\":[],\"cast\":[],\"facts\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"从客栈前厅走到院内，同一清晨时段内的短距离移动\"}]}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 10.840466472000116
+    },
+    {
+      "number": 12,
+      "case": "turn_05",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 259,
+        "prompt_tokens": 1283,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "total_tokens": 1288
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 10.65802801099926
+    },
+    {
+      "number": 13,
+      "case": "turn_05",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 186,
+        "prompt_cache_hit_tokens": 4096,
+        "prompt_cache_miss_tokens": 1901,
+        "prompt_tokens": 5997,
+        "prompt_tokens_details": {
+          "cached_tokens": 4096
+        },
+        "total_tokens": 6183
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "                                                                                                                                                                                        ",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 14.899430420002318
+    },
+    {
+      "number": 14,
+      "case": "turn_05",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 211,
+        "prompt_cache_hit_tokens": 2688,
+        "prompt_cache_miss_tokens": 2096,
+        "prompt_tokens": 4784,
+        "prompt_tokens_details": {
+          "cached_tokens": 2688
+        },
+        "total_tokens": 4995
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\":\"你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\\n\\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\\n\\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\\n\\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"knowledge\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"仍在清晨同一时段内，站定闲看天色\"}]}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.77785018799841
+    },
+    {
+      "number": 15,
+      "case": "turn_05",
+      "stage": "narration_repair",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 105,
+        "prompt_cache_hit_tokens": 4480,
+        "prompt_cache_miss_tokens": 504,
+        "prompt_tokens": 4984,
+        "prompt_tokens_details": {
+          "cached_tokens": 4480
+        },
+        "total_tokens": 5089
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"narration\": \"你留在院子里，没去碰井台，也没碰那排晾着的衣裳。\\n\\n天还没大亮透。院墙缺口那头泄进来一片浅白，云压得低，太阳大概得再爬一阵才能漫过屋脊。风顺着缺口往里走，在两只木桶之间打了个转，桶沿的麻绳轻轻磕了下桶壁。\\n\\n前厅的低语不知什么时候停了。院里只剩井水偶尔咕嘟一声。\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 11.901434311999765
+    },
+    {
+      "number": 16,
+      "case": "turn_06",
+      "stage": "return_intent",
+      "player_facing_context": false,
+      "requested_max_output": 16384,
+      "status": "received",
+      "response_model": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 252,
+        "prompt_tokens": 1276,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "total_tokens": 1281
+      },
+      "raw_choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": "{\"status\":\"none\"}",
+            "role": "assistant"
+          }
+        }
+      ],
+      "elapsed_seconds": 9.529134822998458
+    },
+    {
+      "number": 17,
+      "case": "turn_06",
+      "stage": "narration",
+      "player_facing_context": true,
+      "requested_max_output": 16384,
+      "status": "failed_or_unknown",
+      "failure": {
+        "at": "2026-10-07T13:54:11.571361+00:00",
+        "case": "turn_06",
+        "elapsed_seconds": 12.185353590997693,
+        "error_type": "URLError",
+        "kind": "transport_failure",
+        "player_facing_context": true,
+        "post_number": 17,
+        "safe_transport_details": {
+          "category": "proxy_tunnel_failure",
+          "exception_class": "URLError",
+          "http_status": 403,
+          "reason_class": "OSError"
+        },
+        "stage": "narration"
+      }
+    }
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "action": "对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "final_narration": "柜台后的沈掌柜正擦着一只茶盏，闻言停了手。\n\n「雨燕？」他把茶盏翻了个面，像是在掂量这两个字的斤两，「不叫归雁——那名字太老实了，一听就等着人还回来。」\n\n他笑了一下，眼角堆起细纹。「燕子倒是新，可燕子每年也是要回来的。林公子，你是想说它飞得远呢，还是想说……它本来就不打算回来？」\n\n铜铃在你袖口里没响。掌柜也没再多问，只是把擦干的茶盏摆回架上，顺手朝院里那口井的方向抬了抬下巴——意思是水还热着，要喝自己倒。",
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T13:51:06.830820+00:00",
+          "narration": "柜台后的沈掌柜正擦着一只茶盏，闻言停了手。\n\n「雨燕？」他把茶盏翻了个面，像是在掂量这两个字的斤两，「不叫归雁——那名字太老实了，一听就等着人还回来。」\n\n他笑了一下，眼角堆起细纹。「燕子倒是新，可燕子每年也是要回来的。林公子，你是想说它飞得远呢，还是想说……它本来就不打算回来？」\n\n铜铃在你袖口里没响。掌柜也没再多问，只是把擦干的茶盏摆回架上，顺手朝院里那口井的方向抬了抬下巴——意思是水还热着，要喝自己倒。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "named_by_player",
+                "value": "雨燕"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "柜台前的一段对话，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_prose": true,
+        "no_private_canary_in_player_facing_requests": true
+      },
+      "failed_checks": [],
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 5941,
+          "output": 225,
+          "total": 6166
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 27.72051156299858,
+      "repair_attempts": 0,
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”"
+      },
+      "ui_output": [
+        "> 你：对沈掌柜说：“我把这枚铜铃叫作‘雨燕’，不是‘归雁’。”",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "柜台后的沈掌柜正擦着一只茶盏，闻言停了手。\n\n「雨燕？」他把茶盏翻了个面，像是在掂量这两个字的斤两，「不叫归雁——那名字太老实了，一听就等着人还回来。」\n\n他笑了一下，眼角堆起细纹。「燕子倒是新，可燕子每年也是要回来的。林公子，你是想说它飞得远呢，还是想说……它本来就不打算回来？」\n\n铜铃在你袖口里没响。掌柜也没再多问，只是把擦干的茶盏摆回架上，顺手朝院里那口井的方向抬了抬下巴——意思是水还热着，要喝自己倒。"
+      ],
+      "effect_events": [
+        {
+          "seq": 36,
+          "id": "ev_d2c2e24d5a2f",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "quiet",
+            "hint": "给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。",
+            "flavor": "isekai",
+            "seed": 7082152389108,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 37,
+          "id": "ev_a9dd7117aa4d",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.named_by_player=雨燕",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "named_by_player",
+            "value": "雨燕"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 38,
+          "id": "ev_0ae33f2ce0fb",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：柜台前的一段对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "柜台前的一段对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 40,
+          "id": "ev_e993a4f14e37",
+          "type": "quest_created",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "backstop 暗 flag: narrative variation selected",
+          "deltas": {
+            "id": "th_auto_38ada6d6",
+            "summary": "narrative variation selected",
+            "state": "暗"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "action": "把铜铃托在手上给沈掌柜看，但不交给他。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "final_narration": "你把铜铃托在掌心，没往柜台上放。\n\n沈掌柜低头看了一眼。黄铜旧得发暗，铃身一圈细纹，系绳还是那根磨白的旧棉线。他伸手想碰，指尖停在离铃两寸的地方，又收回去，只是看。\n\n「好东西。」他说，「不是值钱的贵，是有年头的那种贵。」\n\n你把手合上，铜铃回到掌心。掌柜也不催，重新拿起那只茶盏，像是方才什么都没发生——只是眼角的笑有点耐人寻味。「林公子，你这是给我看，还是给我看别的东西，自己心里有数。」\n\n院里井水咕嘟响了一声。",
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T13:51:47.516962+00:00",
+          "narration": "你把铜铃托在掌心，没往柜台上放。\n\n沈掌柜低头看了一眼。黄铜旧得发暗，铃身一圈细纹，系绳还是那根磨白的旧棉线。他伸手想碰，指尖停在离铃两寸的地方，又收回去，只是看。\n\n「好东西。」他说，「不是值钱的贵，是有年头的那种贵。」\n\n你把手合上，铜铃回到掌心。掌柜也不催，重新拿起那只茶盏，像是方才什么都没发生——只是眼角的笑有点耐人寻味。「林公子，你这是给我看，还是给我看别的东西，自己心里有数。」\n\n院里井水咕嘟响了一声。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "外观",
+                "value": "黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线",
+                "secrecy": "public"
+              }
+            ],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一段柜台对话，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_prose": true,
+        "no_private_canary_in_player_facing_requests": true
+      },
+      "failed_checks": [],
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 10072,
+          "output": 385,
+          "total": 10457
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 40.68672597300247,
+      "repair_attempts": 0,
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "把铜铃托在手上给沈掌柜看，但不交给他。"
+      },
+      "ui_output": [
+        "> 你：把铜铃托在手上给沈掌柜看，但不交给他。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你把铜铃托在掌心，没往柜台上放。\n\n沈掌柜低头看了一眼。黄铜旧得发暗，铃身一圈细纹，系绳还是那根磨白的旧棉线。他伸手想碰，指尖停在离铃两寸的地方，又收回去，只是看。\n\n「好东西。」他说，「不是值钱的贵，是有年头的那种贵。」\n\n你把手合上，铜铃回到掌心。掌柜也不催，重新拿起那只茶盏，像是方才什么都没发生——只是眼角的笑有点耐人寻味。「林公子，你这是给我看，还是给我看别的东西，自己心里有数。」\n\n院里井水咕嘟响了一声。"
+      ],
+      "effect_events": [
+        {
+          "seq": 41,
+          "id": "ev_fc3826606212",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "consequence",
+            "hint": "若先前行动已有可见后果，以轻巧的生活变化呈现，避免重复解释。",
+            "flavor": "isekai",
+            "seed": 169224183167221,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 42,
+          "id": "ev_021b110e75a6",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.外观=黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "外观",
+            "value": "黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 43,
+          "id": "ev_fcb4c32047bd",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：同一段柜台对话，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一段柜台对话，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 45,
+          "id": "ev_9bb713c8f219",
+          "type": "oracle_roll",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "暗骰 roll=0.18 prob=0.30",
+          "deltas": {
+            "prob": 0.3,
+            "roll": 0.18,
+            "scene_ordinal": 1,
+            "campaign_seed": 72916001
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 46,
+          "id": "ev_cc6f5a588f4e",
+          "type": "director_fired",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "突发:人物（无反转）",
+          "deltas": {
+            "type": "front_stage",
+            "magnitude": "big",
+            "valence": null,
+            "event_type": "人物",
+            "event_hint": "偶遇NPC/旧识登场/触发支线",
+            "twist": "无反转",
+            "twist_hint": "如表面所见"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "action": "将铜铃交给沈掌柜保管。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "final_narration": "你把铜铃搁上柜台，没放下就松了手——黄铜磕在木头上，闷闷一响。\n\n「行。」沈掌柜把茶盏往旁边一挪，先不接，只伸出两根指头把铜铃拨到柜台里侧，像是确认这东西真的落了地。然后他才拿起来，搁进柜台下头那个带锁的抽屉。\n\n「几时来取，说一声。」钥匙在他掌心里转了一圈，收进袖口，「熟人经手，丢不了。」\n\n他说这话的时候，院门那边有人推开半扇门走进来，带进一阵清晨的凉气。来人挎着个布包袱，帽檐压低，进门先看柜台，再看你，目光在铜铃刚消失的那截台面上多停了一瞬。\n\n「沈老。」那人开口，嗓音有点哑，「上房还留着一间么？」\n\n沈掌柜抬眼看过去，脸上的笑纹没变，语气却慢了半拍：「客官来得巧。」",
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T13:52:26.116834+00:00",
+          "narration": "你把铜铃搁上柜台，没放下就松了手——黄铜磕在木头上，闷闷一响。\n\n「行。」沈掌柜把茶盏往旁边一挪，先不接，只伸出两根指头把铜铃拨到柜台里侧，像是确认这东西真的落了地。然后他才拿起来，搁进柜台下头那个带锁的抽屉。\n\n「几时来取，说一声。」钥匙在他掌心里转了一圈，收进袖口，「熟人经手，丢不了。」\n\n他说这话的时候，院门那边有人推开半扇门走进来，带进一阵清晨的凉气。来人挎着个布包袱，帽檐压低，进门先看柜台，再看你，目光在铜铃刚消失的那截台面上多停了一瞬。\n\n「沈老。」那人开口，嗓音有点哑，「上房还留着一间么？」\n\n沈掌柜抬眼看过去，脸上的笑纹没变，语气却慢了半拍：「客官来得巧。」",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [
+              {
+                "id": "npc_late_guest",
+                "op": "create",
+                "sketch": "清晨入店的客人，布包袱、压低的帽檐，进门先扫柜台再扫人，与沈掌柜似有旧识的客套；对铜铃消失的位置多看了一眼。",
+                "goal": "投宿上房，并弄清客栈里近日往来的人与物"
+              }
+            ],
+            "facts": [
+              {
+                "subject": "brass_bell",
+                "predicate": "代为保管人",
+                "value": "keeper"
+              },
+              {
+                "subject": "npc_late_guest",
+                "predicate": "与沈掌柜关系",
+                "value": "似有旧识"
+              },
+              {
+                "subject": "npc_late_guest",
+                "predicate": "关注点",
+                "value": "留意到铜铃被收起的柜台"
+              }
+            ],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "brass_bell",
+                "from": "player",
+                "to": "keeper"
+              }
+            ],
+            "relations": [
+              {
+                "src": "keeper",
+                "rel": "代为保管",
+                "dst": "brass_bell"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "npc_late_guest",
+                "fact_key": "brass_bell.外观",
+                "value": "黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线",
+                "via": "进店时瞥见铜铃被收起"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一清晨、客栈内的交接与来客，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_prose": true,
+        "no_private_canary_in_player_facing_requests": true
+      },
+      "failed_checks": [],
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 10931,
+          "output": 907,
+          "total": 11838
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 38.593978705001064,
+      "repair_attempts": 0,
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "将铜铃交给沈掌柜保管。"
+      },
+      "ui_output": [
+        "> 你：将铜铃交给沈掌柜保管。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你把铜铃搁上柜台，没放下就松了手——黄铜磕在木头上，闷闷一响。\n\n「行。」沈掌柜把茶盏往旁边一挪，先不接，只伸出两根指头把铜铃拨到柜台里侧，像是确认这东西真的落了地。然后他才拿起来，搁进柜台下头那个带锁的抽屉。\n\n「几时来取，说一声。」钥匙在他掌心里转了一圈，收进袖口，「熟人经手，丢不了。」\n\n他说这话的时候，院门那边有人推开半扇门走进来，带进一阵清晨的凉气。来人挎着个布包袱，帽檐压低，进门先看柜台，再看你，目光在铜铃刚消失的那截台面上多停了一瞬。\n\n「沈老。」那人开口，嗓音有点哑，「上房还留着一间么？」\n\n沈掌柜抬眼看过去，脸上的笑纹没变，语气却慢了半拍：「客官来得巧。」"
+      ],
+      "effect_events": [
+        {
+          "seq": 47,
+          "id": "ev_cf517ca1a99d",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "voice",
+            "hint": "以轻快短对白或一个停顿体现人物差异；吐槽基于主角既有性格，不替玩家下决定。",
+            "flavor": "isekai",
+            "seed": 162049690282,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 48,
+          "id": "ev_2769b655f875",
+          "type": "character_created",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "npc_late_guest 登场",
+          "deltas": {
+            "id": "npc_late_guest",
+            "op": "create",
+            "sketch": "清晨入店的客人，布包袱、压低的帽檐，进门先扫柜台再扫人，与沈掌柜似有旧识的客套；对铜铃消失的位置多看了一眼。",
+            "goal": "投宿上房，并弄清客栈里近日往来的人与物"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 49,
+          "id": "ev_ef13bdb2ba89",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell.代为保管人=keeper",
+          "deltas": {
+            "subject": "brass_bell",
+            "predicate": "代为保管人",
+            "value": "keeper"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 50,
+          "id": "ev_ab0ddf149db3",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "npc_late_guest.与沈掌柜关系=似有旧识",
+          "deltas": {
+            "subject": "npc_late_guest",
+            "predicate": "与沈掌柜关系",
+            "value": "似有旧识"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 51,
+          "id": "ev_6841af27b330",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "npc_late_guest.关注点=留意到铜铃被收起的柜台",
+          "deltas": {
+            "subject": "npc_late_guest",
+            "predicate": "关注点",
+            "value": "留意到铜铃被收起的柜台"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 52,
+          "id": "ev_d1843c266cf7",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "brass_bell 转移至 keeper",
+          "deltas": {
+            "op": "transfer",
+            "item": "brass_bell",
+            "from": "player",
+            "to": "keeper"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 53,
+          "id": "ev_d8dd6f0a1ea8",
+          "type": "relation_added",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "keeper 代为保管 brass_bell",
+          "deltas": {
+            "src": "keeper",
+            "rel": "代为保管",
+            "dst": "brass_bell"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 54,
+          "id": "ev_14ba1339113e",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "npc_late_guest 得知 brass_bell.外观",
+          "deltas": {
+            "knower": "npc_late_guest",
+            "fact_key": "brass_bell.外观",
+            "value": "黄铜发暗、铃身一圈细纹，系绳为磨白的旧棉线",
+            "via": "进店时瞥见铜铃被收起"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 55,
+          "id": "ev_869403d69353",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：同一清晨、客栈内的交接与来客，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一清晨、客栈内的交接与来客，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 57,
+          "id": "ev_e0c634f33083",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=2",
+          "deltas": {
+            "through_turn": 2
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "action": "独自走到客栈院子。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "inn"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "final_narration": "你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\n\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\n\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\n\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。",
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T13:53:00.494334+00:00",
+          "narration": "你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\n\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\n\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\n\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。",
+          "sections": {
+            "moves": [
+              {
+                "who": "player",
+                "to": "courtyard"
+              }
+            ],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "从客栈前厅走到院内，同一清晨时段内的短距离移动"
+              }
+            ]
+          }
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_prose": true,
+        "no_private_canary_in_player_facing_requests": true
+      },
+      "failed_checks": [],
+      "usage": {
+        "http_post_attempts": 3,
+        "reported_token_totals": {
+          "input": 11570,
+          "output": 366,
+          "total": 11936
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 34.36593382000137,
+      "repair_attempts": 0,
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "独自走到客栈院子。"
+      },
+      "ui_output": [
+        "> 你：独自走到客栈院子。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\n\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\n\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\n\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。"
+      ],
+      "effect_events": [
+        {
+          "seq": 58,
+          "id": "ev_04e8bf719e04",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "quiet",
+            "hint": "给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。",
+            "flavor": "isekai",
+            "seed": 170488935021285,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 59,
+          "id": "ev_772365d48485",
+          "type": "entity_moved",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 courtyard",
+          "deltas": {
+            "who": "player",
+            "to": "courtyard"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 60,
+          "id": "ev_4113d35716f0",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：从客栈前厅走到院内，同一清晨时段内的短距离移动",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "从客栈前厅走到院内，同一清晨时段内的短距离移动"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 62,
+          "id": "ev_be7bf76ad1c3",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=2",
+          "deltas": {
+            "through_turn": 2
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 63,
+          "id": "ev_6932b61ff953",
+          "type": "scene_advanced",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s2",
+          "deltas": {
+            "scene_id": "s2",
+            "scene_no": 2,
+            "location": "courtyard",
+            "day": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 5,
+      "action": "留在院子看一会儿天色，不取放任何物品。",
+      "result": "committed",
+      "before": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "after": {
+        "holders": {
+          "brass_bell": [
+            "keeper"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "courtyard"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "status": "open"
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "final_narration": "你留在院子里，没去碰井台，也没碰那排晾着的衣裳。\n\n天还没大亮透。院墙缺口那头泄进来一片浅白，云压得低，太阳大概得再爬一阵才能漫过屋脊。风顺着缺口往里走，在两只木桶之间打了个转，桶沿的麻绳轻轻磕了下桶壁。\n\n前厅的低语不知什么时候停了。院里只剩井水偶尔咕嘟一声。",
+      "strategy_audit": [
+        {
+          "kind": "original_commit",
+          "at": "2026-10-07T13:53:37.886789+00:00",
+          "narration": "你独自穿过客栈前厅，掀开那道挂了多年的旧布帘，走进院子。\n\n院子里比屋里亮堂。青石板缝里冒着湿气，井台边上摆着两只木桶，桶沿挂着没干的麻绳。靠墙一排竹竿，晾着两三件洗得发白的粗布衫，风一吹，轻轻晃。\n\n没人。先前推门进来那位挎包袱的客官大概还在前厅和沈掌柜说话，声音隔着布帘，听不真切，只偶尔飘出半个字。井水又咕嘟响了一声，像是底下有什么在翻。\n\n你就这么站着，晨风从院墙缺口灌进来，凉得正好。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "仍在清晨同一时段内，站定闲看天色"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "repair_request",
+          "at": "2026-10-07T13:53:37.886998+00:00",
+          "sections": [
+            "narration"
+          ],
+          "errors": [
+            {
+              "section": "narration",
+              "field": "",
+              "code": "repeated_story",
+              "hint": "正文复述了已发布的旧回合。只回应最后一条玩家行动，从当前结果继续写新内容；不得复制最近剧情原文。"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "at": "2026-10-07T13:53:49.794979+00:00",
+          "sections": {
+            "narration": "你留在院子里，没去碰井台，也没碰那排晾着的衣裳。\n\n天还没大亮透。院墙缺口那头泄进来一片浅白，云压得低，太阳大概得再爬一阵才能漫过屋脊。风顺着缺口往里走，在两只木桶之间打了个转，桶沿的麻绳轻轻磕了下桶壁。\n\n前厅的低语不知什么时候停了。院里只剩井水偶尔咕嘟一声。"
+          },
+          "narration": "你留在院子里，没去碰井台，也没碰那排晾着的衣裳。\n\n天还没大亮透。院墙缺口那头泄进来一片浅白，云压得低，太阳大概得再爬一阵才能漫过屋脊。风顺着缺口往里走，在两只木桶之间打了个转，桶沿的麻绳轻轻磕了下桶壁。\n\n前厅的低语不知什么时候停了。院里只剩井水偶尔咕嘟一声。"
+        }
+      ],
+      "checks": {
+        "turn_committed": true,
+        "item_holders": true,
+        "actor_and_npc_locations": true,
+        "fixed_display_names": true,
+        "borrower_origin_unchanged": true,
+        "one_immutable_promise": true,
+        "promise_status": true,
+        "only_requested_item_transfers": true,
+        "fulfillment_only_at_physical_return": true,
+        "no_clock_regression": true,
+        "no_guard_alias_knowledge": true,
+        "no_private_canary_in_prose": true,
+        "no_private_canary_in_player_facing_requests": true
+      },
+      "failed_checks": [],
+      "usage": {
+        "http_post_attempts": 4,
+        "reported_token_totals": {
+          "input": 17048,
+          "output": 507,
+          "total": 17555
+        },
+        "calls_without_usage": 0
+      },
+      "elapsed_seconds": 49.28979972199886,
+      "repair_attempts": 1,
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "留在院子看一会儿天色，不取放任何物品。"
+      },
+      "ui_output": [
+        "> 你：留在院子看一会儿天色，不取放任何物品。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你留在院子里，没去碰井台，也没碰那排晾着的衣裳。\n\n天还没大亮透。院墙缺口那头泄进来一片浅白，云压得低，太阳大概得再爬一阵才能漫过屋脊。风顺着缺口往里走，在两只木桶之间打了个转，桶沿的麻绳轻轻磕了下桶壁。\n\n前厅的低语不知什么时候停了。院里只剩井水偶尔咕嘟一声。"
+      ],
+      "effect_events": [
+        {
+          "seq": 64,
+          "id": "ev_823faad8c519",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "space",
+            "hint": "用清楚的空间关系为自由探索留出方向，不给玩家强制选项。",
+            "flavor": "isekai",
+            "seed": 262422372210495,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 5,
+          "retracted": false
+        },
+        {
+          "seq": 65,
+          "id": "ev_67ba7a8f39f0",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：仍在清晨同一时段内，站定闲看天色",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "仍在清晨同一时段内，站定闲看天色"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 5,
+          "retracted": false
+        },
+        {
+          "seq": 67,
+          "id": "ev_9c31112d5634",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "s2",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=2",
+          "deltas": {
+            "through_turn": 2
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 5,
+          "retracted": false
+        }
+      ]
+    }
+  ],
+  "evidence_note": "Compact synthetic audit. Original raw requests/responses and full world snapshots retained in companion archive. Private session budget metadata omitted. Each arm interrupted separately; do not concatenate into16turn success."
+}

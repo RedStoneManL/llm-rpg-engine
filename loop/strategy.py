@@ -61,6 +61,42 @@ COMPACTION_RATIO = 0.70
 # (incl. secrecy="secret" facts). (#R5)
 _PARSE_FAIL_NARRATION = "（这一刻，周遭并无明显变化。）"
 
+
+class AuthorOutputError(ValueError):
+    """An unusable whole-turn response, never player-facing fallback prose.
+
+    Only a fixed status code crosses this boundary; the raw response stays in
+    the strategy's transient messages, where structured secrets belong.
+    """
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(f"Unusable Author output: {code}")
+
+
+def _author_narration(value) -> str:
+    # Preserve the established array-of-paragraphs compatibility, without
+    # turning null, objects, numbers or mixed arrays into display strings.
+    if isinstance(value, list) and all(isinstance(p, str) for p in value):
+        value = "\n\n".join(value)
+    if not isinstance(value, str) or not value.strip():
+        raise AuthorOutputError("invalid_narration")
+    return value
+
+
+def _author_commit(raw) -> TurnCommit:
+    """Strict production contract; generic salvage helpers remain separate."""
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError, RecursionError):
+        raise AuthorOutputError("invalid_json") from None
+    if not isinstance(data, dict):
+        raise AuthorOutputError("non_object_json")
+    if "narration" not in data:
+        raise AuthorOutputError("missing_narration")
+    data["narration"] = _author_narration(data["narration"])
+    return TurnCommit.from_dict(data)
+
 # Re-ask sent after a native tool loop returned bare prose (no JSON envelope). It
 # reuses the researched context already in the working messages, so no re-research
 # happens — it only asks the model to wrap the turn it just wrote as the structured
@@ -448,11 +484,13 @@ class AuthorStrategy(TurnStrategy):
         self._pending_action = None
         self._compaction_due = False
         self._bound_actor = None
+        self._invalid_response_indices = set()
 
     def commit_to_thread(self, narration: str) -> None:
         """Append [pending user delta, narration prose] to the persistent thread on
-        a successful turn. Narration only — raw JSON / repair / tool messages stay
-        in the transient _messages. No-op in stateless mode (_thread is None)."""
+        a successful turn. Raw narration stays exact in this cache; copied history
+        is JSON-enveloped at request construction. Effects / repair / tool messages
+        stay in transient _messages. No-op in stateless mode (_thread is None)."""
         if self._thread is not None and self._pending_user is not None:
             pending_action = getattr(self, '_pending_action', None)
             content = ('[player] ' + pending_action) if pending_action is not None else self._pending_user
@@ -474,6 +512,24 @@ class AuthorStrategy(TurnStrategy):
         if tok and tok > CONTEXT_WINDOW * COMPACTION_RATIO:
             self._compaction_due = True
 
+    def _request_messages(self) -> list:
+        """Keep rejected raw replies for audit, but never replay them as history.
+
+        Only final response indices are excluded, so researched tool-call/result
+        groups and committed history retain their original ordering and shape.
+        """
+        invalid = getattr(self, "_invalid_response_indices", set())
+        if not invalid:
+            return self._messages
+        return [message for i, message in enumerate(self._messages) if i not in invalid]
+
+    def _parse_response(self, raw) -> TurnCommit:
+        try:
+            return _author_commit(raw)
+        except AuthorOutputError:
+            self._invalid_response_indices.add(len(self._messages) - 1)
+            raise
+
     def produce(
         self,
         registry: Registry,
@@ -491,6 +547,8 @@ class AuthorStrategy(TurnStrategy):
             self.reset()
         self._bound_actor = actor_id
         multiturn = (_settings.get_conversation_mode() == "multiturn")
+        if repair is None or self._messages is None:
+            self._invalid_response_indices = set()
         if repair is None:
             self._pending_action = player_input
 
@@ -502,7 +560,16 @@ class AuthorStrategy(TurnStrategy):
             # Continuing turn: append a compact delta onto a copy of the thread.
             delta = _build_delta(registry, world, scene, player_input)
             self._pending_user = delta
-            self._messages = list(self._thread) + [{"role": "user", "content": delta}]
+            # Both warm legacy caches and newly committed turns store exact prose.
+            # Wrap only these copied historical assistant entries, exactly once;
+            # never serialize current raw JSON, repair replies or tool messages.
+            history = [
+                {**message, "content": json.dumps({"narration": message["content"]},
+                                                   ensure_ascii=False)}
+                if message.get("role") == "assistant" else dict(message)
+                for message in self._thread
+            ]
+            self._messages = history + [{"role": "user", "content": delta}]
         else:
             # First turn / compaction / stateless: full context rebuild.
             ctx = assemble_context(registry, world, scene,
@@ -547,26 +614,20 @@ class AuthorStrategy(TurnStrategy):
                     self._messages, schemas, tool_reg.execute,
                     max_tool_rounds=rounds,
                 )
-                # Reasoning models routinely answer the final turn in bare prose
-                # after a tool loop, dropping the JSON envelope. Re-ask ONCE for the
-                # structured commit before falling back to prose-as-narration.
-                if _parse_json_object(raw) is None:
-                    raw = self._reask_json(raw, provider)
                 self._messages.append({"role": "assistant", "content": raw})
                 if repair is None and multiturn:
                     self._maybe_flag_compaction(provider)
-                data = _data_or_safe(raw)
-                return TurnCommit.from_dict(data)
+                # Unusable tool-final output uses produce_turn's shared repair
+                # budget, just like the non-tool route; no hidden re-ask here.
+                return self._parse_response(raw)
 
         # Plain complete_messages (all non-tool providers + all repair turns).
-        # In stateless mode the else-branch above runs every fresh turn and _thread
-        # stays None → this reproduces the original control flow byte-for-byte.
-        raw = json_call(provider.complete_messages, self._messages)
+        # Stateless turns rebuild context above and do not retain a thread.
+        raw = json_call(provider.complete_messages, self._request_messages())
         self._messages.append({"role": "assistant", "content": raw})
         if repair is None and multiturn:
             self._maybe_flag_compaction(provider)
-        data = _data_or_safe(raw)
-        return TurnCommit.from_dict(data)
+        return self._parse_response(raw)
 
     def _reask_json(self, prose: str, provider) -> str:
         """After a tool loop returned bare prose, ask once for the JSON commit.
@@ -651,10 +712,16 @@ class AuthorStrategy(TurnStrategy):
         log.debug("AuthorStrategy.repair_sections failing=%s msgs=%d",
                   sorted(failing_sections), len(self._messages))
 
-        raw = json_call(provider.complete_messages, self._messages)
+        raw = json_call(provider.complete_messages, self._request_messages())
         self._messages.append({"role": "assistant", "content": raw})
 
         data = _parse_json_object(raw) or {}
+        if "narration" in failing_sections and "narration" in data:
+            try:
+                data["narration"] = _author_narration(data["narration"])
+            except AuthorOutputError:
+                self._invalid_response_indices.add(len(self._messages) - 1)
+                raise
         # Keep only the expected section keys to avoid contamination
         return {k: v for k, v in data.items() if k in failing_sections}
 

@@ -1,0 +1,170 @@
+{
+  "arm": "author_baseline",
+  "base_commit": "c76365f163b8521ba582eb75260f45cce8ad6da4",
+  "model": "deepseek-flash",
+  "scope": "Single frozen16-turn compaction-stress arm; no natural-language registration test.",
+  "aggregate": {
+    "turns": 16,
+    "published_turns": 16,
+    "initial_whitespace_turns": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      13
+    ],
+    "final_placeholder_turns": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      13
+    ],
+    "failed_machine_turns": 12,
+    "failed_machine_checks": 14,
+    "repair_attempts": 10,
+    "post_calls": 34,
+    "input_tokens": 97501,
+    "output_tokens": 3138,
+    "median_turn_seconds": 18.379,
+    "sum_turn_seconds": 291.219,
+    "estimated_peak_uncached_cny": "0.220106"
+  },
+  "causal_accounting": {
+    "holder_failures": {
+      "root_turn": 3,
+      "downstream_turns": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "count": 11
+    },
+    "transfer_event_failures": [
+      3,
+      14
+    ],
+    "clock_target_failure": [
+      10
+    ],
+    "note": "12 failed turns /14 failed checks are not14 independent failures. T14 stale transfer attempt follows the missingT3 transfer; its preserved false prose exposes a separate repair-design weakness."
+  },
+  "findings": [
+    {
+      "id": "unusable_output_committed",
+      "turns": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        13
+      ],
+      "source": "First Author wire response each turn is whitespace-only with finish_reason=stop. T1 uses system/user, later requests retain bare-prose assistant history while response_format remains json_object.",
+      "final_prose": "（这一刻，周遭并无明显变化。）",
+      "verdict": "Model protocol failure is converted into apparent successful no-op; initial history format is a candidate cause, not proven service fault. T4/T6/T8 actually move canonically but final text omits consequences."
+    },
+    {
+      "id": "missed_handover_and_shadow_fact",
+      "turn": 3,
+      "player_input": "将铜铃交给沈掌柜保管。",
+      "event": "ev_053f91433382",
+      "observed": {
+        "type": "fact_asserted",
+        "subject": "brass_bell",
+        "predicate": "保管人",
+        "value": "keeper"
+      },
+      "contradiction": "No item_transferred event; canonical holder remains player. Required-only recovery excludes optional items, then records a parallel ownership-like fact. Subsequent holder mismatches are mostly cascading."
+    },
+    {
+      "id": "wait_target_overshoot",
+      "turn": 10,
+      "player_input": "在此安静休息到第二天清晨。",
+      "before": {
+        "day": 1,
+        "band": 2
+      },
+      "after": {
+        "day": 3,
+        "band": 0
+      },
+      "expected": {
+        "day": 2,
+        "band": 0
+      },
+      "prose_span": "你半睡半醒地挨过整夜，天光泛白时",
+      "verdict": "Clock delta overshoots one day. Resource-free actor does not get host wait_until resolution; model days/bands calculation remains authoritative."
+    },
+    {
+      "id": "false_stored_holder_recall",
+      "turn": 12,
+      "prose_span": "在，搁在我柜里锁着，跑不了。",
+      "contradiction": "The bell remains canonically held by player. This follows theT3 shadow fact rather than real transfer."
+    },
+    {
+      "id": "repair_preserves_rejected_effect_prose",
+      "turn": 14,
+      "prose_span": "往你手心里一放：「拿好。」",
+      "source": "Original items transfer keeper→player fails same_holder/stale_holder; repair is items:[], while original prose is preserved.",
+      "verdict": "Narrates a handover that the validated action did not perform. A semantic agreement gap remains even though validation correctly rejects the wrong source."
+    },
+    {
+      "id": "fabricated_exact_memory",
+      "turn": 15,
+      "player_source_turn": 1,
+      "player_source": "我把这枚铜铃叫作‘雨燕’，不是‘归雁’。",
+      "prose_spans": [
+        "你那天说，铃一响像燕子掠水",
+        "『小满』。你说节气名太顺口"
+      ],
+      "prompt_evidence": {
+        "chosen_name_occurrences": 2,
+        "actual_rejected_name_occurrences": 0,
+        "fabricated_name_occurrences": 0
+      },
+      "verdict": "Chosen name recalled; excluded name and attributed old speech fabricated. Exact source is absent after summary/cache rebuilding. Honest uncertainty would be a recall miss, not this hallucination."
+    },
+    {
+      "id": "stale_holder_claim_after_return_scene",
+      "turn": 16,
+      "prose_span": "铃还在我柜里锁着，你要用，随时说。",
+      "canonical_holder": "player",
+      "verdict": "Contradicts current canonical inventory and priorT14 handback prose; typed jade return/promise completion itself succeeds."
+    }
+  ],
+  "unexercised_probes": {
+    "turn7_hearing": "Fallback only; guard does not answer. Do not count as a demonstrated NPC knowledge-boundary success.",
+    "turn13_false_lender_question": "Fallback only; origin fact stays keeper, but actual correction/answer not exercised."
+  },
+  "privacy": {
+    "synthetic_secret_canary_in_player_requests": false,
+    "synthetic_secret_canary_in_narration": false,
+    "limitation": "One canary and incomplete hearing probe do not establish general POV safety."
+  },
+  "next_intervention": "One bounded Author output-contract fix: JSON-wrap copied historical assistant narration; unusable whole responses consume the existing shared repair allowance for whole-turn regeneration; reject on exhaustion. Do not yet combine effect-first architecture or episode retrieval.",
+  "limits": [
+    "Single stochastic run, temperature0 does not guarantee deterministic generation.",
+    "Compaction forced beforeT12/T15, not a natural long-session token threshold.",
+    "Exact prescribed transfers are fixture acceptance, not a general restriction on creative actions.",
+    "Known time, historical-memory and usable-prose/structure repair gaps remain separate future work."
+  ]
+}

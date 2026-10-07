@@ -42,7 +42,7 @@ import uuid
 MODEL = "deepseek-flash"
 CURRENCY = "CNY"
 HARD_CEILING_CNY = Decimal("45")
-HARD_MAX_OUTPUT_TOKENS = 4096
+HARD_MAX_OUTPUT_TOKENS = 16384
 PRICING_SOURCE = "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"
 _MAX_COUNTER = 2**63 - 1
 _DECIMAL = re.compile(r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\Z")
@@ -104,7 +104,9 @@ class BudgetLedger:
     Amounts and seed values are required explicitly. ``pricing_checked_at`` is an
     optional ISO date recording the caller's verification, not a claim by this
     module that prices remain current. Changing any configuration on an existing
-    ledger is rejected, including seeds, model, rates, and token bounds.
+    ledger is rejected, including seeds, model, rates, and token bounds. Call
+    ``upgrade_token_limits`` explicitly on the old configuration to raise only
+    its input/output limits without changing previous reservations or charges.
     """
 
     def __init__(self, path, *, input_cny_per_million, output_cny_per_million,
@@ -166,6 +168,30 @@ class BudgetLedger:
             if not os.fstat(lock_fd).st_size:
                 os.write(lock_fd, b"initialized\n")
                 os.fsync(lock_fd)
+
+    def upgrade_token_limits(self, *, max_input_tokens=1048576, max_output_tokens=16384):
+        """Explicitly raise future-request bounds; preserve all existing charges.
+
+        Open the ledger with its CURRENT configuration before calling. Future
+        constructors must use the upgraded bounds; old-config instances fail
+        closed. Existing reservations retain their original per-call bounds,
+        including pending and overrun records. No other configuration changes.
+        A write failure raises; after uncertain persistence, reopen to verify
+        which configuration reached disk rather than retrying blindly.
+        """
+        with self._lock():
+            state = self._read()  # Reject a concurrent migration or corrupt state.
+            _integer(max_input_tokens, "max_input_tokens",
+                     minimum=self._config["max_input_tokens"], maximum=1048576)
+            _integer(max_output_tokens, "max_output_tokens",
+                     minimum=self._config["max_output_tokens"], maximum=HARD_MAX_OUTPUT_TOKENS)
+            updated = self._config | {"max_input_tokens": max_input_tokens,
+                                      "max_output_tokens": max_output_tokens}
+            if updated == self._config:
+                return
+            state["config"] = updated
+            self._write(state)
+            self._config = updated  # Only adopt the new bounds after durable write.
 
     @contextmanager
     def _lock(self):

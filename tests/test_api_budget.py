@@ -122,7 +122,7 @@ def test_exhaustion_counts_prior_uncertainty_and_failed_pending(tmp_path):
     {"prior_known_cny": -1}, {"prior_known_cny": Decimal("-0")},
     {"uncertainty_reserve_cny": True}, {"ceiling_cny": "45.01"},
     {"ceiling_cny": float("nan")}, {"model": "deepseek-chat"}, {"currency": "USD"},
-    {"overhead_tokens": 4095}, {"max_output_tokens": 4097},
+    {"overhead_tokens": 4095}, {"max_output_tokens": 16385},
     {"max_input_tokens": 4096}, {"pricing_checked_at": "20261007"}])
 def test_invalid_configuration_rejected_without_ledger(tmp_path, change):
     with pytest.raises(BudgetValidationError):
@@ -250,3 +250,129 @@ def test_failed_atomic_replace_never_returns_reservation(tmp_path, monkeypatch):
         budget.reserve(BODY)
     assert budget.path.read_bytes() == before
     assert list(tmp_path.glob("*.tmp")) == []
+
+
+UPGRADED_LIMITS = {"max_input_tokens": 1048576, "max_output_tokens": 16384}
+
+
+def test_explicit_limit_upgrade_preserves_all_charges_and_restarts(tmp_path):
+    budget = ledger(tmp_path)
+    pending = budget.reserve(BODY)
+    settled = budget.reserve(BODY)
+    budget.reconcile(settled, USAGE)
+    before = json.loads(budget.path.read_text())
+    before_snapshot = budget.snapshot()
+    with pytest.raises(BudgetValidationError, match="configuration mismatch"):
+        ledger(tmp_path, **UPGRADED_LIMITS)  # Never migrate implicitly.
+    budget.upgrade_token_limits(**UPGRADED_LIMITS)
+    after = json.loads(budget.path.read_text())
+    assert after == before | {"config": before["config"] | UPGRADED_LIMITS}
+    assert after["reservations"][pending]["output_tokens"] == 4096
+    assert after["reservations"][pending]["status"] == "pending"
+    snapshot = budget.snapshot()
+    assert snapshot == before_snapshot | {"configuration": before_snapshot["configuration"] | UPGRADED_LIMITS}
+    assert ledger(tmp_path, **UPGRADED_LIMITS).snapshot() == snapshot
+    with pytest.raises(BudgetValidationError, match="configuration mismatch"):
+        ledger(tmp_path)
+    larger_body = BODY | {"max_tokens": 16384, "messages": [{"role": "user", "content": "x" * 140000}]}
+    new = budget.reserve(larger_body)
+    rows = json.loads(budget.path.read_text())["reservations"]
+    assert rows[pending] == before["reservations"][pending]
+    assert rows[settled] == before["reservations"][settled]
+    assert rows[new]["input_tokens"] == len(json.dumps(larger_body).encode()) + 4096
+    assert rows[new]["output_tokens"] == 16384
+    assert Decimal(rows[new]["reserved_cny"]) == cost(larger_body)
+    assert budget.reconcile(pending, USAGE)  # Original pending usage remains reconcilable.
+
+
+def test_upgrade_cannot_relax_an_existing_reservations_own_bounds(tmp_path):
+    budget = ledger(tmp_path)
+    reservation = budget.reserve(BODY)
+    budget.upgrade_token_limits()
+    with pytest.raises(BudgetExceeded, match="persistently blocked"):
+        budget.reconcile(reservation, {"prompt_tokens": 1, "completion_tokens": 4097})
+    assert budget.snapshot()["blocked"]
+    assert Decimal(budget.snapshot()["overrun_cny"]) == cost()
+
+
+def test_upgrade_preserves_preexisting_overrun_block(tmp_path):
+    budget = ledger(tmp_path)
+    reservation = budget.reserve(BODY)
+    with pytest.raises(BudgetExceeded):
+        budget.reconcile(reservation, {"prompt_tokens": 1, "completion_tokens": 4097})
+    before = json.loads(budget.path.read_text())
+    budget.upgrade_token_limits()
+    assert json.loads(budget.path.read_text()) == before | {"config": before["config"] | UPGRADED_LIMITS}
+    with pytest.raises(BudgetExceeded, match="blocked"):
+        ledger(tmp_path, **UPGRADED_LIMITS).reserve(BODY)
+
+
+def test_old_config_instances_fail_closed_after_concurrent_upgrade(tmp_path):
+    budget = ledger(tmp_path)
+    stale = ledger(tmp_path)
+    pending = stale.reserve(BODY)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pool.submit(budget.upgrade_token_limits).result()
+    before = budget.path.read_bytes()
+    for operation in (lambda: stale.reserve(BODY), lambda: stale.reconcile(pending, USAGE),
+                      stale.snapshot, stale.upgrade_token_limits):
+        with pytest.raises(BudgetValidationError, match="configuration mismatch"):
+            operation()
+    assert budget.path.read_bytes() == before
+
+
+@pytest.mark.parametrize("limits", [{"max_output_tokens": 16385}, {"max_input_tokens": 1048577},
+    {"max_output_tokens": 4095}, {"max_input_tokens": 131071},
+    {"max_output_tokens": 16384.0}, {"max_input_tokens": True}])
+def test_invalid_limit_upgrade_changes_nothing(tmp_path, limits):
+    budget = ledger(tmp_path)
+    budget.reserve(BODY)
+    before = budget.path.read_bytes()
+    with pytest.raises(BudgetValidationError):
+        budget.upgrade_token_limits(**limits)
+    assert budget.path.read_bytes() == before
+    assert ledger(tmp_path).snapshot() == budget.snapshot()
+
+
+def test_failed_limit_upgrade_write_keeps_old_configuration_and_pending(tmp_path, monkeypatch):
+    budget = ledger(tmp_path)
+    budget.reserve(BODY)
+    before = budget.path.read_bytes()
+    before_snapshot = budget.snapshot()
+    def fail(*args):
+        raise OSError("simulated migration write failure")
+    monkeypatch.setattr(os, "replace", fail)
+    with pytest.raises(OSError, match="migration write failure"):
+        budget.upgrade_token_limits()
+    assert budget.path.read_bytes() == before
+    assert budget.snapshot() == before_snapshot
+    assert ledger(tmp_path).snapshot() == before_snapshot
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_upgrade_does_not_relax_strict_money_ceiling(tmp_path):
+    larger_body = BODY | {"max_tokens": 16384}
+    budget = ledger(tmp_path, prior_known_cny=Decimal("40") - cost(larger_body))
+    budget.upgrade_token_limits()
+    with pytest.raises(BudgetExceeded, match="reach or exceed"):
+        budget.reserve(larger_body)
+    assert budget.snapshot()["reservation_count"] == 0
+
+
+def test_uncertain_upgrade_after_replace_fails_closed_until_reopened(tmp_path, monkeypatch):
+    budget = ledger(tmp_path)
+    budget.reserve(BODY)
+    before = json.loads(budget.path.read_text())
+    real_write = budget._write
+    def uncertain_write(state):
+        real_write(state)
+        raise OSError("simulated durability uncertainty after replacement")
+    monkeypatch.setattr(budget, "_write", uncertain_write)
+    with pytest.raises(OSError, match="uncertainty"):
+        budget.upgrade_token_limits()
+    assert json.loads(budget.path.read_text()) == before | {"config": before["config"] | UPGRADED_LIMITS}
+    with pytest.raises(BudgetValidationError, match="configuration mismatch"):
+        budget.reserve(BODY)
+    verified = ledger(tmp_path, **UPGRADED_LIMITS)
+    assert verified.snapshot()["pending_count"] == 1
+    assert Decimal(verified.snapshot()["pending_cny"]) == cost()

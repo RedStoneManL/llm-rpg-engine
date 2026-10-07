@@ -27,6 +27,7 @@ from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, registered_balances, validate_resources
 from loop.narration_guard import validate_narration
+from loop.strategy import AuthorOutputError
 
 from engine.store import EventBatch, RevisionConflict
 
@@ -72,6 +73,19 @@ class TurnResult:
 
 class TurnRejected(ValueError):
     """The proposed action has no coherent, validated result to publish."""
+
+
+def _whole_turn_repair(player_input: str) -> str:
+    """An absent/unusable proposal is not a partially authored, committed turn."""
+    return (
+        "上一整回合的输出不可用，没有任何部分提交，也不能当作已发生的剧情。"
+        "根据当前已提交世界状态和下面最后一条实际玩家行动，重新生成完整 TurnCommit。"
+        "只输出一个合法 JSON 对象，不要散文前缀或代码围栏。"
+        "narration 必须为非空叙事字符串；moves、places、cast、facts、clock 必须齐全。"
+        "同时输出本次行动实际需要的所有可选段，尤其物品交接的 items、信息流动的 knowledge 等；"
+        "不要仅补缺失段，不保留无效输出的正文或假定其变更已经发生。\n"
+        f"[player] {player_input}"
+    )
 
 
 def _item_preflight(registry, prior_ids, authorized_return_creations=None):
@@ -166,21 +180,26 @@ def produce_turn(
     # --------------------------------------------------------------------------
     # Step 1: Produce initial commit
     # --------------------------------------------------------------------------
-    with get_tracer().span("produce"):
-        commit = strategy.produce(
-            registry, world, scene, player_input,
-            provider=provider, embedder=embedder,
-        )
-    log.debug("produce_turn: initial commit narration=%r sections=%s",
-              commit.narration[:40], list(commit.sections))
+    output_error = None
+    try:
+        with get_tracer().span("produce"):
+            commit = strategy.produce(
+                registry, world, scene, player_input,
+                provider=provider, embedder=embedder,
+            )
+    except AuthorOutputError as exc:
+        commit, output_error = None, exc
 
     # --------------------------------------------------------------------------
     # Step 2: Validate + modular repair loop
     #
-    # When validation fails, re-emit ONLY the failing sections (not narration,
+    # An unusable Author response needs a WHOLE proposal, not missing-section
+    # repair of fallback prose. Whole and modular retries share max_repairs.
+    # When a usable proposal fails validation, re-emit ONLY failing sections (not narration,
     # not passing sections).  This is far cheaper than a full re-author (the
-    # original narration prose is already valid and authoritative — regenerating
-    # it on every repair turn was the dominant cost measured at ~59s/repair).
+    # usable narration is preserved for latency, not guaranteed semantically
+    # consistent with every repaired effect; full semantic reconciliation is a
+    # separate concern). Regeneration on every repair was measured at ~59s/repair.
     #
     # Flow per repair attempt:
     #   a. Compute failing section names from the error list.
@@ -200,42 +219,55 @@ def produce_turn(
     _aug_scene = ((scene or {}).get("scene") or (scene or {}).get("id")
                   or (scene or {}).get("location") or "")
     _aug_day = (scene or {}).get("day", 0)
-    augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
-    errors = validate_commit(registry, commit, world, required_sections=required_sections)
-    errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
-    errors.extend(validate_narration(commit, world))
+    def validate(proposal):
+        augment_unresolved_refs(proposal, world, scene=_aug_scene, day=_aug_day)
+        result = validate_commit(registry, proposal, world, required_sections=required_sections)
+        result.extend(validate_resources(proposal, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
+        result.extend(validate_narration(proposal, world))
+        return result
 
-    while errors and attempts < max_repairs:
+    errors = validate(commit) if output_error is None else []
+    while (output_error is not None or errors) and attempts < max_repairs:
         failing = {e.section for e in errors}
-        log.debug("produce_turn: repair attempt=%d errors=%d failing=%s",
-                  attempts + 1, len(errors), sorted(failing))
+        log.debug("produce_turn: repair attempt=%d errors=%d failing=%s output_error=%s",
+                  attempts + 1, len(errors), sorted(failing),
+                  output_error.code if output_error is not None else None)
         with get_tracer().span("repair", attempt=attempts + 1):
             try:
-                repaired = strategy.repair_sections(failing, errors, provider=provider)
-                # Merge repaired sections into the existing commit; narration + passing
-                # sections stay untouched.  Build a new TurnCommit (dataclass is frozen
-                # by convention — reconstruct rather than mutate in place).
-                from kernel.turncommit import TurnCommit as _TC
-                merged_sections = dict(commit.sections)
-                merged_sections.update({k:v for k,v in repaired.items() if k != 'narration'})
-                commit = _TC(
-                    narration=repaired.get('narration', commit.narration),
-                    sections=merged_sections,
-                )
-            except NotImplementedError:
-                # Legacy fallback: full re-author (for strategies that don't
-                # implement repair_sections yet).
-                repair_text = build_repair_request(errors)
-                commit = strategy.produce(
-                    registry, world, scene, player_input,
-                    provider=provider, embedder=embedder,
-                    repair=repair_text,
-                )
-        augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
-        errors = validate_commit(registry, commit, world, required_sections=required_sections)
-        errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
-        errors.extend(validate_narration(commit, world))
+                if output_error is not None:
+                    commit = strategy.produce(
+                        registry, world, scene, player_input,
+                        provider=provider, embedder=embedder,
+                        repair=_whole_turn_repair(player_input),
+                    )
+                else:
+                    try:
+                        repaired = strategy.repair_sections(failing, errors, provider=provider)
+                        # Preserve passing sections only for a usable whole proposal.
+                        from kernel.turncommit import TurnCommit as _TC
+                        merged_sections = dict(commit.sections)
+                        merged_sections.update({k:v for k,v in repaired.items() if k != 'narration'})
+                        commit = _TC(
+                            narration=repaired.get('narration', commit.narration),
+                            sections=merged_sections,
+                        )
+                    except NotImplementedError:
+                        # Third-party strategies retain the legacy re-author path.
+                        commit = strategy.produce(
+                            registry, world, scene, player_input,
+                            provider=provider, embedder=embedder,
+                            repair=build_repair_request(errors),
+                        )
+                output_error = None
+            except AuthorOutputError as exc:
+                commit, output_error = None, exc
         attempts += 1
+        errors = validate(commit) if output_error is None else []
+
+    if output_error is not None:
+        raise TurnRejected(
+            f"Author output unusable after {attempts} repairs: {output_error.code}"
+        ) from None
 
     # --------------------------------------------------------------------------
     # Step 3: Drop still-failing sections (fallback)

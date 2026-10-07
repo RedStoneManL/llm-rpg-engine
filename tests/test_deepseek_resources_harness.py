@@ -240,3 +240,14 @@ def test_transport_failure_keeps_spend_reservation(monkeypatch):
         provider.complete_messages([{'role': 'user', 'content': 'fixture'}])
     assert steps == ['reserve']
     assert provider.calls[0]['status'] == 'failed'
+
+
+@pytest.mark.parametrize("limit", [0, 65, -1, True, 1.5, "16"])
+def test_explicit_benchmark_call_cap_is_bounded(limit):
+    with pytest.raises(ValueError, match="max_posts"):
+        harness.BoundedDeepSeekProvider("offline-test-key", max_posts=limit)
+
+
+def test_explicit_benchmark_call_cap_preserves_default():
+    assert harness.BoundedDeepSeekProvider("offline-test-key").max_posts == 16
+    assert harness.BoundedDeepSeekProvider("offline-test-key", max_posts=64).max_posts == 64
