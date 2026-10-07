@@ -1,0 +1,99 @@
+{
+  "source_base": "f5cd33956c0cc09085fe47a6ab73ddfd5b6a9498",
+  "model": "native-gpt-6-astra",
+  "source_hashes": {
+    "loop/strategy.py": "f82c063eabc27305bccbd6e366f8c2c94cc5b841af0ac468d6773eb3e79011aa"
+  },
+  "source_frozen": true,
+  "cases": [
+    {
+      "case": 1,
+      "original_request": "0002",
+      "original_player_turn": 1,
+      "system_changed_only_cast_guidance": true,
+      "before_cast": [
+        {
+          "id": "keeper",
+          "op": "evolve",
+          "sketch": "态度合作的客栈掌柜，把代问桥头通行情况的请求说清楚，并留给林舟决定是否接受。",
+          "goal": "请林舟代向桥头守卫询问今日货车能否通行。"
+        }
+      ],
+      "before_cast_errors": [
+        {
+          "section": "cast",
+          "field": "[0].predicate",
+          "code": "missing",
+          "hint": "evolve 操作必须包含 'predicate' 字段以指定要更新的属性名"
+        },
+        {
+          "section": "cast",
+          "field": "[0].value",
+          "code": "missing",
+          "hint": "evolve 操作必须包含 'value' 字段以指定属性的新值"
+        }
+      ],
+      "after_cast": [],
+      "after_cast_errors": [],
+      "after_all_errors": [],
+      "generated_first_responses": 1,
+      "repair_calls": 0,
+      "final_response_sha256": "8ea92f2e292f294cf5ff5812dc6a59691118d53176f1908e71fedc2182475300"
+    },
+    {
+      "case": 2,
+      "original_request": "0005",
+      "original_player_turn": 2,
+      "system_changed_only_cast_guidance": true,
+      "before_cast": [
+        {
+          "id": "keeper",
+          "op": "evolve",
+          "sketch": "沈掌柜接受林舟为代问差事划定的边界，愿意请一碗热面作为跑腿报酬。",
+          "goal": "弄清今日货车能否过桥及可通行时间，再自行决定货物运输安排。"
+        }
+      ],
+      "before_cast_errors": [
+        {
+          "section": "cast",
+          "field": "[0].predicate",
+          "code": "missing",
+          "hint": "evolve 操作必须包含 'predicate' 字段以指定要更新的属性名"
+        },
+        {
+          "section": "cast",
+          "field": "[0].value",
+          "code": "missing",
+          "hint": "evolve 操作必须包含 'value' 字段以指定属性的新值"
+        }
+      ],
+      "after_cast": [
+        {
+          "id": "keeper",
+          "op": "evolve",
+          "predicate": "goal",
+          "value": "等林舟问回今日桥头货车通行情况，再决定是否发车；希望午前得到准信。"
+        }
+      ],
+      "after_cast_errors": [],
+      "after_all_errors": [],
+      "generated_first_responses": 1,
+      "repair_calls": 0,
+      "handoff_limitation": {
+        "runner_read_characters": 1587,
+        "completed_file_characters": 1599,
+        "runner_error": "AuthorOutputError invalid_json on earlier file version",
+        "completed_file_validation": "performed after worker reported written; no new generation or content modification",
+        "earlier_read_bytes_not_captured": true
+      },
+      "final_response_sha256": "fe23859cbba04d6b7970404ce7965ca304fbeedeef5cdef9285a846a58795e27"
+    }
+  ],
+  "limits": [
+    "Two finalized native model deliverables; not two committed gameplay turns.",
+    "Case1 cast=[]; case2 emits a correctly shaped evolve row.",
+    "Sample2 runner consumed an earlier file version; finalized completion was validated once without changing its content or generating again.",
+    "No model repair calls, DeepSeek calls, offline test suite, or universal compliance claim.",
+    "Both Author and Hybrid guidance changed; only Author requests were model-evaluated."
+  ]
+}

@@ -221,3 +221,11 @@ clock_advanced事件。物品/归还预览与实际提交共用换算，已解�
 最终代码冻结后的两次真实原生完成，分别在原始坏例同文摘要与接续再压缩中保持
 “林舟”是人物、“小满”是铜铃。此前4次已完成的迭代输出另存，不冒充最终结果；
 没有DS调用、离线测试活动或全局准确率保证。[证据与边界](SUMMARY_IDENTITY_GROUNDING.md)。
+
+### cast 提示与真实校验契约对齐（2026-10-07）
+
+8/10回合反复修复的直接原因是Author/Hybrid把create与evolve都写成sketch/goal形状；
+实际evolve要求id/predicate/value。只改两行提示，分别示范两类操作，校验与事件语义不变。
+两个相同已记录请求的原生新输出分别给cast=[]和合法goal更新，最终文件均通过原有校验。
+第二个文件交接曾提前读到较早版本而报invalid_json，完成后的原文另行校验，无重新生成；
+不能把它说成两回合端到端试玩通过。[具体记录及限制](NATIVE_PLAY_MEMORY_FIXES.md#follow-up-the-repeated-cast-repair-had-a-misleading-prompt-example)。

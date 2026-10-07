@@ -79,3 +79,30 @@ checks, and independent code review. No new offline test campaign or DeepSeek
 validation was run. Full synthetic prompts/responses and saves are retained in
 the companion audit archive; no credentials or private API budget ledger are
 included.
+
+## Follow-up: the repeated cast repair had a misleading prompt example
+
+Both authoring prompts advertised `{id,op:create|evolve,sketch,goal,name?}`.
+CharacterSystem actually requires `{id,op:evolve,predicate,value}` for updating
+an existing character. The recorded wrong native rows followed the advertised
+shape; repair then supplied the missing predicate/value.
+
+Only those two prompt lines now separate creation from attribute updates,
+show a goal/sketch update, permit separate rows for multiple changes, and keep
+`cast: []` when nothing changes. Validators, parser, and event semantics are
+unchanged. Independent inspection confirmed both Author and Hybrid contracts.
+
+Two [fresh native Author deliverables](reports/2026-10-07/native-cast-contract-after.json)
+used the actual recorded first and later interaction requests. The harness
+verified that only the cast guidance changed in the system message. The first
+response chose `cast: []`; the second emitted an evolve row with predicate=goal
+and a value. Both finalized responses passed the existing schema validation,
+where both recorded originals lacked predicate/value.
+
+The second local handoff read an earlier1587-character file version and stopped
+with invalid_json before the worker finished its1599-character deliverable.
+That completed file was parsed and validated verbatim afterward, with no
+regeneration or model repair. The earlier raw bytes were not captured; the
+receipt/error and final file hash are retained. This is finalized-response
+schema acceptance, not two successful end-to-end gameplay turns or a claim
+that every initial response will comply. Hybrid generation was not sampled.
