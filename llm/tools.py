@@ -738,6 +738,23 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     scene = {**scene, '_allow_pov_shift': dm}
     tools: list[Tool] = []
 
+    if registry.owner_of_event('item_return_promised') is not None:
+        def return_commitments_query(commitment_id=None):
+            from systems.return_commitments import visible_records
+            if commitment_id is not None and not isinstance(commitment_id, str):
+                return {'error': 'commitment_id must be a string'}
+            return {'commitments': visible_records(world, scene, commitment_id=commitment_id)}
+        tools.append(Tool(
+            name='return_commitments_query',
+            description=('Read the current player\'s visible item-return commitments, exact parties, '
+                         'absolute game day/band deadline and derived overdue status. Uses the canonical '
+                         'commitment ledger, not free-form ownership facts or summaries. Cannot change POV.'),
+            parameters={'type': 'object', 'properties': {
+                'commitment_id': {'type': 'string', 'description': 'Optional exact known commitment id.'}},
+                'required': [], 'additionalProperties': False},
+            fn=return_commitments_query,
+        ))
+
     # --- map_query: geography / topology / fog-gated place facts ---
     tools.append(Tool(
         name="map_query",

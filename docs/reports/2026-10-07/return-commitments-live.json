@@ -1,0 +1,2428 @@
+{
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "status": "state_checks_passed_manual_prose_review_required",
+  "cases": [
+    {
+      "id": "missing_details",
+      "action_index": 1,
+      "actor": "A",
+      "action": "我答应归还蓝伞。",
+      "before": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {}
+      },
+      "audit": [],
+      "ui_output": [
+        "> 你：我答应归还蓝伞。",
+        "[需要确认归还约定] 你打算什么时候归还蓝伞？具体到哪一天和早晨/中午/下午/晚上。"
+      ],
+      "intent": {
+        "status": "clarify",
+        "question": "你打算什么时候归还蓝伞？具体到哪一天和早晨/中午/下午/晚上。",
+        "pending": {
+          "player_actions": [
+            "我答应归还蓝伞。"
+          ],
+          "_revision": 1,
+          "actor": "A",
+          "day": 1,
+          "band": 0
+        }
+      },
+      "error": null,
+      "result": "clarified",
+      "expected_turn": 1,
+      "final_narration": null,
+      "pending_before": null,
+      "after": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {}
+      },
+      "new_events": [],
+      "pending_after": {
+        "player_actions": [
+          "我答应归还蓝伞。"
+        ],
+        "_revision": 1,
+        "actor": "A",
+        "day": 1,
+        "band": 0
+      },
+      "revision_before": 1,
+      "revision_after": 1,
+      "time_before": {
+        "day": 1,
+        "band": 0
+      },
+      "time_after": {
+        "day": 1,
+        "band": 0
+      },
+      "cache_digest_before": "9ed5049f5c952cd8be0a647e44d1b9fdc6074bbc600f954a5799e6ddcf69a9d4",
+      "cache_digest_after": "9ed5049f5c952cd8be0a647e44d1b9fdc6074bbc600f954a5799e6ddcf69a9d4",
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 1110,
+          "output": 29,
+          "total": 1139
+        },
+        "calls_without_usage": 0
+      },
+      "call_numbers": [
+        1
+      ],
+      "guard_errors": [],
+      "checks": {
+        "no_execution_error": true,
+        "noncommit_atomic": true,
+        "required_clarification": true,
+        "no_events_time_world_or_cache_change": true,
+        "no_narration": true,
+        "no_commitment": true,
+        "pending_preserved": true
+      },
+      "classification": "clarification_observed",
+      "state_checks": "passed"
+    },
+    {
+      "id": "supply_details",
+      "action_index": 2,
+      "actor": "A",
+      "action": "还给B，第2天中午。",
+      "before": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {}
+      },
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "B",
+                "fact_key": "umbrella.归还约定",
+                "value": "A 承诺于第 2 天中午归还蓝伞",
+                "via": "A 当面应下"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一段对话与交接，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "ui_output": [
+        "> 你：还给B，第2天中午。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。"
+      ],
+      "intent": {
+        "status": "ready",
+        "pending": {
+          "player_actions": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ],
+          "_revision": 1,
+          "actor": "A",
+          "day": 1,
+          "band": 0
+        },
+        "player_input": "我答应归还蓝伞。\n还给B，第2天中午。",
+        "promise": {
+          "item": "umbrella",
+          "recipient": "B",
+          "due": {
+            "day": 2,
+            "band": 1
+          },
+          "evidence": {
+            "player_actions": [
+              "我答应归还蓝伞。",
+              "还给B，第2天中午。"
+            ],
+            "quotes": [
+              "我答应归还蓝伞。",
+              "还给B，第2天中午。"
+            ]
+          }
+        }
+      },
+      "error": null,
+      "result": "committed",
+      "expected_turn": 1,
+      "final_narration": "你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。",
+      "pending_before": {
+        "player_actions": [
+          "我答应归还蓝伞。"
+        ],
+        "_revision": 1,
+        "actor": "A",
+        "day": 1,
+        "band": 0
+      },
+      "gateway_player_input": "我答应归还蓝伞。\n还给B，第2天中午。",
+      "gateway_return_commitment": {
+        "item": "umbrella",
+        "recipient": "B",
+        "due": {
+          "day": 2,
+          "band": 1
+        },
+        "evidence": {
+          "player_actions": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ],
+          "quotes": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ]
+        }
+      },
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "B",
+            "fact_key": "umbrella.归还约定",
+            "value": "A 承诺于第 2 天中午归还蓝伞",
+            "via": "A 当面应下"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一段对话与交接，时间未实质推进"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "a6100eff-254a-459d-92c5-896f65697a26",
+        "first_seq": 12,
+        "last_seq": 15,
+        "revision": 2,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "new_events": [
+        {
+          "seq": 12,
+          "id": "ev_be37f1e40ec9",
+          "type": "item_return_promised",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "item return commitment recorded",
+          "deltas": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 13,
+          "id": "ev_d3656cca86d6",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "B 得知 umbrella.归还约定",
+          "deltas": {
+            "knower": "B",
+            "fact_key": "umbrella.归还约定",
+            "value": "A 承诺于第 2 天中午归还蓝伞",
+            "via": "A 当面应下"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 14,
+          "id": "ev_180f48de6915",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：同一段对话与交接，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一段对话与交接，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 15,
+          "id": "ev_6e8cd179438e",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "room",
+            "text": "你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        }
+      ],
+      "pending_after": null,
+      "revision_before": 1,
+      "revision_after": 2,
+      "time_before": {
+        "day": 1,
+        "band": 0
+      },
+      "time_after": {
+        "day": 1,
+        "band": 0
+      },
+      "cache_digest_before": "9ed5049f5c952cd8be0a647e44d1b9fdc6074bbc600f954a5799e6ddcf69a9d4",
+      "cache_digest_after": "46133a7bc90c98d51ce75f00f68d4b0b65716e0f627fb6597b6f0cf732522f7c",
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 4151,
+          "output": 263,
+          "total": 4414
+        },
+        "calls_without_usage": 0
+      },
+      "call_numbers": [
+        2,
+        3
+      ],
+      "guard_errors": [],
+      "checks": {
+        "no_execution_error": true,
+        "noncommit_atomic": true,
+        "ready_and_committed": true,
+        "one_exact_commitment": true,
+        "no_physical_return": true,
+        "pending_cleared": true
+      },
+      "classification": "ready_intent_committed",
+      "state_checks": "passed"
+    },
+    {
+      "id": "remind_only",
+      "action_index": 3,
+      "actor": "A",
+      "action": "提醒我之前蓝伞的归还约定：答应给谁、哪天哪个时段？只是查询，不作新承诺，也不交接物品。",
+      "before": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "只是回忆与查询，未发生实际时间推进"
+              }
+            ]
+          }
+        }
+      ],
+      "ui_output": [
+        "> 你：提醒我之前蓝伞的归还约定：答应给谁、哪天哪个时段？只是查询，不作新承诺，也不交接物品。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。"
+      ],
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "提醒我之前蓝伞的归还约定：答应给谁、哪天哪个时段？只是查询，不作新承诺，也不交接物品。"
+      },
+      "error": null,
+      "result": "committed",
+      "expected_turn": 2,
+      "final_narration": "你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。",
+      "pending_before": null,
+      "gateway_player_input": "提醒我之前蓝伞的归还约定：答应给谁、哪天哪个时段？只是查询，不作新承诺，也不交接物品。",
+      "gateway_return_commitment": null,
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [],
+        "knowledge": [],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "只是回忆与查询，未发生实际时间推进"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "208fbada-b984-4254-9de7-842b2b8f0886",
+        "first_seq": 16,
+        "last_seq": 17,
+        "revision": 3,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "new_events": [
+        {
+          "seq": 16,
+          "id": "ev_1e100577e422",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：只是回忆与查询，未发生实际时间推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "只是回忆与查询，未发生实际时间推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        },
+        {
+          "seq": 17,
+          "id": "ev_23d81a5a2c19",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "room",
+            "text": "你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 2,
+          "retracted": false
+        }
+      ],
+      "pending_after": null,
+      "revision_before": 2,
+      "revision_after": 3,
+      "time_before": {
+        "day": 1,
+        "band": 0
+      },
+      "time_after": {
+        "day": 1,
+        "band": 0
+      },
+      "cache_digest_before": "9ed5049f5c952cd8be0a647e44d1b9fdc6074bbc600f954a5799e6ddcf69a9d4",
+      "cache_digest_after": "fac1043075f28a874417676e434d134d39ea60a617aa18c68f0a60d983d197fd",
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 4260,
+          "output": 128,
+          "total": 4388
+        },
+        "calls_without_usage": 0
+      },
+      "call_numbers": [
+        4,
+        5
+      ],
+      "guard_errors": [],
+      "checks": {
+        "no_execution_error": true,
+        "noncommit_atomic": true,
+        "noncommitment_classification": true,
+        "no_new_commitment": true,
+        "canonical_commitment_and_holder_unchanged": true,
+        "no_transfer_or_completion": true,
+        "outcome_allowed": true
+      },
+      "classification": "ordinary_inquiry_without_new_commitment",
+      "state_checks": "passed"
+    },
+    {
+      "id": "false_completion",
+      "action_index": 4,
+      "actor": "A",
+      "action": "我现在不把蓝伞还给B，伞仍在A手里；只要求把原归还约定标成已完成，不要虚构交接，也不是新承诺。",
+      "before": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "knowledge": [],
+            "clock": [
+              {
+                "advance": true,
+                "days": 0,
+                "bands": 1,
+                "reason": "晨光爬高，时段由晨推入中午，未发生交还行动"
+              }
+            ]
+          }
+        }
+      ],
+      "ui_output": [
+        "> 你：我现在不把蓝伞还给B，伞仍在A手里；只要求把原归还约定标成已完成，不要虚构交接，也不是新承诺。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。"
+      ],
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "我现在不把蓝伞还给B，伞仍在A手里；只要求把原归还约定标成已完成，不要虚构交接，也不是新承诺。"
+      },
+      "error": null,
+      "result": "committed",
+      "expected_turn": 3,
+      "final_narration": "你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。",
+      "pending_before": null,
+      "gateway_player_input": "我现在不把蓝伞还给B，伞仍在A手里；只要求把原归还约定标成已完成，不要虚构交接，也不是新承诺。",
+      "gateway_return_commitment": null,
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [],
+        "knowledge": [],
+        "clock": [
+          {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "晨光爬高，时段由晨推入中午，未发生交还行动"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "495c6890-8cee-4a27-a766-336efa4bd86f",
+        "first_seq": 18,
+        "last_seq": 19,
+        "revision": 4,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "new_events": [
+        {
+          "seq": 18,
+          "id": "ev_6b662266efd3",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "时间 +0天1段：晨光爬高，时段由晨推入中午，未发生交还行动",
+          "deltas": {
+            "advance": true,
+            "days": 0,
+            "bands": 1,
+            "reason": "晨光爬高，时段由晨推入中午，未发生交还行动"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        },
+        {
+          "seq": 19,
+          "id": "ev_c15b5fce24a5",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "room",
+            "text": "你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 3,
+          "retracted": false
+        }
+      ],
+      "pending_after": null,
+      "revision_before": 3,
+      "revision_after": 4,
+      "time_before": {
+        "day": 1,
+        "band": 0
+      },
+      "time_after": {
+        "day": 1,
+        "band": 1
+      },
+      "cache_digest_before": "fac1043075f28a874417676e434d134d39ea60a617aa18c68f0a60d983d197fd",
+      "cache_digest_after": "d45ddddad1196a6e41f8449c9c44ec34049df853925ac02329cb5f188491cd84",
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 4334,
+          "output": 160,
+          "total": 4494
+        },
+        "calls_without_usage": 0
+      },
+      "call_numbers": [
+        6,
+        7
+      ],
+      "guard_errors": [],
+      "checks": {
+        "no_execution_error": true,
+        "noncommit_atomic": true,
+        "noncommitment_classification": true,
+        "no_new_commitment": true,
+        "canonical_commitment_and_holder_unchanged": true,
+        "no_transfer_or_completion": true,
+        "outcome_allowed": true
+      },
+      "classification": "model_chose_no_completion_without_guard_evidence",
+      "state_checks": "passed"
+    },
+    {
+      "id": "physical_return",
+      "action_index": 5,
+      "actor": "A",
+      "action": "我现在把自己A手里的蓝伞实际交还给B，B接过，完成之前的约定。只做这一次交接，不作新承诺。",
+      "before": {
+        "holders": {
+          "umbrella": [
+            "A"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "umbrella",
+                "predicate": "归还状态",
+                "value": "已按约交还 B",
+                "secrecy": "public"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "A",
+                "fact_key": "umbrella.归还状态",
+                "value": "已按约交还 B",
+                "via": "亲手交接"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一时段内的简短交接，时间未实质推进"
+              }
+            ],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "umbrella",
+                "from": "A",
+                "to": "B"
+              }
+            ],
+            "promises": [
+              {
+                "op": "fulfill",
+                "id": "return_aab48d1c6d2c4ffa877597ef68030df6"
+              }
+            ]
+          }
+        }
+      ],
+      "ui_output": [
+        "> 你：我现在把自己A手里的蓝伞实际交还给B，B接过，完成之前的约定。只做这一次交接，不作新承诺。",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。"
+      ],
+      "intent": {
+        "status": "none",
+        "pending": null,
+        "player_input": "我现在把自己A手里的蓝伞实际交还给B，B接过，完成之前的约定。只做这一次交接，不作新承诺。"
+      },
+      "error": null,
+      "result": "committed",
+      "expected_turn": 4,
+      "final_narration": "你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。",
+      "pending_before": null,
+      "gateway_player_input": "我现在把自己A手里的蓝伞实际交还给B，B接过，完成之前的约定。只做这一次交接，不作新承诺。",
+      "gateway_return_commitment": null,
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "umbrella",
+            "predicate": "归还状态",
+            "value": "已按约交还 B",
+            "secrecy": "public"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "A",
+            "fact_key": "umbrella.归还状态",
+            "value": "已按约交还 B",
+            "via": "亲手交接"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一时段内的简短交接，时间未实质推进"
+          }
+        ],
+        "items": [
+          {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          }
+        ],
+        "promises": [
+          {
+            "op": "fulfill",
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "49db470a-3544-47bc-83d7-fc40cec661f1",
+        "first_seq": 20,
+        "last_seq": 25,
+        "revision": 5,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "holders": {
+          "umbrella": [
+            "B"
+          ]
+        },
+        "records": {
+          "return_aab48d1c6d2c4ffa877597ef68030df6": {
+            "item": "umbrella",
+            "recipient": "B",
+            "due": {
+              "day": 2,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ],
+              "quotes": [
+                "我答应归还蓝伞。",
+                "还给B，第2天中午。"
+              ]
+            },
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+            "debtor": "A",
+            "status": "fulfilled",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 1,
+            "initial_held_by_source_event": "ev_f97bf12ce044",
+            "debtor_known_entities": [
+              "umbrella",
+              "A",
+              "B"
+            ],
+            "fulfilled_at": {
+              "day": 1,
+              "band": 1
+            }
+          }
+        }
+      },
+      "new_events": [
+        {
+          "seq": 20,
+          "id": "ev_0eb68bb248c4",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "umbrella.归还状态=已按约交还 B",
+          "deltas": {
+            "subject": "umbrella",
+            "predicate": "归还状态",
+            "value": "已按约交还 B",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 21,
+          "id": "ev_c8140f5cb09d",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "A 得知 umbrella.归还状态",
+          "deltas": {
+            "knower": "A",
+            "fact_key": "umbrella.归还状态",
+            "value": "已按约交还 B",
+            "via": "亲手交接"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 22,
+          "id": "ev_4430d618c276",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：同一时段内的简短交接，时间未实质推进",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一时段内的简短交接，时间未实质推进"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 23,
+          "id": "ev_90087ab0f55a",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "umbrella 转移至 B",
+          "deltas": {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 24,
+          "id": "ev_25c1873a4ec5",
+          "type": "item_return_fulfilled",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "物品归还承诺履行待核验",
+          "deltas": {
+            "id": "return_aab48d1c6d2c4ffa877597ef68030df6"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        },
+        {
+          "seq": 25,
+          "id": "ev_561d384bfde2",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "room",
+            "text": "你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 4,
+          "retracted": false
+        }
+      ],
+      "pending_after": null,
+      "revision_before": 4,
+      "revision_after": 5,
+      "time_before": {
+        "day": 1,
+        "band": 1
+      },
+      "time_after": {
+        "day": 1,
+        "band": 1
+      },
+      "cache_digest_before": "d45ddddad1196a6e41f8449c9c44ec34049df853925ac02329cb5f188491cd84",
+      "cache_digest_after": "e6a62d4603935193e5b9adab765756f04c899797f06e9a9ec6e91246fae5dc5e",
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 4408,
+          "output": 321,
+          "total": 4729
+        },
+        "calls_without_usage": 0
+      },
+      "call_numbers": [
+        8,
+        9
+      ],
+      "guard_errors": [],
+      "checks": {
+        "no_execution_error": true,
+        "noncommit_atomic": true,
+        "noncommitment_classification": true,
+        "no_new_commitment": true,
+        "physical_return_committed": true,
+        "fulfilled_same_action": true,
+        "immutable_contract_preserved": true
+      },
+      "classification": "physical_return_without_new_commitment",
+      "state_checks": "passed"
+    }
+  ],
+  "limits": {
+    "player_actions": 5,
+    "http_posts": 16,
+    "output_tokens_per_post": 4096,
+    "low_level_retries": 0,
+    "redirects": 0,
+    "extraction_repairs_per_action": 1,
+    "narration_repairs_per_action": 1
+  },
+  "preflight": {
+    "exact_model_available": true,
+    "http_gets": 1
+  },
+  "scope": "Five sequential full play_loop inputs in one synthetic SQLite campaign; no full-world guarantee",
+  "call_phases": "extraction includes its bounded schema repair; narration and narration_repair are separate phases",
+  "intent_semantics": "The model classifies ordinary inquiry, negative request, clarification, or commitment. Literal evidence proves provenance, not semantic entailment.",
+  "manual_prose_review_required": true,
+  "manual_prose_review": "Compare raw classifier responses, original narration, repairs, UI question, final narration and ledger. State success is not a semantic/prose guarantee.",
+  "disabled": [
+    "digest_fleet",
+    "run_director",
+    "run_cascade",
+    "run_catchup",
+    "run_lore",
+    "run_density",
+    "_run_demote_on_leave",
+    "embeddings",
+    "tracing",
+    "narrator_tools"
+  ],
+  "fixture_events": [
+    {
+      "seq": 1,
+      "id": "ev_75ec451a1a60",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "A",
+        "etype": "Person",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 2,
+      "id": "ev_8430e5367bae",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "B",
+        "etype": "Person",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 3,
+      "id": "ev_573d378078ae",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "room",
+        "etype": "Place",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 4,
+      "id": "ev_5b7ab2db0057",
+      "type": "object_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "umbrella",
+        "tier": "tracked",
+        "visibility": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 5,
+      "id": "ev_f97bf12ce044",
+      "type": "item_transferred",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "item": "umbrella",
+        "from": null,
+        "to": "A"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 6,
+      "id": "ev_bdf35084b20e",
+      "type": "relation_added",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "src": "A",
+        "rel": "located_in",
+        "dst": "room"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 7,
+      "id": "ev_de04bc223349",
+      "type": "relation_added",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "src": "B",
+        "rel": "located_in",
+        "dst": "room"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 8,
+      "id": "ev_82e8b1eec403",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "A",
+        "predicate": "name",
+        "value": "A",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 9,
+      "id": "ev_93d6215d8b5c",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "B",
+        "predicate": "name",
+        "value": "B",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 10,
+      "id": "ev_f2ad6ab03c95",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "room",
+        "predicate": "name",
+        "value": "旅店会客厅",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 11,
+      "id": "ev_691544bfe114",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "umbrella",
+        "predicate": "name",
+        "value": "蓝伞",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    }
+  ],
+  "calls": [
+    {
+      "number": 1,
+      "case": "missing_details",
+      "phase": "missing_details/extraction",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "b2fefda30e994b9b84334ff2130acfeb",
+      "usage": {
+        "prompt_tokens": 1110,
+        "completion_tokens": 29,
+        "total_tokens": 1139,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1110
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"status\":\"clarify\",\"question\":\"你打算什么时候归还蓝伞？具体到哪一天和早晨/中午/下午/晚上。\"}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 2,
+      "case": "supply_details",
+      "phase": "supply_details/extraction",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "49e32f84346846f19488acea7164451d",
+      "usage": {
+        "prompt_tokens": 1120,
+        "completion_tokens": 95,
+        "total_tokens": 1215,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 224
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\n  \"status\": \"ready\",\n  \"item\": \"umbrella\",\n  \"recipient\": \"B\",\n  \"due_parts\": {\n    \"date\": {\"text\": \"第2天\", \"action_index\": 1},\n    \"band\": {\"text\": \"中午\", \"action_index\": 1}\n  },\n  \"evidence_quotes\": [\"我答应归还蓝伞。\", \"还给B，第2天中午。\"]\n}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 3,
+      "case": "supply_details",
+      "phase": "supply_details/narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "1ce22cae18c74a7888902116d22123b9",
+      "usage": {
+        "prompt_tokens": 3031,
+        "completion_tokens": 168,
+        "total_tokens": 3199,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 2263
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"knowledge\":[{\"op\":\"told\",\"knower\":\"B\",\"fact_key\":\"umbrella.归还约定\",\"value\":\"A 承诺于第 2 天中午归还蓝伞\",\"via\":\"A 当面应下\"}],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"同一段对话与交接，时间未实质推进\"}]}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 4,
+      "case": "remind_only",
+      "phase": "remind_only/extraction",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "209302b434714b3d9bd6f37c1e906a69",
+      "usage": {
+        "prompt_tokens": 1131,
+        "completion_tokens": 5,
+        "total_tokens": 1136,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 235
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"status\":\"none\"}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 5,
+      "case": "remind_only",
+      "phase": "remind_only/narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "782f716e61d84a1b86515aa1b168111f",
+      "usage": {
+        "prompt_tokens": 3129,
+        "completion_tokens": 123,
+        "total_tokens": 3252,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 825
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。\",\"moves\":[],\"places\":[],\"cast\":[],\"facts\":[],\"knowledge\":[],\"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"只是回忆与查询，未发生实际时间推进\"}]}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 6,
+      "case": "false_completion",
+      "phase": "false_completion/extraction",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "2084a45489c645f689b2d201ccae9c9e",
+      "usage": {
+        "prompt_tokens": 1135,
+        "completion_tokens": 5,
+        "total_tokens": 1140,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 239
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"status\":\"none\"}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 7,
+      "case": "false_completion",
+      "phase": "false_completion/narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "bba70f47916044d8bd20c25d35e37d0c",
+      "usage": {
+        "prompt_tokens": 3199,
+        "completion_tokens": 155,
+        "total_tokens": 3354,
+        "prompt_tokens_details": {
+          "cached_tokens": 2432
+        },
+        "prompt_cache_hit_tokens": 2432,
+        "prompt_cache_miss_tokens": 767
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\": \"你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"knowledge\": [], \"clock\": [{\"advance\": true, \"days\": 0, \"bands\": 1, \"reason\": \"晨光爬高，时段由晨推入中午，未发生交还行动\"}]}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 8,
+      "case": "physical_return",
+      "phase": "physical_return/extraction",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "02e672d0e15e4465834fced3961ff262",
+      "usage": {
+        "prompt_tokens": 1131,
+        "completion_tokens": 5,
+        "total_tokens": 1136,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 363
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"status\":\"none\"}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 9,
+      "case": "physical_return",
+      "phase": "physical_return/narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "budget_reservation": "f6640e0551e24b379bc777f2d7c62678",
+      "usage": {
+        "prompt_tokens": 3277,
+        "completion_tokens": 316,
+        "total_tokens": 3593,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 973
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\": \"你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [{\"subject\": \"umbrella\", \"predicate\": \"归还状态\", \"value\": \"已按约交还 B\", \"secrecy\": \"public\"}], \"knowledge\": [{\"op\": \"told\", \"knower\": \"A\", \"fact_key\": \"umbrella.归还状态\", \"value\": \"已按约交还 B\", \"via\": \"亲手交接\"}], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"同一时段内的简短交接，时间未实质推进\"}], \"items\": [{\"op\": \"transfer\", \"item\": \"umbrella\", \"from\": \"A\", \"to\": \"B\"}], \"promises\": [{\"op\": \"fulfill\", \"id\": \"return_aab48d1c6d2c4ffa877597ef68030df6\"}]}",
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "http_post_attempts": 9,
+    "reported_token_totals": {
+      "input": 18263,
+      "output": 901,
+      "total": 19164
+    },
+    "calls_without_usage": 0
+  },
+  "response_models": [
+    "deepseek-flash"
+  ],
+  "reopen_after_ready": {
+    "new_engine_and_strategy": true,
+    "checks": {
+      "events_preserved": true,
+      "world_preserved": true,
+      "one_open_exact_commitment": true,
+      "no_pending_intent": true
+    }
+  },
+  "overdue_projection": {
+    "kind": "deterministic_projection_only_no_model_call",
+    "synthetic_event": {
+      "id": "ev_62d0d3d7100b",
+      "type": "clock_advanced",
+      "day": 3,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "deterministic overdue projection only; never persisted",
+      "deltas": {
+        "advance": true,
+        "days": 2,
+        "bands": 2
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 2,
+      "retracted": false
+    },
+    "visible_records": [
+      {
+        "item": "umbrella",
+        "recipient": "B",
+        "due": {
+          "day": 2,
+          "band": 1
+        },
+        "evidence": {
+          "player_actions": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ],
+          "quotes": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ]
+        },
+        "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+        "debtor": "A",
+        "status": "open",
+        "created_at": {
+          "day": 1,
+          "band": 0
+        },
+        "created_turn": 1,
+        "overdue": true
+      }
+    ],
+    "checks": {
+      "open_record_is_overdue": true,
+      "overdue_not_persisted_in_record": true,
+      "original_save_unchanged": true
+    }
+  },
+  "reopen_after_return": {
+    "checks": {
+      "events_preserved": true,
+      "world_preserved": true,
+      "fulfilled_and_held_by_B": true
+    }
+  },
+  "rewind_final_return": {
+    "result": {
+      "retracted": 6,
+      "turn": 4
+    },
+    "after": {
+      "holders": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "records": {
+        "return_aab48d1c6d2c4ffa877597ef68030df6": {
+          "item": "umbrella",
+          "recipient": "B",
+          "due": {
+            "day": 2,
+            "band": 1
+          },
+          "evidence": {
+            "player_actions": [
+              "我答应归还蓝伞。",
+              "还给B，第2天中午。"
+            ],
+            "quotes": [
+              "我答应归还蓝伞。",
+              "还给B，第2天中午。"
+            ]
+          },
+          "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+          "debtor": "A",
+          "status": "open",
+          "created_at": {
+            "day": 1,
+            "band": 0
+          },
+          "created_turn": 1,
+          "initial_held_by_source_event": "ev_f97bf12ce044",
+          "debtor_known_entities": [
+            "umbrella",
+            "A",
+            "B"
+          ]
+        }
+      }
+    },
+    "checks": {
+      "prior_events_restored": true,
+      "prior_world_restored": true,
+      "open_and_held_by_A": true
+    }
+  },
+  "events_including_retracted": [
+    {
+      "seq": 1,
+      "id": "ev_75ec451a1a60",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "A",
+        "etype": "Person",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 2,
+      "id": "ev_8430e5367bae",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "B",
+        "etype": "Person",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 3,
+      "id": "ev_573d378078ae",
+      "type": "entity_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "room",
+        "etype": "Place",
+        "tier": "tracked"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 4,
+      "id": "ev_5b7ab2db0057",
+      "type": "object_created",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "id": "umbrella",
+        "tier": "tracked",
+        "visibility": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 5,
+      "id": "ev_f97bf12ce044",
+      "type": "item_transferred",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "item": "umbrella",
+        "from": null,
+        "to": "A"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 6,
+      "id": "ev_bdf35084b20e",
+      "type": "relation_added",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "src": "A",
+        "rel": "located_in",
+        "dst": "room"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 7,
+      "id": "ev_de04bc223349",
+      "type": "relation_added",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "src": "B",
+        "rel": "located_in",
+        "dst": "room"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 8,
+      "id": "ev_82e8b1eec403",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "A",
+        "predicate": "name",
+        "value": "A",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 9,
+      "id": "ev_93d6215d8b5c",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "B",
+        "predicate": "name",
+        "value": "B",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 10,
+      "id": "ev_f2ad6ab03c95",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "room",
+        "predicate": "name",
+        "value": "旅店会客厅",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 11,
+      "id": "ev_691544bfe114",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "synthetic return-commitment fixture",
+      "deltas": {
+        "subject": "umbrella",
+        "predicate": "name",
+        "value": "蓝伞",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 0,
+      "retracted": false
+    },
+    {
+      "seq": 12,
+      "id": "ev_be37f1e40ec9",
+      "type": "item_return_promised",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "item return commitment recorded",
+      "deltas": {
+        "item": "umbrella",
+        "recipient": "B",
+        "due": {
+          "day": 2,
+          "band": 1
+        },
+        "evidence": {
+          "player_actions": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ],
+          "quotes": [
+            "我答应归还蓝伞。",
+            "还给B，第2天中午。"
+          ]
+        },
+        "id": "return_aab48d1c6d2c4ffa877597ef68030df6",
+        "debtor": "A"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 1,
+      "retracted": false
+    },
+    {
+      "seq": 13,
+      "id": "ev_d3656cca86d6",
+      "type": "knowledge_set",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "B 得知 umbrella.归还约定",
+      "deltas": {
+        "knower": "B",
+        "fact_key": "umbrella.归还约定",
+        "value": "A 承诺于第 2 天中午归还蓝伞",
+        "via": "A 当面应下"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 1,
+      "retracted": false
+    },
+    {
+      "seq": 14,
+      "id": "ev_180f48de6915",
+      "type": "clock_advanced",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "时间未推进：同一段对话与交接，时间未实质推进",
+      "deltas": {
+        "advance": false,
+        "days": 0,
+        "bands": 0,
+        "reason": "同一段对话与交接，时间未实质推进"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 1,
+      "retracted": false
+    },
+    {
+      "seq": 15,
+      "id": "ev_6e8cd179438e",
+      "type": "narration_recorded",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "narration recorded",
+      "deltas": {
+        "scene": "room",
+        "text": "你应下了。B 没多话，只把蓝伞往你这边推了推，转身便走了——伞归你，日子他自己记着。窗外晨光斜斜切进屋里，落在伞面上，蓝得发沉。离第 2 天中午，还有一整个白天加一个上午。"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 1,
+      "retracted": false
+    },
+    {
+      "seq": 16,
+      "id": "ev_1e100577e422",
+      "type": "clock_advanced",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "时间未推进：只是回忆与查询，未发生实际时间推进",
+      "deltas": {
+        "advance": false,
+        "days": 0,
+        "bands": 0,
+        "reason": "只是回忆与查询，未发生实际时间推进"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 2,
+      "retracted": false
+    },
+    {
+      "seq": 17,
+      "id": "ev_23d81a5a2c19",
+      "type": "narration_recorded",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "narration recorded",
+      "deltas": {
+        "scene": "room",
+        "text": "你抬眼看了看窗外——晨光还斜着，离那把蓝伞该回去的时候，尚有一个白天加一个上午。B 走时说过，日子他自己记着；你这边，是把伞应下的人。约定是还给 B，第 2 天中午。眼下伞还在你手上，不急。"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 2,
+      "retracted": false
+    },
+    {
+      "seq": 18,
+      "id": "ev_6b662266efd3",
+      "type": "clock_advanced",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "时间 +0天1段：晨光爬高，时段由晨推入中午，未发生交还行动",
+      "deltas": {
+        "advance": true,
+        "days": 0,
+        "bands": 1,
+        "reason": "晨光爬高，时段由晨推入中午，未发生交还行动"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 3,
+      "retracted": false
+    },
+    {
+      "seq": 19,
+      "id": "ev_c15b5fce24a5",
+      "type": "narration_recorded",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "narration recorded",
+      "deltas": {
+        "scene": "room",
+        "text": "你把蓝伞留在了手边，没有去找 B，也没有托人转交。晨光从窗棂移开，屋里那把蓝伞依旧靠着墙角，蓝得发沉。日子还长，B 说过日子他自己记着——可这一趟，你没有把伞递出去。窗外的光慢慢爬高，屋里的时辰往下走了一格，伞还在原处。"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 3,
+      "retracted": false
+    },
+    {
+      "seq": 20,
+      "id": "ev_0eb68bb248c4",
+      "type": "fact_asserted",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "umbrella.归还状态=已按约交还 B",
+      "deltas": {
+        "subject": "umbrella",
+        "predicate": "归还状态",
+        "value": "已按约交还 B",
+        "secrecy": "public"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    },
+    {
+      "seq": 21,
+      "id": "ev_c8140f5cb09d",
+      "type": "knowledge_set",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "A 得知 umbrella.归还状态",
+      "deltas": {
+        "knower": "A",
+        "fact_key": "umbrella.归还状态",
+        "value": "已按约交还 B",
+        "via": "亲手交接"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    },
+    {
+      "seq": 22,
+      "id": "ev_4430d618c276",
+      "type": "clock_advanced",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "时间未推进：同一时段内的简短交接，时间未实质推进",
+      "deltas": {
+        "advance": false,
+        "days": 0,
+        "bands": 0,
+        "reason": "同一时段内的简短交接，时间未实质推进"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    },
+    {
+      "seq": 23,
+      "id": "ev_90087ab0f55a",
+      "type": "item_transferred",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "umbrella 转移至 B",
+      "deltas": {
+        "op": "transfer",
+        "item": "umbrella",
+        "from": "A",
+        "to": "B"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    },
+    {
+      "seq": 24,
+      "id": "ev_25c1873a4ec5",
+      "type": "item_return_fulfilled",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "物品归还承诺履行待核验",
+      "deltas": {
+        "id": "return_aab48d1c6d2c4ffa877597ef68030df6"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    },
+    {
+      "seq": 25,
+      "id": "ev_561d384bfde2",
+      "type": "narration_recorded",
+      "day": 1,
+      "scene": "room",
+      "arc": null,
+      "actors": [],
+      "summary": "narration recorded",
+      "deltas": {
+        "scene": "room",
+        "text": "你把蓝伞从墙角提起，出门去找 B。他没走远，就在街口那截矮墙边站着，像是本也没打算走快。你走到他跟前，把伞递过去。B 低头看了一眼，伸手接住，指节在伞柄上搭了一下，没多话，只朝你点了个头，把伞往身侧一横，靠在了墙根。伞还是蓝得发沉。日子他自己记着——这一趟，账清了。"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 4,
+      "retracted": true
+    }
+  ],
+  "publication_redactions": [
+    "Local session-wide spending ledger/configuration omitted; provider outputs and test results unchanged."
+  ]
+}

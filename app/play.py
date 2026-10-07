@@ -418,10 +418,12 @@ def play_loop(
             revision_before = engine.store.revision
             stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
             if engine.store.revision != revision_before:
+                engine.pending_return_intent = None
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
                 prev_scene = None
             if stop:
+                engine.pending_return_intent = None
                 break
             continue
 
@@ -439,6 +441,21 @@ def play_loop(
             _echo_player(player_input, out)
 
         try:
+            return_commitment = None
+            if engine.registry.owner_of_event('item_return_promised') is not None:
+                from loop.return_intent import extract_return_intent
+                intent = extract_return_intent(engine.world, scene, player_input,
+                    engine.provider, pending=getattr(engine, 'pending_return_intent', None))
+                engine.pending_return_intent = intent.get('pending')
+                if intent['status'] == 'clarify':
+                    out('[需要确认归还约定] ' + intent['question'])
+                    continue  # No narration, event, time or conversation-cache advance.
+                if intent['status'] == 'ready':
+                    return_commitment = intent['promise']
+                    player_input = intent['player_input']
+                    if compare_mode[0]:
+                        out('[新归还约定暂不支持比较模式；请先 /compare off，再继续确认。原话仍保留，世界未推进。]')
+                        continue
             if compare_mode[0]:
                 from loop.variation import prepare_variation, variation_fragment
                 variation = prepare_variation(engine.registry, engine.world, scene, engine.store.next_turn())
@@ -471,8 +488,10 @@ def play_loop(
                 applied = run_turn(engine.registry, engine.store, engine.world,
                     scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
                     embedder=engine.embedder, required_sections=required_sections,
-                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene)
+                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
+                    return_commitment=return_commitment)
                 engine.world = applied.world
+                engine.pending_return_intent = None
                 prev_scene = scene
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
@@ -504,10 +523,12 @@ def play_loop(
                         cascade_provider=engine.cascade_provider,
                         catchup_provider=engine.cascade_provider,
                         prev_scene=prev_scene,
+                        return_commitment=return_commitment,
                     )
                 finally:
                     spinner.stop()
                 engine.world = result.world
+                engine.pending_return_intent = None
                 prev_scene = scene  # update for next turn's enter-scope detection
                 # #5 — frame the DM narration under a clear marker
                 _print_dm_narration(result.narration, out)
@@ -526,7 +547,11 @@ def play_loop(
             log.exception("play_loop: turn error: %s", exc)
             from loop.turn import TurnRejected
             from engine.store import RevisionConflict
-            if isinstance(exc, TurnRejected):
+            from loop.return_intent import ReturnIntentError
+            if isinstance(exc, ReturnIntentError):
+                engine.pending_return_intent = exc.pending
+                out('[归还意图暂未确认，世界未推进。原话已保留，请重试或补充说明。]')
+            elif isinstance(exc, TurnRejected):
                 out('[这一行动尚未完成，世界保持原状。请重试或换一种行动描述。]')
             elif isinstance(exc, RevisionConflict):
                 from kernel.projection import project

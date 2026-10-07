@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-07",
+  "scope": "Five synthetic player inputs through real CLI classification, clarification, AuthorStrategy and atomic SQLite gateway; not long-play validation",
+  "offline": {
+    "full_suite_passed": 2267,
+    "slow_network_deselected": 1,
+    "endurance_actions": 120,
+    "injected_write_failures": 12,
+    "whole_action_undos": 10,
+    "reopens": 8,
+    "independent_code_and_budget_review": "passed"
+  },
+  "live": {
+    "model": "deepseek-flash",
+    "http_post_attempts": 9,
+    "prompt_tokens": 18263,
+    "completion_tokens": 901,
+    "total_tokens": 19164,
+    "state_cases_passed": 5,
+    "reopen_and_rewind": "passed",
+    "overdue": "deterministic projection only, not a model test",
+    "repairs": 0,
+    "final_guard_rejections": 0
+  },
+  "cost": {
+    "currency": "CNY",
+    "kind": "conservative peak uncached estimate, not account charge",
+    "input_per_million": "2",
+    "output_per_million": "8",
+    "run_estimate": "0.043734",
+    "pricing_source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "reasoning_tokens": "Included in completion_tokens; not added again"
+  },
+  "passed_observations": [
+    "Ambiguous original asks date/band without advancing world/time/cache.",
+    "Actual reply creates one immutable A-to-B umbrella return commitment due day2 band1, preserving both literal inputs.",
+    "After reopen the narration recalls recipient B and day2 noon accurately.",
+    "Request to mark fulfilled without transfer leaves record open and holder A; model itself declines, so guard rejection not exercised.",
+    "Actual A-to-B transfer and typed fulfillment occur in the same action; reopening preserves and rewinding restores open+A."
+  ],
+  "prose_verdict": "Concrete continuity failures remain; typed ledger success does not imply narrative consistency.",
+  "failures": [
+    {
+      "case": "supply_details",
+      "observed": "Narration has B push the umbrella toward A although A already holds it, then B leaves; items and moves are empty. Canonical B remains in room."
+    },
+    {
+      "case": "remind_only",
+      "observed": "Repeats invented B departure and upgrades prior narrator phrasing into B having said he would remember the date."
+    },
+    {
+      "case": "physical_return",
+      "observed": "Narrates leaving to find B at a street corner with moves/places empty; canonical A and B remained in room. Transfer and fulfillment themselves are correct."
+    },
+    {
+      "case": "physical_return",
+      "observed": "Writes redundant public umbrella.归还状态 and knowledge in addition to typed record; descriptive duplicate facts are not universally constrained."
+    }
+  ],
+  "coverage_limits": [
+    "Clarification asked deadline but omitted missing recipient; reply voluntarily supplied both, so recipient ambiguity is not independently live-tested.",
+    "Literal quote provenance does not prove semantic entailment. Negative/conditional/quoted-other-person coverage is offline, not exhaustive real-model validation.",
+    "Pending clarification is runtime-only; new promises explicitly pause compare mode.",
+    "Earlier denied launch sessions produced no report; their preflight result is unknown. No generation usage is attributed to these unverified attempts.",
+    "Raw public report omits local session spending configuration; original provider text/cases remain unchanged."
+  ]
+}

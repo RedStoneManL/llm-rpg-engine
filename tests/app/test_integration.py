@@ -38,6 +38,10 @@ class ScriptedProvider:
         return r
 
     def complete_messages(self, messages):
+        # These bootstrap/CLI fixtures contain no return commitment.
+        if any(m.get("role") == "system" and m.get("content", "").startswith(
+                "你是归还承诺意图分类器") for m in messages):
+            return json.dumps({"status": "none"})
         return self._next()
 
     def complete(self, system, user, **kw):

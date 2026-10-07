@@ -74,9 +74,13 @@ class TurnRejected(ValueError):
     """The proposed action has no coherent, validated result to publish."""
 
 
-def _item_preflight(registry, prior_ids):
+def _item_preflight(registry, prior_ids, authorized_return_creations=None):
     """Keep legacy replay permissive, but check every new staged item event."""
     def check_new(projected, event):
+        if event['id'] not in prior_ids and event['type'] == 'item_return_promised':
+            approved = (authorized_return_creations or {}).get(event['id'])
+            if approved is None or any(event.get(key) != value for key, value in approved.items()):
+                raise TurnRejected('A return commitment requires a verified current-player intent')
         if event['id'] not in prior_ids and registry.owner_of_event('item_transferred') is not None:
             from kernel.item_integrity import item_event_error
             error = item_event_error(projected, event)
@@ -529,7 +533,7 @@ def _backstage_call(store, function, *args, **kwargs):
 def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
-             action_id=None, expected_revision=None) -> TurnResult:
+             action_id=None, expected_revision=None, return_commitment=None) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
@@ -539,11 +543,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     # Bind the observer before resource-intent or any other model call. Custom
     # strategies retain their own contracts; shipped narrators share this gate.
     from loop.strategy import AuthorStrategy, HybridStrategy, _bound_actor_id
-    if isinstance(strategy, (AuthorStrategy, HybridStrategy)):
+    if isinstance(strategy, (AuthorStrategy, HybridStrategy)) or return_commitment is not None:
         _bound_actor_id(world, scene)
     batch = EventBatch(store)
     prior_ids = {event['id'] for event in batch.iter_events(include_retracted=True)}
-    batch.preflight = _item_preflight(registry, prior_ids)
+    authorized_return_creations = {}
+    batch.preflight = _item_preflight(registry, prior_ids, authorized_return_creations)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
@@ -552,6 +557,26 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         strategy.reset()
     old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
     try:
+        if return_commitment is not None:
+            if registry.owner_of_event('item_return_promised') is None:
+                raise TurnRejected('Return commitments are not enabled in this registry')
+            if not isinstance(return_commitment, dict) or set(return_commitment) != {'item', 'recipient', 'due', 'evidence'}:
+                raise TurnRejected('Invalid authorized return commitment shape')
+            evidence = return_commitment.get('evidence')
+            actions = evidence.get('player_actions') if isinstance(evidence, dict) else None
+            if (not isinstance(actions, list) or not actions
+                    or any(not isinstance(action, str) or not action.strip() for action in actions)
+                    or '\n'.join(actions) != player_input):
+                raise TurnRejected('Return commitment evidence must match the actual player input')
+            data = {**copy.deepcopy(return_commitment), 'id': 'return_' + uuid4().hex,
+                    'debtor': scene['protagonist']}
+            promised = kernel_event('item_return_promised',
+                day=world.get('meta', {}).get('day') or 1,
+                scene=scene.get('id') or scene.get('location') or 'scene',
+                turn=batch.turn, summary='item return commitment recorded', deltas=data)
+            authorized_return_creations[promised['id']] = copy.deepcopy(promised)
+            batch.append(promised)
+            world = project(registry, batch.iter_events())
         # Lock all registered owners, not just the acting protagonist. These
         # private values stay in the host's validation context, never the prompt.
         expected_balances = registered_balances(world)
@@ -569,6 +594,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         if variation:
             batch.append(variation)
             scene = {**scene, '_variation_prompt': variation_fragment(variation)}
+        world = {**world, '_action_turn': batch.turn}
         result = _run_turn_staged(registry, batch, world, scene, player_input,
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
@@ -577,6 +603,36 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         # Hook return lists are advisory; check the actual staged history even
         # when a hook appended an event but failed to report it to the caller.
         result.world = project(registry, batch.iter_events())
+        for event_id, approved in authorized_return_creations.items():
+            matches = [event for event in batch.events if event.get('id') == event_id]
+            if (len(matches) != 1 or matches[0].get('retracted')
+                    or any(matches[0].get(key) != value for key, value in approved.items())):
+                raise TurnRejected('Authorized return creation was removed or changed')
+            record = result.world.get('systems', {}).get('return_commitments', {}).get('records', {}).get(
+                approved['deltas']['id'])
+            if record is None or any(record.get(key) != value for key, value in approved['deltas'].items()):
+                raise TurnRejected('Authorized return commitment is missing or changed')
+        from systems.return_commitments import _return_proven
+        records = result.world.get('systems', {}).get('return_commitments', {}).get('records', {})
+        for event in batch.events:
+            if event.get('type') == 'item_return_fulfilled' and not event.get('retracted'):
+                record = records.get(event.get('deltas', {}).get('id'))
+                if record is None or not _return_proven(result.world, record,
+                        result.world.get('meta', {}).get('day') or 1):
+                    raise TurnRejected('Return completion conflicts with final physical possession')
+                final_clock = {'day': result.world.get('meta', {}).get('day') or 1,
+                               'band': result.world.get('meta', {}).get('band') or 0}
+                if record.get('fulfilled_at') != final_clock:
+                    raise TurnRejected('Return completion conflicts with final action clock')
+        if registry.owner_of_event('item_return_fulfilled') is not None:
+            from systems.return_commitments import completion_events
+            completions = completion_events(result.world,
+                day=result.world.get('meta', {}).get('day') or 1,
+                scene=scene.get('id') or scene.get('location') or 'scene', turn=batch.turn)
+            if completions:
+                batch.append_many(completions)
+                result.world = project(registry, batch.iter_events())
+                result.events = [event for event in batch.iter_events() if event.get('turn') == batch.turn]
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

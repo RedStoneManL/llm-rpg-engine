@@ -295,7 +295,9 @@ class EventBatch:
     def iter_events(self, include_retracted=False):
         for ev in self._snapshot + self.events:
             if include_retracted or not ev.get('retracted'):
-                yield ev
+                # Like EventStore.iter_events(), readers receive independent
+                # values. A hook must not rewrite snapshot history in memory.
+                yield copy.deepcopy(ev)
 
     @contextmanager
     def savepoint(self):

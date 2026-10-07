@@ -16,13 +16,15 @@ def creation_first_sections(sections):
     it. Preserve every items row and all other relative section ordering.
     """
     pairs = list(sections.items())
+    promises = [pair for pair in pairs if pair[0] == 'promises']
+    pairs = [pair for pair in pairs if pair[0] != 'promises']
     if not sections.get('items'):
-        return pairs
+        return pairs + promises
     index = next(i for i, (name, _) in enumerate(pairs) if name == 'items')
     creators = {'entities', 'places', 'cast', 'factions'}
     later = pairs[index + 1:]
     return (pairs[:index] + [pair for pair in later if pair[0] in creators]
-            + [pairs[index]] + [pair for pair in later if pair[0] not in creators])
+            + [pairs[index]] + [pair for pair in later if pair[0] not in creators] + promises)
 
 
 def transfer_errors(graph, declaration, day, *, pending_types=False):
@@ -49,6 +51,8 @@ def transfer_errors(graph, declaration, day, *, pending_types=False):
     if len(owners) > 1:
         errors.append(('from', 'ambiguous_holder', '物品当前持有者不唯一，不能猜测转移来源'))
     elif owners:
+        if target == owners[0]:
+            errors.append(('to', 'same_holder', '物品已经由该对象持有；没有实际转移时请删除这条 transfer'))
         if 'from' not in declaration:
             errors.append(('from', 'missing_source', '已有人持有的物品必须显式提供 from（转移前持有者 id）'))
         elif not isinstance(source, str) or source != owners[0]:
@@ -102,7 +106,7 @@ def validate_item_commit(registry, commit, world):
     """
     if registry.owner_of_event('item_transferred') is None:
         return []
-    relevant = bool(commit.sections.get('items')) or any(
+    relevant = bool(commit.sections.get('items') or commit.sections.get('promises')) or any(
         isinstance(row, dict) and row.get('rel') == 'held_by'
         for row in commit.sections.get('relations', []) or [])
     graph = world.get('systems', {}).get('ontology')
@@ -124,17 +128,29 @@ def validate_item_commit(registry, commit, world):
     if clock and clock[0].get('advance'):
         day, _ = advance(day, band, clock[0].get('days', 0), clock[0].get('bands', 0))
     preview = copy.deepcopy(world)
+    action_turn = world.get('_action_turn')
+    if type(action_turn) is not int or action_turn < 0:
+        graph_turns = ([fact.ingest_turn for fact in graph.facts]
+                       + [relation.ingest_turn for relation in graph.relations]) if graph is not None else []
+        records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
+        turns = graph_turns + [record.get('created_turn', 0) for record in records.values()]
+        action_turn = max((turn for turn in turns if type(turn) is int), default=0) + 1
     for section, declarations in creation_first_sections(commit.sections):
         owner = registry.owner_of_section(section)
         if owner is None or not declarations:
             continue
         for index, declaration in enumerate(declarations):
-            for event in owner.to_events(section, [declaration], turn=0, day=day, scene='validation'):
+            for event in owner.to_events(section, [declaration], turn=action_turn, day=day, scene='validation'):
                 error = item_event_error(preview, event)
                 if error:
                     field, code, hint = error
                     return [ValidationError(section, f'[{index}]' + ('.' + field if field else ''), code, hint)]
                 event_owner = registry.owner_of_event(event['type'])
                 if event_owner is not None:
-                    event_owner.apply(preview, event)
+                    try:
+                        event_owner.apply(preview, event)
+                    except ValueError as exc:
+                        if section != 'promises':
+                            raise
+                        return [ValidationError(section, f'[{index}]', 'return_condition', str(exc))]
     return []

@@ -73,11 +73,12 @@ def _request_json(url, headers, body=None):
 
 
 class BoundedDeepSeekProvider(DeepSeekProvider):
-    def __init__(self, api_key):
+    def __init__(self, api_key, *, api_budget=None):
         if not api_key or not api_key.strip():
             raise ValueError("DEEPSEEK_API_KEY must be set in the environment")
         super().__init__(MODEL, api_key, BASE_URL, MAX_OUTPUT_TOKENS, thinking="disabled")
         self.calls = []
+        self.api_budget = api_budget
         self.case_id = None
         self.phase = "intent"
         self.preflight_ok = False
@@ -100,8 +101,11 @@ class BoundedDeepSeekProvider(DeepSeekProvider):
         if len(self.calls) >= MAX_POSTS:
             raise CallBudgetExceeded("16 HTTP POST budget exhausted")
         body = self._prepare_body({**body, "max_tokens": min(body["max_tokens"], MAX_OUTPUT_TOKENS)})
+        reservation = self.api_budget.reserve(body) if self.api_budget is not None else None
         entry = {"number": len(self.calls) + 1, "case": self.case_id, "phase": self.phase,
                  "model": MODEL, "max_output_tokens": body["max_tokens"], "status": "attempted"}
+        if reservation is not None:
+            entry["budget_reservation"] = reservation
         self.calls.append(entry)  # Failed attempts also consume the budget.
         try:
             response = _request_json(url, headers, body)
@@ -111,6 +115,8 @@ class BoundedDeepSeekProvider(DeepSeekProvider):
                          response_model=response.get("model"),
                          raw_content=message.get("content"),
                          finish_reason=response["choices"][0].get("finish_reason"))
+            if reservation is not None:
+                self.api_budget.reconcile(reservation, response.get("usage"))
             return response
         except Exception as error:
             entry.update(status="failed", error_type=type(error).__name__)

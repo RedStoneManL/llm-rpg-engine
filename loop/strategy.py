@@ -195,6 +195,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
 - 【可选】items：创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"转移前持有者id","to":"新持有者id"}。item 必须是 Object，to 必须是 Person 或 Place。已有人持有的物品必须给出与当前账本一致的 from；首次放置未被持有的物品才可省略 from 或给 null。先创建实体，再按顺序转移；A→B→C 的第二次 from 是 B。不要通过 relations 写 held_by，不要用重复创建实体改变其类型。from 仅表示来源，不代表同意、授权或合法性；只记录正文中实际发生的转移。
 - 【可选】relations：[{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+- 【可选】promises：只允许 [{"op":"fulfill","id":"已登记归还约定id"}]，且物品必须确实按 canonical 持有记录返回该约定对象。新约定仅由引擎从玩家原话和确认答复识别并登记，不能凭你生成的正文创建；不能改写物品、双方或绝对截止日。实际归还后引擎也会自动记录完成，没有需要确认的完成项就省略此段。
 - 【可选】knowledge：记录"谁知道了什么"——详见下【信息视野】
 - 【可选】world：区域/世界级事件波及的地点——详见下【世界事件】
 - 【可选】quests：任务的开启/浮现/推进/收束——详见下【任务系统】
@@ -316,6 +317,7 @@ _SYSTEM_PROMPT_HYBRID = """\
    - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
    - 【可选】items: 创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"当前持有者id","to":"新持有者id"}。物品必须是 Object，持有者为 Person 或 Place；未被持有的物品首次放置才可省略 from 或给 null。按行顺序记录 A→B→C，第二次 from 为 B。归属只通过 items/held_by 记录，不另造同义 facts/knowledge；物品颜色材质等描述不受此限制。
    - 【可选】relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+   - 【可选】promises: 仅 [{"op":"fulfill","id":"已登记归还约定id"}]；必须已有真实物品归还记录，不得凭散文新建约定或改写双方、物品、绝对截止日。新登记只能来自引擎已确认的玩家原话；实际归还由引擎自动同步完成。
    - 【可选】knowledge: 记录"谁知道了什么"——见第 5 条
    - 【可选】world: 区域/世界级事件波及的地点——见第 7 条
    - 【可选】quests: 记录"任务的开启/浮现/推进/收束"——见第 8 条

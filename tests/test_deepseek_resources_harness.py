@@ -190,3 +190,53 @@ def test_provider_cannot_bypass_preflight_or_select_fallback(tmp_path):
     with pytest.raises(ValueError, match="official"):
         provider.complete("test", "test")
     assert provider.calls == []
+
+
+def test_optional_spend_budget_reserves_before_transport_and_reconciles(monkeypatch):
+    steps = []
+    class Budget:
+        def reserve(self, body):
+            steps.append(('reserve', body['max_tokens']))
+            return 'reservation-1'
+        def reconcile(self, rid, usage):
+            steps.append(('reconcile', rid, usage['completion_tokens']))
+    def request(url, headers, body=None):
+        assert steps == [('reserve', 4096)]
+        steps.append(('transport',))
+        return completion(commit())
+    monkeypatch.setattr(harness, '_request_json', request)
+    provider = harness.BoundedDeepSeekProvider('offline-test-key', api_budget=Budget())
+    provider.preflight_ok = True
+    provider.complete_messages([{'role': 'user', 'content': 'fixture'}])
+    assert steps == [('reserve', 4096), ('transport',), ('reconcile', 'reservation-1', 3)]
+    assert provider.calls[0]['budget_reservation'] == 'reservation-1'
+
+
+def test_exhausted_spend_budget_never_calls_transport():
+    class Budget:
+        def reserve(self, body):
+            raise RuntimeError('session cap')
+    provider = harness.BoundedDeepSeekProvider('offline-test-key', api_budget=Budget())
+    provider.preflight_ok = True
+    with pytest.raises(RuntimeError, match='session cap'):
+        provider.complete_messages([{'role': 'user', 'content': 'fixture'}])
+    assert not provider.calls
+
+
+def test_transport_failure_keeps_spend_reservation(monkeypatch):
+    steps = []
+    class Budget:
+        def reserve(self, body):
+            steps.append('reserve')
+            return 'pending'
+        def reconcile(self, *args):
+            pytest.fail('failed request must retain full reservation')
+    def request(*args):
+        raise TimeoutError('offline fixture')
+    monkeypatch.setattr(harness, '_request_json', request)
+    provider = harness.BoundedDeepSeekProvider('offline-test-key', api_budget=Budget())
+    provider.preflight_ok = True
+    with pytest.raises(TimeoutError):
+        provider.complete_messages([{'role': 'user', 'content': 'fixture'}])
+    assert steps == ['reserve']
+    assert provider.calls[0]['status'] == 'failed'

@@ -7,7 +7,24 @@ consumed); mixed lines ("\\x1b[B赶紧进去") are salvaged and run as turns.
 from __future__ import annotations
 
 import pytest
-from llm.provider import FakeLLMProvider
+import json
+from llm.provider import FakeLLMProvider as _FakeLLMProvider
+
+
+class FakeLLMProvider(_FakeLLMProvider):
+    """These legacy CLI cases have no return promise; model that call explicitly.
+
+    Keep their existing narration/repair scripts separate from the new intent
+    protocol. Actual commitment/clarification behavior has dedicated integration
+    and live-harness tests; production providers have no such automatic answer.
+    """
+    def complete_messages(self, messages, **kwargs):
+        system = next((m.get('content', '') for m in messages if m.get('role') == 'system'), '')
+        if system.startswith('你是归还承诺意图分类器'):
+            user = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
+            self.calls.append((system, user))
+            return json.dumps({'status': 'none'})
+        return super().complete_messages(messages, **kwargs)
 
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,7 @@ from systems.scene import SceneSystem
 from systems.lore import LoreSystem
 from systems.codex import CodexSystem
 from systems.resources import ResourceSystem
+from systems.return_commitments import ReturnCommitmentSystem
 from llm.provider import FakeLLMProvider, make_provider
 from engine.embed import get_embedder
 from engine.log import get_logger
@@ -55,6 +56,7 @@ class Engine:
     world: dict = field(default_factory=dict)
     campaign_seed: int = 0
     cascade_provider: Any = None  # Optional cheap LLMProvider for cascade node calls
+    pending_return_intent: dict | None = None  # Uncommitted conversational clarification.
 
 
 def _derive_campaign_seed(campaign_dir: Path) -> int:
@@ -99,6 +101,7 @@ def build_engine(
     registry.register(LoreSystem())
     registry.register(CodexSystem())
     registry.register(ResourceSystem())
+    registry.register(ReturnCommitmentSystem())
 
     log.debug("build_engine: registered %d systems", len(registry.systems))
 
