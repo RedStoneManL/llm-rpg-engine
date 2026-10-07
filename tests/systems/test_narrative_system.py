@@ -27,7 +27,7 @@ def test_owns_events_no_section():
     s = NarrativeSystem()
     assert s.name == "narrative"
     assert s.event_types() == {
-        "narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
+        "narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled", "player_input_recorded"}
     assert s.commit_sections() == set()          # harness-authored
     assert s.requires() == set()
 
@@ -39,7 +39,7 @@ def test_constants_present():
 
 def test_empty_state_shape():
     assert NarrativeSystem().empty_state() == {
-        "scenes": [], "super_summary": None, "summarized_through_index": 0}
+        "scenes": [], "player_inputs": [], "super_summary": None, "summarized_through_index": 0}
 
 
 def test_narration_recorded_buckets_by_scene():

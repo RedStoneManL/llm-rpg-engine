@@ -34,6 +34,16 @@ def entity_visible(graph, entity, scene, pov, day):
 
 def pov_world(world, scene, *, pov=None, redact_facts=True):
     """Return an independent graph projection; never modify canonical world data."""
+    # The original-input ledger is a private host source, not a generic system
+    # read model. Remove it even without a usable graph/actor: generic tools can
+    # serialize this view, and missing POV must never expose another actor's log.
+    systems = world.get('systems', {})
+    narrative = systems.get('narrative')
+    if isinstance(narrative, dict) and 'player_inputs' in narrative:
+        world = {**world, 'systems': {**systems, 'narrative': {
+            key: copy.deepcopy(value) for key, value in narrative.items()
+            if key != 'player_inputs'
+        }}}
     graph = world.get('systems', {}).get('ontology')
     pov = pov or scene.get('protagonist')
     if graph is None or not pov:

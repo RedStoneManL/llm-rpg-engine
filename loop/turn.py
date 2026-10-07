@@ -88,9 +88,14 @@ def _whole_turn_repair(player_input: str) -> str:
     )
 
 
-def _item_preflight(registry, prior_ids, authorized_return_creations=None):
+def _item_preflight(registry, prior_ids, authorized_return_creations=None,
+                    authorized_player_inputs=None):
     """Keep legacy replay permissive, but check every new staged item event."""
     def check_new(projected, event):
+        if event['id'] not in prior_ids and event['type'] == 'player_input_recorded':
+            approved = (authorized_player_inputs or {}).get(event['id'])
+            if approved is None or any(event.get(key) != value for key, value in approved.items()):
+                raise TurnRejected('Player input sources require exact host provenance')
         if event['id'] not in prior_ids and event['type'] == 'item_return_promised':
             approved = (authorized_return_creations or {}).get(event['id'])
             if approved is None or any(event.get(key) != value for key, value in approved.items()):
@@ -577,10 +582,15 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     from loop.strategy import AuthorStrategy, HybridStrategy, _bound_actor_id
     if isinstance(strategy, (AuthorStrategy, HybridStrategy)) or return_commitment is not None:
         _bound_actor_id(world, scene)
+    from systems.player_sources import capture_player_input, player_input_event
+    captured_input = (capture_player_input(world, scene, player_input)
+        if registry.owner_of_event('player_input_recorded') is not None else None)
     batch = EventBatch(store)
     prior_ids = {event['id'] for event in batch.iter_events(include_retracted=True)}
     authorized_return_creations = {}
-    batch.preflight = _item_preflight(registry, prior_ids, authorized_return_creations)
+    authorized_player_inputs = {}
+    batch.preflight = _item_preflight(registry, prior_ids, authorized_return_creations,
+                                      authorized_player_inputs)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
@@ -669,6 +679,17 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:
                 raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
+        # This is the only creation path. Backstage hooks and model sections
+        # cannot supply source records, even if they forge plausible evidence.
+        if any(event.get('type') == 'player_input_recorded' for event in batch.events):
+            raise TurnRejected('Player input sources require exact host provenance')
+        if captured_input is not None:
+            recorded = player_input_event(captured_input, result.world, result.commit,
+                                          batch.events, turn=batch.turn)
+            authorized_player_inputs[recorded['id']] = copy.deepcopy(recorded)
+            batch.append(recorded)
+            result.world = project(registry, batch.iter_events())
+        result.events = [event for event in batch.iter_events() if event.get('turn') == batch.turn]
         receipt = batch.publish(action_id=action_id or str(uuid4()))
     except BaseException:
         if hasattr(strategy, '__dict__'):

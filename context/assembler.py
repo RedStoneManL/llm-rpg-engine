@@ -33,6 +33,7 @@ from memory.recall import rank, embed_query
 from context.viewpoint import build_viewpoint
 from facts.graph import FactGraph
 from context.access import pov_world
+from context.player_evidence import read_player_evidence, format_player_evidence
 from engine.log import get_logger
 import systems.narrative as nmod
 
@@ -98,6 +99,9 @@ def assemble_context(
     Returns:
         A single string with stable→scene→volatile cache layer ordering.
     """
+    # Only the actor-bound source reader may access the private original-input
+    # slice. Generic inject/recall/tools receive a view with that slice removed.
+    player_evidence = read_player_evidence(world, scene, query)
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -252,6 +256,12 @@ def assemble_context(
     if recall_lines:
         # recall_lines already starts with ## [volatile]
         parts.extend(recall_lines)
+
+    if protagonist and g is not None:
+        actor_entity = g.get_entity(protagonist) if isinstance(protagonist, str) else None
+        if actor_entity is not None and actor_entity.etype == 'Person':
+            parts.append("## [volatile]")
+            parts.append(format_player_evidence(player_evidence))
 
     result = "\n".join(parts)
     log.debug("assemble_context: output length=%d chars", len(result))

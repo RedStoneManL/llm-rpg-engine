@@ -1,8 +1,9 @@
 """NarrativeSystem — Event-sourced recency-tiered recap.
 
-Owns three harness-authored event types (no commit section; the narrator
+Owns harness-authored event types (no commit section; the narrator
 never writes to this system directly):
 
+  player_input_recorded — exact bound-player input provenance, not world truth.
   narration_recorded  — appended by digest_fleet every turn; carries the
                         verbatim prose for that turn keyed by scene.
   scene_summarized    — appended by digest_fleet when a scene ages out of
@@ -81,7 +82,7 @@ class NarrativeSystem(ContextSystem):
         return set()
 
     def event_types(self) -> set[str]:
-        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled"}
+        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled", "player_input_recorded"}
 
     def commit_sections(self) -> set[str]:
         return set()   # harness-authored only; narrator never writes to this
@@ -89,6 +90,7 @@ class NarrativeSystem(ContextSystem):
     def empty_state(self) -> dict:
         return {
             "scenes": [],
+            "player_inputs": [],
             "super_summary": None,
             "summarized_through_index": 0,
         }
@@ -102,6 +104,15 @@ class NarrativeSystem(ContextSystem):
         ns = world["systems"][self.name]
         d = event.get("deltas", {})
         t = event["type"]
+
+        if t == 'player_input_recorded':
+            import copy
+            from systems.player_sources import valid_player_input
+            if not valid_player_input(event):
+                raise ValueError('Invalid player input source event')
+            ns.setdefault('player_inputs', []).append({
+                **copy.deepcopy(d), 'source_event_id': event['id'], 'turn': event['turn']})
+            return
 
         if t == 'variation_sampled':
             ns['variations'] = (ns.get('variations', []) + [dict(d)])[-6:]
