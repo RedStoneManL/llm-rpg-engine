@@ -1,0 +1,29 @@
+{
+  "source_base": "cbd979ef58ff10a57cd61e198d508bedc2e96266",
+  "model": "native-gpt-6-astra",
+  "final_generated_completions": 2,
+  "earlier_iteration_completions_retained": 4,
+  "original_raw_scene_exact": true,
+  "source_hashes": {
+    "context/summary_identity.py": "d6e7872e14d24598f4edac38c0d20000d3c0aba23f1fbfa52c7ba976b1d5f5db",
+    "loop/fleet.py": "7386e0a6e2e1430eb351a18abb81918c94f00d4dc88e65227a718f3c2d3da7a0"
+  },
+  "observed_before": {
+    "summary": "沈掌柜与小满约定玉印归期，并以无论结果都请热面为酬，委托其仅代问面粉干货车当日能否及何时过桥、不承担担保或付款，小满持印在集市向何桥守得知桥面维修导致午前无法通行、下午验桥后仍未必放行，随后遇见亲自协调运粮的县令陆青禾，获邀了解尚待核实的绕行路以连同不确定之处带回，且无须替掌柜作决定。"
+  },
+  "final_scene_summary": {
+    "summary": "林舟与沈掌柜约定玉印归期，并明确只代问面粉干货货车的通桥时间、不担保不付钱且无论结果均获请吃热面后，收好铜铃“小满”、持印向何桥守问得货车因桥面修补午饭前不能过桥、须待下午验桥再确定是否放行，随后遇见正清点运粮车辆的县令陆青禾，获邀了解尚未查实的绕行路线并被明确无需替掌柜拍板。"
+  },
+  "final_recompression": {
+    "response": {
+      "summary": "林舟与沈掌柜约定玉印归期，收好铜铃“小满”，持印代问面粉干货货车通桥时间，明确不担保、不付钱。何桥守告知桥面修补导致午饭前无法通行，下午验桥后才能确定是否放行；县令陆青禾邀林舟了解尚未查实的绕行路线，明确无需替掌柜拍板，并同意暂不外传未核实消息。林舟回客栈转达通桥答复，沈掌柜按货物无法送达安排事务，兑现无论结果均请吃热面的承诺；玉印归还、下午通桥及绕行路线仍待落实。"
+    },
+    "errors": []
+  },
+  "verdict": "Both final outputs distinguish actor 林舟 from Object 铜铃小满. One native sample for each production function, no universal guarantee.",
+  "limits": [
+    "No DeepSeek calls, gameplay continuation, or natural fanout-trigger claim for this focused case.",
+    "Prior completed iterations remain separate; one queued pre-review request had no generated response.",
+    "Missing/ambiguous source provenance is unknown; metadata is bounded and omissions explicit."
+  ]
+}

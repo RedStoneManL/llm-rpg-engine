@@ -89,13 +89,28 @@ def _summary_validate(obj):
             else ['missing or empty string field "summary"'])
 
 
-def summarize_scene(provider, scene_id: str, raw_texts: list[str]) -> dict | None:
+def recompress_summaries(provider, previous: str, summaries: list[str], *, identity=None):
+    """Existing recompression call, with optional source-bound identity evidence."""
+    user = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
+            + previous + '\n' + '\n'.join(summaries))
+    if identity is not None:
+        from context.summary_identity import format_summary_identity
+        user = format_summary_identity(identity) + '\n\n' + user
+    return complete_structured(provider, system=_RECOMPRESS_SYSTEM, user=user,
+        validate=_summary_validate, max_repairs=1,
+        schema_reminder='Required: {"summary": "总概要"}', log_label="recap")
+
+
+def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=None) -> dict | None:
     """Cheap-model summarize a scene's raw narration texts into one-line summary.
 
     Returns a scene_summarized kernel_event, or None on failure.
     """
     try:
         user = f"场景 {scene_id} 的原文如下：\n\n" + "\n".join(raw_texts)
+        if identity is not None:
+            from context.summary_identity import format_summary_identity
+            user = format_summary_identity(identity) + "\n\n" + user
         obj, errors = complete_structured(
             provider,
             system=_SUMMARIZE_SYSTEM,
@@ -305,7 +320,11 @@ def digest_fleet(
                     None,
                 )
                 if aged_bucket and aged_bucket.get("raw"):
-                    summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"])
+                    from context.summary_identity import build_summary_identity
+                    identity = build_summary_identity(registry, store.iter_events(),
+                        [{**aged_bucket, 'scope': 'scene'}])
+                    summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"],
+                                              identity=identity)
                     if summ_ev is not None:
                         next_turn = _next_turn_in_store(store)
                         summ_ev["turn"] = next_turn
@@ -327,21 +346,21 @@ def digest_fleet(
                             if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
                                 # Summarize the oldest summaries into super_summary
                                 oldest_summaries = [
-                                    f"〔{b['scene']}〕{b['summary']}"
-                                    for b in summarized_buckets[: nmod.RECAP_SUMMARY_FANOUT]
+                                    f"〔bucket={i};scene={b['scene']}〕{b['summary']}"
+                                    for i, b in pending_summaries[: nmod.RECAP_SUMMARY_FANOUT]
                                 ]
                                 previous = ns2.get('super_summary') or ''
-                                user_rc = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
-                                           + previous + '\n' + '\n'.join(oldest_summaries))
-                                rc_obj, rc_errors = complete_structured(
-                                    recap_provider,
-                                    system=_RECOMPRESS_SYSTEM,
-                                    user=user_rc,
-                                    validate=_summary_validate,
-                                    max_repairs=1,
-                                    schema_reminder='Required: {"summary": "总概要"}',
-                                    log_label="recap",
-                                )
+                                identity_buckets = [
+                                    {**bucket, 'scope': 'previous_super_summary', 'bucket_index': i}
+                                    for i, bucket in enumerate(buckets2[:through])
+                                ] + [
+                                    {**bucket, 'scope': 'new_summary', 'bucket_index': i}
+                                    for i, bucket in pending_summaries[:nmod.RECAP_SUMMARY_FANOUT]
+                                ]
+                                identity = build_summary_identity(registry, store.iter_events(),
+                                                                  identity_buckets)
+                                rc_obj, rc_errors = recompress_summaries(
+                                    recap_provider, previous, oldest_summaries, identity=identity)
                                 rc_summary = (rc_obj.get("summary") or "").strip() if isinstance(rc_obj, dict) else ""
                                 if rc_summary and not rc_errors:
                                     rc_ev = kernel_event(
