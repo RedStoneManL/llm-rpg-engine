@@ -74,6 +74,17 @@ class TurnRejected(ValueError):
     """The proposed action has no coherent, validated result to publish."""
 
 
+def _item_preflight(registry, prior_ids):
+    """Keep legacy replay permissive, but check every new staged item event."""
+    def check_new(projected, event):
+        if event['id'] not in prior_ids and registry.owner_of_event('item_transferred') is not None:
+            from kernel.item_integrity import item_event_error
+            error = item_event_error(projected, event)
+            if error:
+                raise TurnRejected('Invalid item transition: ' + error[2])
+    return lambda history: project(registry, history, before_apply=check_new)
+
+
 def _next_turn(store) -> int:
     """Compute turn number = max existing event turn + 1, or 1 if none."""
     if hasattr(store, 'next_turn'):
@@ -263,10 +274,18 @@ def apply_turn(
     Returns:
         New projected world dict.
     """
-    turn_num = _next_turn(store)
+    if hasattr(store, 'snapshot'):
+        source_revision, prior_events = store.snapshot()
+        turn_num = max((event.get('turn') or 0 for event in prior_events
+                        if not event.get('retracted')), default=0) + 1
+    else:
+        source_revision = None
+        prior_events = list(store.iter_events(include_retracted=True))
+        turn_num = _next_turn(store)
 
     events: list[dict] = []
-    for section, decl in commit.sections.items():
+    from kernel.item_integrity import creation_first_sections
+    for section, decl in creation_first_sections(commit.sections):
         owner = registry.owner_of_section(section)
         if owner is None:
             log.warning("apply_turn: no owner for section=%r (skipped)", section)
@@ -276,7 +295,9 @@ def apply_turn(
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
-    store.append_many(events, preflight=lambda history: project(registry, history))
+    prior_ids = {event['id'] for event in prior_events}
+    store.append_many(events, expected_revision=source_revision,
+                      preflight=_item_preflight(registry, prior_ids))
     new_world = project(registry, store.iter_events())
 
     log.debug("apply_turn: turn=%d events_appended=%d", turn_num, len(events))
@@ -514,7 +535,9 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
-    batch = EventBatch(store, preflight=lambda history: project(registry, history))
+    batch = EventBatch(store)
+    prior_ids = {event['id'] for event in batch.iter_events(include_retracted=True)}
+    batch.preflight = _item_preflight(registry, prior_ids)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')

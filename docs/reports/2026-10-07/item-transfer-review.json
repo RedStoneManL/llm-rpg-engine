@@ -1,0 +1,49 @@
+{
+  "date_utc": "2026-10-07",
+  "source_base": "e3f898cc05a00748d1f5915d029d3ccb0d9a0a7e",
+  "offline": {
+    "passed": 1810,
+    "deselected_slow": 1,
+    "seconds": 17.13
+  },
+  "endurance": {
+    "actions": 120,
+    "injected_write_failures": 12,
+    "whole_action_undos": 10,
+    "reopens": 8,
+    "salt_replays": 10,
+    "status": "passed"
+  },
+  "live": {
+    "model_requested": "deepseek-flash",
+    "model_returned": "deepseek-flash",
+    "post_attempts": 5,
+    "input_tokens": 12209,
+    "output_tokens": 1346,
+    "total_tokens": 13555,
+    "monetary_cost": "not provided",
+    "canonical_holder_checks": "4/4 passed",
+    "reopen_checks": "4/4 passed",
+    "rewind_checks": "4/4 passed",
+    "item_guard_exercised_by_model": false,
+    "final_refusal_exercised": false
+  },
+  "manual_review_status": "quality_issues_found_despite_canonical_state_checks_passing",
+  "findings": [
+    {
+      "case": "wrong_source",
+      "issue": "Narration initially describes C pushing the umbrella toward B, then says the umbrella remains with A and C has empty hands. This is confusing/contradictory physical narration, not resolved by the provenance gate."
+    },
+    {
+      "case": "wrong_source",
+      "issue": "A free-form fact umbrella.持有者 was set to protagonist, an entity ID absent from this fixture. Canonical held_by remains A. The current check does not eliminate arbitrary natural-language ownership aliases."
+    },
+    {
+      "case": "generic_relation_bypass",
+      "issue": "Player-facing narration exposes implementation wording “Relations 段” and the raw room identifier. A correct no-op ledger does not imply immersive or implementation-free narration."
+    }
+  ],
+  "interpretation": "Gift and sequential transfer use the expected sources. For wrong-source and generic-relation cases the model chose no canonical transfer, so this live run does not demonstrate adversarial guard rejection; offline tests do. One repair in wrong_source concerned cast and knowledge structure, not item provenance.",
+  "scope": "Four isolated fresh synthetic worlds; background hooks, tools, embeddings and tracing disabled. No full-world, long-session, permission/consent or generic semantic-correctness guarantee.",
+  "independent_review": "No remaining blockers after faction/type bypass, snapshot race and section-order repair corrections."
+}

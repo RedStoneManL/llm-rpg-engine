@@ -15,6 +15,7 @@ held_by the scene protagonist at the query day, or None if there are none.
 from __future__ import annotations
 
 from typing import Any
+import copy
 
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
@@ -97,11 +98,14 @@ class ObjectSystem(ContextSystem):
     # ------------------------------------------------------------------
 
     def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:
+        if section != 'items' or not decl:
+            return []
         g: FactGraph | None = world.get("systems", {}).get("ontology")
+        # Validate sequential transfers against a private working graph so a
+        # second A→C cannot follow A→B; the valid source would now be B.
+        g = copy.deepcopy(g) if g is not None else None
+        day = world.get('meta', {}).get('day') or 1
         errs: list[ValidationError] = []
-
-        if section != "items":
-            return errs
 
         for i, item in enumerate(decl or []):
             op = item.get("op", "create")
@@ -123,6 +127,13 @@ class ObjectSystem(ContextSystem):
                         code="missing",
                         hint="'id' 字段必须是字符串",
                     ))
+                elif g is not None:
+                    old = g.get_entity(id_val)
+                    if old and old.etype not in {'Object', '_pending'}:
+                        errs.append(ValidationError(section, f'[{i}].id', 'item_type_change',
+                            '不能通过物品创建把已有角色或地点改成 Object'))
+                    else:
+                        g.add_entity(id_val, 'Object')
 
             elif op == "transfer":
                 # apply(item_transferred) requires d["item"] and d["to"] via bare subscript
@@ -172,6 +183,19 @@ class ObjectSystem(ContextSystem):
                         code="dangling_ref",
                         hint=f"持有者 '{to_id}' 不存在于图中",
                     ))
+
+                if g is not None:
+                    from kernel.item_integrity import transfer_errors
+                    transfer_errs = transfer_errors(g, item, day, pending_types=True)
+                    errs.extend(ValidationError(section, f'[{i}].{field}', code, hint)
+                                for field, code, hint in transfer_errs)
+                    if (not transfer_errs and isinstance(item_id, str) and isinstance(to_id, str)
+                            and g.get_entity(item_id) is not None and g.get_entity(to_id) is not None):
+                        g.add_relation(item_id, 'held_by', to_id, day=day, turn=0,
+                                       source_event='validation')
+            else:
+                errs.append(ValidationError(section, f'[{i}].op', 'item_op',
+                    'items.op 必须为 create 或 transfer'))
 
         return errs
 

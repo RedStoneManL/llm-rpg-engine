@@ -84,6 +84,35 @@ Generic `fact_rules` can also constrain a predicate's type, min/max, enum or
 immutability without registering it as a resource. Rules are enforced during
 validation and projection, so a malformed batch cannot enter the durable store.
 
+## Item transfer provenance
+
+New turn proposals transfer items through `items`, for example
+`{"op":"transfer","item":"umbrella","from":"A","to":"B"}`.
+The item must be an `Object`; both an established source holder and destination
+must be a `Person` or `Place`. An already-held item requires an explicit `from`
+matching its holder immediately before that event. First placement of an unheld
+item may omit `from` or use `null`; it cannot invent a previous holder.
+
+Transfers are validated sequentially: A→B followed by B→C is valid, while a
+second A→C is stale. Same-turn entity-creation sections are staged before items
+regardless of JSON key order; the order of rows within `items` is preserved.
+New `relations` declarations cannot write `held_by` directly,
+and re-declaring an item or holder as an incompatible entity type cannot evade
+these checks. The prompt teaches the same schema. Errors can be repaired before
+publication; exhausted repairs reject the whole foreground action. A failing
+backstage hook loses its staged writes through the existing hook savepoint.
+
+Both `run_turn` and direct `apply_turn` publication check new events against the
+prospective history. Historical events remain on the original replay path, so
+old saves do not acquire a new mandatory `from` field. Trusted imports/seeding
+that append historical events directly are not a substitute for the turn gateway.
+Reopen and rewind reconstruct the same single-holder history.
+
+`from` proves a state precondition, **not permission or consent**. A gift, theft,
+or handover involving another character can still describe that character as the
+true source. The validator does not decide whether the transfer ought to happen,
+or prove the prose matches it. Borrow/return promises and due dates remain open.
+
 ## Memory and information boundaries
 
 The narrator and player tools use a filtered graph before searching. Explicit

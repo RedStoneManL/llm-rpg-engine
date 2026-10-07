@@ -122,7 +122,11 @@
 
 ---
 
-## 已知最大空洞:没有"场景推进"
+## 历史缺口:当时没有"场景推进"（现已补齐）
+
+> 2026-10-07 核对：下段记录的是 6/19 的状态。当前已有 `systems/scene.py`
+> 的 SceneSystem，行动循环会在地点/日期变化时产生 `scene_advanced`；
+> 见 `tests/loop/test_scene_progression.py`。不要再把“尚无场景推进”列为待实现事项。
 
 `app/play._build_scene` 让 `meta.scene` **静态**(不随回合推进)。这一处连累三家:
 - **recap 不分层**(永远 1 个 scene 桶 → 老场景不被压成摘要 → 原文无限涨)。

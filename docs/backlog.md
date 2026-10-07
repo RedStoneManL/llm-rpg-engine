@@ -8,12 +8,13 @@ in `playtest-issues-2026-06-30.md`.
 
 ---
 
-## B1 · 429 robustness — honor Retry-After + smooth the per-turn burst (开放)
+## B1 · 429 robustness — remaining burst control (开放)
 **From:** feedback-2026-06-23 #R6. **Status:** partially done — `_do_post` already
 retries 429/5xx with exponential backoff (1/2/4/8s ×4) and `RPG_CASCADE_CONCURRENCY`
-caps cascade fan-out. **Open sub-items:**
-- Honor the `Retry-After` response header on 429 (use it as the wait when present),
-  instead of only the `2**attempt` schedule.
+caps cascade fan-out. Integer-second `Retry-After` is already honored (up to
+60 seconds), covered by `tests/llm/test_rate_limit_r6.py`; do not reimplement it.
+**Open sub-items:**
+- HTTP-date `Retry-After` support, if needed by a supported provider.
 - Optionally throttle the per-turn burst (serialize/space backstage hook calls, or a
   global min-interval under rate pressure).
 **Where:** the LLM provider `_do_post` (zhipu/glm path).

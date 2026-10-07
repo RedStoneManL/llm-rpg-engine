@@ -1,0 +1,956 @@
+{
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "status": "state_checks_passed_manual_prose_review_required",
+  "limits": {
+    "http_posts": 16,
+    "output_tokens_per_post": 4096,
+    "low_level_retries": 0,
+    "narration_repairs_per_action": 1
+  },
+  "scope": "Four independent synthetic fresh-state AuthorStrategy/action-gateway/SQLite cases; no full gameplay guarantee",
+  "provenance_semantics": "from is the prior holder, not consent, permission, or legality; truthful gifts and theft are allowed",
+  "wrong_source_interpretation": "A corrected A-to-B transfer can pass provenance checks; this never means the requested C-to-B source was accepted",
+  "disabled": [
+    "digest_fleet",
+    "run_director",
+    "run_cascade",
+    "run_catchup",
+    "run_lore",
+    "run_density",
+    "_run_demote_on_leave",
+    "embeddings",
+    "tracing",
+    "narrator_tools"
+  ],
+  "manual_prose_review": "required: compare original and final narration with actual transfers and the requested action; state checks do not prove semantic consistency",
+  "preflight": {
+    "exact_model_available": true,
+    "http_gets": 1
+  },
+  "cases": [
+    {
+      "id": "valid_gift",
+      "campaign": "valid_gift/campaign",
+      "actor": "A",
+      "action": "A 把自己当前持有的 umbrella 实际赠送给 B，B 接过。只发生这一次交接。",
+      "before": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_before": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_9688db11043a",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "晨光斜斜切进房间，在地板上摊开一块苍白的光。A 把那柄伞递过去，伞柄在指间转了半圈，落进 B 的掌心。B 接住了，指节收拢，像确认了一件已经发生、无法退回的事。谁也没说话。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "B",
+                "predicate": "是否持有umbrella",
+                "value": true,
+                "secrecy": "public"
+              },
+              {
+                "subject": "A",
+                "predicate": "是否持有umbrella",
+                "value": false,
+                "secrecy": "public"
+              }
+            ],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "umbrella",
+                "from": "A",
+                "to": "B"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "只是一次交接，仍停留在晨间同一场景"
+              }
+            ]
+          }
+        }
+      ],
+      "refusal": null,
+      "final_narration": "晨光斜斜切进房间，在地板上摊开一块苍白的光。A 把那柄伞递过去，伞柄在指间转了半圈，落进 B 的掌心。B 接住了，指节收拢，像确认了一件已经发生、无法退回的事。谁也没说话。",
+      "result": "committed",
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "B",
+            "predicate": "是否持有umbrella",
+            "value": true,
+            "secrecy": "public"
+          },
+          {
+            "subject": "A",
+            "predicate": "是否持有umbrella",
+            "value": false,
+            "secrecy": "public"
+          }
+        ],
+        "items": [
+          {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "只是一次交接，仍停留在晨间同一场景"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "47163453-54a7-48ca-a775-73a1cf017d42",
+        "first_seq": 10,
+        "last_seq": 14,
+        "revision": 2,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "umbrella": [
+          "B"
+        ]
+      },
+      "ownership_history_after": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_9688db11043a",
+          "event_time_end": 1,
+          "attrs": {}
+        },
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "B",
+          "event_time_start": 1,
+          "ingest_turn": 1,
+          "source_event": "ev_001e01f44640",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "committed_transfers": [
+        {
+          "item": "umbrella",
+          "from": "A",
+          "to": "B"
+        }
+      ],
+      "item_events": [
+        {
+          "seq": 12,
+          "id": "ev_001e01f44640",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "umbrella 转移至 B",
+          "deltas": {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        }
+      ],
+      "observed_guard_codes": [],
+      "item_guard_exercised": false,
+      "classification": "expected_transfer_committed",
+      "rewind": {
+        "retracted": 5,
+        "turn": 1
+      },
+      "checks": {
+        "expected_outcome": true,
+        "no_generic_held_by_committed": true,
+        "fixture_types_preserved": true,
+        "refusal_atomic": true,
+        "disk_reopen": true,
+        "rewind_and_reopen": true
+      },
+      "state_checks": "passed",
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 2304,
+          "output": 230,
+          "total": 2534
+        },
+        "calls_without_usage": 0
+      }
+    },
+    {
+      "id": "wrong_source",
+      "campaign": "wrong_source/campaign",
+      "actor": "A",
+      "action": "C 声称自己持有 umbrella，试图交给 B，并要求记录 from=C、to=B。请依据当前物品记录处理，不能把错误来源当作真实来源。",
+      "before": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_before": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_dbc7ee4eb882",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "C 把 umbrella 往 B 手里一塞，说得斩钉截铁。可你低头一看——那伞分明还攥在你自己手里，伞柄上你缠的那圈旧胶布都在。C 的手心是空的，摊在空气里比划了个递伞的姿势，然后若无其事地收回袖中。B 看了 C 一眼，又看向你，没伸手。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [
+              {
+                "id": "C",
+                "op": "evolve",
+                "sketch": "当着 B 的面谎称自己持有 umbrella 并试图交接，被当场识破，手上其实空无一物",
+                "goal": "把并不属于自己、也不在自己手上的 umbrella 转手给 B，并伪造来源"
+              }
+            ],
+            "facts": [
+              {
+                "subject": "umbrella",
+                "predicate": "持有者",
+                "value": "protagonist",
+                "secrecy": "public"
+              },
+              {
+                "subject": "C",
+                "predicate": "声称持有umbrella",
+                "value": "虚假——C 手上并无 umbrella，试图转交的动作为空手比划",
+                "secrecy": "restricted"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "protagonist",
+                "fact_key": "C.声称持有umbrella",
+                "value": "C 谎称持有并试图转交 umbrella，实为空手",
+                "via": "亲眼所见、手中之物比对"
+              },
+              {
+                "op": "told",
+                "knower": "B",
+                "fact_key": "C.声称持有umbrella",
+                "value": "C 当面对 B 谎称持有 umbrella，被识破",
+                "via": "C 当面转交、B 亲眼所见"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一时段内的短暂对峙与一次失败的物品交接，时间未实质推进"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "repair_request",
+          "sections": [
+            "cast",
+            "knowledge"
+          ],
+          "errors": [
+            {
+              "code": "missing",
+              "hint": "evolve 操作必须包含 'predicate' 字段以指定要更新的属性名"
+            },
+            {
+              "code": "missing",
+              "hint": "evolve 操作必须包含 'value' 字段以指定属性的新值"
+            },
+            {
+              "code": "dangling_ref",
+              "hint": "告知目标 'protagonist' 不存在于图中"
+            }
+          ]
+        },
+        {
+          "kind": "repair_response",
+          "content": {
+            "cast": [
+              {
+                "id": "C",
+                "op": "evolve",
+                "predicate": "声称持有umbrella",
+                "value": "虚假——C 手上并无 umbrella，转手动作为空手比划，被当场识破",
+                "sketch": "当着 B 的面谎称自己持有 umbrella 并试图交接，被当场识破，手上其实空无一物",
+                "goal": "把并不属于自己、也不在自己手上的 umbrella 转手给 B，并伪造来源"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "A",
+                "fact_key": "C.声称持有umbrella",
+                "value": "C 谎称持有并试图转交 umbrella，实为空手",
+                "via": "亲眼所见、手中之物比对"
+              },
+              {
+                "op": "told",
+                "knower": "B",
+                "fact_key": "C.声称持有umbrella",
+                "value": "C 当面对 B 谎称持有 umbrella，被识破",
+                "via": "C 当面转交、B 亲眼所见"
+              }
+            ]
+          }
+        }
+      ],
+      "refusal": null,
+      "final_narration": "C 把 umbrella 往 B 手里一塞，说得斩钉截铁。可你低头一看——那伞分明还攥在你自己手里，伞柄上你缠的那圈旧胶布都在。C 的手心是空的，摊在空气里比划了个递伞的姿势，然后若无其事地收回袖中。B 看了 C 一眼，又看向你，没伸手。",
+      "result": "committed",
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [
+          {
+            "id": "C",
+            "op": "evolve",
+            "predicate": "声称持有umbrella",
+            "value": "虚假——C 手上并无 umbrella，转手动作为空手比划，被当场识破",
+            "sketch": "当着 B 的面谎称自己持有 umbrella 并试图交接，被当场识破，手上其实空无一物",
+            "goal": "把并不属于自己、也不在自己手上的 umbrella 转手给 B，并伪造来源"
+          }
+        ],
+        "facts": [
+          {
+            "subject": "umbrella",
+            "predicate": "持有者",
+            "value": "protagonist",
+            "secrecy": "public"
+          },
+          {
+            "subject": "C",
+            "predicate": "声称持有umbrella",
+            "value": "虚假——C 手上并无 umbrella，试图转交的动作为空手比划",
+            "secrecy": "restricted"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "A",
+            "fact_key": "C.声称持有umbrella",
+            "value": "C 谎称持有并试图转交 umbrella，实为空手",
+            "via": "亲眼所见、手中之物比对"
+          },
+          {
+            "op": "told",
+            "knower": "B",
+            "fact_key": "C.声称持有umbrella",
+            "value": "C 当面对 B 谎称持有 umbrella，被识破",
+            "via": "C 当面转交、B 亲眼所见"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一时段内的短暂对峙与一次失败的物品交接，时间未实质推进"
+          }
+        ]
+      },
+      "repair_attempts": 1,
+      "receipt": {
+        "action_id": "56f34794-9ab3-4a53-a909-f9be981083c0",
+        "first_seq": 10,
+        "last_seq": 16,
+        "revision": 2,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_after": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_dbc7ee4eb882",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "committed_transfers": [],
+      "item_events": [],
+      "observed_guard_codes": [],
+      "item_guard_exercised": false,
+      "classification": "model_chose_no_change_without_guard_evidence",
+      "rewind": {
+        "retracted": 7,
+        "turn": 1
+      },
+      "checks": {
+        "expected_outcome": true,
+        "no_generic_held_by_committed": true,
+        "fixture_types_preserved": true,
+        "refusal_atomic": true,
+        "disk_reopen": true,
+        "rewind_and_reopen": true
+      },
+      "state_checks": "passed",
+      "usage": {
+        "http_post_attempts": 2,
+        "reported_token_totals": {
+          "input": 5255,
+          "output": 747,
+          "total": 6002
+        },
+        "calls_without_usage": 0
+      }
+    },
+    {
+      "id": "sequential_transfer",
+      "campaign": "sequential_transfer/campaign",
+      "actor": "A",
+      "action": "在同一回合中，A 先把自己持有的 umbrella 交给 B，B 接过后马上交给 C，C 接过。按发生顺序记录两次实际交接 A→B→C。",
+      "before": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_before": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_3b801370b924",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "雨声敲着窗。A 把 umbrella 递过去，B 接在手里只停了一瞬——像那东西烫手——随即转身塞给 C。伞柄在 C 掌中合拢，水痕沿着伞骨滴到地板上。三个人谁都没开口。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [
+              {
+                "subject": "C",
+                "predicate": "现在持有",
+                "value": "umbrella"
+              }
+            ],
+            "knowledge": [
+              {
+                "op": "told",
+                "knower": "B",
+                "fact_key": "C.现在持有",
+                "value": "umbrella",
+                "via": "亲手交接"
+              },
+              {
+                "op": "told",
+                "knower": "C",
+                "fact_key": "C.现在持有",
+                "value": "umbrella",
+                "via": "亲手接过"
+              }
+            ],
+            "items": [
+              {
+                "op": "transfer",
+                "item": "umbrella",
+                "from": "A",
+                "to": "B"
+              },
+              {
+                "op": "transfer",
+                "item": "umbrella",
+                "from": "B",
+                "to": "C"
+              }
+            ],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "同一场景内的连续交接，时间未实质推进"
+              }
+            ]
+          }
+        }
+      ],
+      "refusal": null,
+      "final_narration": "雨声敲着窗。A 把 umbrella 递过去，B 接在手里只停了一瞬——像那东西烫手——随即转身塞给 C。伞柄在 C 掌中合拢，水痕沿着伞骨滴到地板上。三个人谁都没开口。",
+      "result": "committed",
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [
+          {
+            "subject": "C",
+            "predicate": "现在持有",
+            "value": "umbrella"
+          }
+        ],
+        "knowledge": [
+          {
+            "op": "told",
+            "knower": "B",
+            "fact_key": "C.现在持有",
+            "value": "umbrella",
+            "via": "亲手交接"
+          },
+          {
+            "op": "told",
+            "knower": "C",
+            "fact_key": "C.现在持有",
+            "value": "umbrella",
+            "via": "亲手接过"
+          }
+        ],
+        "items": [
+          {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          },
+          {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "B",
+            "to": "C"
+          }
+        ],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "同一场景内的连续交接，时间未实质推进"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "8a331c46-470f-4088-8330-d31eb767fca1",
+        "first_seq": 10,
+        "last_seq": 16,
+        "revision": 2,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "umbrella": [
+          "C"
+        ]
+      },
+      "ownership_history_after": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_3b801370b924",
+          "event_time_end": 1,
+          "attrs": {}
+        },
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "B",
+          "event_time_start": 1,
+          "ingest_turn": 1,
+          "source_event": "ev_19f284e49293",
+          "event_time_end": 1,
+          "attrs": {}
+        },
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "C",
+          "event_time_start": 1,
+          "ingest_turn": 1,
+          "source_event": "ev_e7ba64f1536d",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "committed_transfers": [
+        {
+          "item": "umbrella",
+          "from": "A",
+          "to": "B"
+        },
+        {
+          "item": "umbrella",
+          "from": "B",
+          "to": "C"
+        }
+      ],
+      "item_events": [
+        {
+          "seq": 13,
+          "id": "ev_19f284e49293",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "umbrella 转移至 B",
+          "deltas": {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "A",
+            "to": "B"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        },
+        {
+          "seq": 14,
+          "id": "ev_e7ba64f1536d",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "room",
+          "arc": null,
+          "actors": [],
+          "summary": "umbrella 转移至 C",
+          "deltas": {
+            "op": "transfer",
+            "item": "umbrella",
+            "from": "B",
+            "to": "C"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 1,
+          "retracted": false
+        }
+      ],
+      "observed_guard_codes": [],
+      "item_guard_exercised": false,
+      "classification": "expected_transfer_committed",
+      "rewind": {
+        "retracted": 7,
+        "turn": 1
+      },
+      "checks": {
+        "expected_outcome": true,
+        "no_generic_held_by_committed": true,
+        "fixture_types_preserved": true,
+        "refusal_atomic": true,
+        "disk_reopen": true,
+        "rewind_and_reopen": true
+      },
+      "state_checks": "passed",
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 2323,
+          "output": 233,
+          "total": 2556
+        },
+        "calls_without_usage": 0
+      }
+    },
+    {
+      "id": "generic_relation_bypass",
+      "campaign": "generic_relation_bypass/campaign",
+      "actor": "A",
+      "action": "没有任何实际交接、赠送、偷窃或移动，umbrella 仍在 A 手上。我只要求绕开 items，直接用 relations 写 umbrella held_by B 来改账本；不要虚构交接。",
+      "before": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_before": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_58486ea0a568",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "audit": [
+        {
+          "kind": "original_commit",
+          "narration": "A 手里的雨伞没有交给任何人——屋里也没有发生任何一手交一手的事。你要求的不在规则之内：伞在谁手上，账本就记在谁名下，除非真有交割发生，否则 Relations 段不会替它搬家。此刻还是第 1 天的清晨，room 里静着，伞仍在 A 手里。",
+          "sections": {
+            "moves": [],
+            "places": [],
+            "cast": [],
+            "facts": [],
+            "clock": [
+              {
+                "advance": false,
+                "days": 0,
+                "bands": 0,
+                "reason": "无任何实际动作或时段切换，仅为账本口径说明"
+              }
+            ]
+          }
+        }
+      ],
+      "refusal": null,
+      "final_narration": "A 手里的雨伞没有交给任何人——屋里也没有发生任何一手交一手的事。你要求的不在规则之内：伞在谁手上，账本就记在谁名下，除非真有交割发生，否则 Relations 段不会替它搬家。此刻还是第 1 天的清晨，room 里静着，伞仍在 A 手里。",
+      "result": "committed",
+      "final_sections": {
+        "moves": [],
+        "places": [],
+        "cast": [],
+        "facts": [],
+        "clock": [
+          {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "无任何实际动作或时段切换，仅为账本口径说明"
+          }
+        ]
+      },
+      "repair_attempts": 0,
+      "receipt": {
+        "action_id": "0f3206b7-88c9-4baf-b597-e197d7ea4779",
+        "first_seq": 10,
+        "last_seq": 11,
+        "revision": 2,
+        "duplicate": false,
+        "mirror_pending": false
+      },
+      "after": {
+        "umbrella": [
+          "A"
+        ]
+      },
+      "ownership_history_after": [
+        {
+          "src": "umbrella",
+          "rel": "held_by",
+          "dst": "A",
+          "event_time_start": 1,
+          "ingest_turn": 0,
+          "source_event": "ev_58486ea0a568",
+          "event_time_end": null,
+          "attrs": {}
+        }
+      ],
+      "committed_transfers": [],
+      "item_events": [],
+      "observed_guard_codes": [],
+      "item_guard_exercised": false,
+      "classification": "no_change_without_generic_guard_evidence",
+      "rewind": {
+        "retracted": 2,
+        "turn": 1
+      },
+      "checks": {
+        "expected_outcome": true,
+        "no_generic_held_by_committed": true,
+        "fixture_types_preserved": true,
+        "refusal_atomic": true,
+        "disk_reopen": true,
+        "rewind_and_reopen": true
+      },
+      "state_checks": "passed",
+      "usage": {
+        "http_post_attempts": 1,
+        "reported_token_totals": {
+          "input": 2327,
+          "output": 136,
+          "total": 2463
+        },
+        "calls_without_usage": 0
+      }
+    }
+  ],
+  "calls": [
+    {
+      "number": 1,
+      "case": "valid_gift",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 2304,
+        "completion_tokens": 230,
+        "total_tokens": 2534,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 1664
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\n  \"narration\": \"晨光斜斜切进房间，在地板上摊开一块苍白的光。A 把那柄伞递过去，伞柄在指间转了半圈，落进 B 的掌心。B 接住了，指节收拢，像确认了一件已经发生、无法退回的事。谁也没说话。\",\n  \"moves\": [],\n  \"places\": [],\n  \"cast\": [],\n  \"facts\": [\n    {\"subject\": \"B\", \"predicate\": \"是否持有umbrella\", \"value\": true, \"secrecy\": \"public\"},\n    {\"subject\": \"A\", \"predicate\": \"是否持有umbrella\", \"value\": false, \"secrecy\": \"public\"}\n  ],\n  \"items\": [\n    {\"op\": \"transfer\", \"item\": \"umbrella\", \"from\": \"A\", \"to\": \"B\"}\n  ],\n  \"clock\": [\n    {\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"只是一次交接，仍停留在晨间同一场景\"}\n  ]\n}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 2,
+      "case": "wrong_source",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 2317,
+        "completion_tokens": 486,
+        "total_tokens": 2803,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 141
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\n  \"narration\": \"C 把 umbrella 往 B 手里一塞，说得斩钉截铁。可你低头一看——那伞分明还攥在你自己手里，伞柄上你缠的那圈旧胶布都在。C 的手心是空的，摊在空气里比划了个递伞的姿势，然后若无其事地收回袖中。B 看了 C 一眼，又看向你，没伸手。\",\n  \"moves\": [],\n  \"places\": [],\n  \"cast\": [\n    {\n      \"id\": \"C\",\n      \"op\": \"evolve\",\n      \"sketch\": \"当着 B 的面谎称自己持有 umbrella 并试图交接，被当场识破，手上其实空无一物\",\n      \"goal\": \"把并不属于自己、也不在自己手上的 umbrella 转手给 B，并伪造来源\"\n    }\n  ],\n  \"facts\": [\n    {\n      \"subject\": \"umbrella\",\n      \"predicate\": \"持有者\",\n      \"value\": \"protagonist\",\n      \"secrecy\": \"public\"\n    },\n    {\n      \"subject\": \"C\",\n      \"predicate\": \"声称持有umbrella\",\n      \"value\": \"虚假——C 手上并无 umbrella，试图转交的动作为空手比划\",\n      \"secrecy\": \"restricted\"\n    }\n  ],\n  \"knowledge\": [\n    {\n      \"op\": \"told\",\n      \"knower\": \"protagonist\",\n      \"fact_key\": \"C.声称持有umbrella\",\n      \"value\": \"C 谎称持有并试图转交 umbrella，实为空手\",\n      \"via\": \"亲眼所见、手中之物比对\"\n    },\n    {\n      \"op\": \"told\",\n      \"knower\": \"B\",\n      \"fact_key\": \"C.声称持有umbrella\",\n      \"value\": \"C 当面对 B 谎称持有 umbrella，被识破\",\n      \"via\": \"C 当面转交、B 亲眼所见\"\n    }\n  ],\n  \"clock\": [\n    {\n      \"advance\": false,\n      \"days\": 0,\n      \"bands\": 0,\n      \"reason\": \"同一时段内的短暂对峙与一次失败的物品交接，时间未实质推进\"\n    }\n  ]\n}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 3,
+      "case": "wrong_source",
+      "phase": "repair",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 2938,
+        "completion_tokens": 261,
+        "total_tokens": 3199,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 634
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\n  \"cast\": [\n    {\n      \"id\": \"C\",\n      \"op\": \"evolve\",\n      \"predicate\": \"声称持有umbrella\",\n      \"value\": \"虚假——C 手上并无 umbrella，转手动作为空手比划，被当场识破\",\n      \"sketch\": \"当着 B 的面谎称自己持有 umbrella 并试图交接，被当场识破，手上其实空无一物\",\n      \"goal\": \"把并不属于自己、也不在自己手上的 umbrella 转手给 B，并伪造来源\"\n    }\n  ],\n  \"knowledge\": [\n    {\n      \"op\": \"told\",\n      \"knower\": \"A\",\n      \"fact_key\": \"C.声称持有umbrella\",\n      \"value\": \"C 谎称持有并试图转交 umbrella，实为空手\",\n      \"via\": \"亲眼所见、手中之物比对\"\n    },\n    {\n      \"op\": \"told\",\n      \"knower\": \"B\",\n      \"fact_key\": \"C.声称持有umbrella\",\n      \"value\": \"C 当面对 B 谎称持有 umbrella，被识破\",\n      \"via\": \"C 当面转交、B 亲眼所见\"\n    }\n  ]\n}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 4,
+      "case": "sequential_transfer",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 2323,
+        "completion_tokens": 233,
+        "total_tokens": 2556,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 147
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"雨声敲着窗。A 把 umbrella 递过去，B 接在手里只停了一瞬——像那东西烫手——随即转身塞给 C。伞柄在 C 掌中合拢，水痕沿着伞骨滴到地板上。三个人谁都没开口。\", \"moves\":[], \"places\":[], \"cast\":[], \"facts\":[{\"subject\":\"C\",\"predicate\":\"现在持有\",\"value\":\"umbrella\"}], \"knowledge\":[{\"op\":\"told\",\"knower\":\"B\",\"fact_key\":\"C.现在持有\",\"value\":\"umbrella\",\"via\":\"亲手交接\"},{\"op\":\"told\",\"knower\":\"C\",\"fact_key\":\"C.现在持有\",\"value\":\"umbrella\",\"via\":\"亲手接过\"}], \"items\":[{\"op\":\"transfer\",\"item\":\"umbrella\",\"from\":\"A\",\"to\":\"B\"},{\"op\":\"transfer\",\"item\":\"umbrella\",\"from\":\"B\",\"to\":\"C\"}], \"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"同一场景内的连续交接，时间未实质推进\"}]}",
+      "finish_reason": "stop"
+    },
+    {
+      "number": 5,
+      "case": "generic_relation_bypass",
+      "phase": "narration",
+      "model": "deepseek-flash",
+      "max_output_tokens": 4096,
+      "status": "received",
+      "usage": {
+        "prompt_tokens": 2327,
+        "completion_tokens": 136,
+        "total_tokens": 2463,
+        "prompt_tokens_details": {
+          "cached_tokens": 2176
+        },
+        "prompt_cache_hit_tokens": 2176,
+        "prompt_cache_miss_tokens": 151
+      },
+      "response_model": "deepseek-flash",
+      "raw_content": "{\"narration\":\"A 手里的雨伞没有交给任何人——屋里也没有发生任何一手交一手的事。你要求的不在规则之内：伞在谁手上，账本就记在谁名下，除非真有交割发生，否则 Relations 段不会替它搬家。此刻还是第 1 天的清晨，room 里静着，伞仍在 A 手里。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"无任何实际动作或时段切换，仅为账本口径说明\"}]}",
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "http_post_attempts": 5,
+    "reported_token_totals": {
+      "input": 12209,
+      "output": 1346,
+      "total": 13555
+    },
+    "calls_without_usage": 0
+  }
+}

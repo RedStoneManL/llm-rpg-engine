@@ -177,6 +177,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——本回合确立的**客观事实**（subject/predicate/value 必填）；**没有 → 给 []**；只记确有意义的事实，勿把布景滥造成 fact；**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。secrecy 取 "public"|"restricted"|"secret"：街坊皆知的标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写该字段】（默认不进公开层、绝不外泄）。
 - 【必填】clock：[{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。诀窍：先想清动作结束时落在哪个时段，再据此给 days/bands。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}。
 - 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
+- 【可选】items：创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"转移前持有者id","to":"新持有者id"}。item 必须是 Object，to 必须是 Person 或 Place。已有人持有的物品必须给出与当前账本一致的 from；首次放置未被持有的物品才可省略 from 或给 null。先创建实体，再按顺序转移；A→B→C 的第二次 from 是 B。不要通过 relations 写 held_by，不要用重复创建实体改变其类型。from 仅表示来源，不代表同意、授权或合法性；只记录正文中实际发生的转移。
 - 【可选】relations：[{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
 - 【可选】knowledge：记录"谁知道了什么"——详见下【信息视野】
 - 【可选】world：区域/世界级事件波及的地点——详见下【世界事件】
