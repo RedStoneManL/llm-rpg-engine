@@ -1,0 +1,34 @@
+{
+  "case": "fresh_introduction_then_scene_summary_cross_day_fresh_author",
+  "model": "native-gpt-6-astra",
+  "actions": 4,
+  "generated_completions": 12,
+  "source_event_id": "ev_4051f0b2e890",
+  "narration_ref": "ev_28ed50af8613",
+  "introduced_persons": [
+    {
+      "id": "npc_lu_qinghe",
+      "name": "陆青禾"
+    }
+  ],
+  "source_chars": 503,
+  "source_truncated": false,
+  "full_exact_source_in_final_request": true,
+  "final_request": 11,
+  "final_request_message_count": 2,
+  "original_descriptor": "一个挽着袖子的年轻女子",
+  "final_quote": "就看见一个挽着袖子的年轻女子从集市那头走来",
+  "final_pronoun_quote": "她停在路边的木板桌旁",
+  "final_clock": {
+    "day": 2,
+    "band": 0
+  },
+  "scene_summary_occurred": true,
+  "residual_summary_error": "沈掌柜与小满约定玉印归期，并以无论结果都请热面为酬，委托其仅代问面粉干货车当日能否及何时过桥、不承担担保或付款，小满持印在集市向何桥守得知桥面维修导致午前无法通行、下午验桥后仍未必放行，随后遇见亲自协调运粮的县令陆青禾，获邀了解尚待核实的绕行路以连同不确定之处带回，且无须替掌柜作决定。",
+  "limits": [
+    "One fresh native after sample; new NPC differs from original failed sample.",
+    "Normal scene changes and summary, followed by deliberate fresh Author reset for revisit.",
+    "Future-only introduction snapshots; original old save8 was not retrofitted.",
+    "No DeepSeek calls or broad semantic guarantee."
+  ]
+}

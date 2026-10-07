@@ -1,7 +1,8 @@
 """Host-authored input provenance, never a declaration of world truth.
 
-These records establish only that a bound player submitted literal input and a
-response committed. They establish neither success nor speech/hearing/knowledge.
+These records establish that a bound player submitted literal input and a
+response committed. Optional introduction snapshots preserve that response's
+published scene narration, without converting it to character facts or knowledge.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ OUTCOME = 'committed_response_not_proof_of_success'
 SUMMARY = 'player input source recorded'
 DELTA_KEYS = {'actor_id', 'input', 'requested_at', 'committed_at', 'outcome',
               'entity_refs', 'narration_ref', 'effect_refs'}
+INTRO_MAX_CHARS = 2048
 CONTEXT_KEYS = {'day', 'band', 'scene', 'location'}
 LABEL_FIELDS = {'name', 'display_name', '真名', '别名', 'alias', 'aliases'}
 # Only typed foreground references, never arbitrary prose, values, or bystanders.
@@ -44,12 +46,48 @@ def _identifiers(value):
             and len(value) == len(set(value)))
 
 
+def valid_cast_introductions(value, actor_id, narration_ref, entity_refs):
+    """Optional actor-owned scene source; missing historical fields stay unknown."""
+    if not isinstance(value, dict) or set(value) != {'narration_ref', 'persons', 'span'}:
+        return False
+    if not _identifier(narration_ref) or value['narration_ref'] != narration_ref:
+        return False
+    span = value['span']
+    if not isinstance(span, dict) or set(span) != {
+            'text', 'start', 'end', 'original_length', 'truncated'}:
+        return False
+    if not (isinstance(span['text'], str) and 0 < len(span['text']) <= INTRO_MAX_CHARS
+            and type(span['start']) is int and span['start'] == 0
+            and type(span['end']) is int and span['end'] == len(span['text'])
+            and type(span['original_length']) is int and span['original_length'] >= span['end']
+            and type(span['truncated']) is bool
+            and span['truncated'] == (span['end'] < span['original_length'])):
+        return False
+    persons = value['persons']
+    if not isinstance(persons, list) or not persons or not isinstance(entity_refs, list):
+        return False
+    ids = []
+    for person in persons:
+        if not isinstance(person, dict) or set(person) not in ({'id'}, {'id', 'name'}):
+            return False
+        pid = person['id']
+        if not _identifier(pid) or pid == actor_id or pid not in entity_refs:
+            return False
+        if 'name' in person and not (_identifier(person['name']) and person['name'] in span['text']):
+            return False
+        ids.append(pid)
+    return len(ids) == len(set(ids))
+
+
 def valid_player_input(event):
     """Strict new-event contract; historical narrative events need no retrofit."""
     if not isinstance(event, dict) or event.get('type') != 'player_input_recorded':
         return False
     data = event.get('deltas')
-    if not isinstance(data, dict) or set(data) != DELTA_KEYS:
+    if not isinstance(data, dict) or set(data) not in (DELTA_KEYS, DELTA_KEYS | {'cast_introductions'}):
+        return False
+    if 'cast_introductions' in data and not valid_cast_introductions(
+            data['cast_introductions'], data['actor_id'], data['narration_ref'], data['entity_refs']):
         return False
     if not (_identifier(event.get('id')) and type(event.get('turn')) is int
             and event['turn'] > 0 and _identifier(data['actor_id'])
@@ -147,7 +185,42 @@ def capture_player_input(world, scene, player_input):
     if not isinstance(player_input, str):
         raise ValueError('Player input source must be a string')
     return {'actor_id': actor_id, 'input': player_input,
-            'requested_at': source_context(world, actor_id), 'visible': view}
+            'requested_at': source_context(world, actor_id), 'visible': view,
+            # An already-existing but hidden Person is not a foreground creation.
+            # IDs are host-only capture data and never enter the source event.
+            'existing_ids': set(world['systems']['ontology'].entities)}
+
+
+def _cast_introductions(captured, after, commit, active, narration_ref):
+    """Associate visible foreground creations with exact published scene prose."""
+    if after is None or narration_ref is None or not commit.narration:
+        return None
+    text = commit.narration[:INTRO_MAX_CHARS]
+    persons = {}
+    for section, event_type in (('cast', 'character_created'), ('entities', 'entity_created')):
+        for declaration in commit.sections.get(section) or []:
+            if not isinstance(declaration, dict):
+                continue
+            if section == 'cast' and declaration.get('op', 'create') != 'create':
+                continue
+            pid = declaration.get('id')
+            entity = after.get_entity(pid) if isinstance(pid, str) else None
+            if (entity is None or entity.etype != 'Person'
+                    or pid in captured['existing_ids'] or pid == captured['actor_id']):
+                continue
+            if not any(event['type'] == event_type and event.get('deltas') == declaration
+                       for event in active):
+                continue
+            person = persons.setdefault(pid, {'id': pid})
+            name = declaration.get('name')
+            if _identifier(name) and name in text:
+                person['name'] = name
+    if not persons:
+        return None
+    return {'narration_ref': narration_ref, 'persons': [persons[pid] for pid in sorted(persons)],
+            'span': {'text': text, 'start': 0, 'end': len(text),
+                     'original_length': len(commit.narration),
+                     'truncated': len(text) < len(commit.narration)}}
 
 
 def player_input_event(captured, world, commit, events, *, turn):
@@ -187,6 +260,9 @@ def player_input_event(captured, world, commit, events, *, turn):
                 'entity_refs': sorted(relevant), 'narration_ref': narration_ref,
                 'effect_refs': [event['id'] for event in active
                                 if event['type'] not in {'narration_recorded', 'player_input_recorded'}]})
+    introductions = _cast_introductions(captured, after, commit, active, narration_ref)
+    if introductions is not None:
+        event['deltas']['cast_introductions'] = introductions
     if not valid_player_input(event):
         raise ValueError('Invalid host player input source')
     return event

@@ -631,9 +631,21 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 day=world.get('meta', {}).get('day') or 1,
                 scene=scene.get('id') or scene.get('location') or 'scene',
                 turn=batch.turn, summary='item return commitment recorded', deltas=data)
-            authorized_return_creations[promised['id']] = copy.deepcopy(promised)
-            batch.append(promised)
-            world = project(registry, batch.iter_events())
+            # A reaffirmation keeps the original open obligation and its evidence.
+            # Validate even a duplicate candidate before taking the no-create path;
+            # otherwise direct callers could bypass quote/type/deadline checks.
+            from systems.return_commitments import _creation_record
+            candidate = _creation_record(world, promised)
+            records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
+            already_open = any(
+                record.get('status') == 'open' and all(
+                    record.get(field) == candidate[field]
+                    for field in ('debtor', 'item', 'recipient', 'due'))
+                for record in records.values())
+            if not already_open:
+                authorized_return_creations[promised['id']] = copy.deepcopy(promised)
+                batch.append(promised)
+                world = project(registry, batch.iter_events())
         # Lock all registered owners, not just the acting protagonist. These
         # private values stay in the host's validation context, never the prompt.
         expected_balances = registered_balances(world)

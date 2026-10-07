@@ -4,6 +4,8 @@ Owns harness-authored event types (no commit section; the narrator
 never writes to this system directly):
 
   player_input_recorded — exact bound-player input provenance, not world truth.
+                          Optional actor-private first-introduction scene sources
+                          remain here when recap buckets are compressed.
   narration_recorded  — appended by digest_fleet every turn; carries the
                         verbatim prose for that turn keyed by scene.
   scene_summarized    — appended by digest_fleet when a scene ages out of

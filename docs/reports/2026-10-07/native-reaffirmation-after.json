@@ -1,0 +1,30 @@
+{
+  "case": "existing_open_return_reaffirmation",
+  "source_base": "8aedb9b",
+  "native_model": "gpt-6-astra",
+  "actual_model_responses": 2,
+  "baseline_observed_open_counts": [
+    1,
+    2
+  ],
+  "after_open_counts": [
+    1,
+    1
+  ],
+  "original_records_unchanged": true,
+  "fresh_classifier": {
+    "status": "ready",
+    "item": "jade_seal",
+    "recipient": "keeper",
+    "due_expression": "第3天中午",
+    "evidence_quotes": [
+      "我轻轻拨了一下随身的铜铃，对沈掌柜说：“这铃我给它起了个名字，叫‘小满’。玉印我会照约第3天中午还您。出门前还是想问清楚：您借我这方印，是要我替您办什么事？”"
+    ]
+  },
+  "new_promise_events": 0,
+  "new_input_source_ids": [
+    "ev_4f5a6bacbc45"
+  ],
+  "new_input_literal_match": true,
+  "limits": "One fresh native after sample versus observed original native before; surrounding story differs stochastically. No DS validation."
+}

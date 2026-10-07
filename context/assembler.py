@@ -34,6 +34,7 @@ from context.viewpoint import build_viewpoint
 from facts.graph import FactGraph
 from context.access import pov_world
 from context.player_evidence import read_player_evidence, format_player_evidence
+from context.cast_evidence import read_cast_evidence, format_cast_evidence
 from engine.log import get_logger
 import systems.narrative as nmod
 
@@ -102,6 +103,7 @@ def assemble_context(
     # Only the actor-bound source reader may access the private original-input
     # slice. Generic inject/recall/tools receive a view with that slice removed.
     player_evidence = read_player_evidence(world, scene, query)
+    cast_evidence = read_cast_evidence(world, scene, query)
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -262,6 +264,7 @@ def assemble_context(
         if actor_entity is not None and actor_entity.etype == 'Person':
             parts.append("## [volatile]")
             parts.append(format_player_evidence(player_evidence))
+            parts.append(format_cast_evidence(cast_evidence))
 
     result = "\n".join(parts)
     log.debug("assemble_context: output length=%d chars", len(result))
