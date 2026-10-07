@@ -27,6 +27,7 @@ from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, registered_balances, validate_resources
 from loop.narration_guard import validate_narration
+from systems.time import normalize_clock, validate_resolved_time
 from loop.strategy import AuthorOutputError
 
 from engine.store import EventBatch, RevisionConflict
@@ -133,8 +134,8 @@ def _protagonist_location(world: dict, protagonist: str | None) -> str | None:
 def advanced_day(world: dict, commit) -> int:
     """Post-advance day for this turn = current clock + the turn's clock delta.
 
-    The narrator's `clock` section is a delta {advance, days, bands}. We fold it
-    onto the current (day, band) from world.meta and return the new day; the new
+    The narrator's `clock` section gives a delta or absolute target. We normalize
+    it against the current (day, band) from world.meta and return the new day; the new
     band is folded separately by TimeSystem.apply on the clock_advanced event.
     Absent/none clock => no advance (back-compat with callers that omit it).
 
@@ -144,7 +145,7 @@ def advanced_day(world: dict, commit) -> int:
     meta = world.get("meta", {})
     cur_day = meta.get("day") or 1
     cur_band = meta.get("band") or 0
-    decl = commit.sections.get("clock") or []
+    decl = normalize_clock(commit.sections.get("clock") or [], world)
     if (isinstance(decl, list) and decl and isinstance(decl[0], dict)
             and decl[0].get("advance")):
         ddays = int(decl[0].get("days", 0) or 0)
@@ -227,7 +228,8 @@ def produce_turn(
     def validate(proposal):
         augment_unresolved_refs(proposal, world, scene=_aug_scene, day=_aug_day)
         result = validate_commit(registry, proposal, world, required_sections=required_sections)
-        result.extend(validate_resources(proposal, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
+        result.extend(validate_resources(proposal, scene.get('_resolved_values', {})))
+        result.extend(validate_resolved_time(proposal, scene.get('_resolved_clock'), world))
         result.extend(validate_narration(proposal, world))
         return result
 
@@ -324,9 +326,22 @@ def apply_turn(
         prior_events = list(store.iter_events(include_retracted=True))
         turn_num = _next_turn(store)
 
+    # Absolute endpoints are resolved against the PRE-turn clock, never the
+    # post-advance `day` argument. Keep the event format and replay unchanged.
+    sections = commit.sections
+    clock_decl = sections.get("clock") or []
+    if (isinstance(clock_decl, list) and any(
+            isinstance(item, dict) and "target" in item for item in clock_decl)):
+        prior_world = project(registry, (event for event in prior_events
+                                         if not event.get("retracted")))
+        normalized = normalize_clock(clock_decl, prior_world)
+        sections = {**sections, "clock": normalized}
+        from kernel.turncommit import TurnCommit
+        day = advanced_day(prior_world, TurnCommit(commit.narration, sections))
+
     events: list[dict] = []
     from kernel.item_integrity import creation_first_sections
-    for section, decl in creation_first_sections(commit.sections):
+    for section, decl in creation_first_sections(sections):
         owner = registry.owner_of_section(section)
         if owner is None:
             log.warning("apply_turn: no owner for section=%r (skipped)", section)

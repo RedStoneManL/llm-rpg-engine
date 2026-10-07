@@ -124,7 +124,9 @@ def validate_item_commit(registry, commit, world):
     from kernel.clock import advance
     current = world.get('meta', {})
     day, band = current.get('day') or 1, current.get('band') or 0
-    clock = commit.sections.get('clock') or []
+    from systems.time import normalize_clock
+    clock = normalize_clock(commit.sections.get('clock') or [], world)
+    sections = {**commit.sections, 'clock': clock} if 'clock' in commit.sections else commit.sections
     if clock and clock[0].get('advance'):
         day, _ = advance(day, band, clock[0].get('days', 0), clock[0].get('bands', 0))
     preview = copy.deepcopy(world)
@@ -135,7 +137,7 @@ def validate_item_commit(registry, commit, world):
         records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
         turns = graph_turns + [record.get('created_turn', 0) for record in records.values()]
         action_turn = max((turn for turn in turns if type(turn) is int), default=0) + 1
-    for section, declarations in creation_first_sections(commit.sections):
+    for section, declarations in creation_first_sections(sections):
         owner = registry.owner_of_section(section)
         if owner is None or not declarations:
             continue

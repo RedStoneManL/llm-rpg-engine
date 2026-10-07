@@ -38,7 +38,7 @@ def prepare_resources(world, scene, action, provider, turn):
     hero=scene.get('protagonist')
     entity=graph.get_entity(hero) if graph and hero else None
     rules=entity.attrs.get('fact_rules',{}) if entity else {}
-    day=scene.get('day') or 1
+    day=world.get('meta',{}).get('day') or scene.get('day') or 1
     band=world.get('meta',{}).get('band') or 0
     resources={key:graph.value_at(hero,key,day) for key,rule in rules.items()
                if isinstance(rule,dict) and rule.get('resource')}
@@ -108,19 +108,9 @@ def validate_resources(commit, expected, target=None, world=None):
         if locked and fact.get('value')!=expected[key]:
             errors.append(ValidationError('facts',f'[{i}].value','resolved_resource',
                 f'{key[0]}.{key[1]} 是规则引擎管理的资源，不能由 facts 重复扣款或更改；删除这条声明'))
-    if target:
-        from kernel.clock import advance
-        current=world.get('meta',{})
-        day=current.get('day') or 1;band=current.get('band') or 0
-        decl=commit.sections.get('clock') or []
-        try:
-            clock=decl[0]
-            actual=advance(day,band,clock.get('days',0) if clock.get('advance') else 0,
-                           clock.get('bands',0) if clock.get('advance') else 0)
-        except (IndexError,KeyError,TypeError,AttributeError,ValueError):
-            actual=None
-        if actual!=(target['day'],target['band']):
-            delta=(target['day']-day)*4+target['band']-band
-            errors.append(ValidationError('clock','','resolved_time',
-                f'明确等待必须抵达第{target["day"]}天时段{target["band"]}；advance=true,days={delta//4},bands={delta%4}'))
+    # Compatibility for older direct callers. The main turn pipeline owns this
+    # independent time check even when the acting character has no resources.
+    if target is not None:
+        from systems.time import validate_resolved_time
+        errors.extend(validate_resolved_time(commit, target, world or {}))
     return errors

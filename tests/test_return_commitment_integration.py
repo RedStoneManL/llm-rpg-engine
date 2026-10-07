@@ -330,12 +330,16 @@ def test_creation_and_actual_return_autocomplete_in_one_atomic_action(return_gam
 
 
 @pytest.mark.parametrize("explicit", [False, True])
-def test_later_return_closes_once_after_items_and_clock(return_game, explicit):
+@pytest.mark.parametrize("absolute", [False, True])
+def test_later_return_closes_once_after_items_and_clock(return_game, explicit, absolute):
     _create(return_game)
     cid = _only(return_game)["id"]
     promises = [{"op": "fulfill", "id": cid}] if explicit else None
-    result, provider = _run(return_game, [_proposal(items=[_transfer()], promises=promises,
-                                                   days=1, bands=2)], action="把雨伞交给阿林。")
+    proposal = _proposal(items=[_transfer()], promises=promises, days=1, bands=2)
+    if absolute:
+        proposal["clock"] = [{"advance": True, "target": {"day": 2, "band": 2},
+                              "reason": "到约定的下午归还"}]
+    result, provider = _run(return_game, [proposal], action="把雨伞交给阿林。")
     record = _only(return_game)
     assert result.repair_attempts == 0 and len(provider.calls) == 1
     assert record["status"] == "fulfilled"
