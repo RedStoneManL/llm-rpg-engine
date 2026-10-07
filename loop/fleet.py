@@ -29,6 +29,7 @@ digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
 from __future__ import annotations
 
 import hashlib
+import math
 from typing import Any
 
 from kernel.registry import Registry
@@ -136,6 +137,62 @@ def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=N
         return None
 
 
+# Only understood gameplay mutations may seed this fallback. Clocks, storage,
+# summaries, provenance, rolls, directives and quest-control events are not
+# evidence that the action described in their free-form rationale occurred.
+_BACKSTOP_IDENTIFIERS = {
+    'item_transferred': ('item', 'to'),
+    'entity_moved': ('who', 'to'),
+    'fact_asserted': ('subject', 'predicate'),
+    'relation_added': ('src', 'rel', 'dst'),
+    'relationship_changed': ('id', 'toward'),
+    'character_evolved': ('id', 'predicate'),
+    'knowledge_set': ('knower', 'fact_key'),
+}
+
+
+def backstop_event_eligible(event: dict) -> bool:
+    """Eligibility for committed event consumers, not a second world validator.
+
+    The caller supplies events already applied by their owners. Most carry no
+    old value, so do not compare them to the POST-world to invent a change test.
+    Resources are the exception: their authoritative before/after are explicit.
+    Unknown types fail closed without affecting intentional quest generation.
+    """
+    if not isinstance(event, dict) or event.get('retracted'):
+        return False
+    kind, data = event.get('type'), event.get('deltas')
+    if not isinstance(kind, str) or not isinstance(data, dict):
+        return False
+    nonblank = lambda value: isinstance(value, str) and bool(value.strip())
+    if kind == 'resources_resolved':
+        before, after = data.get('before'), data.get('after')
+        if (not nonblank(data.get('subject')) or data.get('outcome') != 'spent'
+                or not isinstance(before, dict) or not before
+                or not isinstance(after, dict) or set(before) != set(after)
+                or not all(nonblank(key) for key in before)):
+            return False
+        try:
+            numeric = all(type(value) in (int, float) and math.isfinite(value)
+                          for value in list(before.values()) + list(after.values()))
+        except (ValueError, OverflowError):
+            return False
+        return numeric and any(before[key] != after[key] for key in before)
+    required = _BACKSTOP_IDENTIFIERS.get(kind)
+    if required is None or not all(nonblank(data.get(key)) for key in required):
+        return False
+    if kind == 'fact_asserted':
+        return 'value' in data
+    if kind in {'relationship_changed', 'character_evolved', 'knowledge_set'}:
+        if data.get('value') is None:
+            return False
+    if kind == 'character_evolved' and data['predicate'] == 'arc':
+        return False  # reflection bookkeeping is not a new player consequence
+    if kind == 'item_transferred' and data.get('from') == data['to']:
+        return False
+    return True
+
+
 def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     """Conservative backstop: flag a 暗 quest line only when ZERO 明 lines exist
     AND the turn had a substantive player event (heuristic_floor >= 2).
@@ -148,10 +205,13 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     if any(ln.get("state") == "明" for ln in lines.values()):
         return None
 
-    # Find the most-significant new event
+    # Rank only supported mutations; metadata must not win a score tie merely
+    # because it was appended first or carries a nonempty deltas object.
     best_ev = None
     best_floor = 0
     for ev in new_events:
+        if not backstop_event_eligible(ev):
+            continue
         floor = importance_mod.heuristic_floor(ev)
         if floor > best_floor:
             best_floor = floor

@@ -1,0 +1,37 @@
+{
+  "source_base": "e5f7bef683fd6cd7709b1107c9c5cdfa8f0a11ee",
+  "verification": "Deterministic existing-event consumer replay using actual recorded gameplay streams; no fresh LLM/API/gameplay or unit-count claim",
+  "global_importance_unchanged": true,
+  "cases": [
+    {
+      "case": "T14_repaired_noop",
+      "source_event_ids": [
+        "ev_6dccffb3ee79",
+        "ev_5ce7757f686c"
+      ],
+      "source_events_unchanged": true,
+      "old_candidate_summary": "时间未推进：柜台前一次交接，时间未实质推进",
+      "new_candidate_summary": null,
+      "jade_holder": [
+        "player"
+      ],
+      "scope_note": "Native after trace actually produced stale quest"
+    },
+    {
+      "case": "T16_actual_return",
+      "source_event_ids": [
+        "ev_80375516ff64",
+        "ev_59f68eaf9047",
+        "ev_5e7e5be1aba6",
+        "ev_8551a1982054"
+      ],
+      "source_events_unchanged": true,
+      "old_candidate_summary": "时间未推进：归还玉印与几句对话，仍在中午同一时段内",
+      "new_candidate_summary": "jade_seal 转移至 keeper",
+      "jade_holder": [
+        "keeper"
+      ],
+      "scope_note": "Original stress hook was disabled; this is consumer replay of its genuine transfer event stream"
+    }
+  ]
+}
