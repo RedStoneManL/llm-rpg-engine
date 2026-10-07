@@ -114,3 +114,18 @@ held_by 的绕行请求；来源表示转移前持有者，不代表权限或同
 人工检查仍发现正文动作前后矛盾、自由 facts 中捏造 `protagonist` 持有者别名、以及
 前台露出 “Relations 段” 的实现术语。保留[真实输出](reports/2026-10-07/item-transfer-live.json)
 和[失败复核](reports/2026-10-07/item-transfer-review.json)，不能把 canonical 账本通过说成全文自洽。
+
+### 主角/库存绑定与可见性增量（2026-10-07）
+
+后续把实际主角 id 和当前可见持有关系绑定到每轮上下文，修正提示中固定使用
+`protagonist` 以及鼓励另写归属 facts 的冲突要求；两种叙事策略、修复/压缩缓存和
+暗线钩子采用同一实际主角。未绑定或不合法的观察者在模型调用前拒绝。
+物品关系的显式 hidden/secret 可见性现在可在两条事件路径中保存并重开恢复；
+畸形/冲突元数据按更严格可见性处理，旧事件原文和物品持有人不改写。
+
+69 项新增回归后，全套 1879 项通过（1 项 slow 排除），120 行动恢复测试通过。
+重复同四个 DeepSeek Flash 场景用了 4 次 POST、11030 tokens，账本/重开/撤销全部通过，
+本样本不再生成不存在的 `protagonist` 引用或 “Relations 段”，且错误来源正文不再先写成交接。
+不过正常赠送/连环转移仍会额外生成归属类自由 facts，某条正文仍露出 `room` 原始 id。
+提示改进不是普遍语义保证；保留[原始输出](reports/2026-10-07/actor-inventory-grounding-live.json)
+及[前后对照与剩余失败](reports/2026-10-07/actor-inventory-grounding-review.json)。

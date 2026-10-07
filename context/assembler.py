@@ -41,6 +41,40 @@ log = get_logger("context.assembler")
 _GUARDRAIL_TAG = "⚠️只约束·勿泄露"
 
 
+def _canonical_grounding(graph, scene, day):
+    """Render host bindings from the already POV-filtered graph only.
+
+    Do not infer an empty inventory from an absent/redacted relation, or expose
+    off-scene people's inventories merely because their identities are known.
+    """
+    actor = scene.get('protagonist')
+    if graph is None or not isinstance(actor, str) or graph.get_entity(actor) is None:
+        return ''
+    local_holders = {actor, scene.get('location')} | set(scene.get('present') or [])
+    location = scene.get('location')
+    if location:
+        local_holders.update(entity.id for entity in graph.entities.values()
+            if entity.etype == 'Person' and location in graph.neighbors(entity.id, 'located_in', day))
+    inventory = []
+    for relation in graph.relations:
+        if relation.rel != 'held_by' or not relation.valid_at(day) or relation.dst not in local_holders:
+            continue
+        item, holder = graph.get_entity(relation.src), graph.get_entity(relation.dst)
+        if item is None or item.etype != 'Object' or holder is None or holder.etype not in {'Person', 'Place'}:
+            continue
+        inventory.append({'item_id': relation.src, 'holder_id': relation.dst,
+                          'since_day': relation.event_time_start})
+    inventory.sort(key=lambda row: (row['holder_id'] != actor, row['item_id'], row['holder_id']))
+    binding = {'actor_id': actor, 'inventory': inventory[:24],
+               'inventory_truncated': len(inventory) > 24}
+    return ('【引擎绑定·仅供结构输出与连续性校验，禁止在正文复述】\n'
+        + json.dumps(binding, ensure_ascii=False) + '\n'
+        'actor_id 是本回合主角的实际实体 id；结构引用应原样使用，不把角色称谓当成新 id。'
+        '上述物品持有记录来自当前可见的 held_by，优先于旧摘要或自由 facts 中的归属别名；'
+        '未列出不表示无人持有。物品实际转移只写 items，不在 facts/knowledge 中另建同义持有者账本；'
+        '颜色、材质等描述性事实仍可保留。元数据、字段名和校验意见不是剧情或角色台词。')
+
+
 def assemble_context(
     registry: Registry,
     world: dict,
@@ -158,6 +192,9 @@ def assemble_context(
     # Render the base inject fragments first (includes NarrativeSystem.inject scene-raw
     # and LoreSystem.inject (明账) — both force-pushed, query-independent).
     base = render(frags)
+    grounding = _canonical_grounding(g, scene, day or world.get('meta', {}).get('day') or 1)
+    if grounding:
+        base = grounding + ('\n\n' + base if base else '')
     # Fact anchors are repeated independently of free-form recap. Date-stamped
     # commitments must not acquire an invented history after a context reset.
     if g is not None and protagonist:
@@ -172,7 +209,8 @@ def assemble_context(
         if anchors:
             base += ('\n\n【事实锚点·当前有效】\n' + '\n'.join(anchors[-24:]) + '\n'
                 '回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。'
-                '发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。'
+                '遵守对应系统的写入协议：已登记资源由规则裁定，物品持有变化只写 items；'
+                '其他客观变化才按原有字段记入 facts，并在适用时同步本人 knowledge；不得用近义字段另开账本。'
                 '未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。')
 
     # ------------------------------------------------------------------

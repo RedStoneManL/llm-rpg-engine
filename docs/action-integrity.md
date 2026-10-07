@@ -130,6 +130,29 @@ cache keeps eight recent exchanges. Long scenes split into six-turn recap chunks
 aged chunks are summarized and recompressed with the existing summary included.
 Events retain the exact original prose. Summaries remain fallible derived memory.
 
+The narrator now receives a host-bound `actor_id` and a small canonical inventory
+block after POV filtering. It includes only visible self/local holdings, never
+infers an unheld item from a redacted/missing relation, and prioritizes `held_by`
+over free-form ownership aliases. Descriptive object facts and old events remain
+intact. The author examples use the actual actor ID rather than a fixed
+`protagonist` placeholder; both narrator strategies rebuild cached context when
+the actor changes. The lore hook receives the action's actor explicitly.
+
+Shipped narrators reject a missing actor before resource interpretation or any
+narrator call. In a populated ontology the actor must be an existing Person;
+empty-world author/bootstrap fixtures can still declare their first named actor.
+Generic DM/recap context assembly and custom-strategy contracts are unchanged.
+
+Explicit `held_by` visibility survives both legacy `relation_added` and current
+`item_transferred` replay paths, including reopen. A flat `visibility` or nested
+`attrs.visibility` may specify public/hidden/secret; restrictive conflicts and
+malformed values fail closed. Omission preserves the legacy unmarked-visibility
+convention. This changes neither physical ownership nor stored historical events.
+
+Prompt metadata and repair diagnostics are explicitly separated from prose.
+This is generation guidance, not a keyword ban or a proof that arbitrary
+narration, summaries, or invented ownership aliases are semantically correct.
+
 Malformed or empty narration, leaked JSON envelopes, incomplete required
 sections and obvious repetition of recent long narration are repaired or refused
 before display. These checks do not prove all prose agrees with world facts.

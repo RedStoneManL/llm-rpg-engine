@@ -446,7 +446,8 @@ def _run_turn_staged(
         # Same shape as digest/director/cascade: post-apply, tracer span, non-fatal.
         try:
             with get_tracer().span("lore", turn=turn_num_before):
-                lore_events = _backstage_call(store, run_lore, registry, store, new_world)
+                lore_events = _backstage_call(store, run_lore, registry, store, new_world,
+                                             protagonist=protagonist)
             if lore_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: lore appended %d event(s)", len(lore_events))
@@ -535,6 +536,11 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
+    # Bind the observer before resource-intent or any other model call. Custom
+    # strategies retain their own contracts; shipped narrators share this gate.
+    from loop.strategy import AuthorStrategy, HybridStrategy, _bound_actor_id
+    if isinstance(strategy, (AuthorStrategy, HybridStrategy)):
+        _bound_actor_id(world, scene)
     batch = EventBatch(store)
     prior_ids = {event['id'] for event in batch.iter_events(include_retracted=True)}
     batch.preflight = _item_preflight(registry, prior_ids)

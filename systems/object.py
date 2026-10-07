@@ -20,6 +20,7 @@ import copy
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
 from facts.graph import FactGraph
+from facts.visibility import held_by_visibility
 from engine.log import get_logger
 
 log = get_logger("systems.object")
@@ -90,6 +91,7 @@ class ObjectSystem(ContextSystem):
                 day=event["day"],
                 turn=event.get("turn") or 0,
                 source_event=event["id"],
+                **held_by_visibility(d),
             )
             log.debug("item_transferred item=%s to=%s", item, to)
 

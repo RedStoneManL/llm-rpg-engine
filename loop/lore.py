@@ -76,7 +76,7 @@ def _is_protagonist_line(lid) -> bool:
     return isinstance(lid, str) and lid.startswith("pthread")
 
 
-def run_lore(registry, store, world: dict) -> list[dict]:
+def run_lore(registry, store, world: dict, *, protagonist=None) -> list[dict]:
     """Per-turn seeded 暗骰: advance each active line whose roll passes threshold."""
     # Lazy import to avoid circular dependency: loop.lore ↔ loop.density ↔ loop.lore
     from loop.endgame import (  # noqa: PLC0415
@@ -110,12 +110,17 @@ def run_lore(registry, store, world: dict) -> list[dict]:
     cur_town: str | None = None
     g = (world.get("systems") or {}).get("ontology")
     if g is not None:
-        # Find protagonist: first tracked Person in the ontology graph
-        protagonist_id: str | None = None
-        for eid, e in g.entities.items():
-            if getattr(e, "etype", None) == "Person" and getattr(e, "tier", None) == "tracked":
-                protagonist_id = eid
-                break
+        # The action gateway binds the actor explicitly. Preserve first-Person
+        # selection only for legacy callers which do not supply that binding.
+        protagonist_id = protagonist
+        if protagonist_id is None:
+            for eid, e in g.entities.items():
+                if getattr(e, "etype", None) == "Person" and getattr(e, "tier", None) == "tracked":
+                    protagonist_id = eid
+                    break
+        bound = g.get_entity(protagonist_id) if isinstance(protagonist_id, str) else None
+        if bound is None or bound.etype != 'Person':
+            protagonist_id = None
         if protagonist_id is not None:
             locs = g.neighbors(protagonist_id, "located_in", day)
             if locs:

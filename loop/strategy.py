@@ -34,6 +34,22 @@ from loop.lore_disclosure import station_push_fragment
 
 log = get_logger("loop.strategy")
 
+
+def _bound_actor_id(world, scene):
+    """Narrator calls require an actual actor; generic DM assembly is separate."""
+    actor = scene.get('protagonist')
+    if not isinstance(actor, str) or not actor.strip():
+        raise ValueError('Narrator generation requires a bound protagonist id')
+    graph = world.get('systems', {}).get('ontology')
+    # Empty-world author fixtures/bootstrap may declare the first actor in the
+    # generated commit. Once a world has entities, never guess a missing actor
+    # or treat a place/object as the observer of private world information.
+    if graph is not None and graph.entities:
+        entity = graph.get_entity(actor)
+        if entity is None or entity.etype != 'Person':
+            raise ValueError('Narrator protagonist must be an existing Person')
+    return actor
+
 # Compaction: when a turn's prompt tokens cross COMPACTION_RATIO of the model
 # context window, flag the next fresh turn to rebuild full context (re-assemble
 # the index/recent/summary tiers + reset the running thread).
@@ -186,7 +202,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 
 【铁律】上面 6 个【必填】段每回合都必须出现：narration 给散文、clock 给恰好一个元素、moves/places/cast/facts **没有该类变化就给 []（空数组）**。条目**要么字段齐全、要么根本别放**——宁可给 [] 也别塞一个缺字段的半成品（缺字段会被打回、拖慢一整局）。【可选】段没有就直接省略、不要硬凑。
 
-【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。当本回合有角色【得知 / 识破 / 被告知 / 无意获悉 / 主动透露】重要信息——秘密、线索、真相、谎言、关键数值——用 knowledge 段记录信息的流动。**尤其:凡本回合主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于"失忆"、POV 工具也查不到。**
+【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。当本回合有角色【得知 / 识破 / 被告知 / 无意获悉 / 主动透露】重要信息——秘密、线索、真相、谎言、关键数值——用 knowledge 段记录信息的流动。**尤其:凡本回合主角刚【得知/亲历】的重要事实，只写进 facts 是不够的——应在 knowledge 里给【引擎绑定】actor_id 所指的实际主角记一条 told，不要把角色称谓当实体 id。物品归属只通过 items/held_by 记录，不在 facts/knowledge 另造同义持有者记录；物品颜色、材质等描述性事实仍可记录。**
 - told:      [{"op":"told","knower":知情者id,"fact_key":"实体.属性","value":其所知内容,"via":得知途径(可选)}]
 - broadcast: [{"op":"broadcast","fact_key":...,"value":...,"audience":{"faction":阵营id}或{"place":地点id}}]（一群人同时获悉）
 fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商队首领.真实身份"），与世界事实同名——系统据此判断主角是否已知、并在叙事中对其未知之事保密。无人获得新信息时本段可省略（不必写 reason）。
@@ -208,9 +224,9 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
  "places":[],
  "cast":[],
  "facts":[{"subject":"npc_laozhe","predicate":"火灾真凶","value":"镖局所为","secrecy":"secret"}],
- "knowledge":[{"op":"told","knower":"protagonist","fact_key":"npc_laozhe.火灾真凶","value":"镖局所为","via":"老者亲口"}],
+ "knowledge":[{"op":"told","knower":__ACTOR_ID_JSON__,"fact_key":"npc_laozhe.火灾真凶","value":"镖局所为","via":"老者亲口"}],
  "clock":[{"advance":false,"days":0,"bands":0,"reason":"同一段对话，时间未实质推进"}]}
-——若主角移动了：moves 给 [{"who":"protagonist","to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
+——若主角移动了：moves 给 [{"who":__ACTOR_ID_JSON__,"to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
 
 规则：
 1. 只在剧情真正发生该变化时才给对应段落；不要把布景细节（石板、树冠、手掌等）滥造成 entity。
@@ -246,14 +262,24 @@ def _style_fragment(style: str | None) -> str:
     return f"【文风基调】整体以「{s}」的风格叙述，贯穿全篇。\n\n"
 
 
-def _system_prompt(verbosity: str | None = None, style: str | None = None) -> str:
+_MACHINE_BOUNDARY = (
+    '\n【正文与引擎信息分离】上下文中的引擎绑定、JSON 协议、校验错误和修复要求仅供你内部创作与结构输出，'
+    '不得复述进 narration。正文只呈现角色可感知的行动、反应和环境；'
+    '没有实际动作的改账请求可以写成没有发生交接，不向玩家讲解内部字段或段落协议。'
+    '主角与持有者引用以最新引擎绑定为准，旧正文和自由事实中的别名不覆盖 canonical 记录。'
+)
+
+
+def _system_prompt(verbosity: str | None = None, style: str | None = None, *, actor_id=None) -> str:
     """Build the 甲 system prompt with the current (or given) verbosity + style."""
     v = verbosity or _settings.get_verbosity()
     frag = _VERBOSITY_FRAGMENT.get(v, _VERBOSITY_FRAGMENT["medium"])
     s = _settings.get_style() if style is None else style
     return (_SYSTEM_PROMPT_TEMPLATE
             .replace("__STYLE__", _style_fragment(s))
-            .replace("__VERBOSITY__", frag))
+            .replace("__VERBOSITY__", frag)
+            .replace("__ACTOR_ID_JSON__", json.dumps(actor_id if isinstance(actor_id, str)
+                     and actor_id else '<当前主角的实际id>', ensure_ascii=False)) + _MACHINE_BOUNDARY)
 
 
 def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> str:
@@ -263,7 +289,7 @@ def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> s
     s = _settings.get_style() if style is None else style
     return (_NARRATE_PROMPT_TEMPLATE
             .replace("__STYLE__", _style_fragment(s))
-            .replace("__NARRATE_VERBOSITY__", frag))
+            .replace("__NARRATE_VERBOSITY__", frag) + _MACHINE_BOUNDARY)
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +314,7 @@ _SYSTEM_PROMPT_HYBRID = """\
    - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——散文确立的客观事实（subject/predicate/value 必填）；**没有就给 []**。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
    - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
    - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
+   - 【可选】items: 创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"当前持有者id","to":"新持有者id"}。物品必须是 Object，持有者为 Person 或 Place；未被持有的物品首次放置才可省略 from 或给 null。按行顺序记录 A→B→C，第二次 from 为 B。归属只通过 items/held_by 记录，不另造同义 facts/knowledge；物品颜色材质等描述不受此限制。
    - 【可选】relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
    - 【可选】knowledge: 记录"谁知道了什么"——见第 5 条
    - 【可选】world: 区域/世界级事件波及的地点——见第 7 条
@@ -298,6 +325,8 @@ _SYSTEM_PROMPT_HYBRID = """\
 7. 【世界事件·world（可选段）】散文中若描写了区域级或世界级的大事（灾难、战争、瘟疫、政权更替、重大变故），用 world 段点名所有受影响地点：world: [{"areas":[受影响地点id,...],"level":1|2|3,"summary":"一句话事件"}]。areas 用已存在或本回合刚创建的地点 id；你有完整世界视野，可点名任意位置。寻常个人场景省略本段。
 8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新明线任务（id必须全新，必须提供summary）；surface=暗线浮现进入明账（id须与上文【本地暗线】中 [id] 标签一致，切勿 open 新 id——暗线每条都标有 [id]，散文中玩家触碰了哪条就 surface 该 id）；advance=推进已有明线任务；resolve=收束已有明线任务。id 须与上文【任务·明账】中已列的 id 保持一致（open 除外）。寻常个人场景无任务变化时省略本段。
 """
+
+_SYSTEM_PROMPT_HYBRID += _MACHINE_BOUNDARY
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +445,7 @@ class AuthorStrategy(TurnStrategy):
         self._messages = self._thread = self._pending_user = None
         self._pending_action = None
         self._compaction_due = False
+        self._bound_actor = None
 
     def commit_to_thread(self, narration: str) -> None:
         """Append [pending user delta, narration prose] to the persistent thread on
@@ -453,6 +483,11 @@ class AuthorStrategy(TurnStrategy):
         embedder=None,
         repair: str | None = None,
     ) -> TurnCommit:
+        actor_id = _bound_actor_id(world, scene)
+        previous_actor = getattr(self, '_bound_actor', actor_id)
+        if previous_actor != actor_id:
+            self.reset()
+        self._bound_actor = actor_id
         multiturn = (_settings.get_conversation_mode() == "multiturn")
         if repair is None:
             self._pending_action = player_input
@@ -486,13 +521,13 @@ class AuthorStrategy(TurnStrategy):
             full_user = "\n\n".join(parts)
             self._pending_user = full_user
             self._messages = [
-                {"role": "system", "content": _system_prompt()},
+                {"role": "system", "content": _system_prompt(actor_id=actor_id)},
                 {"role": "user", "content": full_user},
             ]
             if multiturn:
                 # Reset the thread to a bare system base; the turn's user + narration
                 # are appended by commit_to_thread on success (so no duplication).
-                self._thread = [{"role": "system", "content": _system_prompt()}]
+                self._thread = [{"role": "system", "content": _system_prompt(actor_id=actor_id)}]
                 self._compaction_due = False
 
         log.debug("AuthorStrategy.produce msgs=%d repair=%r multiturn=%s",
@@ -636,6 +671,11 @@ class HybridStrategy(TurnStrategy):
     _frozen_prose: str | None = None
     _messages: list | None = None
 
+    def reset(self) -> None:
+        self._frozen_prose = None
+        self._messages = None
+        self._bound_actor = None
+
     def produce(
         self,
         registry: Registry,
@@ -647,6 +687,11 @@ class HybridStrategy(TurnStrategy):
         embedder=None,
         repair: str | None = None,
     ) -> TurnCommit:
+        actor_id = _bound_actor_id(world, scene)
+        previous_actor = getattr(self, '_bound_actor', actor_id)
+        if previous_actor != actor_id:
+            self.reset()
+        self._bound_actor = actor_id
         if repair is None or self._frozen_prose is None:
             ctx = assemble_context(registry, world, scene,
                                    query=player_input, embedder=embedder)

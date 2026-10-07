@@ -254,7 +254,7 @@ class PlaceSystem(ContextSystem):
                         section=section,
                         field=f"[{i}].who",
                         code="missing",
-                        hint="移动声明必须包含 'who'（移动的实体 id，例如 protagonist）",
+                        hint="移动声明必须包含 'who'（移动的实际实体 id；主角 id 以当前引擎绑定为准）",
                     ))
                 elif g and g.get_entity(who) is None:
                     errs.append(ValidationError(

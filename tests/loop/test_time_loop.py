@@ -254,6 +254,7 @@ def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
     store = _store(reg)
 
     # Seed: NPC created on day=1 (stale by day=5).
+    store.append(_person("hero", 1))  # Narrator POV must bind an existing Person.
     store.append(_person("inn_keeper", 1))
     # Advance time to day=5 (so now=5, and inn_keeper.last_update=1 < 5 → stale)
     store.append(kernel_event("time_advanced", day=5, scene="s",
@@ -318,6 +319,7 @@ def test_run_turn_without_prev_scene_does_not_fire_catchup():
     store = _store(reg)
 
     # NPC created today (day=1): last_update=1, now=1 → NOT stale
+    store.append(_person("hero", 1))
     store.append(_person("guard", 1))
     world = project(reg, store.iter_events())
 
@@ -393,6 +395,8 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     store = open_store(str(db), str(jsonl), reg.event_types())
 
     # Seed: NPC at day=1, then jump to day=5
+    store.append(kernel_event("entity_created", day=1, scene="genesis",
+                              summary="主角登场", deltas={"id": "protagonist", "etype": "Person"}, turn=0))
     store.append(kernel_event("character_created", day=1, scene="genesis",
                               summary="innkeeper 登场",
                               deltas={"id": "innkeeper", "tier": "tracked",

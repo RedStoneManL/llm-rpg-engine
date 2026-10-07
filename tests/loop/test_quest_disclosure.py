@@ -73,7 +73,7 @@ def _build_unified_world():
                      deltas={"id": "market", "level": 3, "kind": "venue",
                              "parent": "qingshi_town"}, turn=0),
         kernel_event("entity_created", day=1, scene="s1", summary="hero",
-                     deltas={"id": "hero", "etype": "Character", "tier": "tracked"}, turn=0),
+                     deltas={"id": "hero", "etype": "Person", "tier": "tracked"}, turn=0),
         kernel_event("entity_moved", day=1, scene="s1", summary="hero→market",
                      deltas={"who": "hero", "to": "market"}, turn=0),
         # 明 quest: opened by narrator

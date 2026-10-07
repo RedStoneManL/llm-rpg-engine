@@ -1,0 +1,57 @@
+{
+  "date_utc": "2026-10-07",
+  "parent_commit": "0a9cfa4352ff5302e6ecaea4eb315ee239dcc78d",
+  "offline": {
+    "passed": 1879,
+    "slow_deselected": 1,
+    "seconds": 17.58,
+    "new_grounding_privacy_regressions": 69
+  },
+  "endurance": {
+    "actions": 120,
+    "write_failures": 12,
+    "whole_action_undos": 10,
+    "reopens": 8,
+    "salt_replays": 10,
+    "status": "passed"
+  },
+  "live": {
+    "requested_and_returned_model": "deepseek-flash",
+    "post_attempts": 4,
+    "input_tokens": 10383,
+    "output_tokens": 647,
+    "total_tokens": 11030,
+    "monetary_cost": "not supplied",
+    "repairs": 0,
+    "canonical_state": "4/4 passed",
+    "disk_reopen": "4/4 passed",
+    "rewind_and_reopen": "4/4 passed",
+    "guard_rejection_observed": false
+  },
+  "comparison_source": "item-transfer-live.json",
+  "comparison_method": "Same four prompts and seeded cases, one live sample per code revision; not a controlled statistical benchmark or universal guarantee.",
+  "observed_improvements": [
+    "Wrong-source narration now states the umbrella remains in the actor's hand, without first describing a contradictory transfer.",
+    "No literal nonexistent protagonist entity reference was produced in this run; knowledge uses actual actor A.",
+    "The previous Relations 段 implementation wording did not recur in the generic-bypass narration.",
+    "This run needed no structural repair; the earlier four-case run needed one cast/knowledge repair."
+  ],
+  "remaining_quality_failures": [
+    {
+      "case": "valid_gift",
+      "issue": "Model still added umbrella.当前归属状态 and a related knowledge record despite canonical-only guidance; canonical held_by is correct, but free-form shadow facts remain."
+    },
+    {
+      "case": "sequential_transfer",
+      "issue": "Model still added umbrella.当前持有者=C alongside canonical A→B→C. The extra fact is presently consistent but could become stale later."
+    },
+    {
+      "case": "generic_relation_bypass",
+      "issue": "Narration still uses raw room identifier instead of an immersive description."
+    }
+  ],
+  "deterministic_guarantees": "Actor bindings and visible inventory are supplied from host state after POV filtering; invalid populated-world actors fail before shipped narrator/resource calls; actor changes clear cached context; explicit held_by visibility survives replay and malformed metadata fails closed. These are tested input/state boundaries, not guarantees about arbitrary model prose.",
+  "visibility_convention": "Unmarked relations retain legacy defaults; explicit public/hidden/secret is preserved, conflicting/malformed explicit metadata is restrictive. Historical event bytes and physical holders are not rewritten.",
+  "limitations": "Background hooks, tools, embeddings and tracing disabled in live harness. No live final refusal, adversarial guard rejection, long-session or universal shadow-fact consistency claim.",
+  "review": "Independent review found no remaining blockers after unbound-cache and pre-resource actor-gate fixes."
+}

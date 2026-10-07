@@ -4,6 +4,7 @@ from kernel.contextsystem import ContextSystem, ValidationError, Fragment, Recal
 from kernel.events import kernel_event
 from facts.graph import FactGraph
 from facts.rules import check_value
+from facts.visibility import held_by_visibility
 from engine.log import get_logger
 
 log = get_logger("systems.ontology")
@@ -89,6 +90,7 @@ class OntologySystem(ContextSystem):
                 day=event["day"],
                 turn=event.get("turn") or 0,
                 source_event=event["id"],
+                **(held_by_visibility(d) if rel == 'held_by' else {}),
             )
         elif t == "tier_changed":
             entity_id = d.get("id")
