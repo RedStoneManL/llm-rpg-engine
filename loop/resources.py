@@ -10,6 +10,29 @@ from kernel.events import kernel_event
 from llm.structured import complete_structured
 
 
+def registered_balances(world):
+    """Snapshot every registered owner's balance, without adding it to prompts.
+
+    The intent resolver can authorize a change to the active protagonist only.
+    Other owners remain locked, including when the protagonist has no resources.
+    """
+    graph = world.get('systems', {}).get('ontology')
+    if graph is None:
+        return {}
+    day = world.get('meta', {}).get('day') or 1
+    balances = {}
+    for entity in graph.entities.values():
+        rules = entity.attrs.get('fact_rules', {})
+        # Older, free-form entities may carry a non-rule value under this name.
+        # Such metadata does not register resources or block unrelated actions.
+        if not isinstance(rules, dict):
+            continue
+        for predicate, rule in rules.items():
+            if isinstance(rule, dict) and rule.get('resource'):
+                balances[(entity.id, predicate)] = graph.value_at(entity.id, predicate, day)
+    return balances
+
+
 def prepare_resources(world, scene, action, provider, turn):
     graph=world.get('systems',{}).get('ontology')
     hero=scene.get('protagonist')
@@ -84,7 +107,7 @@ def validate_resources(commit, expected, target=None, world=None):
         except TypeError: continue
         if locked and fact.get('value')!=expected[key]:
             errors.append(ValidationError('facts',f'[{i}].value','resolved_resource',
-                f'{key[0]}.{key[1]} 已由规则裁定为 {expected[key]}，不得重复扣款或更改'))
+                f'{key[0]}.{key[1]} 是规则引擎管理的资源，不能由 facts 重复扣款或更改；删除这条声明'))
     if target:
         from kernel.clock import advance
         current=world.get('meta',{})

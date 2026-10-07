@@ -69,6 +69,17 @@ combat damage. Those need their own authorized effect resolvers; free-form
 changes to a registered balance are rejected. Natural-language intent extraction
 still needs evaluation even though arithmetic and persistence are deterministic.
 
+The action gateway locks the pre-action balances of **all registered owners**,
+including NPCs and worlds where the acting protagonist has no resources. Only
+the protagonist's host-resolved expenditure updates that lock. Proposed fact
+changes are repairable by removing the conflicting declaration; unchanged values
+and unregistered facts remain allowed. Repair hints do not disclose the locked
+balance. Before publication, the gateway replays the actual staged history and
+checks every locked balance, even if a backstage hook omitted its event report.
+A conflict rejects the whole action without advancing storage or conversation.
+This guards structured balances at the action boundary; it does not establish
+prose consistency, authorize NPC rewards/transfers, or retrofit historical saves.
+
 Generic `fact_rules` can also constrain a predicate's type, min/max, enum or
 immutability without registering it as a resource. Rules are enforced during
 validation and projection, so a malformed batch cannot enter the durable store.

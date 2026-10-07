@@ -8,6 +8,7 @@ covers the entry-point to satisfy the end-to-end requirement.
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -27,14 +28,15 @@ def _run(path, *args, env=None):
     """Invoke python -m app.trace via subprocess (end-to-end)."""
     import os
     e = dict(os.environ)
-    e["PYTHONPATH"] = "/root/rpg-engine-app"
+    repo_root = Path(__file__).resolve().parents[2]
+    e["PYTHONPATH"] = str(repo_root)
     if env:
         e.update(env)
     return subprocess.run(
         [sys.executable, "-m", "app.trace", str(path), *args],
         capture_output=True,
         text=True,
-        cwd="/root/rpg-engine-app",
+        cwd=repo_root,
         env=e,
     )
 

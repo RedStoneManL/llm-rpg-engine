@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 import copy
 from typing import Any
 from uuid import uuid4
-from loop.resources import prepare_resources, validate_resources
+from loop.resources import prepare_resources, registered_balances, validate_resources
 from loop.narration_guard import validate_narration
 
 from engine.store import EventBatch, RevisionConflict
@@ -523,13 +523,18 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         strategy.reset()
     old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
     try:
+        # Lock all registered owners, not just the acting protagonist. These
+        # private values stay in the host's validation context, never the prompt.
+        expected_balances = registered_balances(world)
         if registry.owner_of_event('resources_resolved') is not None:
             resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
             if resolution:
                 batch.append(resolution)
                 world = project(registry, batch.iter_events())
-                scene = {**scene, '_resolved_values':expected, '_resolution_prompt':prompt,
+                expected_balances.update(expected)
+                scene = {**scene, '_resolution_prompt':prompt,
                          '_resolved_clock':resolution['deltas'].get('wait_until')}
+        scene = {**scene, '_resolved_values': expected_balances}
         from loop.variation import prepare_variation, variation_fragment
         variation = prepare_variation(registry, world, scene, batch.turn)
         if variation:
@@ -540,6 +545,9 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             max_repairs=max_repairs, required_sections=required_sections,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
             prev_scene=prev_scene)
+        # Hook return lists are advisory; check the actual staged history even
+        # when a hook appended an event but failed to report it to the caller.
+        result.world = project(registry, batch.iter_events())
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:
