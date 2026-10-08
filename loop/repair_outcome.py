@@ -278,6 +278,9 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
         raise ValueError('Repair outcome requires the bound actor and exact player input')
     before, before_view = _state(world, actor)
     labels = _names(before_view, before, actor)
+    # Positive evidence only: intersect after EVERY event, including changes
+    # omitted from the public transition list. Never restore removed pairs.
+    continuous_custody = {(row['item'], row['holder']) for row in before['held_by']}
     preview = copy.deepcopy(world)
     sections = copy.deepcopy(commit.sections)
     if 'clock' in sections:
@@ -308,11 +311,13 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
             prior, prior_view = _state(preview, actor) if physical else (None, None)
             apply_event_metadata(preview, event)
             event_owner.apply(preview, event)
+            current, current_view = _state(preview, actor)
+            continuous_custody.intersection_update(
+                (row['item'], row['holder']) for row in current['held_by'])
             if physical:
-                current, current_view = _state(preview, actor)
                 transition = _physical_transition(event, prior, current)
                 if transition is not None:
-                    keys = ('day', 'band', 'actor_location', 'positions', 'passages')
+                    keys = ('day', 'band', 'actor_location', 'positions', 'passages', 'held_by')
                     transition['before_state'] = {key: copy.deepcopy(prior[key]) for key in keys}
                     transition['after_state'] = {key: copy.deepcopy(current[key]) for key in keys}
                     transitions.append(transition)
@@ -326,6 +331,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                         row[0] for row in created}:
                     created.append((item, event['day']))
     after, after_view = _state(preview, actor)
+    continuous_custody.intersection_update(
+        (row['item'], row['holder']) for row in after['held_by'])
     labels.update(_names(after_view, after, actor))
     final_local_items = {row['item'] for row in after['held_by']}
     transitions[:0] = [{'kind': 'item_created', 'item': item, 'day': event_day}
@@ -344,6 +351,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
         'before': before,
         'after': after,
         'transitions': transitions,
+        'continuous_custody': [{'item': item, 'holder': holder}
+                               for item, holder in sorted(continuous_custody)],
         'limits': ('Player input is intent, not evidence of success. Only listed physical transitions '
                    'are approved. Missing positions, holders, and transition endpoints are unknown, '
                    'not empty. Co-location does not establish hearing or knowledge. '

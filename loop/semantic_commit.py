@@ -13,8 +13,8 @@ import re
 from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
-VERSION = 'semantic_commit_v2'
-COMPARATOR_POLICY = 'canonical-checkpoints-v3'
+VERSION = 'semantic_commit_v4'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v5'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -23,21 +23,24 @@ _MODES = {'current', 'completed', 'historical', 'reported', 'conditional',
           'future', 'nonliteral', 'uncertain'}
 _CRITICAL_MODES = {'current', 'completed', 'uncertain'}
 _SCOPES = {'canonical_transition', 'local_motion'}
-_MOMENTS = {'before', 'after', 'transition_before', 'transition_after', 'unknown'}
+_MOMENTS = {'before', 'after', 'transition_before', 'transition_after', 'unknown', 'throughout'}
 _REFS = {
     'location': {'who': 'Person', 'place': 'Place'},
     'co_presence': {'a': 'Person', 'b': 'Person'},
     'movement': {'who': 'Person', 'from': 'Place', 'to': 'Place'},
     'passage': {'a': 'Place', 'b': 'Place'},
     'passage_change': {'a': 'Place', 'b': 'Place'},
+    'possession': {'item': 'Object', 'holder': ('Person', 'Place')},
+    'transfer': {'item': 'Object', 'from': ('Person', 'Place'), 'to': ('Person', 'Place')},
 }
 _LIMITS = [
     'Model extraction can omit or misclassify claims; coverage checks cannot prove semantic recall.',
     'Unknown or redacted physical state is unsupported, never evidence of absence.',
     'Candidate creation bindings establish only an author-declared reference, not placement, observation, or identity knowledge.',
-    'Only canonical Place placement, named-person co-presence, inter-Place movement, and direct graph connectivity are audited; local motion within an established Place needs no event.',
+    'Canonical Place placement, named-person co-presence, inter-Place movement, direct graph connectivity, visible physical custody and ordered handoffs are audited; local motion within an established Place needs no event.',
     'Scope and reference binding are model interpretations, checked against typed references and canonical placement where available; background hooks run later.',
     'Player input expresses intent and is not evidence of success.',
+    'Item custody is physical, not legal ownership or permission. Negative-transfer absence is not proven. Whole-primary-turn custody needs a positive host certificate; historical intervals are not covered.',
 ]
 
 
@@ -55,10 +58,11 @@ Candidate refs are author-declared bindings only; they do not prove anyone was o
 introduced, or placed. Never turn such a binding into a location or observed identity.
 
 Return exactly one JSON object with keys version, claims, coverage. version must be
-"semantic_commit_v2". claims is an array of at most 64 assertions. Inspect EVERY
+"semantic_commit_v4". claims is an array of at most 64 assertions. Inspect EVERY
 narration span. Extract ALL consequential literal physical assertions about identifiable
 people or particular places: current placement/co-presence, actual arrival/departure,
-and direct passage connectivity or opening/closing. A newly named participant speaking,
+direct passage connectivity or opening/closing, current physical possession,
+and completed physical item handoffs. A newly named participant speaking,
 being encountered, standing with someone, or arriving can assert physical presence even
 without an explicit location verb. Bind named participants to entities/candidate_refs
 when the reference is clear. A shared display name is not sufficient to choose between
@@ -93,11 +97,11 @@ Each claim must contain these exact common keys:
  quote: an EXACT nonempty contiguous quotation from that span, long enough to express
         the assertion and distinguish literal action from a plan, report, or memory;
  occurrence: the zero-based occurrence of that exact quote within that span;
- kind: location | co_presence | movement | passage | passage_change;
+ kind: location | co_presence | movement | passage | passage_change | possession | transfer;
  scope: canonical_transition | local_motion;
  binding_reason: a nonempty factual reference/scope justification, at most 640 characters;
  mode: current | completed | historical | reported | conditional | future | nonliteral | uncertain;
- moment: before | after | transition_before | transition_after | unknown;
+ moment: before | after | transition_before | transition_after | unknown | throughout;
  transition_index: an integer index from packet.transitions or null;
  refs: an object of the fields specified below, each an exact known id or null.
 Additional fields depend on kind:
@@ -108,6 +112,27 @@ Additional fields depend on kind:
  the asserted movement; local_motion may leave both incidental endpoints null.
  passage: refs={a,b}; connected=true or false (direct passage, not a multihop route).
  passage_change: refs={a,b}; change="open" or "close".
+ possession: refs={item,holder}; present=true or false. This means physical custody,
+ not legal ownership, consent, payment, permission or trust. Item binds to Object;
+ holder binds to Person or Place. Negative possession targets a particular holder,
+ not a claim that the item is unheld or nobody holds it. Bind a justified explicit
+ before/after/transition checkpoint for a point state. Use throughout with null
+ transition_index ONLY for possession explicitly spanning this entire primary turn;
+ it is checked against host continuous_custody positive certificates, not endpoint
+ equality. Do not extend it to old history, 'always since borrowing', or an unspecified
+ lifetime. Unknown-timed custody remains unsupported. Preserve uncertain mode if the
+ statement's physical meaning or interval cannot be confidently classified.
+ transfer: refs={item,from,to}; no extra fields. A positive completed physical handoff
+ or change of custody, not creation, initial placement, display, an offer, a future
+ promise, or a claim of ownership. Null endpoints mean the prose omits that endpoint,
+ not that no holder exists. At least one holder endpoint must be asserted.
+ A→B→A contains two handoffs despite unchanged final custody. Continuous A custody
+ proves no handoff. Merely showing an item while keeping it is not a transfer.
+ Pure absence of a handoff is outside this positive action kind; extract any
+ independently stated possession. Do not change negation into an affirmative action.
+ A quoted report or conditional/future handoff keeps its reported/conditional/future
+ mode, never upgraded because an item or holder happens to be known.
+ Item assertions always use canonical_transition scope, never local_motion.
 People references must bind to Person and place references to Place. Never invent IDs.
 
 mode=current means a literal state at the narrative endpoint; completed means a literal
@@ -119,7 +144,7 @@ contain separately classified claims. Do not reclassify a literal contradiction 
 reported, hypothetical, historical, or nonliteral just because the packet disagrees.
 Use moment=before for the turn's initial state, after for its final state, or an explicit
 transition_before/transition_after with its index for an intermediate state. Use unknown
-when timing cannot be bound. For a completed movement or passage_change, an unknown
+when timing cannot be bound. For a completed movement, passage_change or transfer, an unknown
 moment with null index allows the auditor to match ordered transitions. Do not require
 all intermediate actions or states to equal the final state. Read transitions in order.
 
@@ -173,7 +198,7 @@ def _creation_refs(registry, world, commit, prose):
     graph = world['systems']['ontology']
     refs, seen = [], set()
     facts = commit.sections.get('facts') or []
-    for section in ('entities', 'cast', 'places'):
+    for section in ('entities', 'cast', 'places', 'items'):
         rows = commit.sections.get(section) or []
         owner = registry.owner_of_section(section)
         if owner is None or not isinstance(rows, list):
@@ -184,12 +209,12 @@ def _creation_refs(registry, world, commit, prose):
                 continue
             eid = row.get('id')
             etype = row.get('etype') if section == 'entities' else {
-                'cast': 'Person', 'places': 'Place'}[section]
+                'cast': 'Person', 'places': 'Place', 'items': 'Object'}[section]
             if (not isinstance(eid, str) or not eid or eid not in created
                     or eid in seen or graph.get_entity(eid) is not None
-                    or etype not in {'Person', 'Place'}):
+                    or etype not in {'Person', 'Place', 'Object'}):
                 continue
-            if section == 'cast' and row.get('op', 'create') != 'create':
+            if section in {'cast', 'items'} and row.get('op', 'create') != 'create':
                 continue
             attrs = row.get('attrs', {})
             if (not isinstance(attrs, dict)
@@ -224,6 +249,9 @@ def _safe_state(state, types):
         'actor_location': state['actor_location'],
         'positions': _bounded([dict(row) for row in state['positions']
                                if types.get(row['who']) == 'Person'], 'positions'),
+        'held_by': _bounded([dict(row) for row in state.get('held_by', [])
+                             if types.get(row['item']) == 'Object'
+                             and types.get(row['holder']) in {'Person', 'Place'}], 'item custody'),
         'passages': _bounded([{'a': row['a'], 'b': row['b']}
                               for row in state['passages']], 'passages'),
     }
@@ -239,7 +267,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
     try:
         physical = build_repair_outcome(registry, world, scene, commit, player_input)
         entities = _bounded([copy.deepcopy(row) for row in physical['entities']
-                             if row['type'] in {'Person', 'Place'}], 'visible entities')
+                             if row['type'] in {'Person', 'Place', 'Object'}], 'visible entities')
         candidates = _creation_refs(registry, world, commit, commit.narration)
         types = {row['id']: row['type'] for row in entities + candidates}
         transitions = []
@@ -247,9 +275,17 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             kind = original['kind']
             if kind == 'move' and types.get(original.get('who')) != 'Person':
                 continue
-            if kind not in {'move', 'passage_open', 'passage_close'}:
+            if kind not in {'move', 'passage_open', 'passage_close', 'item_transfer'}:
                 continue
-            keys = ('who', 'from', 'to') if kind == 'move' else ('a', 'b')
+            # First placement or a redacted source cannot prove a handoff.
+            if kind == 'item_transfer' and (
+                    types.get(original.get('item')) != 'Object'
+                    or types.get(original.get('from')) not in {'Person', 'Place'}
+                    or types.get(original.get('to')) not in {'Person', 'Place'}
+                    or original['from'] == original['to']):
+                continue
+            keys = (('who', 'from', 'to') if kind == 'move' else
+                    ('item', 'from', 'to') if kind == 'item_transfer' else ('a', 'b'))
             row = {'index': len(transitions), 'kind': kind,
                    **{key: original[key] for key in keys if key in original}}
             for key in ('before_state', 'after_state'):
@@ -265,6 +301,9 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             'before': _safe_state(physical['before'], types),
             'after': _safe_state(physical['after'], types),
             'transitions': _bounded(transitions, 'physical transitions'),
+            'continuous_custody': _bounded([dict(row) for row in physical['continuous_custody']
+                if types.get(row['item']) == 'Object'
+                and types.get(row['holder']) in {'Person', 'Place'}], 'continuous custody'),
             'narration_spans': spans,
             'limits': list(_LIMITS),
         }
@@ -327,7 +366,7 @@ def _parse(raw, packet):
         kind = claim['kind']
         extra = {'location': ['present'], 'co_presence': ['together'],
                  'movement': [], 'passage': ['connected'],
-                 'passage_change': ['change']}[kind]
+                 'passage_change': ['change'], 'possession': ['present'], 'transfer': []}[kind]
         _require_keys(claim, ['id', 'span_id', 'quote', 'occurrence', 'kind', 'scope',
                               'binding_reason', 'mode',
                               'moment', 'transition_index', 'refs'] + extra, 'claim')
@@ -345,6 +384,8 @@ def _parse(raw, packet):
         if (not isinstance(claim['mode'], str) or claim['mode'] not in _MODES
                 or not isinstance(claim['moment'], str) or claim['moment'] not in _MOMENTS):
             raise SemanticCommitError('Semantic claim has invalid temporal classification')
+        if claim['moment'] == 'throughout' and kind != 'possession':
+            raise SemanticCommitError('Whole-turn timing is supported only for physical possession')
         index = claim['transition_index']
         if index is not None and (type(index) is not int or not 0 <= index < len(packet['transitions'])):
             raise SemanticCommitError('Semantic claim references an unknown transition')
@@ -353,7 +394,7 @@ def _parse(raw, packet):
         _require_keys(claim['refs'], _REFS[kind], 'claim references')
         for key, etype in _REFS[kind].items():
             eid = claim['refs'][key]
-            if eid is not None and (not isinstance(eid, str) or known.get(eid) != etype):
+            if eid is not None and (not isinstance(eid, str) or known.get(eid) not in (etype if isinstance(etype, tuple) else (etype,))):
                 raise SemanticCommitError('Semantic claim references an unknown id or wrong entity type')
         if kind in {'co_presence', 'passage', 'passage_change'}:
             if claim['refs']['a'] is not None and claim['refs']['a'] == claim['refs']['b']:
@@ -419,7 +460,10 @@ def _state_at(packet, claim):
                    or (transition['kind'] == 'passage_close' and side == 'from'))
         if is_open:
             passages.append({'a': transition['a'], 'b': transition['b']})
-        return {'positions': positions, 'passages': passages, 'actor_location': None}
+        held_by = []
+        if transition['kind'] == 'item_transfer' and side in transition:
+            held_by.append({'item': transition['item'], 'holder': transition[side]})
+        return {'positions': positions, 'passages': passages, 'held_by': held_by, 'actor_location': None}
     return None
 
 
@@ -470,7 +514,7 @@ def _effective_scope(packet, claim):
         return 'canonical_transition', 'The extractor identified a canonical physical assertion.'
     kind, refs = claim['kind'], claim['refs']
     if kind not in {'location', 'movement'}:
-        return 'canonical_transition', 'Co-presence and graph passage claims cannot be exempted as local motion.'
+        return 'canonical_transition', 'Co-presence, passage and item custody claims cannot be exempted as local motion.'
     who = refs['who']
     if who is None:
         return 'canonical_transition', 'Local motion cannot establish an unbound participant\'s identity or presence.'
@@ -542,10 +586,15 @@ def _verdict(packet, claim, minimum_position):
         required = ['who']
         if refs['from'] is None and refs['to'] is None:
             return 'unsupported', 'Neither asserted movement endpoint is bound to a known place.', None
+    if kind == 'transfer':
+        required = ['item']
+        if refs['from'] is None and refs['to'] is None:
+            return 'unsupported', 'Neither asserted custody endpoint is bound to a known holder.', None
     if any(refs[key] is None for key in required):
         return 'unsupported', 'A critical person or place reference is unbound or redacted.', None
-    if kind in {'movement', 'passage_change'}:
-        target_kind = 'move' if kind == 'movement' else 'passage_' + claim['change']
+    if kind in {'movement', 'passage_change', 'transfer'}:
+        target_kind = ('move' if kind == 'movement' else 'item_transfer'
+                       if kind == 'transfer' else 'passage_' + claim['change'])
         matching = []
         for row in packet['transitions']:
             if row['kind'] != target_kind:
@@ -553,6 +602,12 @@ def _verdict(packet, claim, minimum_position):
             if kind == 'movement':
                 matches = row.get('who') == refs['who'] and all(
                     value is None or row.get(key) == value for key, value in refs.items() if key != 'who')
+            elif kind == 'transfer':
+                matches = (row.get('item') == refs['item']
+                           and row.get('from') is not None and row.get('to') is not None
+                           and row['from'] != row['to']
+                           and all(value is None or row.get(key) == value
+                                   for key, value in refs.items() if key != 'item'))
             else:
                 matches = _pair(row['a'], row['b']) == _pair(refs['a'], refs['b'])
             if matches:
@@ -574,7 +629,17 @@ def _verdict(packet, claim, minimum_position):
                     and _pair(event['a'], event['b']) == _pair(refs['a'], refs['b'])):
                 return 'contradiction', 'The passage change contradicts its canonical transition.', None
         return 'unsupported', 'No canonical transition supports this asserted physical action.', None
+    if claim['moment'] == 'throughout':
+        holders = [row['holder'] for row in packet.get('continuous_custody', [])
+                   if row['item'] == refs['item']]
+        if len(holders) != 1:
+            return 'unsupported', 'No positive whole-primary-turn custody certificate supports this assertion.', None
+        if (holders[0] == refs['holder']) == claim['present']:
+            return 'supported', 'Physical custody is certified across the entire primary turn.', minimum_position
+        return 'contradiction', 'The assertion conflicts with the positive whole-turn custody certificate.', None
     if claim['moment'] == 'unknown':
+        if kind == 'possession':
+            return 'unsupported', 'Custody requires an explicit visible checkpoint; endpoint equality does not prove uninterrupted possession.', None
         return _invariant_state_verdict(packet, claim, minimum_position)
     state = _state_at(packet, claim)
     if state is None:
@@ -588,6 +653,11 @@ def _verdict(packet, claim, minimum_position):
         if actual is None:
             return 'unsupported', 'Canonical placement is unknown or outside the visible snapshot.', None
         agrees = (actual == refs['place']) == claim['present']
+    elif kind == 'possession':
+        holders = [row['holder'] for row in state.get('held_by', []) if row['item'] == refs['item']]
+        if len(holders) != 1:
+            return 'unsupported', 'Physical custody is unknown, redacted or ambiguous at this moment.', None
+        agrees = (holders[0] == refs['holder']) == claim['present']
     elif kind == 'co_presence':
         if refs['a'] not in positions or refs['b'] not in positions:
             return 'unsupported', 'Co-presence requires supported placement for both people at the same moment.', None
@@ -638,7 +708,7 @@ def evaluate_extraction(packet, raw):
         matched = None
         if position is not None:
             minimum_position = position  # Multiple claims can share one moment.
-            matched = ((position - 2) // 2 if claim['kind'] in {'movement', 'passage_change'}
+            matched = ((position - 2) // 2 if claim['kind'] in {'movement', 'passage_change', 'transfer'}
                        else claim['transition_index'])
         effective_scope, scope_reason = _effective_scope(packet, claim)
         result = {**claim, 'verdict': verdict, 'reason': reason,

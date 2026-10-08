@@ -8,7 +8,8 @@ fixtures; production rules must not depend on those names.
 | --- | --- | --- |
 | New NPC speaks on site, but cast creation has no moves | Explicit creation/movement guidance; host requires real placement and delivered introduction before granting identity provenance | A model can still miss a claim; canonical assertions now pass the shared gate |
 | Secured gangplank is narrated, but no map route exists | Document existing links schema; new native arrival emits the route | The shared gate checks extracted passage claims; extraction itself remains fallible |
-| Invalid handover is removed during repair, but prose still says it happened | Conditional narration-only rewrite after changed physical effects | Original prose-only effects do not trigger this condition; rewritten prose can still be inaccurate |
+| Invalid handover is removed during repair, but prose still says it happened | Conditional narration rewrite plus shared ordered custody/transfer audit, even when proposed effects are already empty | Model extraction can still miss a handoff; custody does not prove ownership or consent |
+| Show-only prose triggers an interval-custody false alarm | Positive whole-primary-turn custody certificate across every preview event; explicit extracted interval timing | Historical intervals and uncertified/uncertain claims remain unsupported; original extra calls are retained |
 | Historical summary selects an old active scene and inflates pacing | SceneSystem owns active scene after a boundary; previews and pacing/thread consumers follow authoritative history | Old stored thread recency labels and provenance are not rewritten |
 | Temporary passage remains navigable after physical closure | Explicit close event, ordered state checks, typed endpoints and commit preflight are implemented | Omitted closure remains a semantic detection problem; closing does not establish movement legality |
 

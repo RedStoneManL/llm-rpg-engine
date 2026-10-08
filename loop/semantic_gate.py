@@ -186,7 +186,8 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
             'patches每项仅{start:整数,end:整数,text:替换字符串}，范围必须逐字对应editable_spans的一项；'
             '范围外原文由宿主逐字保留，不得扩大、猜测重复quote位置或用重叠补丁改写整段。'
             '若只补相应已声明实体的效果即可消除问题，给patches:[]，不改正文。'
-            '仅修复issues对应的位置/同场或通路错配；所有原moves/links行必须原序保留。'
+            '仅修复issues对应的位置/同场、通路或物品持有交接错配；所有原moves/links行必须原序保留。'
+            '物品类问题只能通过上述精确patches改正文，不得新增/修改items或交易，不得把保管当所有权/同意。'
             '仅可追加本候选已声明且issues点名的新人物在主角所在地点的位置，'
             '或涉及已声明新地点的开通连接；不得增加/改变玩家移动、已有NPC移动或已有通路状态。'
             '玩家输入是意图，不证明成功。不得为了迎合原正文添加玩家未选择的动作，'
@@ -229,6 +230,8 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
         mentioned = set()
         for issue in report['issues']:
             claim = issue.get('claim') or {}
+            if claim.get('kind') not in {'location', 'co_presence', 'movement', 'passage', 'passage_change'}:
+                continue
             mentioned.update(value for value in (claim.get('refs') or {}).values()
                              if isinstance(value, str))
         actor = scene['protagonist']

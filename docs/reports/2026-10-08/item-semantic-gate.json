@@ -1,0 +1,194 @@
+{
+  "base_commit": "ed76cb159f461bb74077d649da0267210291f6ae",
+  "mechanism": "Shared physical-custody/ordered-transfer audit and positive whole-primary-turn custody certificates; exact-span prose-only item correction",
+  "frozen_v3": [
+    {
+      "case": "recorded_final_stale_handover",
+      "committed": true,
+      "responses": 4,
+      "narration": "沈掌柜应了一声，转身掀帘进了里屋。片刻后他回来。铜铃此刻在你手中；你所请求的交还与接取并未得到确认。他退回柜台后，重新拨起算盘，没再多问。",
+      "transfers": [],
+      "audit_passes": [
+        false,
+        true
+      ],
+      "corrections": 1,
+      "matched_transfers": [
+        [
+          null
+        ],
+        []
+      ]
+    },
+    {
+      "case": "fresh_show",
+      "committed": true,
+      "responses": 6,
+      "narration": "沈掌柜点点头，把手留在柜台边，俯身看向你掌中的铜铃。他换了个角度，借着门口的光细看。\n「露出来的铃身没见明显裂痕。」他指了指铃底，手指停在半空，「底下让你手掌挡住了。你自己转一点，我再瞧瞧。」\n此刻，铜铃稳稳托在你掌中。",
+      "transfers": [],
+      "audit_passes": [
+        false,
+        true
+      ],
+      "corrections": 1,
+      "matched_transfers": [
+        [],
+        []
+      ]
+    },
+    {
+      "case": "fresh_round_trip",
+      "committed": true,
+      "responses": 3,
+      "narration": "你把铜铃交到沈掌柜手里。他接稳后，借着门口的光缓缓转过铃身，又将先前被掌心遮住的铃底翻过来看。\n「这一圈看下来，没见明显裂痕，底下也是。」\n他看完便把铜铃递回。你伸手接稳，重新收好；沈掌柜松开手，退回柜台边。",
+      "transfers": [
+        {
+          "op": "transfer",
+          "item": "brass_bell",
+          "from": "player",
+          "to": "keeper"
+        },
+        {
+          "op": "transfer",
+          "item": "brass_bell",
+          "from": "keeper",
+          "to": "player"
+        }
+      ],
+      "audit_passes": [
+        true
+      ],
+      "corrections": 0,
+      "matched_transfers": [
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  ],
+  "final_v4": {
+    "case": "recorded_original_show_v4",
+    "committed": true,
+    "responses": 2,
+    "narration": "沈掌柜点点头，把手留在柜台边，俯身看向你掌中的铜铃。他换了个角度，借着门口的光细看。\n「露出来的铃身没见明显裂痕。」他指了指铃底，手指停在半空，「底下让你手掌挡住了。你自己转一点，我再瞧瞧。」\n铜铃始终稳稳留在你手里。",
+    "transfers": [],
+    "audit_passes": [
+      true
+    ],
+    "corrections": 0,
+    "matched_transfers": [
+      []
+    ]
+  },
+  "new_model_responses_total": 15,
+  "host_evidence": {
+    "method": "Constructed host contract probes on the real recorded initial world; not new gameplay/model responses. Prior native extractions replayed with schema identifier updated only; original uncertainty preserved.",
+    "cases": {
+      "unchanged": {
+        "proof": [
+          {
+            "item": "brass_bell",
+            "holder": "player"
+          },
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "interval_claim_item": "brass_bell",
+        "interval_verdict": "supported"
+      },
+      "round_trip": {
+        "proof": [
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "interval_claim_item": "brass_bell",
+        "interval_verdict": "unsupported"
+      },
+      "hidden_excursion": {
+        "proof": [
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "interval_claim_item": "brass_bell",
+        "interval_verdict": "unsupported"
+      },
+      "place_round_trip": {
+        "proof": [
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "interval_claim_item": "brass_bell",
+        "interval_verdict": "unsupported"
+      },
+      "initial_placement": {
+        "proof": [
+          {
+            "item": "brass_bell",
+            "holder": "player"
+          },
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "interval_claim_item": "new_paper",
+        "interval_verdict": "unsupported"
+      }
+    },
+    "frozen_replay": [
+      {
+        "request": "0001",
+        "passed": false,
+        "issues": 2,
+        "transfer_matches": [
+          null
+        ]
+      },
+      {
+        "request": "0003",
+        "passed": true,
+        "issues": 0,
+        "transfer_matches": []
+      },
+      {
+        "request": "0007",
+        "passed": false,
+        "issues": 1,
+        "transfer_matches": []
+      },
+      {
+        "request": "0009",
+        "passed": true,
+        "issues": 0,
+        "transfer_matches": []
+      },
+      {
+        "request": "0013",
+        "passed": true,
+        "issues": 0,
+        "transfer_matches": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "One focused frozen run plus fresh revised verification; no general model success rate.",
+    "v4 reuses exact recorded show author output; author generation was not repeated.",
+    "Negative transfer absence, legal ownership/consent, historical intervals and background narration are not certified.",
+    "Model extraction can miss or misclassify claims.",
+    "Residual: the ordinary historical scene summary repeats prior prose about the bell locked in keeper cabinet; canonical custody is player. This foreground gate does not reconcile summaries or historical narration.",
+    "Unstarted preliminary bridge had zero model responses and zero new gameplay commits; stopped for static review before any narrator worker.",
+    "No DeepSeek calls, no full offline suite; native handoff time is not production latency."
+  ]
+}
