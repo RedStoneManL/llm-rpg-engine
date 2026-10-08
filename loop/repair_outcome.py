@@ -10,6 +10,7 @@ import copy
 
 from context.access import pov_world
 from kernel.clock import advance
+from kernel.projection import apply_event_metadata
 from kernel.item_integrity import creation_first_sections, item_event_error
 from systems.time import normalize_clock
 
@@ -276,12 +277,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                         (event['type'] != 'relation_added' or
                          event.get('deltas', {}).get('rel') == 'located_in'))
             prior, prior_view = _state(preview, actor) if physical else (None, None)
-            # Reproduce kernel.projection before calling the registered owner.
-            meta = preview['meta']
-            if meta.get('day') is None or event['day'] >= meta['day']:
-                meta['day'], meta['scene'] = event['day'], event['scene']
-            meta.setdefault('timeline', []).append({
-                'day': event['day'], 'scene': event['scene'], 'summary': event['summary']})
+            apply_event_metadata(preview, event)
             event_owner.apply(preview, event)
             if physical:
                 current, current_view = _state(preview, actor)

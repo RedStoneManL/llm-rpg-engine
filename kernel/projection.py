@@ -13,6 +13,22 @@ def empty_world(registry: Registry) -> dict:
     }
 
 
+def apply_event_metadata(world: dict, event: dict) -> None:
+    """Fold event provenance without replacing an established active scene.
+
+    SceneSystem creates scene_anchor when its first boundary is applied. Before
+    that boundary, retain legacy envelope-based scene selection. Event day and
+    timeline remain independent of active-scene ownership.
+    """
+    meta = world["meta"]
+    if meta.get("day") is None or event["day"] >= meta["day"]:
+        meta["day"] = event["day"]
+        if "scene_anchor" not in meta:
+            meta["scene"] = event["scene"]
+    meta.setdefault("timeline", []).append({
+        "day": event["day"], "scene": event["scene"], "summary": event["summary"]})
+
+
 def project(registry: Registry, events, *, before_apply=None) -> dict:
     """Fold events into a world: kernel-level meta + each system's slice."""
     world = empty_world(registry)
@@ -20,15 +36,7 @@ def project(registry: Registry, events, *, before_apply=None) -> dict:
     for ev in events:
         if ev.get("retracted"):
             continue
-        # Late historical annotations must not move the current scene/clock back.
-        # System projections still receive every event and enforce their own
-        # temporal invariants; a corrupt state transition is never skipped.
-        current_day = world['meta'].get('day')
-        if current_day is None or ev['day'] >= current_day:
-            world["meta"]["day"] = ev["day"]
-            world["meta"]["scene"] = ev["scene"]
-        world["meta"]["timeline"].append(
-            {"day": ev["day"], "scene": ev["scene"], "summary": ev["summary"]})
+        apply_event_metadata(world, ev)
         owner = registry.owner_of_event(ev["type"])
         if owner is None:
             log.debug("no owner for event type=%s id=%s (ignored)", ev["type"], ev.get("id"))

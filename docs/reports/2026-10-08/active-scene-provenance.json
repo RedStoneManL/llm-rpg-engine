@@ -1,0 +1,168 @@
+{
+  "base": "aa56fc6019e57425144df7023ec6098549f325ec",
+  "model": "native-gpt-6-astra",
+  "protocol": "Exact T14 campaign copied, fresh Author context, same independent player, original tools and callbacks; source frozen before generation",
+  "completed_actions": 1,
+  "native_responses": 3,
+  "tool_calls": 1,
+  "summary_calls": 0,
+  "requested_at": {
+    "day": 1,
+    "band": 2,
+    "scene": "s6",
+    "location": "chilu9_passenger_deck"
+  },
+  "committed_at": {
+    "day": 1,
+    "band": 2,
+    "scene": "s7",
+    "location": "far_bank_landing"
+  },
+  "final_meta": {
+    "day": 1,
+    "scene": "s7",
+    "band": 2,
+    "flavor": "isekai",
+    "campaign_seed": 72916001,
+    "scene_no": 7,
+    "scene_anchor": {
+      "location": "far_bank_landing",
+      "day": 1
+    }
+  },
+  "visible_output": "你低头看了看长凳底下，又扫过座位两侧，没有落下东西。手指探进贴身衣袋，船票还好好地收在里面。\n\n过道空出来了。你跟着前面的乘客走到船边，扶着栏杆踏上跳板。脚下轻轻一颤，几步之后，便踩到了岸边的木台上。\n\n「慢点走，石阶边上有水。」船工在身后提醒。\n\n你避开湿漉漉的阶沿，沿着石阶走上渡头。船上的招呼声落在身后，河风吹过衣角。赤鹭九号仍停在木台旁，后面的乘客正陆续下船。",
+  "events": [
+    {
+      "id": "ev_68bf750554f0",
+      "type": "variation_sampled",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_9aa89fd2a75d",
+      "type": "entity_moved",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_414b51c621f6",
+      "type": "clock_advanced",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_b1b74d3e805c",
+      "type": "narration_recorded",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_0de9fba8c5ae",
+      "type": "directive_consumed",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_9239322ccf4f",
+      "type": "oracle_roll",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_5f352e2add9e",
+      "type": "director_fired",
+      "scene": "s6"
+    },
+    {
+      "id": "ev_56f5551d8c4b",
+      "type": "scene_advanced",
+      "scene": "s7"
+    },
+    {
+      "id": "ev_428d50cb8d13",
+      "type": "player_input_recorded",
+      "scene": "s7"
+    }
+  ],
+  "replay": {
+    "method": "Replay exact saved native events with original HEAD and final working projection; no model calls, no event rewriting",
+    "event_count": 191,
+    "before_meta": {
+      "day": 1,
+      "scene": "s4",
+      "band": 2,
+      "flavor": "isekai",
+      "campaign_seed": 72916001,
+      "scene_no": 6,
+      "scene_anchor": {
+        "location": "chilu9_passenger_deck",
+        "day": 1
+      }
+    },
+    "after_meta": {
+      "day": 1,
+      "scene": "s6",
+      "band": 2,
+      "flavor": "isekai",
+      "campaign_seed": 72916001,
+      "scene_no": 6,
+      "scene_anchor": {
+        "location": "chilu9_passenger_deck",
+        "day": 1
+      }
+    },
+    "all_systems_equal": true,
+    "timeline_equal": true,
+    "legacy_before_first_boundary_equal": true,
+    "prefixes": [
+      {
+        "sequence": 186,
+        "type": "narration_recorded",
+        "event_scene": "s6",
+        "current_scene": "s6",
+        "scene_no": 6
+      },
+      {
+        "sequence": 187,
+        "type": "scene_summarized",
+        "event_scene": "s4",
+        "current_scene": "s6",
+        "scene_no": 6
+      },
+      {
+        "sequence": 188,
+        "type": "directive_consumed",
+        "event_scene": "s4",
+        "current_scene": "s6",
+        "scene_no": 6
+      },
+      {
+        "sequence": 189,
+        "type": "oracle_roll",
+        "event_scene": "s4",
+        "current_scene": "s6",
+        "scene_no": 6
+      },
+      {
+        "sequence": 190,
+        "type": "thread_open",
+        "event_scene": "s4",
+        "current_scene": "s6",
+        "scene_no": 6
+      },
+      {
+        "sequence": 191,
+        "type": "player_input_recorded",
+        "event_scene": "s4",
+        "current_scene": "s6",
+        "scene_no": 6
+      }
+    ],
+    "stored_last_input_scene": {
+      "day": 1,
+      "band": 2,
+      "scene": "s4",
+      "location": "chilu9_passenger_deck"
+    }
+  },
+  "limits": [
+    "Single native continuation, not DS validation",
+    "No new summary happened in T15; historical-summary resistance is verified by replay of actual T14 events",
+    "Existing stored stale source fields remain historical and are not rewritten",
+    "Navigation edge omission and raw-label pacing counts remain separate"
+  ]
+}

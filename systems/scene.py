@@ -5,10 +5,10 @@ boundary (protagonist location changed OR day changed) after a turn and appends
 a scene_advanced event carrying the next monotonic scene id, so the NEXT turn
 opens the new scene.
 
-meta.scene itself rides kernel projection (meta["scene"] = ev["scene"]); apply()
-only tracks meta.scene_no (the int counter, for computing the next id) and
-meta.scene_anchor (where/when the current scene began). Rewind-safe: both fold
-from events, so /rewind that retracts scene_advanced events reverts the counter.
+After the first boundary, this system owns meta.scene as well as scene_no and
+scene_anchor. Other event envelopes identify provenance, including historical
+summaries; they cannot change the current scene. All three fields fold from
+active events, so rewind restores the previous boundary (or legacy fallback).
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ class SceneSystem(ContextSystem):
             return
         d = event.get("deltas", {})
         meta = world["meta"]
-        # meta.scene is set by projection from event["scene"] (= the new id).
+        meta["scene"] = event["scene"]
         meta["scene_no"] = d.get("scene_no", meta.get("scene_no") or 1)
         meta["scene_anchor"] = {"location": d.get("location"), "day": d.get("day")}
         log.debug("scene_advanced -> scene_no=%s anchor=%s",

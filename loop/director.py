@@ -93,6 +93,13 @@ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
 
 def run_director(registry, store, world: dict, *, scene_ordinal: int | None = None) -> list[dict]:
     events = list(store.iter_events())
+    # A trailing summary can belong to an old scene. Current emissions follow
+    # the projected active context, not that annotation's provenance envelope.
+    meta = world.get("meta", {})
+    current_scene = meta.get("scene") or (events[-1]["scene"] if events else "scene")
+    current_day = meta.get("day")
+    if current_day is None:
+        current_day = events[-1]["day"] if events else 1
 
     # (1) Consume directives shown last turn via an event-sourced watermark.
     # Emitting a directive_consumed event (rather than mutating the in-memory
@@ -104,8 +111,7 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
         pending = slice_.get("pending", [])
         if pending:
             through_turn = max(d.get("turn", 0) for d in pending)
-            ev_day = events[-1]["day"] if events else 1
-            ev_scene = events[-1]["scene"] if events else "scene"
+            ev_day, ev_scene = current_day, current_scene
             consumed_ev = kernel_event(
                 "directive_consumed", day=ev_day, scene=ev_scene,
                 summary=f"directive consumed through turn={through_turn}",
@@ -147,8 +153,7 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
                   ordinal, next_turn, out["prob"], out["roll"])
         return []
 
-    scene = pacing["current_scene"] or "scene"
-    day = events[-1]["day"] if events else 1
+    scene, day = current_scene, current_day
     et = out["seed"]["event_type"]
     tw = out["seed"]["twist"]
 
