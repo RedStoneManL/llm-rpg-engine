@@ -24,6 +24,7 @@ Steps:
 """
 from __future__ import annotations
 import json
+from context.public_npc_evidence import public_npc_evidence, format_public_npc_evidence
 
 from kernel.registry import Registry
 from kernel.assembler import assemble, render, LAYER_ORDER
@@ -104,6 +105,7 @@ def assemble_context(
     # slice. Generic inject/recall/tools receive a view with that slice removed.
     player_evidence = read_player_evidence(world, scene, query)
     cast_evidence = read_cast_evidence(world, scene, query)
+    public_npc = public_npc_evidence(world, scene)
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -164,6 +166,8 @@ def assemble_context(
                     candidate_fact_keys.append(fk)
 
     viewpoint_frags: list[str] = []
+    if public_npc is not None:
+        viewpoint_frags.append(format_public_npc_evidence(public_npc))
     if protagonist and candidate_fact_keys:
         vp = build_viewpoint(
             g,

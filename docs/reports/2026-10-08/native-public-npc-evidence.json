@@ -1,0 +1,77 @@
+{
+  "base_commit": "04980cff46360e9beafa2862c1f4587e8227ae16",
+  "workflow": "Four independent copies, same fixed question per NPC before/after; actual play_loop with fresh native GPT-6 Astra per response; research tools disabled; no DS calls.",
+  "cases": [
+    {
+      "case": "native-npc-public-before-keeper-20261008",
+      "model_responses": 2,
+      "committed_story_turns": 1,
+      "old_belief_in_narrator_prompt": false,
+      "secret_canary_in_wire": false,
+      "delivered_prose": "沈掌柜停下手里的活，想了片刻。\n\n「旧班表我今早确实看过。可你要问上头具体是哪条船、什么时辰开，我眼下说不准。」\n\n他摊了摊手。\n\n「你说了不要猜，那我就不乱报，免得让你白跑一趟。」",
+      "new_fact_events": [],
+      "new_knowledge_events": []
+    },
+    {
+      "case": "native-npc-public-before-guard-20261008",
+      "model_responses": 2,
+      "committed_story_turns": 1,
+      "old_belief_in_narrator_prompt": false,
+      "secret_canary_in_wire": false,
+      "delivered_prose": "何桥守摇了摇头。\n「我刚到镇上，今天没看过渡口的班表，也没人跟我讲过班次。你说的那张旧班表，我没见过。」\n他摊开手。\n「船名和开船时辰，我都不知道，不能报给你。」",
+      "new_fact_events": [],
+      "new_knowledge_events": [
+        {
+          "knower": "player",
+          "fact_key": "guard.渡口班次见闻",
+          "value": "何桥守刚到镇上，今天没有看过渡口班表，也没有听过班次介绍，不知道船名和开船时辰。",
+          "via": "何桥守当面回答"
+        }
+      ]
+    },
+    {
+      "case": "native-npc-public-after-keeper-20261008",
+      "model_responses": 2,
+      "committed_story_turns": 1,
+      "old_belief_in_narrator_prompt": true,
+      "secret_canary_in_wire": false,
+      "delivered_prose": "沈掌柜停下手里的活，答得干脆：「船名是青桐三号，开船时辰是酉初。我今早亲眼看见的那张班表，就是这么写的。」",
+      "new_fact_events": [],
+      "new_knowledge_events": [
+        {
+          "knower": "player",
+          "fact_key": "ferry.今日班次",
+          "value": "青桐三号，酉初",
+          "via": "沈掌柜亲口转述今早亲眼看过的旧班表"
+        }
+      ]
+    },
+    {
+      "case": "native-npc-public-after-guard-20261008",
+      "model_responses": 2,
+      "committed_story_turns": 1,
+      "old_belief_in_narrator_prompt": false,
+      "secret_canary_in_wire": false,
+      "delivered_prose": "何桥守摇摇头，抬手拢了拢袖口。\n\n「我今天才到镇上，没看过渡口的班表，也没听人讲过班次。船名、开船时辰，我都不知道。」\n\n他顿了顿，又补了一句：「你说的那张旧班表，我也没亲眼见过。」",
+      "new_fact_events": [],
+      "new_knowledge_events": []
+    }
+  ],
+  "final_source_hashes": {
+    "context/assembler.py": "8545140f20042da8d81ecd928127e75fe3133914e3a64d9279cf69de42391e3a",
+    "context/public_npc_evidence.py": "f6ab69361a4b05e65e6408f79feb3d0b17424a3785e4454070ba11ee5c68d143"
+  },
+  "observations": [
+    "Before: informed NPC honestly could not recall specifics, not a demonstrated false newer timetable claim.",
+    "After: informed NPC answered stored public old belief; player learned only through actual dialogue, canonical current timetable was not overwritten.",
+    "Uninformed NPC stated ignorance before and after; its explicit fixture background establishes ignorance, absence of knowledge alone would not.",
+    "Private canary remained absent from all requests/responses in these cases."
+  ],
+  "limits": [
+    "One native sample per condition; not general accuracy/privacy proof or DS verification.",
+    "Only explicitly public knowledge-as-fact sources are supported; ordinary private knowledge_set is unchanged.",
+    "Topic and exact entity-ID values are visibility-filtered; free text marked public is trusted, not semantically redacted for embedded aliases/IDs.",
+    "source_event is a retained identifier, not independently checked historical provenance.",
+    "No full unit suite or production-latency measurement."
+  ]
+}
