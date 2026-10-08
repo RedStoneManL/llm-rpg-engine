@@ -1,0 +1,55 @@
+{
+  "base_commit": "b0d453e9310ccfb0ca504003168a2afeae3f2958",
+  "comparator_policy": "canonical-checkpoints-items-v14-certified-point-custody",
+  "schema": "semantic_commit_v12 unchanged; prompt clarifies available proof without relabeling unknown time",
+  "method": "Exact saved audit replay plus labelled real-producer boundary worlds; no new model or campaign write.",
+  "actual_failed_trace": {
+    "attempts": 2,
+    "commits": 1,
+    "rejections": 1,
+    "native_responses": 10,
+    "final_events": 152,
+    "trial_fitting_committed": false
+  },
+  "same_capture_results": [
+    {
+      "request": "0008",
+      "previous_rejected_claims": [
+        "c0",
+        "c1"
+      ],
+      "revised_full_audit_passed": true
+    },
+    {
+      "request": "0010",
+      "previous_rejected_claims": [
+        "c1",
+        "c2"
+      ],
+      "revised_full_audit_passed": true
+    }
+  ],
+  "retained": [
+    "Raw claims and moment=unknown",
+    "Null selected checkpoint/transition",
+    "Current narrative cursor",
+    "Uncertain/historical/reported/conditional/future mode boundaries",
+    "Explicit checkpoint and ordered handoff rules"
+  ],
+  "producer_controls": [
+    "Visible A-to-B-to-A cannot certify equal endpoints.",
+    "Hidden round trip loses certification even with no public transitions.",
+    "Place-holder round trip loses certification.",
+    "Visibility loss/restoration and missing/hidden custody lose certification.",
+    "First placement and recorded materialization cannot certify initial-to-final continuity.",
+    "Hidden duplicate canonical holders reject packet construction."
+  ],
+  "polarity": "A unique certificate for A supports positive A and negative distinct B; contradicts negative A and positive B. Missing/ambiguous certificate proves neither.",
+  "reconstruction_limit": "Producer reconstruction differs in unrelated resource-scope metadata; original audit packets/responses themselves are replayed unchanged.",
+  "limitations": [
+    "Only an unspecified point within the current primary turn is resolved; not unknown identity, prior/future history, ownership or permission.",
+    "No retroactive commit or new successful playthrough.",
+    "Model semantic classification and extraction remain probabilistic."
+  ],
+  "source_sha256": "5362f2e83726013c5315751c77ff1bfdd99ffc6090bad34a3bc54ffbc23b23ff"
+}

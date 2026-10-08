@@ -15,7 +15,7 @@ from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
 VERSION = 'semantic_commit_v12'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v13-source-evidence-not-chronology'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v14-certified-point-custody'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -142,8 +142,12 @@ Additional fields depend on kind:
  transition_index ONLY for possession explicitly spanning this entire primary turn;
  it is checked against host continuous_custody positive certificates, not endpoint
  equality. Do not extend it to old history, 'always since borrowing', or an unspecified
- lifetime. Unknown-timed custody remains unsupported. Preserve uncertain mode if the
- statement's physical meaning or interval cannot be confidently classified.
+ lifetime. For current/completed custody at an unspecified point WITHIN this primary
+ turn, preserve moment=unknown rather than invent a checkpoint. The host can support
+ that point only using a positive whole-primary-turn certificate; equal endpoints alone
+ do not suffice. Missing identity/holder or uncertain classification is not resolved by
+ that certificate. Preserve uncertain mode if the statement's physical meaning or
+ within-turn scope cannot be confidently classified.
  transfer: refs={item,from,to}; no extra fields. A positive completed physical handoff
  or change of custody, not creation, initial placement, display, an offer, a future
  promise, or a claim of ownership. Null endpoints mean the prose omits that endpoint,
@@ -1074,6 +1078,21 @@ def _scene_state_verdict(packet, claim, assessment, minimum_position):
             None)
 
 
+def _certified_custody_verdict(packet, claim, minimum_position):
+    """Use positive whole-primary-turn proof without inventing a point time."""
+    refs = claim['refs']
+    holders = [row['holder'] for row in packet.get('continuous_custody', [])
+               if row['item'] == refs['item']]
+    if len(holders) != 1:
+        return 'unsupported', 'No positive whole-primary-turn custody certificate supports this assertion.', None
+    if (holders[0] == refs['holder']) == claim['present']:
+        reason = ('The positive whole-primary-turn custody certificate supports this assertion without assigning its unknown point in time.'
+                  if claim['moment'] == 'unknown'
+                  else 'Physical custody is certified across the entire primary turn.')
+        return 'supported', reason, minimum_position
+    return 'contradiction', 'The assertion conflicts with the positive whole-turn custody certificate.', None
+
+
 def _verdict(packet, claim, minimum_position, source_assessment=None):
     """Return verdict/reason/consumed moment using only the host packet.
 
@@ -1141,16 +1160,10 @@ def _verdict(packet, claim, minimum_position, source_assessment=None):
                 return 'contradiction', 'The passage change contradicts its canonical transition.', None
         return 'unsupported', 'No canonical transition supports this asserted physical action.', None
     if claim['moment'] == 'throughout':
-        holders = [row['holder'] for row in packet.get('continuous_custody', [])
-                   if row['item'] == refs['item']]
-        if len(holders) != 1:
-            return 'unsupported', 'No positive whole-primary-turn custody certificate supports this assertion.', None
-        if (holders[0] == refs['holder']) == claim['present']:
-            return 'supported', 'Physical custody is certified across the entire primary turn.', minimum_position
-        return 'contradiction', 'The assertion conflicts with the positive whole-turn custody certificate.', None
+        return _certified_custody_verdict(packet, claim, minimum_position)
     if claim['moment'] == 'unknown':
         if kind == 'possession':
-            return 'unsupported', 'Custody requires an explicit visible checkpoint; endpoint equality does not prove uninterrupted possession.', None
+            return _certified_custody_verdict(packet, claim, minimum_position)
         return _invariant_state_verdict(packet, claim, minimum_position)
     state = _state_at(packet, claim)
     if state is None:

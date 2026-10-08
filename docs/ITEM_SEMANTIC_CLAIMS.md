@@ -21,8 +21,12 @@ destinations are not exposed to improve matching.
   from an unknown prior holder.
 - Missing/redacted custody is unknown, not proof of no holder. A negative
   possession claim about one holder requires explicit different-holder evidence.
-- Point possession requires an explicit visible checkpoint. Endpoints alone do
-  not prove custody throughout an interval; unknown-timed possession is unsupported.
+- Point possession requires a visible checkpoint or the stronger positive
+  whole-primary-turn certificate below. A current/completed assertion with an
+  unknown point within this primary turn can use that same certificate without
+  inventing a time or relabeling itself `throughout`. Equal endpoints alone are
+  insufficient. Missing item/holder identity, uncertain scope, historical claims,
+  and absent/ambiguous certificates are not resolved by this rule.
 - Explicit `throughout` timing covers this entire primary turn only. The host
   intersects initial unique visible custody with the POV-filtered state after
   every preview event and the final state. Only surviving positive pairs are
@@ -40,8 +44,9 @@ add/remove transfers or alter other approved effects to fit the story. Item
 holder references cannot authorize the separate missing-new-NPC/Place repair
 permissions. This preserves player intent as intent, not proof of success.
 
-The extraction schema and comparator policy versions change, invalidating old
-in-memory approvals. Historical events remain replayable. Trusted manual writes
+Earlier item-claim additions changed the extraction schema and comparator policy,
+invalidating old in-memory approvals. The later unknown-point certificate reuse
+changes comparator policy while retaining the v12 extraction schema. Historical events remain replayable. Trusted manual writes
 retain their documented boundary. Model extraction can still omit or misclassify
 claims; this is bounded semantic coverage, not a natural-language guarantee.
 
@@ -75,3 +80,23 @@ Residual evidence: the normal callback summarized historical scene s6 as the
 bell being locked in the keeper’s cabinet, repeating old prose while canonical
 custody remains player. This foreground gate does not reconcile historical
 narration or summaries; their assertions must not be treated as current truth.
+
+
+## Unknown point inside a certified primary turn
+
+A later real repair attempt described holding a rough blank while trial-fitting,
+removing and shaving it. Both native audits correctly identified no transfer but
+selected `completed/unknown` custody. The host already certified that exact
+Object/actor pair for the whole primary turn, yet its unknown-point branch refused
+to use the evidence. The shared certificate comparator now serves both interval
+and unknown-point queries after the original mode, scope and reference gates.
+It preserves the raw claim and current narrative cursor. A certificate for A
+supports positive A or negative B for a distinct known holder B, contradicts
+negative A or positive B, and proves
+neither when missing. It never establishes a handoff, permission, ownership, or
+custody before/after the primary turn. The original rejected attempt remains
+uncommitted; replay evidence is distinct from subsequent actual play.
+
+The [captured replay and producer boundaries](reports/2026-10-08/certified-point-custody.json)
+record the unchanged native assertions and distinguish constructed proof controls
+from actual gameplay. They do not turn the prior failed attempt into a success.
