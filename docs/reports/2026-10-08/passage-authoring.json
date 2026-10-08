@@ -1,0 +1,318 @@
+{
+  "base": "e0c4a4794fe86df2ceefe43bc77894e09235d8d5",
+  "method": "Recorded real player T14 action, exact original 180-event pre-arrival prefix, fresh native GPT-6 Astra/Author and normal callbacks; sole new code diff adds links schema to two prompts. Current scene fix is already present.",
+  "action": "我在长凳上坐稳，看看两岸，安静等这趟船过河；留意船工的招呼，准备靠岸后再下船。",
+  "completed_actions": 1,
+  "native_responses": 3,
+  "research_tool_calls": 0,
+  "normal_summary_calls": 1,
+  "repair_calls": 0,
+  "before_path_read": {
+    "method": "Production map tool on actual completed T14 save; no model call or mutation",
+    "scene": {
+      "protagonist": "player",
+      "present": [],
+      "day": 1,
+      "id": "s4",
+      "location": "chilu9_passenger_deck"
+    },
+    "arguments": {
+      "q": "far_bank_landing",
+      "path_to": "far_bank_landing"
+    },
+    "result": {
+      "query": "far_bank_landing",
+      "matches": [
+        {
+          "id": "far_bank_landing",
+          "level": 3,
+          "kind": "venue",
+          "seed": "河对岸供客船停靠的渡头，木台与岸上的石阶相接。"
+        }
+      ],
+      "path": [],
+      "total_cost": null
+    },
+    "relevant_relations": [
+      {
+        "src": "player",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_179939899de1",
+        "event_time_end": null,
+        "attrs": {}
+      },
+      {
+        "src": "chilu9_deckhand",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_eb309ecf9dd0",
+        "event_time_end": null,
+        "attrs": {}
+      }
+    ]
+  },
+  "after_path_read": {
+    "method": "Production map tool on actual completed T14 save; no model call or mutation",
+    "scene": {
+      "protagonist": "player",
+      "present": [],
+      "day": 1,
+      "id": "s6",
+      "location": "chilu9_passenger_deck"
+    },
+    "arguments": {
+      "q": "chilu9_far_bank_landing",
+      "path_to": "chilu9_far_bank_landing"
+    },
+    "result": {
+      "query": "chilu9_far_bank_landing",
+      "matches": [
+        {
+          "id": "chilu9_far_bank_landing",
+          "level": 3,
+          "kind": "venue",
+          "seed": "赤鹭九号此次过河停靠的对岸木栈台，可由靠稳客船的跳板上下船。",
+          "exits": [
+            {
+              "to": "chilu9_passenger_deck",
+              "travel_cost": 0
+            }
+          ]
+        }
+      ],
+      "path": [
+        "chilu9_passenger_deck",
+        "chilu9_far_bank_landing"
+      ],
+      "total_cost": 0
+    },
+    "relevant_relations": [
+      {
+        "src": "player",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_179939899de1",
+        "event_time_end": null,
+        "attrs": {}
+      },
+      {
+        "src": "chilu9_deckhand",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_eb309ecf9dd0",
+        "event_time_end": null,
+        "attrs": {}
+      },
+      {
+        "src": "chilu9_passenger_deck",
+        "rel": "adjacent_to",
+        "dst": "chilu9_far_bank_landing",
+        "event_time_start": 1,
+        "ingest_turn": 14,
+        "source_event": "ev_ccec540b1575",
+        "event_time_end": null,
+        "attrs": {
+          "travel_cost": 0
+        }
+      },
+      {
+        "src": "chilu9_far_bank_landing",
+        "rel": "adjacent_to",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 14,
+        "source_event": "ev_ccec540b1575",
+        "event_time_end": null,
+        "attrs": {
+          "travel_cost": 0
+        }
+      }
+    ]
+  },
+  "visible_output": "你在长凳上坐稳。来时的石阶渐渐缩成一道灰线，对岸的木栈台则越来越清楚。船工把收回的缆绳理顺，顺手将滑到通道里的空竹筐推回凳下。\n\n船行了一阵，速度慢下来。船工扶着栏杆朝乘客招手。\n\n「到对岸了，先坐稳，等跳板搭好！」\n\n船身轻轻一顿，贴住栈台。缆绳系妥后，船工把跳板放下，踩了两脚，又扣好两侧的护绳。\n\n「好了，可以下船。带齐东西，一个个走。」\n\n靠近通道的乘客起身让出位置。你仍在船上，面前的跳板已稳稳接通对岸木栈台。",
+  "events": [
+    {
+      "id": "ev_47721618cc50",
+      "type": "variation_sampled",
+      "scene": "s6",
+      "deltas": {
+        "id": "routine",
+        "hint": "让配角忙于自己已有的生活小事，用一笔动作展示这个世界并非只为主角而存在。",
+        "flavor": "isekai",
+        "seed": 84925206634976,
+        "version": 1
+      }
+    },
+    {
+      "id": "ev_be275c5cc949",
+      "type": "place_created",
+      "scene": "s6",
+      "deltas": {
+        "id": "chilu9_far_bank_landing",
+        "level": 3,
+        "kind": "venue",
+        "seed": "赤鹭九号此次过河停靠的对岸木栈台，可由靠稳客船的跳板上下船。"
+      }
+    },
+    {
+      "id": "ev_320a7943e35a",
+      "type": "fact_asserted",
+      "scene": "s6",
+      "deltas": {
+        "subject": "chilu9_passenger_deck",
+        "predicate": "航行状态",
+        "value": "第1天下午，赤鹭九号已完成此次过河航程，在对岸木栈台系缆停稳；跳板和护绳已安放妥当，船工已招呼乘客下船。"
+      }
+    },
+    {
+      "id": "ev_ccec540b1575",
+      "type": "place_linked",
+      "scene": "s6",
+      "deltas": {
+        "a": "chilu9_passenger_deck",
+        "b": "chilu9_far_bank_landing",
+        "travel_cost": 0
+      }
+    },
+    {
+      "id": "ev_c4e364f6c31b",
+      "type": "knowledge_set",
+      "scene": "s6",
+      "deltas": {
+        "knower": "player",
+        "fact_key": "chilu9_passenger_deck.航行状态",
+        "value": "第1天下午，赤鹭九号已完成此次过河航程，在对岸木栈台系缆停稳；跳板和护绳已安放妥当，船工已招呼乘客下船。",
+        "via": "亲历过河、目睹靠岸搭板，并听见船工招呼"
+      }
+    },
+    {
+      "id": "ev_7f47ccfc93e4",
+      "type": "clock_advanced",
+      "scene": "s6",
+      "deltas": {
+        "advance": false,
+        "days": 0,
+        "bands": 0,
+        "reason": "等待客船过河并系缆搭板，仍在第1天下午，未跨入新的时段。"
+      }
+    },
+    {
+      "id": "ev_9134ed5c56e9",
+      "type": "narration_recorded",
+      "scene": "s6",
+      "deltas": {
+        "scene": "s6",
+        "text": "你在长凳上坐稳。来时的石阶渐渐缩成一道灰线，对岸的木栈台则越来越清楚。船工把收回的缆绳理顺，顺手将滑到通道里的空竹筐推回凳下。\n\n船行了一阵，速度慢下来。船工扶着栏杆朝乘客招手。\n\n「到对岸了，先坐稳，等跳板搭好！」\n\n船身轻轻一顿，贴住栈台。缆绳系妥后，船工把跳板放下，踩了两脚，又扣好两侧的护绳。\n\n「好了，可以下船。带齐东西，一个个走。」\n\n靠近通道的乘客起身让出位置。你仍在船上，面前的跳板已稳稳接通对岸木栈台。"
+      }
+    },
+    {
+      "id": "ev_846b43d6678a",
+      "type": "scene_summarized",
+      "scene": "s4",
+      "deltas": {
+        "scene": "s4",
+        "summary": "林舟付清三十文，取得并核对了今日「赤鹭九号」单程船票，获告未初开船、提前一刻持票从石阶登船，但石阶口横绳仍拦着，尚需等候。"
+      }
+    },
+    {
+      "id": "ev_e89f26810651",
+      "type": "directive_consumed",
+      "scene": "s6",
+      "deltas": {
+        "through_turn": 7
+      }
+    },
+    {
+      "id": "ev_76a51fc79703",
+      "type": "oracle_roll",
+      "scene": "s6",
+      "deltas": {
+        "prob": 0.6,
+        "roll": 0.03,
+        "scene_ordinal": 15,
+        "campaign_seed": 72916001
+      }
+    },
+    {
+      "id": "ev_4a64ed42be86",
+      "type": "thread_open",
+      "scene": "s6",
+      "deltas": {
+        "id": "th_4_物品线",
+        "status": "活跃",
+        "speed": "中",
+        "dormant": true,
+        "trait": "重情重义",
+        "archetype": "禁忌之力",
+        "event_type": "物品线",
+        "last_advanced_scene": "s6"
+      }
+    },
+    {
+      "id": "ev_2ac2ded186b8",
+      "type": "player_input_recorded",
+      "scene": "s6",
+      "deltas": {
+        "actor_id": "player",
+        "input": "我在长凳上坐稳，看看两岸，安静等这趟船过河；留意船工的招呼，准备靠岸后再下船。",
+        "requested_at": {
+          "day": 1,
+          "band": 2,
+          "scene": "s6",
+          "location": "chilu9_passenger_deck"
+        },
+        "committed_at": {
+          "day": 1,
+          "band": 2,
+          "scene": "s6",
+          "location": "chilu9_passenger_deck"
+        },
+        "outcome": "committed_response_not_proof_of_success",
+        "entity_refs": [
+          "chilu9_far_bank_landing",
+          "chilu9_passenger_deck"
+        ],
+        "narration_ref": "ev_9134ed5c56e9",
+        "effect_refs": [
+          "ev_47721618cc50",
+          "ev_be275c5cc949",
+          "ev_320a7943e35a",
+          "ev_ccec540b1575",
+          "ev_c4e364f6c31b",
+          "ev_7f47ccfc93e4",
+          "ev_846b43d6678a",
+          "ev_e89f26810651",
+          "ev_76a51fc79703",
+          "ev_4a64ed42be86"
+        ]
+      }
+    }
+  ],
+  "final_meta": {
+    "day": 1,
+    "scene": "s6",
+    "band": 2,
+    "flavor": "isekai",
+    "campaign_seed": 72916001,
+    "scene_no": 6,
+    "scene_anchor": {
+      "location": "chilu9_passenger_deck",
+      "day": 1
+    }
+  },
+  "limits": [
+    "One fresh stochastic branch; generated landing ID differs, no forced answer or tool use",
+    "Player still aboard as requested preparation; no claim of disembarkation",
+    "Temporary-route closure still unsupported and is next priority",
+    "No DeepSeek calls; native model validation only"
+  ]
+}
