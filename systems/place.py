@@ -8,6 +8,7 @@ Place entities have attrs: level (1|2|3), kind, seed, detail, (optional) tier.
 Containment:  contained_by  relation (child → parent).
 Adjacency:    adjacent_to   relation (both directions) carrying travel_cost attr.
              Multi-valued — does NOT supersede prior adjacent_to relations.
+             Closing ends all current edges for the exact unordered pair.
 Movement:     located_in    relation (single-valued — supersedes prior location).
 
 LLM-driven decisions (when to materialize, cost ladder, location-staleness)
@@ -25,6 +26,7 @@ from typing import Any
 
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
+from kernel.place_integrity import link_errors
 from facts.graph import FactGraph
 from engine.log import get_logger
 
@@ -88,6 +90,7 @@ class PlaceSystem(ContextSystem):
     Commit sections:
         "places"  → place_created events
         "moves"   → entity_moved events
+        "links"   → place_linked / place_unlinked events
     """
 
     name = "place"
@@ -96,7 +99,7 @@ class PlaceSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"place_created", "place_linked", "place_materialized", "entity_moved"}
+        return {"place_created", "place_linked", "place_unlinked", "place_materialized", "entity_moved"}
 
     def commit_sections(self) -> set[str]:
         return {"places", "moves", "links", "materialize"}
@@ -175,6 +178,25 @@ class PlaceSystem(ContextSystem):
                 travel_cost=cost,
             )
             log.debug("place_linked a=%s b=%s cost=%s", a, b, cost)
+
+        elif t == "place_unlinked":
+            a, b = d.get("a"), d.get("b")
+            if not (isinstance(a, str) and a.strip()
+                    and isinstance(b, str) and b.strip() and a != b):
+                log.warning("place_unlinked %s invalid a/b; skipped", event.get("id"))
+                return
+            current = [relation for relation in g.relations
+                       if relation.rel == "adjacent_to" and relation.is_current()
+                       and ((relation.src == a and relation.dst == b)
+                            or (relation.src == b and relation.dst == a))]
+            # Check every direction before mutating any edge. Historical closes
+            # of an absent pair are harmless; strict new-write checks live in
+            # place_event_error rather than projection.
+            if any(relation.event_time_start > event["day"] for relation in current):
+                raise ValueError("non-monotonic passage close: day precedes current edge start")
+            for relation in current:
+                relation.event_time_end = event["day"]
+            log.debug("place_unlinked a=%s b=%s ended=%d", a, b, len(current))
 
         elif t == "entity_moved":
             who, to = d.get("who"), d.get("to")
@@ -291,35 +313,15 @@ class PlaceSystem(ContextSystem):
 
         elif section == "links":
             for i, item in enumerate(decl or []):
-                a = item.get("a")
-                b = item.get("b")
-                if not a:
+                for field, code, hint in link_errors(
+                    g, item, world.get("meta", {}).get("day") or 1,
+                    pending_types=True, check_state=False,
+                ):
                     errs.append(ValidationError(
                         section=section,
-                        field=f"[{i}].a",
-                        code="missing",
-                        hint="链接声明必须包含 'a'（起点地点 id）",
-                    ))
-                elif g and g.get_entity(a) is None:
-                    errs.append(ValidationError(
-                        section=section,
-                        field=f"[{i}].a",
-                        code="dangling_ref",
-                        hint=f"地点 '{a}' 不存在于图中",
-                    ))
-                if not b:
-                    errs.append(ValidationError(
-                        section=section,
-                        field=f"[{i}].b",
-                        code="missing",
-                        hint="链接声明必须包含 'b'（终点地点 id）",
-                    ))
-                elif g and g.get_entity(b) is None:
-                    errs.append(ValidationError(
-                        section=section,
-                        field=f"[{i}].b",
-                        code="dangling_ref",
-                        hint=f"地点 '{b}' 不存在于图中",
+                        field=f"[{i}]" + (f".{field}" if field else ""),
+                        code=code,
+                        hint=hint,
                     ))
 
         elif section == "materialize":
@@ -364,9 +366,11 @@ class PlaceSystem(ContextSystem):
                 ))
         elif section == "links":
             for lnk in decl:
+                closing = lnk.get("op", "open") == "close"
                 out.append(kernel_event(
-                    "place_linked", day=day, scene=scene,
-                    summary=f"{lnk.get('a','?')} ↔ {lnk.get('b','?')}",
+                    "place_unlinked" if closing else "place_linked", day=day, scene=scene,
+                    summary=(f"{lnk.get('a','?')} ↔ {lnk.get('b','?')}"
+                             + (" 通道关闭" if closing else "")),
                     deltas=lnk, turn=turn,
                 ))
         elif section == "materialize":

@@ -103,6 +103,11 @@ def _item_preflight(registry, prior_ids, authorized_return_creations=None,
             approved = (authorized_return_creations or {}).get(event['id'])
             if approved is None or any(event.get(key) != value for key, value in approved.items()):
                 raise TurnRejected('A return commitment requires a verified current-player intent')
+        if event['id'] not in prior_ids and registry.owner_of_event('place_linked') is not None:
+            from kernel.place_integrity import place_event_error
+            error = place_event_error(projected, event)
+            if error:
+                raise TurnRejected('Invalid passage transition: ' + error[2])
         if event['id'] not in prior_ids and registry.owner_of_event('item_transferred') is not None:
             from kernel.item_integrity import item_event_error
             error = item_event_error(projected, event)

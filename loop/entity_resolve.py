@@ -164,7 +164,7 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         })
         return mid
 
-    def _resolve(ref, kind: str):
+    def _resolve(ref, kind: str, *, allow_mint: bool = True):
         if not isinstance(ref, str) or not ref.strip():
             return ref
         r = ref.strip()
@@ -178,6 +178,8 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
             if match:
                 name2id[nm] = match
                 return match
+        if not allow_mint:
+            return r
         mid = _mint(kind, r)
         name2id[nm] = mid
         return mid
@@ -191,9 +193,9 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
     for lnk in _items("links"):
         if isinstance(lnk, dict):
             if "a" in lnk:
-                lnk["a"] = _resolve(lnk.get("a"), "place")
+                lnk["a"] = _resolve(lnk.get("a"), "place", allow_mint=lnk.get("op", "open") == "open")
             if "b" in lnk:
-                lnk["b"] = _resolve(lnk.get("b"), "place")
+                lnk["b"] = _resolve(lnk.get("b"), "place", allow_mint=lnk.get("op", "open") == "open")
     for mt in _items("materialize"):
         if isinstance(mt, dict) and "id" in mt:
             mt["id"] = _resolve(mt.get("id"), "place")

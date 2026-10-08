@@ -1,0 +1,1045 @@
+{
+  "base": "f5c4befacb67f3108deb1e49d38015cc97de50fb",
+  "method": "Fresh independent native GPT-6 Astra player; original play_loop/Author/tools/callbacks, source frozen; exact prior completed arrival save.",
+  "completed_actions": [
+    15,
+    16,
+    17
+  ],
+  "native_responses": 9,
+  "research_tool_calls": 5,
+  "normal_summary_calls": 1,
+  "repair_calls": 0,
+  "bridge_handoff_wall_seconds_sum": 736.12,
+  "latency_limit": "Includes native worker scheduling and moderator handoff; not DeepSeek/production engine latency",
+  "prefix_events": 192,
+  "exact_prefix_preserved": true,
+  "turns": [
+    {
+      "turn": 15,
+      "action": "我摸了摸衣袋，确认船票还在，便起身沿跳板走到对岸的木栈台上，给后面的乘客让开路。",
+      "narration": "衣袋里，船票还好好地收着。你起身走到通道，扶着护绳踏上跳板。几步之后，脚下换成了对岸木栈台的厚木板。\n\n你往旁边让开，留出下船的路。身后的乘客提着包袱跟上来，船工站在船舷边提醒：\n\n「慢些走，别落了东西。」\n\n跳板仍搭在船与栈台之间。你已站稳在岸边，河水从栈台下轻轻拍过。",
+      "new_events": [
+        {
+          "seq": 193,
+          "id": "ev_07e0bbf46948",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "quiet",
+            "hint": "给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。",
+            "flavor": "isekai",
+            "seed": 26597895832709,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 194,
+          "id": "ev_6e8ad558c224",
+          "type": "entity_moved",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "player 移动至 chilu9_far_bank_landing",
+          "deltas": {
+            "who": "player",
+            "to": "chilu9_far_bank_landing"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 195,
+          "id": "ev_45da832232fe",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：确认船票并沿跳板下船，只经过片刻，仍是第1天下午。",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "确认船票并沿跳板下船，只经过片刻，仍是第1天下午。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 196,
+          "id": "ev_e3f54249de5c",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s6",
+            "text": "衣袋里，船票还好好地收着。你起身走到通道，扶着护绳踏上跳板。几步之后，脚下换成了对岸木栈台的厚木板。\n\n你往旁边让开，留出下船的路。身后的乘客提着包袱跟上来，船工站在船舷边提醒：\n\n「慢些走，别落了东西。」\n\n跳板仍搭在船与栈台之间。你已站稳在岸边，河水从栈台下轻轻拍过。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 197,
+          "id": "ev_8b183d52ace8",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=7",
+          "deltas": {
+            "through_turn": 7
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 198,
+          "id": "ev_eea8dfa502be",
+          "type": "oracle_roll",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "暗骰 roll=0.37 prob=0.60",
+          "deltas": {
+            "prob": 0.6,
+            "roll": 0.37,
+            "scene_ordinal": 16,
+            "campaign_seed": 72916001
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 199,
+          "id": "ev_2f6ec12fc7d9",
+          "type": "director_fired",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "突发:机遇（另有目的）",
+          "deltas": {
+            "type": "front_stage",
+            "magnitude": "small",
+            "valence": null,
+            "event_type": "机遇",
+            "event_hint": "发现宝藏/获得情报/意外之喜",
+            "twist": "另有目的",
+            "twist_hint": "对方动机不单纯"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 200,
+          "id": "ev_cfa94e58e06b",
+          "type": "scene_advanced",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "场景推进→s7",
+          "deltas": {
+            "scene_id": "s7",
+            "scene_no": 7,
+            "location": "chilu9_far_bank_landing",
+            "day": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "seq": 201,
+          "id": "ev_ddb463844356",
+          "type": "player_input_recorded",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player input source recorded",
+          "deltas": {
+            "actor_id": "player",
+            "input": "我摸了摸衣袋，确认船票还在，便起身沿跳板走到对岸的木栈台上，给后面的乘客让开路。",
+            "requested_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s6",
+              "location": "chilu9_passenger_deck"
+            },
+            "committed_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s7",
+              "location": "chilu9_far_bank_landing"
+            },
+            "outcome": "committed_response_not_proof_of_success",
+            "entity_refs": [
+              "chilu9_far_bank_landing"
+            ],
+            "narration_ref": "ev_e3f54249de5c",
+            "effect_refs": [
+              "ev_07e0bbf46948",
+              "ev_6e8ad558c224",
+              "ev_45da832232fe",
+              "ev_8b183d52ace8",
+              "ev_eea8dfa502be",
+              "ev_2f6ec12fc7d9",
+              "ev_cfa94e58e06b"
+            ]
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": "private",
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 16,
+      "action": "我站在不挡路的地方，朝船舷边的船工问道：「这趟到岸以后，赤鹭九号接下来往哪儿走？」",
+      "narration": "船工停下整理护绳的手，朝船内扬声问：「这边客人问，咱们卸完往哪儿去？」\n\n舱口传来答话：「就这么定了，先空船回桥头靠泊。等人下齐，这趟不接客！」\n\n船工转回来，朝河对面指了指。\n\n「听见了？回你上船的那个木栈台。不过这是调船，不能凭刚才那张单程票跟回去。」\n\n他瞧见栈台边的一只空竹筐，手往那边伸了伸，又够不着。\n\n「你若是想打听下一班载客船，我可以趁开走前再帮你问一句。劳驾，先把那只空筐递给我，成不成？」\n\n他笑着拍拍栏杆，等你的答复。跳板仍搭在岸边，缆绳也还系着。",
+      "new_events": [
+        {
+          "seq": 202,
+          "id": "ev_6b4a3c67887e",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "space",
+            "hint": "用清楚的空间关系为自由探索留出方向，不给玩家强制选项。",
+            "flavor": "isekai",
+            "seed": 89569561016155,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 203,
+          "id": "ev_437344d61cf0",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_passenger_deck.后续调船安排=第1天下午，赤鹭九号停靠对岸木栈台卸客时，船内当场下达新安排：待乘客下完，空船返回来时的桥头木栈台靠泊，此次调船不载客；后续载客班次尚未在这次答复中确认。",
+          "deltas": {
+            "subject": "chilu9_passenger_deck",
+            "predicate": "后续调船安排",
+            "value": "第1天下午，赤鹭九号停靠对岸木栈台卸客时，船内当场下达新安排：待乘客下完，空船返回来时的桥头木栈台靠泊，此次调船不载客；后续载客班次尚未在这次答复中确认。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 204,
+          "id": "ev_98b7c3225f55",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 chilu9_passenger_deck.后续调船安排",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "chilu9_passenger_deck.后续调船安排",
+            "value": "第1天下午，赤鹭九号停靠对岸木栈台卸客时，船内当场下达新安排：待乘客下完，空船返回来时的桥头木栈台靠泊，此次调船不载客；后续载客班次尚未在这次答复中确认。",
+            "via": "在对岸木栈台听见船内新下达的调船吩咐与船工当面答复"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 205,
+          "id": "ev_d59fd66116fe",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_deckhand 得知 chilu9_passenger_deck.后续调船安排",
+          "deltas": {
+            "knower": "chilu9_deckhand",
+            "fact_key": "chilu9_passenger_deck.后续调船安排",
+            "value": "第1天下午，赤鹭九号停靠对岸木栈台卸客时，船内当场下达新安排：待乘客下完，空船返回来时的桥头木栈台靠泊，此次调船不载客；后续载客班次尚未在这次答复中确认。",
+            "via": "当场向船内询问后听见新下达的调船吩咐"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 206,
+          "id": "ev_66d70129acc3",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：卸客期间的短暂问答，仍在第1天下午。",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "卸客期间的短暂问答，仍在第1天下午。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 207,
+          "id": "ev_b01d90a853bf",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s7",
+            "text": "船工停下整理护绳的手，朝船内扬声问：「这边客人问，咱们卸完往哪儿去？」\n\n舱口传来答话：「就这么定了，先空船回桥头靠泊。等人下齐，这趟不接客！」\n\n船工转回来，朝河对面指了指。\n\n「听见了？回你上船的那个木栈台。不过这是调船，不能凭刚才那张单程票跟回去。」\n\n他瞧见栈台边的一只空竹筐，手往那边伸了伸，又够不着。\n\n「你若是想打听下一班载客船，我可以趁开走前再帮你问一句。劳驾，先把那只空筐递给我，成不成？」\n\n他笑着拍拍栏杆，等你的答复。跳板仍搭在岸边，缆绳也还系着。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 208,
+          "id": "ev_3236567140da",
+          "type": "scene_summarized",
+          "day": 1,
+          "scene": "s5",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: s5",
+          "deltas": {
+            "scene": "s5",
+            "summary": "林舟在石阶口候船，于未初前一刻持票通过查验后登上赤鹭九号落座，船只于未初收回跳板、解缆离岸。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 209,
+          "id": "ev_8f2c920a3139",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=15",
+          "deltas": {
+            "through_turn": 15
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        },
+        {
+          "seq": 210,
+          "id": "ev_903db5a8ef8e",
+          "type": "player_input_recorded",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player input source recorded",
+          "deltas": {
+            "actor_id": "player",
+            "input": "我站在不挡路的地方，朝船舷边的船工问道：「这趟到岸以后，赤鹭九号接下来往哪儿走？」",
+            "requested_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s7",
+              "location": "chilu9_far_bank_landing"
+            },
+            "committed_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s7",
+              "location": "chilu9_far_bank_landing"
+            },
+            "outcome": "committed_response_not_proof_of_success",
+            "entity_refs": [
+              "chilu9_deckhand",
+              "chilu9_passenger_deck"
+            ],
+            "narration_ref": "ev_b01d90a853bf",
+            "effect_refs": [
+              "ev_6b4a3c67887e",
+              "ev_437344d61cf0",
+              "ev_98b7c3225f55",
+              "ev_d59fd66116fe",
+              "ev_66d70129acc3",
+              "ev_3236567140da",
+              "ev_8f2c920a3139"
+            ]
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": "private",
+          "roll": null,
+          "turn": 16,
+          "retracted": false
+        }
+      ]
+    },
+    {
+      "turn": 17,
+      "action": "我提起栈台边的空竹筐，走到船工跟前递给他：「给，麻烦你帮我问问下一班载客船什么时候开。」",
+      "narration": "你提起空竹筐，走到栈台靠船的一侧。船工俯身接过去，往脚边一放。\n\n「谢了，我这就问。」\n\n他朝舱口扬声问起下一班。里头响起几句商量声，片刻后传来答话：\n\n「那就定申正，从这边载客回桥头。申初回来靠，靠稳了在船边卖票、验票，单程三十文！」\n\n船工转向你，伸手指了指脚下这处栈台。\n\n「听清了？今日申正，从你站的这里开。申初来买回程票就成，刚才那张单程票已经用过啦。」\n\n最后一名乘客踏上岸，船工看了看跳板两头，喊了一声「让开些」，便解下护绳，把跳板拉回船上。缆绳随即收起，船身缓缓离开栈台。\n\n你仍站在岸边。船与木板之间的水面渐渐拉宽，赤鹭九号空船朝桥头驶去。",
+      "new_events": [
+        {
+          "seq": 211,
+          "id": "ev_123d7f6fa1c2",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "voice",
+            "hint": "以轻快短对白、停顿或NPC的小动作体现人物差异；幽默可有可无，不替主角补写未表达的内心评价。",
+            "flavor": "isekai",
+            "seed": 143663926790501,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 212,
+          "id": "ev_79c708b65b7e",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_passenger_deck.下一班载客安排=第1天下午，赤鹭九号船上当场商定并向岸边宣布：下一班于今日申正从对岸木栈台载客返回桥头；申初回到对岸木栈台靠泊，靠稳后在船边售票、验票登船，单程每人三十文，须另购回程票。",
+          "deltas": {
+            "subject": "chilu9_passenger_deck",
+            "predicate": "下一班载客安排",
+            "value": "第1天下午，赤鹭九号船上当场商定并向岸边宣布：下一班于今日申正从对岸木栈台载客返回桥头；申初回到对岸木栈台靠泊，靠稳后在船边售票、验票登船，单程每人三十文，须另购回程票。",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 213,
+          "id": "ev_a254c0e4c89a",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_passenger_deck.航行状态=第1天下午，赤鹭九号在对岸木栈台卸客完毕，已收回跳板、解缆离岸，正空船返回桥头木栈台；当前不与对岸木栈台相通。",
+          "deltas": {
+            "subject": "chilu9_passenger_deck",
+            "predicate": "航行状态",
+            "value": "第1天下午，赤鹭九号在对岸木栈台卸客完毕，已收回跳板、解缆离岸，正空船返回桥头木栈台；当前不与对岸木栈台相通。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 214,
+          "id": "ev_675cda776af6",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：递交竹筐、当场问询及船只离岸发生在同一下午时段内。",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "递交竹筐、当场问询及船只离岸发生在同一下午时段内。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 215,
+          "id": "ev_27cf279fba76",
+          "type": "object_created",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_landing_empty_basket 物品创建",
+          "deltas": {
+            "op": "create",
+            "id": "chilu9_landing_empty_basket"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 216,
+          "id": "ev_8559395ccaa3",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_landing_empty_basket 转移至 player",
+          "deltas": {
+            "op": "transfer",
+            "item": "chilu9_landing_empty_basket",
+            "from": null,
+            "to": "player"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 217,
+          "id": "ev_6dadbaf2a39c",
+          "type": "item_transferred",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_landing_empty_basket 转移至 chilu9_deckhand",
+          "deltas": {
+            "op": "transfer",
+            "item": "chilu9_landing_empty_basket",
+            "from": "player",
+            "to": "chilu9_deckhand"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 218,
+          "id": "ev_6af5cf737529",
+          "type": "place_unlinked",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_passenger_deck ↔ chilu9_far_bank_landing 通道关闭",
+          "deltas": {
+            "op": "close",
+            "a": "chilu9_passenger_deck",
+            "b": "chilu9_far_bank_landing"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 219,
+          "id": "ev_82eda7b51fcf",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 chilu9_passenger_deck.下一班载客安排",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "chilu9_passenger_deck.下一班载客安排",
+            "value": "第1天下午，赤鹭九号船上当场商定并向岸边宣布：下一班于今日申正从对岸木栈台载客返回桥头；申初回到对岸木栈台靠泊，靠稳后在船边售票、验票登船，单程每人三十文，须另购回程票。",
+            "via": "亲耳听见船上当场定下安排，船工随后当面说明。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 220,
+          "id": "ev_7d0ff32ccc66",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "chilu9_deckhand 得知 chilu9_passenger_deck.下一班载客安排",
+          "deltas": {
+            "knower": "chilu9_deckhand",
+            "fact_key": "chilu9_passenger_deck.下一班载客安排",
+            "value": "第1天下午，赤鹭九号船上当场商定并向岸边宣布：下一班于今日申正从对岸木栈台载客返回桥头；申初回到对岸木栈台靠泊，靠稳后在船边售票、验票登船，单程每人三十文，须另购回程票。",
+            "via": "向舱内询问后听见当场答复。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 221,
+          "id": "ev_c0c2edd3bfef",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 chilu9_passenger_deck.航行状态",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "chilu9_passenger_deck.航行状态",
+            "value": "第1天下午，赤鹭九号在对岸木栈台卸客完毕，已收回跳板、解缆离岸，正空船返回桥头木栈台；当前不与对岸木栈台相通。",
+            "via": "站在对岸木栈台亲眼看见收跳板、解缆及空船驶离。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 222,
+          "id": "ev_c4c2bebda50f",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s7",
+            "text": "你提起空竹筐，走到栈台靠船的一侧。船工俯身接过去，往脚边一放。\n\n「谢了，我这就问。」\n\n他朝舱口扬声问起下一班。里头响起几句商量声，片刻后传来答话：\n\n「那就定申正，从这边载客回桥头。申初回来靠，靠稳了在船边卖票、验票，单程三十文！」\n\n船工转向你，伸手指了指脚下这处栈台。\n\n「听清了？今日申正，从你站的这里开。申初来买回程票就成，刚才那张单程票已经用过啦。」\n\n最后一名乘客踏上岸，船工看了看跳板两头，喊了一声「让开些」，便解下护绳，把跳板拉回船上。缆绳随即收起，船身缓缓离开栈台。\n\n你仍站在岸边。船与木板之间的水面渐渐拉宽，赤鹭九号空船朝桥头驶去。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 223,
+          "id": "ev_5a0b56538fdd",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=15",
+          "deltas": {
+            "through_turn": 15
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        },
+        {
+          "seq": 224,
+          "id": "ev_bf5d86ba1865",
+          "type": "player_input_recorded",
+          "day": 1,
+          "scene": "s7",
+          "arc": null,
+          "actors": [],
+          "summary": "player input source recorded",
+          "deltas": {
+            "actor_id": "player",
+            "input": "我提起栈台边的空竹筐，走到船工跟前递给他：「给，麻烦你帮我问问下一班载客船什么时候开。」",
+            "requested_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s7",
+              "location": "chilu9_far_bank_landing"
+            },
+            "committed_at": {
+              "day": 1,
+              "band": 2,
+              "scene": "s7",
+              "location": "chilu9_far_bank_landing"
+            },
+            "outcome": "committed_response_not_proof_of_success",
+            "entity_refs": [
+              "chilu9_deckhand",
+              "chilu9_far_bank_landing",
+              "chilu9_landing_empty_basket",
+              "chilu9_passenger_deck"
+            ],
+            "narration_ref": "ev_c4c2bebda50f",
+            "effect_refs": [
+              "ev_123d7f6fa1c2",
+              "ev_79c708b65b7e",
+              "ev_a254c0e4c89a",
+              "ev_675cda776af6",
+              "ev_27cf279fba76",
+              "ev_8559395ccaa3",
+              "ev_6dadbaf2a39c",
+              "ev_6af5cf737529",
+              "ev_82eda7b51fcf",
+              "ev_7d0ff32ccc66",
+              "ev_c0c2edd3bfef",
+              "ev_5a0b56538fdd"
+            ]
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": "private",
+          "roll": null,
+          "turn": 17,
+          "retracted": false
+        }
+      ]
+    }
+  ],
+  "final_current_holders": {
+    "brass_bell": [
+      "player"
+    ],
+    "jade_seal": [
+      "player"
+    ],
+    "chilu9_single_ticket_day1": [
+      "player"
+    ],
+    "chilu9_landing_empty_basket": [
+      "chilu9_deckhand"
+    ]
+  },
+  "closed_path_read": {
+    "method": "Production map tool on actual completed T17 save; no model call or mutation",
+    "scene": {
+      "protagonist": "player",
+      "present": [],
+      "day": 1,
+      "id": "s7",
+      "location": "chilu9_far_bank_landing"
+    },
+    "arguments": {
+      "q": "chilu9_passenger_deck",
+      "path_to": "chilu9_passenger_deck"
+    },
+    "result": {
+      "query": "chilu9_passenger_deck",
+      "matches": [
+        {
+          "id": "chilu9_passenger_deck",
+          "level": 3,
+          "kind": "venue",
+          "seed": "赤鹭九号的载客甲板，设有长凳与供乘客通行的过道。",
+          "known_facts": {
+            "后续调船安排": "第1天下午，赤鹭九号停靠对岸木栈台卸客时，船内当场下达新安排：待乘客下完，空船返回来时的桥头木栈台靠泊，此次调船不载客；后续载客班次尚未在这次答复中确认。",
+            "下一班载客安排": "第1天下午，赤鹭九号船上当场商定并向岸边宣布：下一班于今日申正从对岸木栈台载客返回桥头；申初回到对岸木栈台靠泊，靠稳后在船边售票、验票登船，单程每人三十文，须另购回程票。",
+            "航行状态": "第1天下午，赤鹭九号在对岸木栈台卸客完毕，已收回跳板、解缆离岸，正空船返回桥头木栈台；当前不与对岸木栈台相通。"
+          }
+        }
+      ],
+      "path": [],
+      "total_cost": null
+    },
+    "relevant_relations": [
+      {
+        "src": "player",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_179939899de1",
+        "event_time_end": 1,
+        "attrs": {}
+      },
+      {
+        "src": "chilu9_deckhand",
+        "rel": "located_in",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 13,
+        "source_event": "ev_eb309ecf9dd0",
+        "event_time_end": null,
+        "attrs": {}
+      },
+      {
+        "src": "chilu9_passenger_deck",
+        "rel": "adjacent_to",
+        "dst": "chilu9_far_bank_landing",
+        "event_time_start": 1,
+        "ingest_turn": 14,
+        "source_event": "ev_ccec540b1575",
+        "event_time_end": 1,
+        "attrs": {
+          "travel_cost": 0
+        }
+      },
+      {
+        "src": "chilu9_far_bank_landing",
+        "rel": "adjacent_to",
+        "dst": "chilu9_passenger_deck",
+        "event_time_start": 1,
+        "ingest_turn": 14,
+        "source_event": "ev_ccec540b1575",
+        "event_time_end": 1,
+        "attrs": {
+          "travel_cost": 0
+        }
+      },
+      {
+        "src": "player",
+        "rel": "located_in",
+        "dst": "chilu9_far_bank_landing",
+        "event_time_start": 1,
+        "ingest_turn": 15,
+        "source_event": "ev_6e8ad558c224",
+        "event_time_end": null,
+        "attrs": {}
+      }
+    ]
+  },
+  "contract_check": {
+    "method": "Direct typed contract checks on copied real arrival state; no model outputs fabricated",
+    "checks": [
+      "valid exact-pair close",
+      "POV local approved close packet",
+      "rewrite signature changes if close removed",
+      "unknown close endpoint does not auto-create",
+      "ordered close/reopen",
+      "duplicate close rejected",
+      "same-turn new Place open/close",
+      "Person endpoint rejected",
+      "direct apply wrong close rejected without revision change",
+      "direct close then reopen both directions"
+    ],
+    "packet": {
+      "scope": "primary_turn_before_background_hooks",
+      "player_intent": "留在原地看看船工接下来的安排。",
+      "actor_id": "player",
+      "entities": [
+        {
+          "id": "brass_bell",
+          "type": "Object",
+          "name": "铜铃"
+        },
+        {
+          "id": "chilu9_deckhand",
+          "type": "Person"
+        },
+        {
+          "id": "chilu9_far_bank_landing",
+          "type": "Place"
+        },
+        {
+          "id": "chilu9_passenger_deck",
+          "type": "Place"
+        },
+        {
+          "id": "chilu9_single_ticket_day1",
+          "type": "Object"
+        },
+        {
+          "id": "jade_seal",
+          "type": "Object",
+          "name": "玉印"
+        },
+        {
+          "id": "player",
+          "type": "Person",
+          "name": "林舟"
+        }
+      ],
+      "before": {
+        "day": 1,
+        "band": 2,
+        "actor_location": "chilu9_passenger_deck",
+        "positions": [
+          {
+            "who": "chilu9_deckhand",
+            "location": "chilu9_passenger_deck"
+          },
+          {
+            "who": "player",
+            "location": "chilu9_passenger_deck"
+          }
+        ],
+        "held_by": [
+          {
+            "item": "brass_bell",
+            "holder": "player"
+          },
+          {
+            "item": "chilu9_single_ticket_day1",
+            "holder": "player"
+          },
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "passages": [
+          {
+            "a": "chilu9_passenger_deck",
+            "b": "chilu9_far_bank_landing",
+            "travel_cost": 0
+          }
+        ]
+      },
+      "after": {
+        "day": 1,
+        "band": 2,
+        "actor_location": "chilu9_passenger_deck",
+        "positions": [
+          {
+            "who": "chilu9_deckhand",
+            "location": "chilu9_passenger_deck"
+          },
+          {
+            "who": "player",
+            "location": "chilu9_passenger_deck"
+          }
+        ],
+        "held_by": [
+          {
+            "item": "brass_bell",
+            "holder": "player"
+          },
+          {
+            "item": "chilu9_single_ticket_day1",
+            "holder": "player"
+          },
+          {
+            "item": "jade_seal",
+            "holder": "player"
+          }
+        ],
+        "passages": []
+      },
+      "transitions": [
+        {
+          "kind": "passage_close",
+          "a": "chilu9_passenger_deck",
+          "b": "chilu9_far_bank_landing",
+          "day": 1
+        }
+      ],
+      "limits": "Player input is intent, not evidence of success. Only listed physical transitions are approved. Missing positions, holders, and transition endpoints are unknown, not empty. Co-location does not establish hearing or knowledge. Background hooks run later and are not covered."
+    }
+  },
+  "independent_player": "三个行动均被落实，位置、船票和船的状态连续，没有替玩家选择返程或强迫任务。船工请求递筐可自主回应，互动自然。略显生硬的是航向和班次两次当场“定下来”，但可见剧情中没有矛盾。",
+  "limits": [
+    "Single native story, no DS calls; no universal semantic claim",
+    "Normal path had no repair; repair packet/signature covered by direct contract checks on actual state, not a fresh rewrite call",
+    "Explicit declarations enforced; missing prose-described close still requires semantic detection",
+    "Day-granular graph; same-day earlier route availability needs event-prefix replay",
+    "Closure does not validate movement reachability or erase knowledge"
+  ]
+}

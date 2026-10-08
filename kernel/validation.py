@@ -125,8 +125,8 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
         try:
             errors.extend(validate_item_commit(registry, commit, world))
         except (TypeError, ValueError, KeyError, AttributeError) as exc:
-            errors.append(ValidationError('items', '', 'item_preview',
-                f'物品转移预检查失败（{type(exc).__name__}）；请先创建实体，再依次转移'))
+            errors.append(ValidationError('links' if commit.sections.get('links') else 'items', '', 'state_preview',
+                f'状态变化预检查失败（{type(exc).__name__}）；请先创建实体，再按行序声明变化'))
 
     log.debug("validate_commit sections=%d errors=%d pending=%d required=%d",
               len(commit.sections), len(errors), len(pending), len(required_sections))

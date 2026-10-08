@@ -12,15 +12,16 @@ from kernel.contextsystem import ValidationError
 def creation_first_sections(sections):
     """Resolve same-turn entity references independent of JSON key order.
 
-    Move only creation-capable sections occurring after items immediately before
-    it. Preserve every items row and all other relative section ordering.
+    Move later creation-capable sections before the first items/links section.
+    Preserve every declaration row and all other relative section ordering.
     """
     pairs = list(sections.items())
     promises = [pair for pair in pairs if pair[0] == 'promises']
     pairs = [pair for pair in pairs if pair[0] != 'promises']
-    if not sections.get('items'):
+    dependent = {'items', 'links'}
+    if not any(sections.get(name) for name in dependent):
         return pairs + promises
-    index = next(i for i, (name, _) in enumerate(pairs) if name == 'items')
+    index = next(i for i, (name, rows) in enumerate(pairs) if name in dependent and rows)
     creators = {'entities', 'places', 'cast', 'factions'}
     later = pairs[index + 1:]
     return (pairs[:index] + [pair for pair in later if pair[0] in creators]
@@ -103,18 +104,24 @@ def validate_item_commit(registry, commit, world):
 
     The normal projection API remains unchanged for old saves. This preview
     resolves newly created entities to actual types rather than pending stubs.
+    Passage operations share this ordered state preflight with item operations.
     """
-    if registry.owner_of_event('item_transferred') is None:
+    if (registry.owner_of_event('item_transferred') is None and
+            registry.owner_of_event('place_linked') is None):
         return []
-    relevant = bool(commit.sections.get('items') or commit.sections.get('promises')) or any(
-        isinstance(row, dict) and row.get('rel') == 'held_by'
+    relevant = bool(commit.sections.get('items') or commit.sections.get('promises')
+                    or commit.sections.get('links')) or any(
+        isinstance(row, dict) and row.get('rel') in {'held_by', 'adjacent_to'}
         for row in commit.sections.get('relations', []) or [])
     graph = world.get('systems', {}).get('ontology')
     if graph is not None:
         holders = {r.dst for r in graph.relations if r.rel == 'held_by' and r.is_current()}
+        linked = {endpoint for r in graph.relations
+                  if r.rel == 'adjacent_to' and r.is_current()
+                  for endpoint in (r.src, r.dst)}
         relevant = relevant or any(
             isinstance(row, dict) and isinstance(row.get('id'), str) and (
-                row.get('etype') == 'Object' or row['id'] in holders or (
+                row.get('etype') == 'Object' or row['id'] in holders or row['id'] in linked or (
                     graph.get_entity(row['id']) is not None and
                     graph.get_entity(row['id']).etype == 'Object'))
             for section in ('entities', 'cast', 'places', 'factions')
@@ -143,7 +150,8 @@ def validate_item_commit(registry, commit, world):
             continue
         for index, declaration in enumerate(declarations):
             for event in owner.to_events(section, [declaration], turn=action_turn, day=day, scene='validation'):
-                error = item_event_error(preview, event)
+                from kernel.place_integrity import place_event_error
+                error = item_event_error(preview, event) or place_event_error(preview, event)
                 if error:
                     field, code, hint = error
                     return [ValidationError(section, f'[{index}]' + ('.' + field if field else ''), code, hint)]

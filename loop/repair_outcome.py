@@ -11,6 +11,7 @@ import copy
 from context.access import pov_world
 from kernel.clock import advance
 from kernel.projection import apply_event_metadata
+from kernel.place_integrity import place_event_error
 from kernel.item_integrity import creation_first_sections, item_event_error
 from systems.time import normalize_clock
 
@@ -86,7 +87,7 @@ def physical_signature(commit, world):
     relations = sections.get('relations') or []
     if isinstance(relations, list):
         relations = [row for row in relations if isinstance(row, dict)
-                     and row.get('rel') in {'located_in', 'held_by'}]
+                     and row.get('rel') in {'located_in', 'held_by', 'adjacent_to'}]
     objects = sections.get('entities') or []
     if isinstance(objects, list):
         objects = [row for row in objects if isinstance(row, dict)
@@ -103,6 +104,7 @@ def physical_signature(commit, world):
         _freeze(items or []) if isinstance(items, list) or items is None
         else ('invalid', _freeze(items)),
         _rows(sections.get('moves'), ('who', 'to', 'arrive_day')),
+        _rows(sections.get('links'), ('a', 'b', 'travel_cost'), default_op='open'),
         clock_signature,
         _rows(relations, ('src', 'rel', 'dst')),
         _rows(objects, ('id', 'etype')),
@@ -175,10 +177,22 @@ def _state(world, actor):
             raise ValueError('Repair outcome contains ambiguous visible item ownership')
         held_by.append({'item': relation.src, 'holder': relation.dst})
     held_by.sort(key=lambda row: (row['holder'] != actor, row['item'], row['holder']))
-    if len(positions) > _MAX_ROWS or len(held_by) > _MAX_ROWS:
+    # Only locally observable, POV-visible passage endpoints. This packet does
+    # not reveal remote topology or infer that a character learned a route.
+    passages = []
+    for relation in view.relations:
+        if (relation.rel != 'adjacent_to' or not relation.valid_at(day)
+                or relation.src != location or relation.dst not in allowed):
+            continue
+        endpoint = view.get_entity(relation.dst)
+        if endpoint is not None and endpoint.etype == 'Place':
+            passages.append({'a': relation.src, 'b': relation.dst,
+                             'travel_cost': relation.attrs.get('travel_cost', 1)})
+    passages.sort(key=lambda row: (row['a'], row['b']))
+    if len(positions) > _MAX_ROWS or len(held_by) > _MAX_ROWS or len(passages) > _MAX_ROWS:
         raise ValueError('Repair outcome exceeds the bounded visible state')
     state = {'day': day, 'band': band, 'actor_location': location,
-             'positions': positions, 'held_by': held_by}
+             'positions': positions, 'held_by': held_by, 'passages': passages}
     return state, view
 
 
@@ -190,6 +204,8 @@ def _names(view, state, actor):
         ids.update((row['who'], row['location']))
     for row in state['held_by']:
         ids.update((row['item'], row['holder']))
+    for row in state['passages']:
+        ids.update((row['a'], row['b']))
     result = {}
     for eid in sorted(ids):
         entity = view.get_entity(eid)
@@ -225,6 +241,18 @@ def _physical_transition(event, before, after):
         if who in current:
             row['to'] = current[who]
         return row
+    if kind in {'place_linked', 'place_unlinked'}:
+        endpoints = {data.get('a'), data.get('b')}
+        previous = [row for row in before['passages'] if {row['a'], row['b']} == endpoints]
+        current = [row for row in after['passages'] if {row['a'], row['b']} == endpoints]
+        if previous == current:
+            return None
+        if current:
+            return {'kind': 'passage_open', **current[0], 'day': event['day']}
+        if previous:
+            return {'kind': 'passage_close', 'a': previous[0]['a'],
+                    'b': previous[0]['b'], 'day': event['day']}
+        return None
     if kind == 'item_transferred':
         item = data.get('item')
         previous = {row['item']: row['holder'] for row in before['held_by']}
@@ -262,7 +290,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
         turn = max((value for value in turns if type(value) is int), default=0) + 1
     scene_id = scene.get('id') or scene.get('location') or 'scene'
     transitions, created = [], []
-    physical_types = {'entity_moved', 'item_transferred', 'relation_added'}
+    physical_types = {'entity_moved', 'item_transferred', 'relation_added',
+                      'place_linked', 'place_unlinked'}
     for section, declaration in creation_first_sections(sections):
         owner = registry.owner_of_section(section)
         if owner is None or not declaration:
@@ -271,8 +300,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
             event_owner = registry.owner_of_event(event['type'])
             if event_owner is None:
                 raise ValueError('Repair outcome cannot preview an unowned event')
-            if item_event_error(preview, event):
-                raise ValueError('Repair outcome contains an inconsistent item transition')
+            if item_event_error(preview, event) or place_event_error(preview, event):
+                raise ValueError('Repair outcome contains an inconsistent physical transition')
             physical = (event['type'] in physical_types and
                         (event['type'] != 'relation_added' or
                          event.get('deltas', {}).get('rel') == 'located_in'))
