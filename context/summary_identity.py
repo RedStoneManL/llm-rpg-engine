@@ -120,11 +120,18 @@ def build_summary_identity(registry, events, buckets) -> dict:
     packet = {"version": 1, "coverage": coverage, "groups": []}
     historical = {}
 
-    def bind(scene, text):
+    def bind(scene, text, explicit_source=None, *, has_explicit_source=False):
         unknown = {"status": "unknown"}
         if not _identifier(scene) or not isinstance(text, str) or not text:
             return unknown
         matches = narrations.get((scene, text), [])
+        if has_explicit_source:
+            if not isinstance(explicit_source, dict) or not _identifier(explicit_source.get('id')):
+                return unknown
+            ref = explicit_source['id']
+            if ids[ref] != 1:
+                return unknown
+            matches = [(index, event) for index, event in matches if event.get('id') == ref]
         if len(matches) != 1:
             return unknown
         narration_index, narration = matches[0]
@@ -206,7 +213,13 @@ def build_summary_identity(registry, events, buckets) -> dict:
             offset += (len(text) if isinstance(text, str) else 0) + 1
             if (index, raw_index) not in selected:
                 continue
-            passage = {"raw_index": raw_index, **bind(scene, text)}
+            sources_for_bucket = bucket.get('narration_sources')
+            has_explicit_source = 'narration_sources' in bucket
+            explicit_source = (sources_for_bucket[raw_index]
+                if isinstance(sources_for_bucket, list) and len(sources_for_bucket) == len(raw)
+                and raw_index < len(sources_for_bucket) else None)
+            passage = {"raw_index": raw_index, **bind(scene, text, explicit_source,
+                has_explicit_source=has_explicit_source)}
             if isinstance(text, str):
                 passage["raw_span"] = {"start": start, "end": start + len(text)}
             group["passages"].append(passage)

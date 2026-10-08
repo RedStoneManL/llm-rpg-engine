@@ -37,6 +37,8 @@ fragment; the assembler handles the dual-layer split).
 """
 from __future__ import annotations
 
+import copy
+
 from kernel.contextsystem import ContextSystem, Fragment
 from engine.log import get_logger
 
@@ -94,6 +96,8 @@ class NarrativeSystem(ContextSystem):
             "scenes": [],
             "player_inputs": [],
             "super_summary": None,
+            "super_summary_evidence": None,
+            "super_summary_created": None,
             "summarized_through_index": 0,
         }
 
@@ -108,7 +112,6 @@ class NarrativeSystem(ContextSystem):
         t = event["type"]
 
         if t == 'player_input_recorded':
-            import copy
             from systems.player_sources import valid_player_input
             if not valid_player_input(event):
                 raise ValueError('Invalid player input source event')
@@ -127,23 +130,33 @@ class NarrativeSystem(ContextSystem):
                 log.warning("narrative.apply: narration_recorded missing text — skipped")
                 return
             buckets = ns["scenes"]
+            source = {key: event.get(key) for key in ("id", "turn", "day", "scene")}
             if (buckets and buckets[-1]["scene"] == scene
+                    and buckets[-1].get("summary") is None
                     and len(buckets[-1]['raw']) < RECAP_TURNS_PER_BUCKET):
                 # Append to current scene bucket
                 buckets[-1]["raw"].append(text)
+                buckets[-1].setdefault("narration_sources", []).append(source)
             else:
                 # New scene → new bucket
-                buckets.append({"scene": scene, "raw": [text], "summary": None})
+                buckets.append({"scene": scene, "raw": [text], "summary": None,
+                                "bucket_id": event.get("id"), "narration_sources": [source]})
             log.debug("narrative.apply: narration_recorded scene=%s text_len=%d", scene, len(text))
 
         elif t == "scene_summarized":
             scene = d.get("scene")
             summary = d.get("summary")
             buckets = ns["scenes"]
-            # Find the FIRST bucket for this scene whose summary is None and set it
+            # Exact new bucket identity; only old events retain scene fallback.
+            # A malformed explicit identity must not select a different visit.
             for bucket in buckets:
-                if bucket["scene"] == scene and bucket.get("summary") is None:
+                target = (isinstance(d["bucket_id"], str) and bool(d["bucket_id"])
+                          and bucket.get("bucket_id") == d["bucket_id"]
+                          if "bucket_id" in d else bucket["scene"] == scene)
+                if target and bucket["scene"] == scene and bucket.get("summary") is None:
                     bucket["summary"] = summary
+                    bucket["summary_evidence"] = copy.deepcopy(d.get("evidence"))
+                    bucket["summary_created"] = {key: event.get(key) for key in ("id", "turn", "day")}
                     log.debug("narrative.apply: scene_summarized scene=%s", scene)
                     return
             log.debug("narrative.apply: scene_summarized scene=%s — no unsummarized bucket found", scene)
@@ -151,6 +164,8 @@ class NarrativeSystem(ContextSystem):
         elif t == "recap_recompressed":
             if "super_summary" in d:
                 ns["super_summary"] = d["super_summary"]
+                ns["super_summary_evidence"] = copy.deepcopy(d.get("evidence"))
+                ns["super_summary_created"] = {key: event.get(key) for key in ("id", "turn", "day")}
             idx = d.get("summarized_through_index")
             if idx is not None:
                 ns["summarized_through_index"] = idx
@@ -175,11 +190,13 @@ class NarrativeSystem(ContextSystem):
         if not buckets:
             return None
 
+        from context.narrative_evidence import read_narrative_evidence, format_narrative_evidence
         recent = buckets[-RECAP_RAW_SCENES:]
         lines = ["【最近剧情·原文】（延续性，每回合必看）"]
         for bucket in recent:
             raw_texts = bucket.get("raw", [])
             if raw_texts:
+                lines.append(format_narrative_evidence(read_narrative_evidence(bucket)))
                 lines.append(f"〔{bucket['scene']}〕" + "".join(raw_texts))
 
         if len(lines) == 1:

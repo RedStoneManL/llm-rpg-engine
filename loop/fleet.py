@@ -88,19 +88,22 @@ def _summary_validate(obj):
             else ['missing or empty string field "summary"'])
 
 
-def recompress_summaries(provider, previous: str, summaries: list[str], *, identity=None):
+def recompress_summaries(provider, previous: str, summaries: list[str], *, identity=None, evidence=None):
     """Existing recompression call, with optional source-bound identity evidence."""
     user = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
             + previous + '\n' + '\n'.join(summaries))
     if identity is not None:
         from context.summary_identity import format_summary_identity
         user = format_summary_identity(identity) + '\n\n' + user
+    if evidence is not None:
+        from context.narrative_evidence import format_narrative_evidence
+        user = format_narrative_evidence(evidence) + "\n\n" + user
     return complete_structured(provider, system=_RECOMPRESS_SYSTEM, user=user,
         validate=_summary_validate, max_repairs=1,
         schema_reminder='Required: {"summary": "总概要"}', log_label="recap")
 
 
-def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=None) -> dict | None:
+def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=None, evidence=None) -> dict | None:
     """Cheap-model summarize a scene's raw narration texts into one-line summary.
 
     Returns a scene_summarized kernel_event, or None on failure.
@@ -110,6 +113,9 @@ def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=N
         if identity is not None:
             from context.summary_identity import format_summary_identity
             user = format_summary_identity(identity) + "\n\n" + user
+        if evidence is not None:
+            from context.narrative_evidence import format_narrative_evidence
+            user = format_narrative_evidence(evidence) + "\n\n" + user
         obj, errors = complete_structured(
             provider,
             system=_SUMMARIZE_SYSTEM,
@@ -273,17 +279,23 @@ def digest_fleet(
 
             if aged is not None:
                 # Find the aged bucket's raw texts
-                aged_bucket = next(
-                    (b for b in ns.get("scenes", []) if b["scene"] == aged and b.get('summary') is None),
-                    None,
+                aged_index, aged_bucket = next(
+                    ((i, b) for i, b in enumerate(ns.get("scenes", []))
+                     if b["scene"] == aged and b.get('summary') is None),
+                    (None, None),
                 )
                 if aged_bucket and aged_bucket.get("raw"):
                     from context.summary_identity import build_summary_identity
-                    identity = build_summary_identity(registry, store.iter_events(),
-                        [{**aged_bucket, 'scope': 'scene'}])
+                    from context.narrative_evidence import build_narrative_evidence
+                    inputs = [{**aged_bucket, 'scope': 'scene', 'bucket_index': aged_index}]
+                    identity = build_summary_identity(registry, store.iter_events(), inputs)
+                    evidence = build_narrative_evidence(registry, store.iter_events(), inputs, identity=identity)
                     summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"],
-                                              identity=identity)
+                                              identity=identity, evidence=evidence)
                     if summ_ev is not None:
+                        summ_ev["deltas"]["evidence"] = evidence
+                        if isinstance(aged_bucket.get("bucket_id"), str) and aged_bucket["bucket_id"]:
+                            summ_ev["deltas"]["bucket_id"] = aged_bucket["bucket_id"]
                         next_turn = _next_turn_in_store(store)
                         summ_ev["turn"] = next_turn
                         arc_day = max((ev.get("day", 1) for ev in new_events), default=1) if new_events else 1
@@ -317,8 +329,17 @@ def digest_fleet(
                                 ]
                                 identity = build_summary_identity(registry, store.iter_events(),
                                                                   identity_buckets)
+                                from context.narrative_evidence import combine_narrative_evidence, read_narrative_evidence
+                                dependencies = [read_narrative_evidence(bucket, summary=True)
+                                    for _, bucket in pending_summaries[:nmod.RECAP_SUMMARY_FANOUT]]
+                                if previous:
+                                    dependencies.insert(0, read_narrative_evidence({
+                                        'summary_evidence': ns2.get('super_summary_evidence'),
+                                        'summary_created': ns2.get('super_summary_created')}, summary=True))
+                                recap_evidence = combine_narrative_evidence(dependencies)
                                 rc_obj, rc_errors = recompress_summaries(
-                                    recap_provider, previous, oldest_summaries, identity=identity)
+                                    recap_provider, previous, oldest_summaries,
+                                    identity=identity, evidence=recap_evidence)
                                 rc_summary = (rc_obj.get("summary") or "").strip() if isinstance(rc_obj, dict) else ""
                                 if rc_summary and not rc_errors:
                                     rc_ev = kernel_event(
@@ -328,6 +349,7 @@ def digest_fleet(
                                         summary="recap recompressed",
                                         deltas={
                                             "super_summary": rc_summary,
+                                            "evidence": recap_evidence,
                                             "summarized_through_index": pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1,
                                         },
                                         turn=_next_turn_in_store(store),

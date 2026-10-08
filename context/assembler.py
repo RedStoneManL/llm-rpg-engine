@@ -230,6 +230,7 @@ def assemble_context(
     # fragment (appears in `base` above).  The STABLE-layer summary block (aged scene
     # summaries + super_summary) is rendered here directly from the slice — one system
     # contributes one inject fragment to avoid double-rendering the recent raw.
+    from context.narrative_evidence import read_narrative_evidence, format_narrative_evidence
     recap_summary_lines: list[str] = []
     ns = world.get("systems", {}).get("narrative") or {}
     buckets = ns.get("scenes", [])
@@ -243,8 +244,12 @@ def assemble_context(
         recap_summary_lines.append("## [stable]")
         recap_summary_lines.append("【往昔概要】（更早剧情的压缩记忆）")
         if super_summary:
+            recap_summary_lines.append(format_narrative_evidence(read_narrative_evidence({
+                'summary_evidence': ns.get('super_summary_evidence'),
+                'summary_created': ns.get('super_summary_created')}, summary=True)))
             recap_summary_lines.append(f"«总览» {super_summary}")
         for b in aged_with_summary:
+            recap_summary_lines.append(format_narrative_evidence(read_narrative_evidence(b, summary=True)))
             recap_summary_lines.append(f"«{b['scene']}» {b['summary']}")
 
     # Build final output: recap stable block + base + scene viewpoint block + volatile recall block
