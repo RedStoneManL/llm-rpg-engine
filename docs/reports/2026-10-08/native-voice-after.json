@@ -1,0 +1,32 @@
+{
+  "base_commit": "65469fc4eaefb75e5e0f4c870c36f44bb7791e4a",
+  "source_hashes": {
+    "data/oracles/isekai/pack.json": "4a840a830aaff6adebb70cd3c10c224eaa5b2bb2b020c7893e6cece73f1bdfaa",
+    "data/oracles/isekai/narrative_variations.json": "9457d0afc7fce9af7ffba1e5d893f3c399f2b4a1cf832f16b02e02b610c00b15"
+  },
+  "workflow": "Fresh independent native GPT-6 Astra player and fresh provider per actual engine request; real play_loop; research tools disabled; normal hooks; no mid-run edits",
+  "player_inputs": 6,
+  "committed_story_turns": 5,
+  "clarification_only_inputs": 1,
+  "actual_model_responses": 11,
+  "return_intent_responses": 6,
+  "narration_responses": 5,
+  "repairs": 0,
+  "observations": [
+    "All five delivered story responses used dialogue/visible behavior rather than invented protagonist internal evaluations.",
+    "Humor remained through puppeteer dialogue about duck swimming but not climbing out.",
+    "Player voluntarily investigated machinery and then chose a limited shore-observation role; NPC explained stopping conditions and awaited player choice.",
+    "Seal remained player-held, existing obligation remained singular."
+  ],
+  "failure_retained": "First natural input 第三天中午前 paused at deadline clarification: absolute Chinese ordinal unsupported; after explicit 第3天中午 reply story proceeded. Existing parser also strips before qualifiers, a separate uncorrected boundary problem.",
+  "residuals": [
+    "Four fallback dark records were still created from activity facts/moves; no fix to backstop in this voice-only change.",
+    "Episode ends after first trial with follow-up tuning unresolved.",
+    "No long-term memory, cross-day or summary/recompression coverage in this short voice sample."
+  ],
+  "limits": [
+    "One stochastic story, no matched causal or statistical before/after claim.",
+    "Native Astra, not DS validation. No new DS calls.",
+    "No production latency or model cost measurement."
+  ]
+}
