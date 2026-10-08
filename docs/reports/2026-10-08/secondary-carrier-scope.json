@@ -1,0 +1,148 @@
+{
+  "base_commit": "ce16f4f42432bccf36ff36d78a9652190f969aad",
+  "source_sha256": "c11973bc36fabfdeda10aa40d0d879f3df5dbd04c6ad6bf3ec0a01687646c1c3",
+  "model": "native GPT-6 Astra",
+  "method": "One fresh extraction per fixed candidate, not a new Author draw, repair-until-pass loop or gameplay commit.",
+  "cases": [
+    {
+      "case": "recorded_actual_bag",
+      "purpose": "Existing real small-cloth-bag presentation carrier may be excluded narrowly while all typed wood/knife transfers remain audited.",
+      "passed": true,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [
+        {
+          "quote": "才解开随身的小布包，取出一小块直纹木片和一把带鞘削刀。",
+          "verdict": "out_of_scope",
+          "support": [
+            {
+              "item": "obj_xu_well_patch_blank",
+              "transition_index": 0
+            },
+            {
+              "item": "obj_xu_carving_knife",
+              "transition_index": 1
+            }
+          ]
+        }
+      ],
+      "issues": []
+    },
+    {
+      "case": "constructed_bamboo_case",
+      "purpose": "Different ordinary presentation carrier: a narrow bamboo case retained by the NPC frames retrieval of separately tracked wood and knife.",
+      "passed": true,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [
+        {
+          "quote": "才揭开随身细竹匣的匣盖，取出一小块直纹木片和一把带鞘削刀",
+          "verdict": "out_of_scope",
+          "support": [
+            {
+              "item": "obj_xu_well_patch_blank",
+              "transition_index": 0
+            },
+            {
+              "item": "obj_xu_carving_knife",
+              "transition_index": 1
+            }
+          ]
+        }
+      ],
+      "issues": []
+    },
+    {
+      "case": "constructed_carrier_handoff",
+      "purpose": "Carrier itself is handed to and retained by player without any carrier Object or typed effect; the exception must not hide this transfer or player possession.",
+      "passed": false,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [],
+      "issues": [
+        {
+          "quote": "才解开随身的小布包",
+          "kind": "possession",
+          "verdict": "unsupported"
+        },
+        {
+          "quote": "接着他把小布包也递给你，你接住并系在自己腰间。",
+          "kind": "transfer",
+          "verdict": "unsupported"
+        },
+        {
+          "quote": "你接住并系在自己腰间。",
+          "kind": "possession",
+          "verdict": "unsupported"
+        }
+      ]
+    },
+    {
+      "case": "constructed_requested_inspection",
+      "purpose": "Player explicitly asks to open and inspect the carrier itself, so its possession is task-relevant despite unchanged item effects.",
+      "passed": false,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [],
+      "issues": [
+        {
+          "quote": "才解开随身的小布包",
+          "kind": "possession",
+          "verdict": "unsupported"
+        }
+      ]
+    },
+    {
+      "case": "constructed_functional_carrier",
+      "purpose": "Carrier becomes a functional support in the repair result and is placed into the work site without typed custody effects; it cannot be presentation-only.",
+      "passed": false,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [],
+      "issues": [
+        {
+          "quote": "才解开随身的小布包",
+          "kind": "possession",
+          "verdict": "unsupported"
+        },
+        {
+          "quote": "随后他把小布包折成垫片压进榫口下缘",
+          "kind": "transfer",
+          "verdict": "unsupported"
+        },
+        {
+          "quote": "随后他把小布包折成垫片压进榫口下缘，准备用它承住补片的重量。",
+          "kind": "possession",
+          "verdict": "unsupported"
+        }
+      ]
+    },
+    {
+      "case": "constructed_tracked_alias_conflict",
+      "purpose": "Previously tracked carrier has a public canonical name naming the small-bag alias and is physically held by protagonist throughout. Unchanged prose wrongly presents NPC custody; neither alias nor null binding may hide this.",
+      "passed": false,
+      "fresh_responses": 1,
+      "events_written": 0,
+      "carriers": [],
+      "issues": [
+        {
+          "quote": "许掌事先俯身看了看下缘的凹处，才解开随身的小布包",
+          "kind": "possession",
+          "verdict": "contradiction"
+        }
+      ]
+    }
+  ],
+  "protection_boundary": "Host checks typed content custody/transitions and full admitted item-effect footprint. Carrier role, aliases, intent and causal relevance remain model interpretations; out_of_scope is not canonical carrier truth.",
+  "fixture_revision": "Before case6 invocation, one constructed actor knowledge event was added so the intended existing-Object alias was actually visible. Previous fixture/manifests preserved; no result was used to select this correction.",
+  "harness_incidents": [
+    "The old runner and continuation consumed the same case2 response, then directory collisions caused stale summary artifacts. Exactly six immutable request/response pairs remained; no seventh model response or game commit. Reports were reconciled from those pairs; overlap artifacts retained.",
+    "Initial guard helper argument-type mistake excluded. Missing-handoff guard with stale indices is parser rejection evidence, not proof that the new eligibility branch detected a missing action."
+  ],
+  "limits": [
+    "Six single samples do not establish a general false-positive/false-negative rate.",
+    "No new end-to-end successful repair story is claimed.",
+    "Global resource/task/promise blocks remain; unrelated typed item effects can still make a mixed turn ineligible.",
+    "The old failed action7 remains rejected in its original saved trace."
+  ]
+}

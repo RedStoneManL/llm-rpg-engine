@@ -14,8 +14,8 @@ import re
 from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
-VERSION = 'semantic_commit_v10'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v11-sustained-point-states'
+VERSION = 'semantic_commit_v12'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v12-secondary-carriers'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -79,7 +79,7 @@ introduced, or placed. Never turn such a binding into a location or observed ide
 
 Return exactly one JSON object with keys version, claims, coverage, scene_state_support.
 scene_state_support is empty unless the optional source-bound contract below applies.
-version must be "semantic_commit_v10". claims is an array of at most 64 assertions. Inspect EVERY
+version must be "semantic_commit_v12". claims is an array of at most 64 assertions. Inspect EVERY
 narration span. Extract ALL consequential literal physical assertions about identifiable
 people or particular places: current placement/co-presence, actual arrival/departure,
 direct passage connectivity or opening/closing, current physical possession,
@@ -158,23 +158,42 @@ Additional fields depend on kind:
  incidental_prop case below. A null Object ID alone never qualifies for that exception.
 
 incidental_prop is ONLY positive possession of an untracked ordinary prop by an already
-present, identified NON-PLAYER NPC, used merely in a background gesture. It neither
-changes custody nor affects the player's task, evidence, resources, choices, or requested
-inspection. Keep such a claim in the extraction; do not omit it. Mark out-of-scope only
+present, identified NON-PLAYER NPC. The background_only branch is merely a background
+gesture, with no custody change or effect on the player's task, evidence, resources,
+choices, or requested inspection. A separate narrow secondary_carrier branch is below. Keep such a claim in the extraction; do not omit it. Mark out-of-scope only
 through this explicit classification, never claim that the prop's custody is canonical.
 For any claim with scope=incidental_prop add exactly one extra field:
- relevance: {status: "background_only" | "task_relevant" | "uncertain",
+ relevance: {status: "background_only" | "secondary_carrier" | "task_relevant" | "uncertain",
              object_quote: an exact nonempty contiguous item-description quote inside quote}.
 Explain relevance to the actual player input/whole candidate in binding_reason. Use a
 clear before/after checkpoint; uncertain timing/relevance cannot certify background.
 A canonical or candidate Object is always tracked even in decorative prose. Every
-handoff/pickup/gift/change of custody, player possession, task-relevant use/inspection,
+handoff/pickup/gift/change of custody, player possession, direct task use/inspection,
 payment/consumption/damage/evidence manipulation remains canonical_transition, including
 new or unbound objects. Preserve their critical claims separately if mixed with scenery.
 A task's key and an object the player asks about are consequential even without an ID.
 Do not hide a tracked-object contradiction behind a vague label or a null reference.
-The host policy may disable this exception during explicit item/task/resource operations;
+The host policy may disable the background exception during item/task/resource operations;
 classify the prose honestly anyway. Background relevance remains a model judgment.
+A distinct secondary_carrier role may describe an untracked NPC presentation carrier
+for separately tracked contents during an item-only action. It is NOT background_only
+and NOT proof that the carrier exists or belongs to the NPC. Only for this status add
+relevance.support=[{item: admitted Object ID, transition_index: integer}, ...], one entry
+per content Object, at most 16. Cite real NPC-to-actor handoffs in packet.transitions;
+the NPC must hold every content item at the explicit carrier checkpoint and through
+its pre-handoff checkpoints. Use before/after or explicit transition_before/after, never
+unknown/throughout. All item-effect IDs in carrier_item_scope.items must be supported.
+Explain the exact phrase's presentation role and its relation to these contents in
+binding_reason; source references alone do not prove that semantic role.
+A carrier is ineligible if the player requests, selects, inspects, opens or manipulates
+it, if it is transferred/damaged/consumed/paid for, or if it provides evidence, access,
+concealment, measured quantity or a functional task result. Uncertain role/alias is NOT
+secondary_carrier. Existing or candidate Objects remain typed even when decorative.
+A container merely framing NPC retrieval can qualify; a vessel used to transport a
+substance, a cloth used to erase evidence, or a lockbox establishing access cannot.
+Resource/task/promise gates remain conservative. Extract all contents' actual custody,
+handoffs and other consequential claims separately. This role never suppresses them.
+
 People references must bind to Person and place references to Place. Never invent IDs.
 
 mode=current means a literal state at the narrative endpoint; completed means a literal
@@ -403,7 +422,8 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
         entities = _bounded([copy.deepcopy(row) for row in physical['entities']
                              if row['type'] in {'Person', 'Place', 'Object'}], 'visible entities')
         candidates = _creation_refs(registry, world, commit, commit.narration)
-        incidental_policy = _incidental_policy(world, scene, commit)
+        incidental_policy = _incidental_policy(world, scene, commit,
+            {row['id'] for row in entities + candidates if row['type'] == 'Object'})
         opening_people, reference_bindings = [], []
         if commit._semantic_context:
             from loop.genesis_opening import reference_packet, opening_material
@@ -561,13 +581,27 @@ def _parse(raw, packet):
                       + (['relevance'] if claim.get('scope') == 'incidental_prop' else []), 'claim')
         if claim.get('scope') == 'incidental_prop':
             relevance = claim['relevance']
-            _require_keys(relevance, ('status', 'object_quote'), 'incidental relevance')
-            if (relevance['status'] not in {'background_only', 'task_relevant', 'uncertain'}
+            carrier = relevance.get('status') == 'secondary_carrier' if isinstance(relevance, dict) else False
+            _require_keys(relevance, ('status', 'object_quote', *(['support'] if carrier else [])), 'incidental relevance')
+            if (relevance['status'] not in {'background_only', 'secondary_carrier', 'task_relevant', 'uncertain'}
                     or not isinstance(relevance['object_quote'], str)
                     or not relevance['object_quote'].strip()
                     or not isinstance(claim.get('quote'), str)
                     or relevance['object_quote'] not in claim['quote']):
                 raise SemanticCommitError('Invalid incidental relevance evidence')
+            if carrier:
+                support = relevance['support']
+                if not isinstance(support, list) or not 1 <= len(support) <= 16:
+                    raise SemanticCommitError('Secondary carrier needs bounded typed content support')
+                seen_contents = set()
+                for row in support:
+                    _require_keys(row, ('item', 'transition_index'), 'carrier content support')
+                    item, index = row['item'], row['transition_index']
+                    if (not isinstance(item, str) or known.get(item) != 'Object'
+                            or item in seen_contents or type(index) is not int
+                            or not 0 <= index < len(packet['transitions'])):
+                        raise SemanticCommitError('Invalid secondary carrier content binding')
+                    seen_contents.add(item)
         cid = claim['id']
         if not isinstance(cid, str) or not cid.strip() or len(cid) > 80 or cid in ids:
             raise SemanticCommitError('Semantic claim id is invalid or duplicated')
@@ -770,7 +804,7 @@ def _moment_position(packet, claim):
     return None
 
 
-def _incidental_policy(world, scene, commit):
+def _incidental_policy(world, scene, commit, admitted_objects):
     from loop.resources import resource_scope_status
     graph = world['systems']['ontology']
     tracked = {eid for eid, entity in graph.entities.items() if entity.etype == 'Object'}
@@ -788,39 +822,101 @@ def _incidental_policy(world, scene, commit):
         protected |= any(record.get('debtor') == scene.get('protagonist')
                          and record.get('created_turn') == turn
                          for record in records.values() if isinstance(record, dict))
+    hard_block = any(bool(commit.sections.get(name)) for name in ('quests', 'promises'))
+    hard_block |= scene.get('_semantic_return_commitment') is True
+    if type(turn) is int:
+        hard_block |= any(record.get('debtor') == scene.get('protagonist')
+                         and record.get('created_turn') == turn
+                         for record in records.values() if isinstance(record, dict))
+    footprint, attributable = set(), True
+    for row in commit.sections.get('items') or []:
+        op = row.get('op', 'create') if isinstance(row, dict) else None
+        key = 'item' if op == 'transfer' else 'id'
+        item = row.get(key) if isinstance(row, dict) else None
+        if op not in {'create', 'transfer', 'materialize'} or not isinstance(item, str):
+            attributable = False
+        else:
+            footprint.add(item)
+    for row in commit.sections.get('entities') or []:
+        if isinstance(row, dict) and row.get('etype') == 'Object':
+            item = row.get('id')
+            if not isinstance(item, str):
+                attributable = False
+            else:
+                footprint.add(item)
+    objects = tracked | footprint
+    for row in commit.sections.get('facts') or []:
+        if isinstance(row, dict) and row.get('subject') in objects:
+            footprint.add(row['subject'])
+    for row in commit.sections.get('relations') or []:
+        if isinstance(row, dict):
+            footprint.update(row[key] for key in ('src', 'dst') if row.get(key) in objects)
+    eligible = (not hard_block and attributable and bool(footprint)
+                and len(footprint) <= 16 and footprint.issubset(admitted_objects))
+    # Hidden or unbound effect identities never escape through eligibility metadata.
     return {'resource_action': resource_scope_status(world, scene),
-            'protected_effects': bool(protected)}
+            'protected_effects': bool(protected),
+            'carrier_item_scope': {'eligible': bool(eligible),
+                                   'items': sorted(footprint) if eligible else []}}
+
 
 
 def _incidental_scope(packet, claim):
-    """Only a bounded exemption, never positive proof of an untracked prop."""
+    """A bounded exclusion from tracking, never proof that the prop exists."""
     canonical = 'canonical_transition'
     refs = claim['refs']
+    relevance = claim.get('relevance', {})
+    secondary = relevance.get('status') == 'secondary_carrier'
+    moments = {'before', 'after', 'transition_before', 'transition_after'} if secondary else {'before', 'after'}
     if (claim['kind'] != 'possession' or claim.get('present') is not True
             or refs.get('item') is not None or claim['mode'] not in {'current', 'completed'}
-            or claim['moment'] not in {'before', 'after'} or claim['transition_index'] is not None
-            or claim.get('relevance', {}).get('status') != 'background_only'):
+            or claim['moment'] not in moments
+            or relevance.get('status') not in {'background_only', 'secondary_carrier'}):
         return canonical, 'This assertion cannot qualify as confident incidental NPC prop handling.'
     holder = refs.get('holder')
     types = {row['id']: row['type'] for row in packet['entities']}
     if holder == packet['actor_id'] or types.get(holder) != 'Person':
         return canonical, 'Player, Place, candidate-only or unbound holders are not incidental NPCs.'
     policy = packet.get('incidental_policy', {})
-    if policy.get('resource_action') != 'none' or policy.get('protected_effects') is not False:
-        return canonical, 'Current item, task or resource scope does not certify this exemption.'
+    if policy.get('resource_action') != 'none':
+        return canonical, 'Current resource scope does not certify this exemption.'
+    if not secondary and policy.get('protected_effects') is not False:
+        return canonical, 'Current item or task scope does not certify the background exemption.'
     before = packet['before']; state = _state_at(packet, claim)
     if (state is None or not before.get('actor_location') or not state.get('actor_location')
             or [r['location'] for r in before['positions'] if r['who'] == holder] != [before['actor_location']]
             or [r['location'] for r in state['positions'] if r['who'] == holder] != [state['actor_location']]):
         return canonical, 'Incidental props require an already-present, canonically co-located NPC.'
-    # A literal authorized ID/label hit only blocks an exemption. It is not a
-    # semantic resolver and does not certify that unseen synonyms are unrelated.
     from systems.player_sources import source_mentions
-    item_quote = claim['relevance']['object_quote']
+    item_quote = relevance['object_quote']
     for row in packet['entities'] + packet['candidate_refs']:
         if row['type'] == 'Object' and any(source_mentions(item_quote, label)
                 for label in (row['id'], row.get('name')) if isinstance(label, str)):
             return canonical, 'The quoted prop matches a tracked visible object reference.'
+    if secondary:
+        scope = policy.get('carrier_item_scope', {})
+        support = relevance.get('support', [])
+        supported_items = {row['item'] for row in support}
+        if (scope.get('eligible') is not True or not scope.get('items')
+                or set(scope['items']) != supported_items):
+            return canonical, 'Secondary carrier support does not cover the admitted item-effect footprint.'
+        anchor = _moment_position(packet, claim)
+        for row in support:
+            index, item = row['transition_index'], row['item']
+            transition = packet['transitions'][index]
+            if (transition['kind'] != 'item_transfer' or transition.get('item') != item
+                    or transition.get('from') != holder or transition.get('to') != packet['actor_id']
+                    or anchor > 2 * index + 1):
+                return canonical, 'Secondary contents lack the bound NPC-to-actor handoff after the carrier checkpoint.'
+            custody = {**claim, 'scope': 'canonical_transition',
+                       'refs': {'item': item, 'holder': holder}, 'present': True}
+            supported, _, _ = _state_interval_supported(packet, custody, anchor, 2 * index + 1)
+            receiver = {**custody, 'moment': 'transition_after', 'transition_index': index,
+                        'refs': {'item': item, 'holder': packet['actor_id']}}
+            received, _, _ = _verdict(packet, receiver, 0)
+            if not supported or received != 'supported':
+                return canonical, 'Secondary contents lack explicit source-through-handoff and receiver custody.'
+        return 'incidental_prop', 'Model-classified secondary presentation carrier is outside tracking; supported contents remain independently audited, not proof of carrier custody or permission.'
     return 'incidental_prop', 'Model-classified background NPC prop detail is outside typed custody tracking, not a supported canonical fact.'
 
 
