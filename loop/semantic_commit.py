@@ -13,8 +13,8 @@ import re
 from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
-VERSION = 'semantic_commit_v7'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v7-materialization'
+VERSION = 'semantic_commit_v8'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v8-context-dependencies'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -43,6 +43,7 @@ _LIMITS = [
     'Incidental NPC prop relevance is probabilistic; host limits prevent specified typed/task/resource cases from being exempted but cannot prove natural-language irrelevance.',
     'Item custody is physical, not legal ownership or permission. Negative-transfer absence is not proven. Whole-primary-turn custody needs a positive host certificate; historical intervals are not covered.',
     'Materialization source entailment is a probabilistic semantic attestation of an exact actor-visible historical fact, not proof of legal ownership, permission, or action authority. Preview custody cannot attest its own origin.',
+    'Narration-context dependencies are model interpretations, not proof of semantic independence. Reused interpretations receive fresh deterministic verdicts against the current packet.',
 ]
 
 
@@ -68,7 +69,7 @@ Candidate refs are author-declared bindings only; they do not prove anyone was o
 introduced, or placed. Never turn such a binding into a location or observed identity.
 
 Return exactly one JSON object with keys version, claims, coverage. version must be
-"semantic_commit_v7". claims is an array of at most 64 assertions. Inspect EVERY
+"semantic_commit_v8". claims is an array of at most 64 assertions. Inspect EVERY
 narration span. Extract ALL consequential literal physical assertions about identifiable
 people or particular places: current placement/co-presence, actual arrival/departure,
 direct passage connectivity or opening/closing, current physical possession,
@@ -180,11 +181,25 @@ all intermediate actions or states to equal the final state. Read transitions in
 
 coverage must be {complete: boolean, spans: [...]}. Include exactly one row for every
 narration_spans entry: {span_id: id, claim_ids: [all claim ids from this span],
-status: "checked" | "uncertain", no_critical_claims: boolean}.
+status: "checked" | "uncertain", no_critical_claims: boolean,
+context_span_ids: [unique narration span ids], context_complete: boolean}.
 no_critical_claims is true iff that span contains no current/completed/uncertain claims
 with scope=canonical_transition. Local motion is still listed in claim_ids but does not
 make the span critical. The host may override a local scope that conflicts with typed
 references or tries to establish an unplaced person's presence.
+For EACH coverage row, context_span_ids records every narration span whose content is
+needed to interpret this paragraph beyond its own text. Its own span is implicitly a
+dependency and need not be listed. Include context that establishes references, speaker
+identity, quoted/reported speech, a memory/conditional/future frame, temporal ordering,
+task relevance or incidental-prop relevance, and the no_critical_claims classification.
+These dependencies apply even to rows with no claims or no critical claims. Use only
+unique IDs from packet.narration_spans. If interpretation depends on the whole narration,
+list ALL narration span IDs. Never use an empty list to hide whole-narrative dependence.
+context_complete=true attests that this dependency list is complete; use false if the
+dependencies are unknown or cannot confidently be enumerated. Dependency completeness
+is separate from physical-claim coverage: false does not itself mean a claim is missing.
+The actual player input and the packet's non-narration evidence remain shared context;
+list narration dependencies even when that shared evidence is also needed.
 Mark status uncertain and complete false if consequential physical content might be
 missing or is not confidently extracted. Never silently truncate; if more than 64 claims
 are needed mark complete false. An empty claims array is valid only with complete span
@@ -549,11 +564,19 @@ def _parse(raw, packet):
     _bounded(coverage['spans'], 'coverage rows')
     seen_spans = set()
     for row in coverage['spans']:
-        _require_keys(row, ('span_id', 'claim_ids', 'status', 'no_critical_claims'), 'coverage row')
+        _require_keys(row, ('span_id', 'claim_ids', 'status', 'no_critical_claims',
+                            'context_span_ids', 'context_complete'), 'coverage row')
         sid = row['span_id']
         if not isinstance(sid, str) or sid not in spans or sid in seen_spans:
             raise SemanticCommitError('Semantic coverage has an unknown or duplicated span')
         seen_spans.add(sid)
+        context = row['context_span_ids']
+        if (type(row['context_complete']) is not bool
+                or not isinstance(context, list)
+                or any(not isinstance(context_sid, str) or context_sid not in spans
+                       for context_sid in context)
+                or len(context) != len(set(context))):
+            raise SemanticCommitError('Semantic coverage context dependencies are malformed')
         refs = row['claim_ids']
         if (not isinstance(refs, list) or any(not isinstance(cid, str) for cid in refs)
                 or len(refs) != len(set(refs))):
@@ -867,20 +890,50 @@ def _verdict(packet, claim, minimum_position):
     return 'contradiction', 'The assertion conflicts with an explicit canonical physical fact at this moment.', None
 
 
-def audit_once(registry, world, scene, commit, player_input, provider):
-    """Extract once, validate strictly, and compare without tools or event writes.
+def extraction_system_prompt(packet):
+    """Return the complete extraction contract for this packet's optional fields."""
+    return (_PROMPT
+            + (_OPENING_BINDINGS_PROMPT if 'reference_bindings' in packet else '')
+            + (_MATERIALIZATION_ORIGINS_PROMPT if 'materialization_origins' in packet else ''))
 
-    Invalid output raises SemanticCommitError rather than passing silently.
-    Normal unsupported/contradictory prose returns a JSON-safe failed report for
-    a caller's bounded correction policy. This function never retries the model.
+
+def audit_with_capture(registry, world, scene, commit, player_input, provider, reuse=None):
+    """Audit a fresh packet and retain only strictly parsed model interpretations.
+
+    A caller may supply an eligible paragraph-reuse plan within one finalize.
+    Every verdict and the narrative-order cursor are recomputed for the entire
+    current extraction; neither reports nor canonical state are cached here.
     """
     packet = build_semantic_packet(registry, world, scene, commit, player_input)
+    system_prompt = extraction_system_prompt(packet)
+    if reuse is not None:
+        if 'reference_bindings' in packet:
+            raise SemanticCommitError('Opening reference bindings require a full semantic extraction')
+        from loop.semantic_reuse import audit_selective
+        merged, metadata = audit_selective(
+            packet, commit.narration, player_input, provider, reuse, system_prompt)
+        try:
+            raw = json.dumps(merged, ensure_ascii=False, allow_nan=False)
+        except (TypeError, ValueError, RecursionError) as exc:
+            raise SemanticCommitError('Merged semantic extraction is not valid JSON') from exc
+    else:
+        raw = _extract_once(packet, commit.narration, player_input, provider, system_prompt)
+        metadata = {
+            'mode': 'full', 'reused_span_ids': [],
+            'reextracted_span_ids': [row['id'] for row in packet['narration_spans']],
+        }
+    data, _ = _parse(raw, packet)
+    report = evaluate_extraction(packet, raw)
+    report['interpretation_reuse'] = copy.deepcopy(metadata)
+    return report, {'packet': copy.deepcopy(packet), 'data': data}
+
+
+def _extract_once(packet, narration, player_input, provider, system_prompt):
+    """Make the single ordinary full-extraction call, with the request bounded."""
     messages = [
-        {'role': 'system', 'content': _PROMPT
-            + (_OPENING_BINDINGS_PROMPT if 'reference_bindings' in packet else '')
-            + (_MATERIALIZATION_ORIGINS_PROMPT if 'materialization_origins' in packet else '')},
+        {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': _bounded_json({
-            'candidate_prose': commit.narration,
+            'candidate_prose': narration,
             'player_input': player_input,
             'pov_packet': packet,
         }, 'extractor payload')},
@@ -889,8 +942,18 @@ def audit_once(registry, world, scene, commit, player_input, provider):
     # or prose characters. Player input, IDs, JSON escaping, and repeated
     # checkpoint data all consume this same budget. Never crop to fit.
     _bounded_json(messages, 'extractor request')
-    raw = json_call(provider.complete_messages, messages)
-    return evaluate_extraction(packet, raw)
+    return json_call(provider.complete_messages, messages)
+
+
+def audit_once(registry, world, scene, commit, player_input, provider):
+    """Extract once, validate strictly, and compare without tools or event writes.
+
+    Invalid output raises SemanticCommitError rather than passing silently.
+    Normal unsupported/contradictory prose returns a JSON-safe failed report for
+    a caller's bounded correction policy. This function never retries the model.
+    """
+    report, _ = audit_with_capture(registry, world, scene, commit, player_input, provider)
+    return report
 
 
 def evaluate_extraction(packet, raw):

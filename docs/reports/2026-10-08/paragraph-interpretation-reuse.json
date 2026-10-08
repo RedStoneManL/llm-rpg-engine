@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-08",
+  "base_commit": "f9d23e56b3bb8b973cf3c2947c7a480b1e82824c",
+  "method": "fixed recorded Author proposal with fresh native auditors and normal bounded correction; no new full gameplay, no author redraw, no candidate publication",
+  "source_sha256": "fcc811f791b7010610b8142f030ec8b17ffe9002ee3a419f55a15f79d5c4f81b",
+  "fresh_calls": 3,
+  "events_written": 0,
+  "effects_unchanged": true,
+  "world_unchanged": true,
+  "approved": true,
+  "reuse": [
+    {
+      "mode": "full",
+      "reused_span_ids": [],
+      "reextracted_span_ids": [
+        "s0",
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    {
+      "mode": "paragraph_reuse",
+      "reused_span_ids": [
+        "s0",
+        "s1",
+        "s4"
+      ],
+      "reextracted_span_ids": [
+        "s2",
+        "s3"
+      ],
+      "binding_digest": "219cac2e926923f1401223062c430ee6f0099ff63fa6540fa71d4528cd760aaa",
+      "impact": "contained",
+      "impact_reason": "The s2 patch withdraws confirmation of the wood chips’ continued position while preserving 许掌事’s identity, posture, and the post-removal sequence. Retained s0 describes the preceding local actions; s1 independently asserts removal and lack of contact with the chips; s4 asserts continued crank custody from s1. None depends on s2 confirming chip placement. The speaker and local action in dirty s3 remain interpretable from s1 and s2."
+    }
+  ],
+  "first_claims": 8,
+  "first_issues": 1,
+  "final_claims": 7,
+  "retained_raw_claims": 5,
+  "fresh_final_claims": 2,
+  "all_final_verdicts_recomputed": true,
+  "call_count_reduction_claimed": false,
+  "elapsed_seconds": 357.4249100790039,
+  "latency_note": "Native agent handoff included; not provider latency.",
+  "remaining_limits": [
+    "Dependency completeness and final impact remain probabilistic model attestations.",
+    "Unchanged sentences inside a dirty paragraph are re-extracted.",
+    "Wood-chip uncertainty wording versus existing fact/knowledge strength was not adjudicated by this physical audit.",
+    "Fixed recorded Author candidate; no new end-to-end gameplay or event publication.",
+    "Legacy captures retained without new metadata; host mutation checks are separate from real model output."
+  ]
+}

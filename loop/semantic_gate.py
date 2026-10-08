@@ -74,6 +74,15 @@ def _prefix_binding(scene):
                  for event in rows)
 
 
+def _reuse_binding(commit, world, scene, player_input, revision):
+    """Everything except prose must remain identical for local interpretation reuse."""
+    return _hash({'policy': _policy_version(), 'revision': revision,
+        'actor': scene.get('protagonist'), 'context': _context(scene, player_input),
+        'source': _source(world, scene.get('protagonist')),
+        'sections': list(commit.sections.items()), 'host_context': commit._semantic_context,
+        'prefix': _prefix_binding(scene), 'action_turn': world.get('_action_turn')})
+
+
 @dataclass(frozen=True)
 class _Approval:
     version: str
@@ -286,7 +295,8 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
         checked.semantic_audit_log = copy.deepcopy(commit.semantic_audit_log)
         checked.semantic_audit_log.append({'kind': 'semantic_correction',
             'elapsed_seconds': round(time.monotonic() - started, 6)})
-        return checked
+        return checked, {'validated': True, 'patches': copy.deepcopy(data['patches']),
+                         'before_text': commit.narration, 'after_text': checked.narration}
     except (ValueError, TypeError, KeyError, AttributeError) as exc:
         raise TurnRejected('Semantic correction rejected: ' + str(exc)) from None
 
@@ -305,16 +315,22 @@ def finalize_candidate(registry, world, scene, player_input, commit, *, provider
         if not approval_matches(commit, world, scene, player_input, revision):
             raise TurnRejected('Prepared narrative approval is stale; prepare a new candidate')
         return commit
-    from loop.semantic_commit import audit_once, SemanticCommitError
+    from loop.semantic_commit import audit_with_capture, build_semantic_packet, SemanticCommitError
+    from loop.semantic_reuse import plan_reuse
     repaired = commit.narration_rewrite_required
     if repaired:
         _rewrite_repaired_narration(registry, world, scene, player_input, commit,
             provider=provider, required_sections=required_sections)
         commit.semantic_audit_log.append({'kind': 'physical_narration_reconciliation'})
+    reuse = None
     for attempt in range(2):
         try:
             started = time.monotonic()
-            report = audit_once(registry, world, scene, commit, player_input, provider)
+            before_binding = _reuse_binding(commit, world, scene, player_input, revision)
+            if reuse is not None and reuse.get('binding_digest') != before_binding:
+                reuse = None
+            report, capture = audit_with_capture(registry, world, scene, commit,
+                player_input, provider, reuse=reuse)
             report = {**report, 'elapsed_seconds': round(time.monotonic() - started, 6)}
         except (SemanticCommitError, ValueError, TypeError, KeyError) as exc:
             raise TurnRejected('Semantic audit could not verify candidate: ' + str(exc)) from None
@@ -332,7 +348,15 @@ def finalize_candidate(registry, world, scene, player_input, commit, *, provider
             return commit
         if repaired or attempt or commit._semantic_context.get('immutable_prose') is True:
             raise TurnRejected('Narrative still has unsupported or contradictory physical claims')
-        commit = _correct(registry, world, scene, player_input, commit, report, provider,
-                          required_sections)
+        commit, patch_record = _correct(registry, world, scene, player_input, commit,
+                                        report, provider, required_sections)
+        try:
+            new_packet = build_semantic_packet(registry, world, scene, commit, player_input)
+            after_binding = _reuse_binding(commit, world, scene, player_input, revision)
+            reuse = plan_reuse(capture, new_packet, patch_record, before_binding, after_binding)
+        except (SemanticCommitError, ValueError, TypeError, KeyError):
+            # Unsupported patch shapes or unavailable dependencies choose the
+            # existing full final audit before a call, never an extra retry.
+            reuse = None
         repaired = True
     raise TurnRejected('Semantic audit exhausted')
