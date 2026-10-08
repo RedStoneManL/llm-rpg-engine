@@ -15,7 +15,7 @@ from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
 VERSION = 'semantic_commit_v12'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v12-secondary-carriers'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v13-source-evidence-not-chronology'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -1067,12 +1067,11 @@ def _scene_state_verdict(packet, claim, assessment, minimum_position):
         return 'unsupported', 'Fresh model assessment could not establish the static substate from its prior source and current context.', None
     if assessment['status'] == 'contradicted':
         return 'contradiction', 'Fresh model assessment found the static substate contradicted by its full source or current context: ' + assessment['reason'], None
-    position = _moment_position(packet, claim)
-    if position < minimum_position:
-        return 'contradiction', 'The static endpoint precedes an already narrated canonical moment.', None
+    # The selected endpoint scopes the source judgment, not action chronology.
+    # Attesting a static substatement must not consume unrelated physical events.
     return ('source_attested',
-            'A fresh model assessment attests prior-source entailment and continued static state; this is not canonical physical proof.',
-            position)
+            'A fresh model assessment attests prior-source entailment and endpoint continuity; this is not canonical physical proof and consumes no narrative action position.',
+            None)
 
 
 def _verdict(packet, claim, minimum_position, source_assessment=None):

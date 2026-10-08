@@ -1,0 +1,60 @@
+{
+  "base_commit": "3995c3099160fd147ee4599d837f164a409c139e",
+  "comparator_policy": "canonical-checkpoints-items-v13-source-evidence-not-chronology",
+  "extraction_schema": "semantic_commit_v12 unchanged",
+  "method": "Deterministic comparison of exact recorded model responses, no Author redraw, model request or campaign write.",
+  "captured_cases": [
+    {
+      "request": "0011",
+      "original_order_issues": [
+        "c4",
+        "c5",
+        "c6"
+      ],
+      "after_issues": [],
+      "source_claim": "c3",
+      "old_consumed_position": 11,
+      "new_consumed_position": null,
+      "canonical_cursor_remains": 4,
+      "following_action_positions": [
+        6,
+        8,
+        10
+      ]
+    },
+    {
+      "request": "0013",
+      "original_issues": [
+        "c4",
+        "c5",
+        "c6",
+        "c7",
+        "c8",
+        "c9",
+        "c10"
+      ],
+      "after_issues": [],
+      "original_response_and_candidate_unchanged": true
+    }
+  ],
+  "evidence_contract": "The original after endpoint and prior-source/full-after-slot assessment remain. Endpoint attestation consumes no physical action position.",
+  "protection_controls": [
+    "Recorded v10 contradicted after-slot source remains rejected; only wire-version metadata adapted for replay.",
+    "Unknown, forged, missing or misbound source evidence remains rejected.",
+    "True reverse action order and typed custody chronology remain rejected.",
+    "Policy binding invalidates old approval/reuse; source digest format stays unchanged."
+  ],
+  "live_trace_preserved": {
+    "attempts": 2,
+    "commits": 1,
+    "rejections": 1,
+    "fresh_native_responses": 13,
+    "final_events": 140
+  },
+  "limits": [
+    "Replay acceptance is not a retroactive action commit or a new successful playthrough.",
+    "Source entailment and scope classification remain probabilistic.",
+    "Typed state/action chronology has not been relaxed."
+  ],
+  "source_sha256": "5ab5dbc3d837a8311b8733220ae591e6329146bc87f14a9c5a41306a631a3959"
+}
