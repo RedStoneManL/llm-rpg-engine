@@ -457,7 +457,14 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
             co_present = _co_located(cid)
             sketch_believed = knows(graph, pov_id, f"{cid}.sketch", day)
             goal_believed = knows(graph, pov_id, f"{cid}.goal", day)
-            pov_knows_any = (sketch_believed is not None or goal_believed is not None)
+            # Recognition is broader than knowing a profile/goal: an earlier
+            # conversation may establish any character facet. Values below
+            # remain independently gated; recognition grants no new facets.
+            knowledge_prefix = f"knows:{cid}."
+            pov_knows_any = any(
+                fact.subject == pov_id and fact.valid_at(day) and fact.value is not None
+                and fact.predicate.startswith(knowledge_prefix)
+                for fact in graph.facts)
 
             # Never-met: no knows on any facet AND not co-present → known:false
             if not pov_knows_any and not co_present:

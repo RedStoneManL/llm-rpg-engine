@@ -1,0 +1,88 @@
+{
+  "base_commit": "7859aa0b5d3d4d77c785303d55b2b0a69629387c",
+  "source_hashes": {
+    "llm/tools.py": "92fb6de14936f141993d61b73b1677228b14e060d0f0d2df4811d1082811faa9"
+  },
+  "original_tool_call": {
+    "player_turn": 6,
+    "name": "characters_query",
+    "arguments": {
+      "q": "ferry"
+    },
+    "result": "{\"query\": \"ferry\", \"matches\": [{\"id\": \"ferry_attendant_xulan\", \"known\": false}]}"
+  },
+  "exact_pre_T6_tool_replay": {
+    "method": "Exact production tool read on recorded pre-T6 event prefix through seq86, no model call",
+    "scene": {
+      "protagonist": "player",
+      "present": [
+        "guard"
+      ],
+      "day": 1,
+      "id": "s3",
+      "location": "bridge"
+    },
+    "tool": "characters_query",
+    "arguments": {
+      "q": "ferry"
+    },
+    "result": {
+      "query": "ferry",
+      "matches": [
+        {
+          "id": "ferry_attendant_xulan",
+          "班次问询答复": "许岚自称潮汐渡口值守者，在集市路口接待问询；称发船管事正在核对船只，自己尚未取得青桐三号酉初班次的今日确认，并指示沿路口通向河边的路前往渡口。",
+          "替代班次与核实指引": "许岚表示自己目前没有已核准的其他客船名单，建议向发船管事询问今日全部可载客过河班次、开船时辰及上船处；称桥边写有潮汐渡口的问询牌处是管事核船后的答复地点，午前为约定再次交换消息的时间，但不保证届时完成核准。"
+        }
+      ]
+    }
+  },
+  "native_followup": {
+    "input": "我打算乘白鹭二号，排到桌前后问周衡：“这班票价多少，到对岸哪里？我借了东西，第三天中午前得赶回镇上，返程的船该在哪里问、最迟什么时候来得及回来？”",
+    "new_model_responses": 4,
+    "committed_turns": 1,
+    "tools": [
+      {
+        "player_turn": 7,
+        "name": "characters_query",
+        "arguments": {
+          "q": "ferry_dispatcher_zhou"
+        },
+        "result": "{\"query\": \"ferry_dispatcher_zhou\", \"matches\": [{\"id\": \"ferry_dispatcher_zhou\", \"co_present\": true}]}"
+      },
+      {
+        "player_turn": 7,
+        "name": "recall_query",
+        "arguments": {
+          "q": "白鹭二号"
+        },
+        "result": "{\"query\": \"白鹭二号\", \"hits\": []}"
+      },
+      {
+        "player_turn": 7,
+        "name": "map_query",
+        "arguments": {
+          "q": ""
+        },
+        "result": "{\"query\": \"\", \"matches\": [{\"id\": \"inn\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"客栈\", \"exits\": [{\"to\": \"courtyard\", \"travel_cost\": 0}, {\"to\": \"market\", \"travel_cost\": 0}]}, {\"id\": \"courtyard\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"客栈院子\", \"exits\": [{\"to\": \"inn\", \"travel_cost\": 0}, {\"to\": \"bridge\", \"travel_cost\": 0}]}, {\"id\": \"bridge\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"石桥\", \"exits\": [{\"to\": \"courtyard\", \"travel_cost\": 0}, {\"to\": \"market\", \"travel_cost\": 0}], \"known_facts\": {\"今日渡口告示\": \"桥头潮汐渡口问询牌旁张贴的今日告示称：客船班次正在核定，船名、开船时辰及登船口待发船管事到问询处公布；旧班表不作今日乘船凭据。\", \"候船设施\": \"问询牌附近的岸边石阶通向挂有客船候船处标牌的木栈台；当前入口横绳未解，未挂具体船名。下游堆放竹筐的坡道用于货运。\", \"今日核准客船公告\": \"第1天午前，发船管事周衡确认目前核准的客船为白鹭二号，午时正开，从挂有客船候船处标牌的木栈台登船；青桐三号仍未核准，旧表的酉初时辰不能作为确认，新增班次另行公告。\"}}, {\"id\": \"market\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"集市\", \"exits\": [{\"to\": \"bridge\", \"travel_cost\": 0}, {\"to\": \"inn\", \"travel_cost\": 0}]}, {\"id\": \"ferry\", \"known_facts\": {\"今日班次\": \"青桐三号，酉初\"}}]}"
+      }
+    ],
+    "delivered_prose": "队伍往前挪了几步，轮到你时，周衡把木板册转过来，用笔尖点住其中一行。\n\n「白鹭二号，单程十二文，到对岸柳堤埠。平水时走一个时辰左右。」\n\n听到你的返程期限，他没有立刻落笔开票，而是翻了翻后面的册页。\n\n「回程就在柳堤埠的客船问询棚问，报清楚要回潮汐渡口。你下船后就能过去。」他抬起头，「第三天的班还没核准，我现在说哪班是最迟一班，就成了让你拿归期碰运气。」\n\n他用手指轻敲了一下桌沿。\n\n「你要的是午前回到镇上，还得留出下船进镇的工夫。所以得问船什么时候到这边，不能只问什么时候开。若想留些余地，可以打算明天回来；若一定留到第三天，就先确认有午前抵岸、还来得及进镇的晨船。」\n\n周衡把册子翻回白鹭二号那页。\n\n「今天过去的船已经定了。回程那一段，你先问清再安排。」笔尖停在空着的乘客栏旁，等你的答复。",
+    "summary_events": [
+      {
+        "scene": "s2",
+        "summary": "林舟向许岚转述沈掌柜的话后，获建议于午前到潮汐渡口向管事询问青桐三号及其他今日客船，确认船名、开船时辰和登船口再买票但不能保证届时核准，而抵达渡口后发现问询桌前无人、今日班次及登船信息仍待公布且旧班表不能作为今日乘船凭据。"
+      }
+    ]
+  },
+  "coverage_notes": [
+    "Xu Lan gate is verified by exact production-tool replay of original pre-T6 event prefix; fresh T7 model queried co-present Zhou, not Xu Lan.",
+    "Actor scope, non-null temporally valid knowledge and per-facet privacy reviewed independently. No new name/profile/goal knowledge granted.",
+    "Old tools segment lost executor after committed T6; its T7 classifier response exists, but pending narration request0006 has no response/receipt and no committed T7.",
+    "Fresh T7 started from committed T6 with new Author context and corrected gate. It is not an uninterrupted continuation.",
+    "Non-tool segment has4 committed turns/8 responses; old tools segment1 committed turn/5 completed responses including unused T7 classifier; fresh segment1 committed turn/4responses. Total6 new commits and17 completed model responses.",
+    "Natural summaries preserved old-timetable versus pending confirmation; no general long-term-memory guarantee.",
+    "Recall missing known facts and ungrounded third boat remain separate findings; generic fixture schedule does not prove another boat is impossible.",
+    "No DS calls, full unit suite or production latency/cost measurement."
+  ]
+}
