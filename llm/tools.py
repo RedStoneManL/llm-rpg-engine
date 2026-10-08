@@ -262,6 +262,93 @@ def _map_query_fn(world: dict, scene: dict) -> Callable:
 # recall_query POV tool implementation
 # ---------------------------------------------------------------------------
 
+_RECALL_KNOWN_FACT_LIMIT = 16
+_RECALL_KNOWN_FACT_CHARS = 12000
+
+
+def _recall_known_facts(graph, visible_graph, pov: str, day: int, q: str) -> tuple[list[dict], dict]:
+    """Search the actor's canonical beliefs, retaining their own provenance.
+
+    The POV projection can substitute values on both facts and self-knowledge;
+    neither those values nor the underlying truth's source identify a memory.
+    Only the original knows: record is authoritative for this recall lane.
+    """
+    coverage = {
+        "scope": "matching_actor_beliefs", "knower": pov, "as_of_day": day,
+        "matching_count": 0, "returned_count": 0, "omitted_count": 0,
+        "skipped_invalid_count": 0, "partial": False,
+        "absence_is_not_proof_of_ignorance": True,
+    }
+    actor = graph.get_entity(pov) if isinstance(pov, str) else None
+    if (actor is None or actor.etype != "Person" or pov not in visible_graph.entities
+            or type(day) is not int or day < 1):
+        coverage["partial"] = True
+        return [], coverage
+
+    candidates = []
+    for fact in graph.facts:
+        if (fact.subject != pov or not isinstance(fact.predicate, str)
+                or not fact.predicate.startswith("knows:") or fact.value is None):
+            continue
+        fact_key = fact.predicate[len("knows:"):]
+        subject, separator, predicate = fact_key.partition(".")
+        if (not separator or not predicate or subject not in visible_graph.entities
+                or predicate == "hidden" or _is_internal_predicate(predicate)):
+            continue
+        if (type(fact.event_time_start) is not int or fact.event_time_start < 1
+                or type(fact.ingest_turn) is not int or fact.ingest_turn < 0
+                or not isinstance(fact.source_event, str) or not fact.source_event.strip()
+                or (fact.event_time_end is not None
+                    and (type(fact.event_time_end) is not int
+                         or fact.event_time_end < fact.event_time_start))):
+            coverage["skipped_invalid_count"] += 1
+            continue
+        if not fact.valid_at(day):
+            continue
+        try:
+            value_text = json.dumps(fact.value, ensure_ascii=False, allow_nan=False)
+        except (TypeError, ValueError, OverflowError, RecursionError):
+            coverage["skipped_invalid_count"] += 1
+            continue
+        if q in fact_key or q in value_text:
+            candidates.append((fact, fact_key, value_text))
+
+    # Prefer recent grants when the result budget cannot fit every match.
+    candidates.sort(key=lambda item: (
+        item[0].event_time_start, item[0].ingest_turn, item[1], item[0].source_event,
+    ), reverse=True)
+    rows = []
+    used_chars = 2  # JSON list brackets; keep complete rows, including provenance.
+    for fact, fact_key, value_text in candidates:
+        row = {
+            "system": "knowledge", "score": 1.0,
+            "text": f"{pov} believes {fact_key}: {value_text} (may be stale or false)",
+            "kind": "actor_belief", "knower": pov, "fact_key": fact_key,
+            "value": fact.value,
+            "provenance": {
+                "source_event": fact.source_event, "ingest_turn": fact.ingest_turn,
+                "day": fact.event_time_start,
+            },
+        }
+        try:
+            row_chars = len(json.dumps(row, ensure_ascii=False, allow_nan=False)) + (2 if rows else 0)
+        except (TypeError, ValueError, OverflowError, RecursionError):
+            coverage["skipped_invalid_count"] += 1
+            continue
+        if (len(rows) >= _RECALL_KNOWN_FACT_LIMIT
+                or used_chars + row_chars > _RECALL_KNOWN_FACT_CHARS):
+            continue
+        rows.append(row)
+        used_chars += row_chars
+
+    coverage.update({
+        "matching_count": len(candidates), "returned_count": len(rows),
+        "omitted_count": len(candidates) - len(rows),
+        "partial": len(rows) < len(candidates) or bool(coverage["skipped_invalid_count"]),
+    })
+    return rows, coverage
+
+
 def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
     """Return the recall_query closure over (registry, world, scene).
 
@@ -272,6 +359,8 @@ def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
     memory.recall.rank requires embeddings for full scoring — for P3a we use
     kernel.recall.recall (substring matching) which is deterministic and offline.
     Fog is applied post-recall: drop hits whose ref["fact_key"] is unknown to pov.
+    Append bounded, explicitly labelled actor-belief hits from canonical knows:
+    facts; do not merge public-current truth into this memory lane.
     """
     def fn(q: str, pov: str | None = None) -> dict:
         args = {}
@@ -348,10 +437,14 @@ def _recall_query_fn(registry, world: dict, scene: dict) -> Callable:
 
             fog_filtered.append(hit)
 
+        known_rows, known_coverage = _recall_known_facts(
+            world["systems"]["ontology"], graph, pov_id, day, q,
+        )
         return {
             "query": q,
             "hits": [{"system": h.system, "text": h.text, "score": h.score}
-                     for h in fog_filtered],
+                     for h in fog_filtered] + known_rows,
+            "known_fact_coverage": known_coverage,
         }
 
     return fn
@@ -800,8 +893,12 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     tools.append(Tool(
         name="recall_query",
         description=(
-            "Search across all systems for entities or facts matching a query string."
-            " Returns ranked hits (text + source system + score)."
+            "Search visible entities and the POV agent's known memories by substring."
+            " Returns system hits plus bounded actor_belief hits with full believed values"
+            " and knowledge-grant provenance. Beliefs may be stale or false, not current"
+            " objective facts; known_fact_coverage reports omitted whole belief records."
+            " Missing hits do not prove ignorance. For explicit public notices or schedules,"
+            " consult ambient_query; that lookup does not establish what an NPC knows."
             " Hits referencing knowledge-gated facts the POV agent doesn't know are dropped."
             " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
@@ -894,8 +991,10 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
         name="ambient_query",
         description=(
             "Consult LOCAL COMMON KNOWLEDGE / what a random passerby could relay"
-            " (use this for 找路人打听 / 街谈巷议 — when no specific tracked NPC is"
-            " being asked). Returns public place/faction seeds and ONLY facts the"
+            " (找路人打听 / 街谈巷议), including explicit public notices and schedules"
+            " even when a specific tracked NPC is being asked. This lookup does not"
+            " prove that NPC knows or has relayed a record; use actor-known evidence"
+            " for personal recollections. Returns public place/faction seeds and ONLY facts the"
             " world has marked as public knowledge. Hard secrets are structurally"
             " excluded — you decide how much THIS passerby plausibly knows and may"
             " add deniable rumor on top. No POV/knowledge gating."
