@@ -144,11 +144,14 @@ def test_surface_flips_dark_line_to_ming():
     """quest_surfaced: a 暗 line → 明 (+ surfaced_turn)."""
     world = project(_reg(), [
         _lore_暗("th_hidden", scene="s0", day=1, turn=0),
-        _surfaced("th_hidden", scene="s1", day=1, turn=1),
+        kernel_event("quest_surfaced", day=1, scene="s1", turn=1,
+                     summary="surface th_hidden",
+                     deltas={"id": "th_hidden", "summary": "已向掌柜问清告示内容"}),
     ])
     ln = world["systems"]["lore"]["lines"]["th_hidden"]
     assert ln["state"] == "明"
     assert ln["surfaced_turn"] == 1
+    assert ln["summary"] == "已向掌柜问清告示内容"
 
 
 # ---------------------------------------------------------------------------

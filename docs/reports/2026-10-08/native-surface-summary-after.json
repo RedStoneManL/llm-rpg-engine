@@ -1,0 +1,25 @@
+{
+  "base_commit": "4edb38f627a18a2df1da552335b90e9d87c4c566",
+  "source_hashes": {
+    "systems/lore.py": "33d813a78d5112596eb47ee6a71c4e838f92f66d588d95ef59acad82639dcece"
+  },
+  "recorded_before": "Original authored-lore T1 quest_surfaced carried a safe summary; following requests0005/0007/0009/0011 all showed （暂无摘要）.",
+  "method": "Reproject exact actual T1 event prefix into new campaign, then one fixed player question through real play_loop with fresh native Astra classifier and narrator. No fabricated provider response.",
+  "actual_model_responses": 2,
+  "committed_story_turns": 1,
+  "new_prompt_ledger": "[lore_blue_umbrella] 询问寻伞告示，得知蓝伞的来历及昨夜最后出现的位置。",
+  "delivered_prose": "告示上写的是寻一把蓝伞：昨夜打烊后不见了，寻到请交柜台。\n\n沈掌柜见你又看向告示，便抬手指了指院门旁的木架。\n\n“就是我女儿留下的那把。昨夜关门前还靠在那儿，今早就找不着了。”\n\n他说完，拿起抹布继续擦柜台，没催你应下什么。",
+  "observations": [
+    "Replayed supplied summary now reaches actual narrator ledger.",
+    "Narrator recalls blue umbrella, daughter and wooden rack already disclosed; does not promise to search for player.",
+    "No hidden culprit/mill truth or future bucket detail entered prompt or delivered prose."
+  ],
+  "limits": [
+    "One sample confirms repaired context path, not universal narrative/privacy correctness.",
+    "Existing global 明-ledger visibility behavior unchanged; no new actor visibility model.",
+    "No hidden about/secret/future-stage fallback when event summary absent.",
+    "Original fixture seed used clue rather than optional hint; clue history omission is fixture-only, stage-index disclosure still worked.",
+    "Stopping automatic dark-stage evolution after surfacing is original design, not fixed here.",
+    "No full unit suite; existing surface-state assertion extended to supplied summary."
+  ]
+}

@@ -185,6 +185,11 @@ class LoreSystem(ContextSystem):
                             lid, ln.get("state"))
                 return
             ln["state"] = "明"
+            # Carry the narrator's supplied player-facing transition summary;
+            # never synthesize it from hidden lore or future stage hints.
+            summary = d.get("summary")
+            if isinstance(summary, str) and summary.strip():
+                ln["summary"] = summary
             turn = event.get("turn")
             ln["surfaced_turn"] = turn
             ln["last_advanced_day"] = event.get("day")
