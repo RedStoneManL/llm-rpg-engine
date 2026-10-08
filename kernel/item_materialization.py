@@ -11,26 +11,15 @@ from materializing another Object. Historical ordinary item events are untouched
 from __future__ import annotations
 
 import copy
-import hashlib
-import json
 import re
 
+from kernel.scene_fact_sources import (
+    MAX_SOURCE_CHARS, MAX_SOURCES, VERSION, _context, _hash, _identifier,
+    _source_rows,
+)
 
-VERSION = 'item_materialization_v1'
-MAX_SOURCES = 24
-MAX_SOURCE_CHARS = 2048
 _DECLARATION_KEYS = {'op', 'id', 'initial', 'source_ref', 'source_digest', 'source_quote'}
 _DIGEST = re.compile(r'[0-9a-f]{64}\Z')
-
-
-def _identifier(value, maximum=160):
-    return (isinstance(value, str) and bool(value.strip())
-            and value == value.strip() and len(value) <= maximum)
-
-
-def _hash(value):
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
-        separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
 
 
 def _bindings(world):
@@ -50,39 +39,6 @@ def _bindings(world):
     return bindings
 
 
-def _context(world, actor_id):
-    """Use host-bound actor/time and actual visible location, never JSON hints."""
-    if not isinstance(world, dict):
-        return None
-    bound = world.get('_materialization_actor')
-    actor = bound if actor_id is None else actor_id
-    if (not _identifier(actor) or (bound is not None and actor != bound)
-            or type(world.get('_action_turn')) is not int or world['_action_turn'] <= 0):
-        return None
-    graph = world.get('systems', {}).get('ontology')
-    if graph is None:
-        return None
-    person = graph.get_entity(actor)
-    day = world.get('meta', {}).get('day')
-    if person is None or person.etype != 'Person' or type(day) is not int or day < 0:
-        return None
-    locations = graph.neighbors(actor, 'located_in', day)
-    if len(locations) != 1 or not _identifier(locations[0]):
-        return None
-    place = graph.get_entity(locations[0])
-    if place is None or place.etype != 'Place':
-        return None
-    from context.access import pov_world
-    scene = {'protagonist': actor, 'location': place.id, 'present': [], 'day': day}
-    view = pov_world(world, scene, pov=actor)['systems']['ontology']
-    visible_place = view.get_entity(place.id)
-    if (visible_place is None or visible_place.etype != 'Place'
-            or view.neighbors(actor, 'located_in', day) != [place.id]):
-        return None
-    return {'actor': actor, 'day': day, 'turn': world['_action_turn'],
-            'place': place.id, 'graph': graph, 'view': view}
-
-
 def source_catalog(world, actor_id):
     """Return at most 24 complete, unconsumed current Place-fact records.
 
@@ -99,50 +55,7 @@ def source_catalog(world, actor_id):
         return []
     consumed = {(row['source']['subject'], row['source']['predicate'])
                 for row in bindings.values()}
-    graph, view = context['graph'], context['view']
-    # Count all current versions before filtering: a hidden/invalid duplicate
-    # must not make an otherwise ambiguous slot appear uniquely supported.
-    slots = {}
-    for fact in graph.facts:
-        if fact.subject == context['place'] and fact.is_current() and fact.valid_at(context['day']):
-            slots.setdefault((fact.subject, fact.predicate), []).append(fact)
-    rows = []
-    for slot, versions in slots.items():
-        if len(versions) != 1 or slot in consumed:
-            continue
-        fact = versions[0]
-        if (not _identifier(fact.predicate) or fact.predicate.startswith('knows:')
-                or not _identifier(fact.source_event)
-                or fact.secrecy not in {None, 'public'}
-                or type(fact.ingest_turn) is not int
-                or not 0 <= fact.ingest_turn < context['turn']
-                or type(fact.event_time_start) is not int
-                or not 0 <= fact.event_time_start <= context['day']
-                or not isinstance(fact.value, str) or not fact.value.strip()
-                or len(fact.value) > MAX_SOURCE_CHARS):
-            continue
-        visible = [candidate for candidate in view.facts
-                   if candidate.subject == fact.subject and candidate.predicate == fact.predicate
-                   and candidate.is_current() and candidate.valid_at(context['day'])]
-        if (len(visible) != 1 or visible[0].source_event != fact.source_event
-                or visible[0].ingest_turn != fact.ingest_turn
-                or visible[0].event_time_start != fact.event_time_start
-                or visible[0].value != fact.value):
-            continue
-        provenance = {'source_event_id': fact.source_event,
-                      'subject': fact.subject, 'predicate': fact.predicate}
-        try:
-            row = {'source_ref': 'fact:' + _hash(provenance),
-                   **provenance, 'actor_id': context['actor'], 'text': fact.value,
-               'source_visibility': 'public' if fact.secrecy == 'public' else 'actor_only',
-                   'turn': fact.ingest_turn, 'day': fact.event_time_start}
-            row['source_digest'] = _hash({'version': VERSION, **row})
-        except (TypeError, ValueError, UnicodeError):
-            continue
-        rows.append(row)
-    rows.sort(key=lambda row: (-row['turn'], -row['day'], row['source_event_id'],
-                               row['subject'], row['predicate']))
-    return rows[:MAX_SOURCES]
+    return _source_rows(context, exclude_slots=consumed)
 
 
 def _resolve(world, declaration, actor_id):

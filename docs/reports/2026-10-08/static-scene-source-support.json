@@ -1,0 +1,100 @@
+{
+  "base_commit": "2b9a0e7cd76881dbbe922c009b8b3525840e237b",
+  "policy": "semantic_commit_v10",
+  "model": "native GPT-6 Astra",
+  "production_aggregate_sha256": "1d0a05202ac1b6e4f692d74483349606eee27d7c6fe33b57a1018e7539762510",
+  "method": "One fresh extraction per fixed recorded or explicitly constructed candidate; no Author generation, repair, commit, or DS call.",
+  "previous_unpublished_regression": "v9 added eight extra scene_state errors to the exact glove inspection candidate; v10 preserves only its unsupported transfer rejection. All six v9 responses are retained separately.",
+  "cases": [
+    {
+      "case": "recorded_original_crank",
+      "provenance": "Exact original recorded native Author proposal in native-item-materialization-20261008 request 0003, over the exact 99 prior events plus its recorded action-5 resource/variation prefix. No repaired prose, fresh Author, gameplay, or fixture injection.",
+      "passed": true,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 124.94,
+      "source_attested": 1,
+      "issues": []
+    },
+    {
+      "case": "recorded_glove_first_placement",
+      "provenance": "Actual recorded native model candidate (native-new-town request 0015), with its actual recorded genesis and resource/variation prefix; not fresh Author output.",
+      "passed": false,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 120.66,
+      "source_attested": 0,
+      "issues": [
+        {
+          "quote": "你接过护手，收紧腕口。",
+          "kind": "transfer",
+          "verdict": "unsupported"
+        }
+      ]
+    },
+    {
+      "case": "recorded_bell_handoff",
+      "provenance": "Historical recorded DeepSeek narration and repaired sections over a synthetic seed-event prefix; not an actual DeepSeek store replay and not fresh Author output.",
+      "passed": false,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 77.1,
+      "source_attested": 0,
+      "issues": [
+        {
+          "quote": "片刻后他捧出那只铜铃",
+          "kind": "possession",
+          "verdict": "unsupported"
+        },
+        {
+          "quote": "片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」",
+          "kind": "transfer",
+          "verdict": "unsupported"
+        }
+      ]
+    },
+    {
+      "case": "constructed_after_wood_chip_removed",
+      "provenance": "Constructed mutation of the exact original crank fixture. Prior events, action, materialization and all narration remain exact; change only the same-slot candidate fact and both corresponding knowledge values to say the chips were brushed off and are absent.",
+      "passed": false,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 136.71,
+      "source_attested": 0,
+      "issues": [
+        {
+          "quote": "那几片木屑还在原处",
+          "kind": "scene_state",
+          "verdict": "contradiction"
+        }
+      ]
+    },
+    {
+      "case": "constructed_observation_only_glove_inspection",
+      "provenance": "Constructed observation-only compatibility mutation of the actual recorded native glove fixture. Remove only the glove-acquisition action clause, opening acquisition sentence, and two glove item rows. Preserve all inspection prose, recorded prior events/resource prefix, fact/knowledge, cast/move and clock declarations. No prior evidence is injected; the admitted source catalog is empty.",
+      "passed": true,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 101.14,
+      "source_attested": 0,
+      "issues": []
+    },
+    {
+      "case": "constructed_candidate_only_static_mark",
+      "provenance": "Explicitly constructed candidate mutation over the exact crank prior history. A new blue paint-mark static state appears only in candidate narration and matching candidate fact/knowledge; no prior fixture event is added or changed to establish it.",
+      "passed": true,
+      "fresh_calls": 1,
+      "events_written": 0,
+      "wall_seconds": 123.69,
+      "source_attested": 0,
+      "issues": []
+    }
+  ],
+  "limitations": [
+    "Single model sample per candidate; no statistical reliability claim.",
+    "Catalog absence is not evidence of historical absence. Ordinary new detail can pass without source attestation.",
+    "Source identity is host-checked; scope, entailment, omission and continued-state judgments remain probabilistic.",
+    "This is fixed-candidate audit evidence, not a new end-to-end gameplay episode.",
+    "Wall time includes native-worker orchestration; it is not DS latency or production throughput."
+  ]
+}

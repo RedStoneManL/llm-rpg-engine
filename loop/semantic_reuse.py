@@ -46,6 +46,12 @@ attestations afresh in this same response, following the full original source ru
 No previous origin attestation is supplied or reusable. Paragraph selection does not
 reduce origin coverage. Do not add any fields beyond the ordinary response schema
 plus impact and impact_reason.
+
+Return scene_state_support freshly for EVERY scene_state claim, including the raw
+retained_source_claims supplied with this request as well as newly extracted claims.
+They are interpretations, not prior source verdicts. Preserve the (claim_id, span_id)
+pair in each assessment; a new dirty claim id can coincide with a retained id in a
+different span, and the host will remap it. Never infer support from retention.
 '''
 
 
@@ -232,6 +238,8 @@ def audit_selective(packet, narration, player_input, provider, plan, system_prom
                 'patched_span_id': plan['patched_span_id'],
                 'previous_patched_span': plan['previous_patched_span'],
                 'previous_context_span_ids': plan['original_dependencies'],
+                'retained_source_claims': [copy.deepcopy(row)
+                    for row in plan['retained_data']['claims'] if row['kind'] == 'scene_state'],
             },
         }, 'selective extractor payload')},
     ]
@@ -247,7 +255,7 @@ def audit_selective(packet, narration, player_input, provider, plan, system_prom
                               SemanticCommitError('Non-finite selective response value')))
     except (json.JSONDecodeError, RecursionError, UnicodeError) as exc:
         raise SemanticCommitError('Selective extraction did not return valid UTF-8 JSON') from exc
-    expected_keys = ['version', 'claims', 'coverage', 'impact', 'impact_reason']
+    expected_keys = ['version', 'claims', 'coverage', 'impact', 'impact_reason', 'scene_state_support']
     if 'materialization_origins' in packet:
         expected_keys.append('materialization_origins')
     _require_keys(data, expected_keys, 'selective response')
@@ -319,6 +327,29 @@ def audit_selective(packet, narration, player_input, provider, plan, system_prom
                           'spans': [rows[sid] for sid in spans]}
     if 'materialization_origins' in packet:
         merged['materialization_origins'] = copy.deepcopy(data['materialization_origins'])
+    support = data['scene_state_support']
+    if not isinstance(support, list):
+        raise SemanticCommitError('Selective scene-source support must be an array')
+    _bounded(support, 'selective scene-source support')
+    fresh_pairs = {(row['id'], row['span_id']) for row in claims if row['kind'] == 'scene_state'}
+    retained_pairs = {(row['id'], row['span_id']) for row in plan['retained_data']['claims']
+                      if row['kind'] == 'scene_state'}
+    seen_support, merged_support = set(), []
+    for row in support:
+        if not isinstance(row, dict):
+            raise SemanticCommitError('Selective scene-source support is malformed')
+        pair = (row.get('claim_id'), row.get('span_id'))
+        if (any(not isinstance(value, str) for value in pair) or pair in seen_support
+                or pair not in fresh_pairs | retained_pairs):
+            raise SemanticCommitError('Selective scene-source support has invalid claim binding')
+        seen_support.add(pair)
+        rebound = copy.deepcopy(row)
+        if pair in fresh_pairs:
+            rebound['claim_id'] = replacements[pair[0]]
+        merged_support.append(rebound)
+    if seen_support != fresh_pairs | retained_pairs:
+        raise SemanticCommitError('Selective scene-source support omits a fresh assessment')
+    merged['scene_state_support'] = merged_support
     # Reuse the ordinary strict parser for all claim fields, critical coverage,
     # known references, source attestations, and global aggregate bounds.
     merged, _ = _parse(json.dumps(merged, ensure_ascii=False, allow_nan=False), packet)

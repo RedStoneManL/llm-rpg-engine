@@ -268,7 +268,7 @@ def _physical_transition(event, before, after):
     return None
 
 
-def build_repair_outcome(registry, world, scene, commit, player_input):
+def build_repair_outcome(registry, world, scene, commit, player_input, *, include_scene_sources=False):
     """Build a JSON-safe packet after validation and before any store write.
 
     Unknown/redacted relations stay unknown. Background hooks, resource values,
@@ -350,6 +350,10 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                             'to': {'day': after['day'], 'band': after['band']}})
     if len(transitions) > _MAX_ROWS or len(labels) > _MAX_ROWS * 2:
         raise ValueError('Repair outcome exceeds the bounded physical transition packet')
+    scene_sources = []
+    if include_scene_sources:
+        from kernel.scene_fact_sources import scene_fact_continuity_sources
+        scene_sources = scene_fact_continuity_sources(world, preview, actor)
     return {
         'scope': 'primary_turn_before_background_hooks',
         'player_intent': player_input,
@@ -360,6 +364,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
         'transitions': transitions,
         'continuous_custody': [{'item': item, 'holder': holder}
                                for item, holder in sorted(continuous_custody)],
+        **({'scene_fact_sources': scene_sources} if include_scene_sources else {}),
         'limits': ('Player input is intent, not evidence of success. Only listed physical transitions '
                    'are approved. Missing positions, holders, and transition endpoints are unknown, '
                    'not empty. Co-location does not establish hearing or knowledge. '
