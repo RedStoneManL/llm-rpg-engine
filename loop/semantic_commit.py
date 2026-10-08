@@ -15,7 +15,7 @@ from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
 VERSION = 'semantic_commit_v10'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v10-optional-scene-sources'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v11-sustained-point-states'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -865,27 +865,56 @@ def _effective_scope(packet, claim):
     return 'local_motion', 'This action refines an established canonical position without asserting a new Place or graph edge.'
 
 
-def _invariant_state_verdict(packet, claim, minimum_position):
-    """Require universal support, never pick a favorable unknown-time snapshot."""
-    moments = [('before', None)]
+def _canonical_moments(packet):
+    """Every ordered visible checkpoint, including both transition sides."""
+    yield 'before', None
     for index in range(len(packet['transitions'])):
-        moments.extend([('transition_before', index), ('transition_after', index)])
-    moments.append(('after', None))
+        yield 'transition_before', index
+        yield 'transition_after', index
+    yield 'after', None
+
+
+def _state_interval_supported(packet, claim, first, last):
+    """Recompute one point predicate at EVERY checkpoint of a closed interval.
+
+    This proves only continued visible truth, never an action or an inferred
+    missing state. Resetting the local comparison cursor avoids recursively
+    applying carry-forward; the caller retains the actual narrative cursor.
+    """
     checked = 0
-    for moment, index in moments:
+    for moment, index in _canonical_moments(packet):
         bound = {**claim, 'moment': moment, 'transition_index': index}
-        if _moment_position(packet, bound) < minimum_position:
+        position = _moment_position(packet, bound)
+        if not first <= position <= last:
             continue
         checked += 1
-        verdict, _, _ = _verdict(packet, bound, minimum_position)
+        verdict, _, _ = _verdict(packet, bound, 0)
         if verdict != 'supported':
-            return ('unsupported',
-                    'Unknown timing is not supported at every remaining canonical checkpoint.', None)
-    if checked:
+            return False, checked, verdict
+    return bool(checked), checked, None
+
+
+def _invariant_state_verdict(packet, claim, minimum_position):
+    """Require universal support, never pick a favorable unknown-time snapshot."""
+    supported, checked, _ = _state_interval_supported(
+        packet, claim, minimum_position, 2 * len(packet['transitions']) + 1)
+    if supported:
         return ('supported',
                 f'The assertion holds at all {checked} canonical checkpoints from the narrative cursor through the final state.',
                 minimum_position)
-    return 'unsupported', 'No remaining canonical checkpoint supports this assertion.', None
+    return ('unsupported',
+            'Unknown timing is not supported at every remaining canonical checkpoint.', None)
+
+
+def _sustained_point_state_verdict(packet, claim, position, minimum_position):
+    """Carry a true point state forward without rewinding action chronology."""
+    supported, _, failure = _state_interval_supported(packet, claim, position, minimum_position)
+    if supported:
+        return ('supported',
+                'The same point-state predicate is explicitly supported at every visible checkpoint from its selected anchor through the narrative cursor.',
+                minimum_position)
+    return ('contradiction' if failure == 'contradiction' else 'unsupported',
+            'The earlier point-state anchor cannot be carried through every intervening visible checkpoint to the narrative cursor.', None)
 
 
 def _scene_state_verdict(packet, claim, assessment, minimum_position):
@@ -1033,6 +1062,8 @@ def _verdict(packet, claim, minimum_position, source_assessment=None):
         return 'unsupported', 'The physical assertion has no bound canonical narrative moment.', None
     position = _moment_position(packet, claim)
     if position < minimum_position:
+        if kind in {'location', 'co_presence', 'passage'}:
+            return _sustained_point_state_verdict(packet, claim, position, minimum_position)
         return 'contradiction', 'The asserted physical state precedes an already narrated canonical moment.', None
     positions = {row['who']: row['location'] for row in state['positions']}
     if kind == 'location':
@@ -1135,6 +1166,8 @@ def evaluate_extraction(packet, raw):
                       for row in data['scene_state_support']}
     minimum_position = 0
     for claim in sorted(data['claims'], key=lambda row: offsets[row['id']]):
+        cursor_before = minimum_position
+        selected_position = _moment_position(packet, claim)
         verdict, reason, position = _verdict(packet, claim, minimum_position,
             source_support.get((claim['id'], claim['span_id'])))
         matched = None
@@ -1146,6 +1179,12 @@ def evaluate_extraction(packet, raw):
         result = {**claim, 'verdict': verdict, 'reason': reason,
                   'matched_transition_index': matched,
                   'matched_narrative_position': position,
+                  'selected_narrative_position': selected_position,
+                  'narrative_cursor_before': cursor_before,
+                  'point_state_carried_forward': (verdict == 'supported'
+                      and claim['kind'] in {'location', 'co_presence', 'passage'}
+                      and selected_position is not None
+                      and selected_position < cursor_before and position == cursor_before),
                   'effective_scope': effective_scope, 'scope_reason': scope_reason}
         assessed.append(result)
         if verdict in {'unsupported', 'contradiction'}:

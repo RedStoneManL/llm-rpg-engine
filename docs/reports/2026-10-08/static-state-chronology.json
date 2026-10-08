@@ -1,0 +1,45 @@
+{
+  "base_commit": "8efe75e20ecaa5305173708823df567dc354bbda",
+  "comparator_policy": "canonical-checkpoints-items-v11-sustained-point-states",
+  "extraction_schema": "semantic_commit_v10 unchanged",
+  "method": "Deterministic replay of two actual native extractions and explicitly constructed boundary traces. No new model response, no game events, no rewrite of the failed play record.",
+  "actual_episode": {
+    "attempts": 2,
+    "commits": 1,
+    "rejections": 1,
+    "native_responses": 12,
+    "events_before": 112,
+    "events_after": 126
+  },
+  "same_candidate": {
+    "original_bag_issue_still_rejected": true,
+    "exact_local_patch_reproduces_terminal_prose": true,
+    "all_non_narration_packet_fields_unchanged": true,
+    "full_original_terminal_extraction_replayed": true,
+    "original_claims_preserved": 14,
+    "terminal_before": "rejected",
+    "terminal_after": "supported",
+    "co_presence": {
+      "selected_anchor": 2,
+      "incoming_cursor": 4,
+      "resolved_cursor": 4,
+      "carry_forward": true
+    }
+  },
+  "guard_categories": [
+    "False original anchor rejects.",
+    "False or hidden intermediate checkpoint rejects even when endpoints agree.",
+    "Known negative predicate can carry; absence/redaction does not establish negation.",
+    "True reversed actions still reject at distinct or equal prose offsets.",
+    "Historical/reported/conditional modes stay out of actual-state scope; uncertain remains unsupported.",
+    "Point/unknown-time/whole-turn custody rules unchanged.",
+    "Existing unknown-time universal rule unchanged."
+  ],
+  "limitations": [
+    "No new successful playthrough or retroactive commit.",
+    "Initial untracked-container overreach remains.",
+    "Model claim extraction and temporal classification remain probabilistic.",
+    "Ambiguous ordering among multiple action claims is not solved by this static-state rule."
+  ],
+  "source_sha256": "b8b89357390bee76bd14a2984bc5a219f4c8478863567ead0af3bf77ddef1ae0"
+}
