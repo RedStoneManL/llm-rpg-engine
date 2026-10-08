@@ -1,5 +1,6 @@
 # engine/director.py
 from engine.log import get_logger
+from kernel.scene_history import iter_scene_history
 
 log = get_logger("director")
 
@@ -17,22 +18,18 @@ def pacing_probability(scenes_since_event):
 def compute_pacing(events):
     """Derive pacing from the event stream: scene ordinal, scenes since last
     director_fired, and a rough tension level."""
-    scenes, last_fire_idx, tension = [], -1, 0.0
-    for ev in events:
-        sc = ev.get("scene")
-        if not scenes or scenes[-1] != sc:
-            scenes.append(sc)
+    ordinal, current_scene, last_fire_idx, tension = 0, None, -1, 0.0
+    for ev, current_scene, ordinal in iter_scene_history(events):
         t = ev["type"]
         if t == "director_fired":
-            last_fire_idx = len(scenes) - 1
+            last_fire_idx = ordinal - 1
         if t in ("combat_result", "character_reveal", "thread_resolve", "villain_knowledge_gain"):
             tension = min(1.0, tension + 0.3)
         elif t in ("action", "dialogue_beat"):
             tension = max(0.0, tension - 0.1)
-    ordinal = len(scenes)
     since = (ordinal - 1 - last_fire_idx) if last_fire_idx >= 0 else ordinal
     pacing = {"scene_ordinal": ordinal, "scenes_since_event": max(0, since),
-              "tension": round(tension, 2), "current_scene": scenes[-1] if scenes else None}
+              "tension": round(tension, 2), "current_scene": current_scene}
     log.debug("compute_pacing %s", pacing)
     return pacing
 
@@ -40,12 +37,10 @@ SPEED_CADENCE = {"快": 3, "中": 6, "慢": 12}
 MIN_ACTIVE_THREADS = 2
 
 def _scene_ordinals(events):
-    scenes = []
-    for ev in events:
-        sc = ev.get("scene")
-        if not scenes or scenes[-1] != sc:
-            scenes.append(sc)
-    return {sc: i + 1 for i, sc in enumerate(scenes)}, len(scenes)
+    ordinals, total = {}, 0
+    for _, scene, total in iter_scene_history(events):
+        ordinals[scene] = total
+    return ordinals, total
 
 def thread_due_scores(events, threads, oracle):
     """Per active non-dormant thread: due = scenes_since_advance / cadence(speed) * jitter."""

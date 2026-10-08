@@ -1,0 +1,164 @@
+{
+  "base_commit": "e8c2654c9f9617a528fda50a882a5e2847b62d2e",
+  "method": "Exact historical replay plus one fresh native Astra continuation through real Author/play_loop/tools/callbacks",
+  "replay": {
+    "method": "Exact real event replay; no generated model responses or event rewrite",
+    "event_count": 191,
+    "old": {
+      "scene_ordinal": 15,
+      "scenes_since_event": 10,
+      "tension": 0.0,
+      "current_scene": "s4"
+    },
+    "new": {
+      "scene_ordinal": 6,
+      "scenes_since_event": 3,
+      "tension": 0.0,
+      "current_scene": "s6"
+    },
+    "old_ordinals": [
+      {
+        "inn": 12,
+        "s2": 5,
+        "s3": 7,
+        "s4": 15,
+        "s5": 13,
+        "s6": 14
+      },
+      15
+    ],
+    "new_ordinals": [
+      {
+        "inn": 1,
+        "s2": 2,
+        "s3": 3,
+        "s4": 4,
+        "s5": 5,
+        "s6": 6
+      },
+      6
+    ],
+    "checks": {
+      "original": {
+        "count": 191,
+        "pacing": {
+          "scene_ordinal": 6,
+          "scenes_since_event": 3,
+          "tension": 0.0,
+          "current_scene": "s6"
+        },
+        "every_prefix_matches_projection": true
+      },
+      "all_boundaries_retracted": {
+        "count": 186,
+        "pacing": {
+          "scene_ordinal": 15,
+          "scenes_since_event": 10,
+          "tension": 0.0,
+          "current_scene": "s4"
+        },
+        "every_prefix_matches_projection": true
+      },
+      "rewind_prefix": {
+        "count": 120,
+        "pacing": {
+          "scene_ordinal": 4,
+          "scenes_since_event": 1,
+          "tension": 0.0,
+          "current_scene": "s4"
+        },
+        "every_prefix_matches_projection": true
+      },
+      "contract_boundaries": {
+        "legacy_backward_day_ignored": true,
+        "same_day_revisit_counted": true,
+        "older_day_explicit_boundary_authoritative": true,
+        "retracted_fire_and_tension_ignored": true,
+        "empty_stream_zero": true
+      }
+    },
+    "active_thread_scores_before": [],
+    "active_thread_scores_after": [],
+    "limitation": "All recorded threads dormant. Existing stale last_advanced_scene labels are retained, not migrated."
+  },
+  "native": {
+    "committed_actions": 1,
+    "provider_responses": 4,
+    "research_tools": 1,
+    "semantic_audits": 1,
+    "repairs": 0,
+    "summaries": 0,
+    "director": {
+      "before_count": 195,
+      "pacing": {
+        "scene_ordinal": 6,
+        "scenes_since_event": 3,
+        "tension": 0.0,
+        "current_scene": "s6"
+      },
+      "active_scene": "s6",
+      "turn_salt": 15,
+      "campaign_seed": 72916001,
+      "returned_events": [
+        {
+          "id": "ev_026cec4d9c1c",
+          "type": "oracle_roll",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "暗骰 roll=0.14 prob=0.42",
+          "deltas": {
+            "prob": 0.42,
+            "roll": 0.14,
+            "scene_ordinal": 6,
+            "campaign_seed": 72916001
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        },
+        {
+          "id": "ev_806660ab9eb8",
+          "type": "thread_open",
+          "day": 1,
+          "scene": "s6",
+          "arc": null,
+          "actors": [],
+          "summary": "休眠暗线:势力暗涌",
+          "deltas": {
+            "id": "th_5_势力线",
+            "status": "活跃",
+            "speed": "快",
+            "dormant": true,
+            "trait": "笨拙而敏锐",
+            "archetype": "势力暗涌",
+            "event_type": "势力线",
+            "last_advanced_scene": "s6"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 15,
+          "retracted": false
+        }
+      ]
+    },
+    "final_scene": "s7",
+    "player_location": [
+      "far_bank_landing"
+    ],
+    "narration": "你起身检查长凳和脚边，没落下东西。伸手一摸，船票也还在衣袋里。\n\n前面的乘客挪开一步，你顺着过道来到跳板前。船工站在一旁，抬手提醒：\n\n「慢点，踩稳了再走。」\n\n跳板在脚下轻轻作响。你跟着人流走到岸边木台，又踏上相接的石阶。河水在身后拍着船舷，赤鹭九号仍系在渡头，后面的乘客正陆续下船。"
+  },
+  "limitations": [
+    "Single native continuation, not a pacing quality statistical experiment.",
+    "All original threads dormant; no active thread selection improvement measured.",
+    "Existing stale historical thread labels unchanged.",
+    "Original frozen save still has omitted passage edge; this run validates movement and scene consumers, not route repair or complete semantic extraction.",
+    "No DeepSeek calls or full offline suite; native handoff timing is not production latency."
+  ]
+}
