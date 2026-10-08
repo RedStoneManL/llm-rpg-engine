@@ -13,8 +13,8 @@ import re
 from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
-VERSION = 'semantic_commit_v6'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v6-incidental'
+VERSION = 'semantic_commit_v7'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v7-materialization'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -42,6 +42,7 @@ _LIMITS = [
     'Player input expresses intent and is not evidence of success.',
     'Incidental NPC prop relevance is probabilistic; host limits prevent specified typed/task/resource cases from being exempted but cannot prove natural-language irrelevance.',
     'Item custody is physical, not legal ownership or permission. Negative-transfer absence is not proven. Whole-primary-turn custody needs a positive host certificate; historical intervals are not covered.',
+    'Materialization source entailment is a probabilistic semantic attestation of an exact actor-visible historical fact, not proof of legal ownership, permission, or action authority. Preview custody cannot attest its own origin.',
 ]
 
 
@@ -67,7 +68,7 @@ Candidate refs are author-declared bindings only; they do not prove anyone was o
 introduced, or placed. Never turn such a binding into a location or observed identity.
 
 Return exactly one JSON object with keys version, claims, coverage. version must be
-"semantic_commit_v6". claims is an array of at most 64 assertions. Inspect EVERY
+"semantic_commit_v7". claims is an array of at most 64 assertions. Inspect EVERY
 narration span. Extract ALL consequential literal physical assertions about identifiable
 people or particular places: current placement/co-presence, actual arrival/departure,
 direct passage connectivity or opening/closing, current physical possession,
@@ -243,7 +244,8 @@ def _creation_refs(registry, world, commit, prose):
                     or eid in seen or graph.get_entity(eid) is not None
                     or etype not in {'Person', 'Place', 'Object'}):
                 continue
-            if section in {'cast', 'items'} and row.get('op', 'create') != 'create':
+            if (section == 'cast' and row.get('op', 'create') != 'create'
+                    or section == 'items' and row.get('op', 'create') not in {'create', 'materialize'}):
                 continue
             attrs = row.get('attrs', {})
             if (not isinstance(attrs, dict)
@@ -286,14 +288,51 @@ def _safe_state(state, types):
     }
 
 
+def _materialization_origins(world, commit, actor_id):
+    """Resolve historical source evidence before preview effects can support it.
+
+    The host resolver enforces source authenticity, actor visibility, exact
+    quote/digest binding and the narrow origin contract. It does not establish
+    natural-language entailment. Only its explicit evidence whitelist reaches
+    the extractor; raw item declarations and arbitrary fact attrs never do.
+    """
+    rows = commit.sections.get('items') or []
+    proposals = [row for row in rows if isinstance(row, dict)
+                 and row.get('op') == 'materialize']
+    _bounded(proposals, 'materialization origins')
+    if not proposals:
+        return []
+    from kernel.item_materialization import materialization_origin
+    origins, seen = [], set()
+    for proposal in proposals:
+        resolved = materialization_origin(world, proposal, actor_id)
+        item = resolved['item']
+        if not isinstance(item, str) or not item or item in seen:
+            raise SemanticCommitError('Materialization origin has an invalid or duplicated item id')
+        seen.add(item)
+        source = resolved['source']
+        origins.append({
+            'id': item,
+            'initial': {key: resolved['initial'][key] for key in ('kind', 'place')},
+            **{key: resolved[key] for key in ('source_ref', 'source_digest', 'source_quote',
+                                             'source_start', 'source_end')},
+            'source': {key: source[key] for key in (
+                'source_ref', 'source_digest', 'source_event_id', 'actor_id',
+                'subject', 'predicate', 'text', 'turn', 'day')},
+        })
+    return origins
+
+
 def build_semantic_packet(registry, world, scene, commit, player_input):
     """Build a bounded JSON-safe whitelist for one already-validated candidate.
 
-    No raw declarations, private graph, history, goals, attributes, or clock
-    reason are provided to the extractor. The canonical preview is read-only.
+    No raw declarations, private graph, unrestricted history, goals, attributes,
+    or clock reason are provided to the extractor. Materialization includes only
+    exact actor-visible historical source facts. The canonical preview is read-only.
     """
     spans = _spans(commit.narration)
     try:
+        origins = _materialization_origins(world, commit, scene['protagonist'])
         physical = build_repair_outcome(registry, world, scene, commit, player_input)
         entities = _bounded([copy.deepcopy(row) for row in physical['entities']
                              if row['type'] in {'Person', 'Place', 'Object'}], 'visible entities')
@@ -335,6 +374,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             'entities': entities,
             'candidate_refs': candidates,
             'incidental_policy': incidental_policy,
+            **({'materialization_origins': origins} if origins else {}),
             **({'opening_people': opening_people, 'reference_bindings': reference_bindings}
                if commit._semantic_context else {}),
             'before': _safe_state(physical['before'], types),
@@ -394,6 +434,8 @@ def _parse(raw, packet):
     expected_keys = ['version', 'claims', 'coverage']
     if 'reference_bindings' in packet:
         expected_keys.append('reference_bindings')
+    if 'materialization_origins' in packet:
+        expected_keys.append('materialization_origins')
     _require_keys(data, expected_keys, 'response')
     if data['version'] != VERSION or not isinstance(data['claims'], list):
         raise SemanticCommitError('Semantic extraction has an invalid version or claims array')
@@ -476,6 +518,30 @@ def _parse(raw, packet):
             if row['label'] not in row['quote']:
                 raise SemanticCommitError('Opening binding quotation must contain its label')
             seen_bindings.add(pid)
+    if 'materialization_origins' in packet:
+        declared = {row['id']: row for row in packet['materialization_origins']}
+        rows = data['materialization_origins']
+        if not isinstance(rows, list) or len(rows) != len(declared):
+            raise SemanticCommitError('Materialization origin coverage is incomplete')
+        _bounded(rows, 'materialization origin attestations')
+        seen_origins = set()
+        for row in rows:
+            _require_keys(row, ('id', 'source_ref', 'source_digest', 'source_quote',
+                                'status', 'reason'), 'materialization origin attestation')
+            item = row['id']
+            if (not isinstance(item, str) or item not in declared or item in seen_origins
+                    or not isinstance(row['status'], str)
+                    or row['status'] not in {'supported', 'uncertain'}
+                    or not isinstance(row['reason'], str) or not row['reason'].strip()
+                    or len(row['reason']) > 640):
+                raise SemanticCommitError('Invalid materialization origin attestation')
+            origin = declared[item]
+            if any(not isinstance(row[key], str) or row[key] != origin[key]
+                   for key in ('source_ref', 'source_digest', 'source_quote')):
+                raise SemanticCommitError('Materialization origin evidence does not match its exact source')
+            seen_origins.add(item)
+        if seen_origins != set(declared):
+            raise SemanticCommitError('Materialization origin attestation omits a proposal')
     coverage = data['coverage']
     _require_keys(coverage, ('complete', 'spans'), 'coverage')
     if type(coverage['complete']) is not bool or not isinstance(coverage['spans'], list):
@@ -810,7 +876,9 @@ def audit_once(registry, world, scene, commit, player_input, provider):
     """
     packet = build_semantic_packet(registry, world, scene, commit, player_input)
     messages = [
-        {'role': 'system', 'content': _PROMPT + (_OPENING_BINDINGS_PROMPT if 'reference_bindings' in packet else '')},
+        {'role': 'system', 'content': _PROMPT
+            + (_OPENING_BINDINGS_PROMPT if 'reference_bindings' in packet else '')
+            + (_MATERIALIZATION_ORIGINS_PROMPT if 'materialization_origins' in packet else '')},
         {'role': 'user', 'content': _bounded_json({
             'candidate_prose': commit.narration,
             'player_input': player_input,
@@ -860,6 +928,18 @@ def evaluate_extraction(packet, raw):
             issues.append({'claim_id': None, 'claim': None, 'quote': row['quote'],
                 'verdict': 'unsupported', 'reason': 'Opening display binding is semantically uncertain.',
                 'evidence': {'span_id': row['span_id'], 'occurrence': row['occurrence']}})
+    origins = {row['id']: row for row in packet.get('materialization_origins', [])}
+    origin_assessments = []
+    for row in data.get('materialization_origins', []):
+        origin_assessments.append({**copy.deepcopy(origins[row['id']]),
+                                   **copy.deepcopy(row), 'semantic_entailment_proven': False})
+        if row['status'] == 'uncertain':
+            # This issue concerns fixed source evidence, not an editable prose
+            # span. It must block publication even if every physical preview
+            # claim passes; deleting prose cannot repair an unsupported origin.
+            issues.append({'claim_id': None, 'claim': None, 'quote': '',
+                'verdict': 'unsupported', 'materialization_origin_id': row['id'],
+                'reason': 'Materialization source entailment is uncertain: ' + row['reason']})
     coverage_rows = [{**row, 'host_no_critical_claims': not any(
         claim['span_id'] == row['span_id'] and claim['mode'] in _CRITICAL_MODES
         and claim['effective_scope'] == 'canonical_transition' for claim in assessed)}
@@ -877,6 +957,8 @@ def evaluate_extraction(packet, raw):
               'coverage': coverage, 'passed': not issues,
               **({'reference_bindings': copy.deepcopy(data['reference_bindings'])}
                  if 'reference_bindings' in data else {}),
+              **({'materialization_origins': origin_assessments}
+                 if 'materialization_origins' in data else {}),
               'limits': list(_LIMITS), 'scope': packet['scope']}
     json.dumps(report, ensure_ascii=False, allow_nan=False)
     return report
@@ -902,4 +984,51 @@ here; status=uncertain for an ambiguous/unsupported identity interpretation.
 Still extract ALL physical claims normally, including people without any proposed binding.
 An introduction assessment does not substitute for a canonical co-presence check.
 These are probabilistic semantic attestations, not deterministic proof of the referent.
+"""
+
+
+_MATERIALIZATION_ORIGINS_PROMPT = """
+This candidate proposes materialization of existing scene components as tracked Objects.
+packet.materialization_origins contains host-resolved, exact actor-visible HISTORICAL
+fact sources, with each proposed Object id and initial canonical Place. Only this
+source evidence, read in its full source.text context, may justify that origin.
+Current narration, player intent, candidate references, and preview custody/placement
+cannot prove it: that preview already assumes the proposed materialization. An exact
+matching source reference/digest/quote establishes authenticity, NOT semantic entailment.
+
+For this candidate ONLY, add top-level materialization_origins to the same JSON response.
+It must contain exactly one assessment per packet.materialization_origins entry, without
+omissions, duplicates or additions. Each assessment has exactly these keys:
+ id: copy the proposed Object id;
+ source_ref, source_digest, source_quote: copy these fields EXACTLY from that origin;
+ status: "supported" | "uncertain";
+ reason: a nonempty factual explanation, at most 640 characters, relating that exact
+         source quote and its full source.text context to the proposed item and Place.
+
+Use supported only when the historical fact unambiguously establishes the particular
+proposed object as a physically existing scene component at the proposed initial Place.
+Use visible entity labels for interpreting item/Place references, not as source evidence.
+This must be first tracking of a particular unrepresented object: compare with visible
+existing Object bindings and all other proposed origins. If the source appears to refer
+to an already represented Object, or two origins may represent the same physical item,
+return uncertain rather than assigning another id. A new source slot or a different
+description does not establish a different physical object. Missing identity evidence
+is not proof of distinctness; do not infer global uniqueness from the bounded packet.
+The source must support this item and its identity, not merely mention a similar kind
+of object, another person's belongings, a reported story, a hypothetical future item,
+an absent object, or a name that resembles the proposed id. Ambiguous references,
+negation, quotation/reporting, incomplete context, unsupported location or specificity,
+and uncertain physical meaning require uncertain. Never improve or paraphrase the
+source_quote field. Explain unsupported or ambiguous entailment in reason; do not invent
+an approval, a new origin, an alternative source, or extra JSON fields.
+
+These are probabilistic source-entailment attestations, not deterministic proof, legal
+ownership, consent, permission, action authority, or proof of a handoff. Materialization
+is initial representation/placement, not a transfer from an invented prior holder.
+An uncertain origin blocks publication even when preview state supports the narration.
+Materialization declarations and historical source evidence stay fixed during prose
+repair; deleting, hedging or rewriting narration cannot repair an uncertain origin.
+Still extract and cover ALL ordinary physical claims normally, including custody,
+pickup and later handoffs. Source attestations never replace those checks or justify
+ignoring an unsupported or contradictory ordinary claim.
 """

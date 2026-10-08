@@ -94,9 +94,15 @@ def _whole_turn_repair(player_input: str) -> str:
 
 
 def _item_preflight(registry, prior_ids, authorized_return_creations=None,
-                    authorized_player_inputs=None, authorized_resource_resolutions=None):
+                    authorized_player_inputs=None, authorized_resource_resolutions=None,
+                    authorized_materializations=None):
     """Keep legacy replay permissive, but check every new staged item event."""
     def check_new(projected, event):
+        if event['id'] not in prior_ids and event['type'] == 'object_materialized':
+            approved = (authorized_materializations or {}).get(event['id'])
+            body = {key: value for key, value in event.items() if key != 'seq'}
+            if approved is None or body != approved:
+                raise TurnRejected('Materialization requires exact host-approved origin evidence')
         if (event['id'] not in prior_ids and event['type'] == 'resources_resolved'
                 and authorized_resource_resolutions is not None):
             approved = authorized_resource_resolutions.get(event['id'])
@@ -202,6 +208,7 @@ def produce_turn(
     # --------------------------------------------------------------------------
     # Step 1: Produce initial commit
     # --------------------------------------------------------------------------
+    world = {**world, '_materialization_actor': scene.get('protagonist')}
     output_error = None
     try:
         with get_tracer().span("produce"):
@@ -475,6 +482,7 @@ def apply_turn(
             raise TurnRejected(str(exc)) from None
 
     events: list[dict] = []
+    approved_materializations = getattr(store, '_authorized_materializations', {})
     from kernel.item_integrity import creation_first_sections
     for section, decl in creation_first_sections(sections):
         owner = registry.owner_of_section(section)
@@ -483,12 +491,19 @@ def apply_turn(
             continue
         section_events = owner.to_events(section, decl,
                                          turn=turn_num, day=day, scene=scene)
+        for event in section_events:
+            if event['type'] == 'object_materialized':
+                if not commit.semantic_audit_required or commit._semantic_approval is None:
+                    raise TurnRejected('Materialization requires a source-audited candidate')
+                event['actors'] = [commit._semantic_approval.actor]
+                approved_materializations[event['id']] = copy.deepcopy(event)
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
     prior_ids = {event['id'] for event in prior_events}
     store.append_many(events, expected_revision=source_revision,
-                      preflight=_item_preflight(registry, prior_ids))
+                      preflight=_item_preflight(registry, prior_ids,
+                          authorized_materializations=approved_materializations))
     new_world = project(registry, store.iter_events())
 
     log.debug("apply_turn: turn=%d events_appended=%d", turn_num, len(events))
@@ -746,8 +761,11 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     authorized_return_creations = {}
     authorized_player_inputs = {}
     authorized_resources = {}
+    authorized_materializations = {}
+    batch._authorized_materializations = authorized_materializations
     batch.preflight = _item_preflight(registry, prior_ids, authorized_return_creations,
-                                      authorized_player_inputs, authorized_resources)
+                                      authorized_player_inputs, authorized_resources,
+                                      authorized_materializations)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
@@ -854,6 +872,11 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if (len(matches) != 1 or matches[0].get('retracted')
                     or {key: value for key, value in matches[0].items() if key != 'seq'} != approved):
                 raise TurnRejected('Authorized resource resolution was removed or changed')
+        for event_id, approved in authorized_materializations.items():
+            matches = [event for event in batch.events if event.get('id') == event_id]
+            if (len(matches) != 1 or matches[0].get('retracted')
+                    or {key: value for key, value in matches[0].items() if key != 'seq'} != approved):
+                raise TurnRejected('Authorized materialization was removed or changed')
         if preparation is not None:
             prefix = preparation.prefix_events
             for index, approved in enumerate(prefix):

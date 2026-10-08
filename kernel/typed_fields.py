@@ -50,7 +50,7 @@ class _WriteGuard:
 
 _write_guard: ContextVar[_WriteGuard | None] = ContextVar("typed_field_write_guard", default=None)
 _CREATOR_TYPES = {
-    "object_created": "Object", "character_created": "Person",
+    "object_created": "Object", "object_materialized": "Object", "character_created": "Person",
     "place_created": "Place", "faction_created": "Faction",
 }
 
@@ -152,6 +152,7 @@ def validate_typed_field_commit(registry, commit, world):
         records = world.get("systems", {}).get("return_commitments", {}).get("records", {})
         turns += [record.get("created_turn", 0) for record in records.values()]
         turn = max((value for value in turns if type(value) is int), default=0) + 1
+    preview["_action_turn"] = turn
 
     events, sources = [], {}
     for section, declarations in creation_first_sections(sections):
@@ -165,6 +166,8 @@ def validate_typed_field_commit(registry, commit, world):
                 return [ValidationError(section, f"[{index}]", "state_preview",
                                         "无法生成本条声明的状态事件；请核对该段格式和实体声明")]
             for event in row_events:
+                if event["type"] == "object_materialized":
+                    event["actors"] = [world.get("_materialization_actor")]
                 events.append(event)
                 sources[event["id"]] = (section, index)
 

@@ -42,6 +42,11 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
     # read model. Remove both even without a usable graph/actor: generic tools can
     # serialize this view, and missing POV must never expose another actor's log.
     systems = world.get('systems', {})
+    objects = systems.get('object')
+    if isinstance(objects, dict) and 'materializations' in objects:
+        systems = {**systems, 'object': {key: copy.deepcopy(value)
+            for key, value in objects.items() if key != 'materializations'}}
+        world = {**world, 'systems': systems}
     narrative = systems.get('narrative')
     private_ledgers = {'player_inputs', 'opening_observations'}
     if isinstance(narrative, dict) and private_ledgers.intersection(narrative):

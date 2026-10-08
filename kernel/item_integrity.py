@@ -14,15 +14,24 @@ def creation_first_sections(sections):
 
     Move later creation-capable sections before the first items/links/moves section.
     Preserve every declaration row and all other relative section ordering.
+    Explicit first tracking has a bounded initialization phase: resolve entity
+    types, then the complete ordered items section, before this turn's facts,
+    movement or clock effects can replace the historical source state.
     """
     pairs = list(sections.items())
+    creators = {'entities', 'places', 'cast', 'factions'}
+    if any(isinstance(row, dict) and row.get('op') == 'materialize'
+           for row in sections.get('items', []) or []):
+        return ([pair for pair in pairs if pair[0] in creators]
+                + [pair for pair in pairs if pair[0] == 'items']
+                + [pair for pair in pairs if pair[0] not in creators | {'items', 'promises'}]
+                + [pair for pair in pairs if pair[0] == 'promises'])
     promises = [pair for pair in pairs if pair[0] == 'promises']
     pairs = [pair for pair in pairs if pair[0] != 'promises']
     dependent = {'items', 'links', 'moves'}
     if not any(sections.get(name) for name in dependent):
         return pairs + promises
     index = next(i for i, (name, rows) in enumerate(pairs) if name in dependent and rows)
-    creators = {'entities', 'places', 'cast', 'factions'}
     later = pairs[index + 1:]
     return (pairs[:index] + [pair for pair in later if pair[0] in creators]
             + [pairs[index]] + [pair for pair in later if pair[0] not in creators] + promises)
@@ -70,10 +79,22 @@ def transfer_errors(graph, declaration, day, *, pending_types=False):
 
 def item_event_error(world, event):
     """Check one proposed event against the state immediately before applying it."""
+    kind, data = event['type'], event.get('deltas', {})
+    if kind == 'object_materialized':
+        from kernel.item_materialization import materialization_errors
+        # Fresh replay starts without turn-local host fields. Use the sealed
+        # persisted event actor and envelope for the same source cutoff.
+        actors = event.get('actors')
+        if (not isinstance(actors, list) or len(actors) != 1
+                or not isinstance(actors[0], str) or not actors[0].strip()):
+            return ('', 'materialization_actor', '物品首次实体化事件必须包含宿主绑定的唯一角色')
+        context = {**world, 'meta': {**world.get('meta', {}), 'day': event['day']}}
+        context['_action_turn'] = event.get('turn')
+        errors = materialization_errors(context, data, actor_id=actors[0])
+        return errors[0] if errors else None
     graph = world.get('systems', {}).get('ontology')
     if graph is None:
         return None
-    kind, data = event['type'], event.get('deltas', {})
     if kind == 'relation_added' and data.get('rel') == 'held_by':
         return ('', 'item_route', 'held_by 必须通过 items 的 transfer 操作修改，并提供正确 from；删除这条 relations 声明')
     if kind == 'item_transferred':
@@ -81,7 +102,7 @@ def item_event_error(world, event):
         return errors[0] if errors else None
     # A generic declaration must not turn a person into an item (or vice versa)
     # to evade the type gate. This affects new events only, not legacy replay.
-    types = {'object_created': 'Object', 'character_created': 'Person',
+    types = {'object_created': 'Object', 'object_materialized': 'Object', 'character_created': 'Person',
              'place_created': 'Place', 'faction_created': 'Faction'}
     entity_type = data.get('etype') if kind == 'entity_created' else types.get(kind)
     entity_id = data.get('id')
@@ -107,6 +128,7 @@ def validate_item_commit(registry, commit, world):
     Passage operations share this ordered state preflight with item operations.
     """
     if (registry.owner_of_event('item_transferred') is None and
+            registry.owner_of_event('object_materialized') is None and
             registry.owner_of_event('place_linked') is None):
         return []
     relevant = bool(commit.sections.get('items') or commit.sections.get('promises')
@@ -144,12 +166,15 @@ def validate_item_commit(registry, commit, world):
         records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
         turns = graph_turns + [record.get('created_turn', 0) for record in records.values()]
         action_turn = max((turn for turn in turns if type(turn) is int), default=0) + 1
+    preview['_action_turn'] = action_turn
     for section, declarations in creation_first_sections(sections):
         owner = registry.owner_of_section(section)
         if owner is None or not declarations:
             continue
         for index, declaration in enumerate(declarations):
             for event in owner.to_events(section, [declaration], turn=action_turn, day=day, scene='validation'):
+                if event['type'] == 'object_materialized':
+                    event['actors'] = [world.get('_materialization_actor')]
                 from kernel.place_integrity import place_event_error
                 error = item_event_error(preview, event) or place_event_error(preview, event)
                 if error:

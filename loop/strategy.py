@@ -17,7 +17,7 @@ HybridStrategy (丙):
 """
 from __future__ import annotations
 
-from loop.physical_contracts import LINKS_GUIDANCE
+from loop.physical_contracts import LINKS_GUIDANCE, MATERIALIZATION_GUIDANCE
 
 import abc
 import json
@@ -332,7 +332,7 @@ def _system_prompt(verbosity: str | None = None, style: str | None = None, *, ac
             .replace("__VERBOSITY__", frag)
             .replace("__ACTOR_ID_JSON__", json.dumps(actor_id if isinstance(actor_id, str)
                      and actor_id else '<当前主角的实际id>', ensure_ascii=False))
-            + _PLAYER_GOAL_PROGRESS + _MACHINE_BOUNDARY)
+            + _PLAYER_GOAL_PROGRESS + _MACHINE_BOUNDARY + '\n' + MATERIALIZATION_GUIDANCE)
 
 
 def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> str:
@@ -382,7 +382,7 @@ _SYSTEM_PROMPT_HYBRID = """\
 """
 
 _SYSTEM_PROMPT_HYBRID = _SYSTEM_PROMPT_HYBRID.replace("__LINKS_GUIDANCE__", LINKS_GUIDANCE)
-_SYSTEM_PROMPT_HYBRID += _MACHINE_BOUNDARY
+_SYSTEM_PROMPT_HYBRID += _MACHINE_BOUNDARY + '\n' + MATERIALIZATION_GUIDANCE
 
 
 # ---------------------------------------------------------------------------

@@ -285,6 +285,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
     # omitted from the public transition list. Never restore removed pairs.
     continuous_custody = {(row['item'], row['holder']) for row in before['held_by']}
     preview = copy.deepcopy(world)
+    preview['_materialization_actor'] = actor
     sections = copy.deepcopy(commit.sections)
     if 'clock' in sections:
         sections['clock'] = normalize_clock(sections['clock'], world)
@@ -303,6 +304,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
         if owner is None or not declaration:
             continue
         for event in owner.to_events(section, declaration, turn=turn, day=day, scene=scene_id):
+            if event['type'] == 'object_materialized':
+                event['actors'] = [actor]
             event_owner = registry.owner_of_event(event['type'])
             if event_owner is None:
                 raise ValueError('Repair outcome cannot preview an unowned event')
@@ -328,7 +331,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                     labels.update(_names(prior_view, prior, actor, prior_bindings))
                     labels.update(_names(current_view, current, actor, published_identity_bindings(preview, actor)))
             data = event.get('deltas', {})
-            if (event['type'] == 'object_created' or (
+            if (event['type'] in {'object_created', 'object_materialized'} or (
                     event['type'] == 'entity_created' and data.get('etype') == 'Object')):
                 item = data.get('id')
                 if world['systems']['ontology'].get_entity(item) is None and item not in {

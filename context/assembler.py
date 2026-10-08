@@ -106,6 +106,8 @@ def assemble_context(
     player_evidence = read_player_evidence(world, scene, query)
     cast_evidence = read_cast_evidence(world, scene, query)
     public_npc = public_npc_evidence(world, scene)
+    from kernel.item_materialization import source_catalog
+    materialization_sources = source_catalog(world, scene.get('protagonist'))
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -166,6 +168,11 @@ def assemble_context(
                     candidate_fact_keys.append(fk)
 
     viewpoint_frags: list[str] = []
+    if materialization_sources:
+        viewpoint_frags.append('【首次追踪来源·只供结构引用，不是物品已取走的证明】\n'
+            + json.dumps(materialization_sources, ensure_ascii=False)
+            + '\n仅当来源明确描述当前场景中已有的特定物件，才可 materialize；'
+              '普通事实不是自动创建物品的授权。来源缺失或含糊时不能猜。')
     if public_npc is not None:
         viewpoint_frags.append(format_public_npc_evidence(public_npc))
     if protagonist and candidate_fact_keys:

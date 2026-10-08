@@ -35,7 +35,7 @@ class ObjectSystem(ContextSystem):
     world["systems"]["ontology"]).
 
     Commit sections:
-        "items"  → object_created / item_transferred events
+        "items"  → object_created / object_materialized / item_transferred events
     """
 
     name = "object"
@@ -44,7 +44,7 @@ class ObjectSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"object_created", "item_transferred"}
+        return {"object_created", "object_materialized", "item_transferred"}
 
     def commit_sections(self) -> set[str]:
         return {"items"}
@@ -52,8 +52,17 @@ class ObjectSystem(ContextSystem):
     def typed_fields(self) -> tuple[TypedField, ...]:
         return (TypedField("Object", "held_by", repair_section="items"),)
 
+    def created_ids(self, section: str, decl: list) -> set[str]:
+        """Only explicit creation and first tracking introduce Object ids."""
+        if section != "items" or not isinstance(decl, list):
+            return set()
+        return {item["id"] for item in decl
+                if isinstance(item, dict)
+                and item.get("op", "create") in {"create", "materialize"}
+                and isinstance(item.get("id"), str) and item["id"].strip()}
+
     def empty_state(self) -> dict:
-        """ObjectSystem owns no separate slice — objects live in the shared graph."""
+        """Objects live in the graph; first-tracking origins are stored lazily here."""
         return {}
 
     # ------------------------------------------------------------------
@@ -78,6 +87,10 @@ class ObjectSystem(ContextSystem):
             }
             g.add_entity(oid, "Object", tier=tier, **attrs)
             log.debug("object_created id=%s tier=%s attrs=%s", oid, tier, attrs)
+
+        elif t == "object_materialized":
+            from kernel.item_materialization import project_materialization
+            project_materialization(world, event)
 
         elif t == "item_transferred":
             item = d.get("item")
@@ -105,10 +118,10 @@ class ObjectSystem(ContextSystem):
     def validate(self, section: str, decl: list, world: dict) -> list[ValidationError]:
         if section != 'items' or not decl:
             return []
-        g: FactGraph | None = world.get("systems", {}).get("ontology")
-        # Validate sequential transfers against a private working graph so a
-        # second A→C cannot follow A→B; the valid source would now be B.
-        g = copy.deepcopy(g) if g is not None else None
+        # Materialization writes origin provenance as well as graph state.
+        # Keep the entire ordered preview private, including reused-source checks.
+        preview = copy.deepcopy(world)
+        g: FactGraph | None = preview.get("systems", {}).get("ontology")
         day = world.get('meta', {}).get('day') or 1
         errs: list[ValidationError] = []
 
@@ -139,6 +152,25 @@ class ObjectSystem(ContextSystem):
                             '不能通过物品创建把已有角色或地点改成 Object'))
                     else:
                         g.add_entity(id_val, 'Object')
+
+            elif op == "materialize":
+                from kernel.item_materialization import materialization_errors, project_materialization
+                actor = world.get("_materialization_actor")
+                # Global reference validation reserves same-turn ids with
+                # temporary stubs. First tracking must see a genuinely new id,
+                # just as the later ordered event projection does.
+                id_val = item.get("id")
+                pending = g.get_entity(id_val) if g is not None and isinstance(id_val, str) else None
+                if pending is not None and pending.etype == "_pending":
+                    g.entities.pop(id_val)
+                materialize_errs = materialization_errors(preview, item, actor_id=actor)
+                errs.extend(ValidationError(section, f'[{i}]' + ('.' + field if field else ''), code, hint)
+                            for field, code, hint in materialize_errs)
+                if not materialize_errs:
+                    event = self.to_events(section, [item], turn=world.get("_action_turn"),
+                                           day=day, scene="validation")[0]
+                    event["actors"] = [actor]
+                    project_materialization(preview, event)
 
             elif op == "transfer":
                 # apply(item_transferred) requires d["item"] and d["to"] via bare subscript
@@ -200,7 +232,7 @@ class ObjectSystem(ContextSystem):
                                        source_event='validation')
             else:
                 errs.append(ValidationError(section, f'[{i}].op', 'item_op',
-                    'items.op 必须为 create 或 transfer'))
+                    'items.op 必须为 create、materialize 或 transfer'))
 
         return errs
 
@@ -219,6 +251,17 @@ class ObjectSystem(ContextSystem):
                     "object_created", day=day, scene=scene,
                     summary=f"{item.get('id', '?')} 物品创建",
                     deltas=item, turn=turn,
+                ))
+            elif op == "materialize":
+                # Actor identity is bound by the host after event generation.
+                # Model-supplied actor/provenance fields never enter the event.
+                data = {key: copy.deepcopy(item[key]) for key in
+                        ("op", "id", "initial", "source_ref", "source_digest", "source_quote")
+                        if key in item}
+                out.append(kernel_event(
+                    "object_materialized", day=day, scene=scene,
+                    summary=f"{item.get('id', '?')} 首次登记",
+                    deltas=data, turn=turn,
                 ))
             elif op == "transfer":
                 out.append(kernel_event(

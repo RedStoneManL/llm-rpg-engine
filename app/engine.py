@@ -112,8 +112,14 @@ def build_engine(
     from kernel.typed_fields import project_new_fields
     # Read durable IDs inside the store's existing publication transaction.
     # Old/imported events replay permissively; new raw append writes are checked.
-    store.preflight = lambda events: project_new_fields(registry, events,
-        {event['id'] for event in store.iter_events(include_retracted=True)})
+    def check_raw_writes(events):
+        prior_ids = {event['id'] for event in store.iter_events(include_retracted=True)}
+        def reject_unapproved_origin(world, event):
+            if event['id'] not in prior_ids and event['type'] == 'object_materialized':
+                raise ValueError('Materialization requires the source-audited publication path')
+        return project_new_fields(registry, events, prior_ids,
+                                  before_apply=reject_unapproved_origin)
+    store.preflight = check_raw_writes
 
     # Resolve provider
     if provider is None:

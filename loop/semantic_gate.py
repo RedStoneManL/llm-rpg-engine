@@ -54,6 +54,7 @@ def _source(world, actor):
         'entities': graph.entities, 'facts': graph.facts, 'relations': graph.relations},
         'clock_scene': {key: meta.get(key) for key in ('day', 'band', 'scene')},
         'return_commitments': world.get('systems', {}).get('return_commitments'),
+        'materialization_origins': world.get('systems', {}).get('object', {}).get('materializations', {}),
         'actor_introduction_sources': observed_identity_evidence(world, actor)})
 
 
@@ -294,6 +295,7 @@ def finalize_candidate(registry, world, scene, player_input, commit, *, provider
                        revision=None, required_sections=frozenset()):
     """Shared bounded gate before normal publication or comparison display."""
     from loop.turn import _rewrite_repaired_narration, TurnRejected
+    world = {**world, '_materialization_actor': scene.get('protagonist')}
     if not commit.semantic_audit_required:
         if commit.narration_rewrite_required:
             _rewrite_repaired_narration(registry, world, scene, player_input, commit,
@@ -317,6 +319,9 @@ def finalize_candidate(registry, world, scene, player_input, commit, *, provider
         except (SemanticCommitError, ValueError, TypeError, KeyError) as exc:
             raise TurnRejected('Semantic audit could not verify candidate: ' + str(exc)) from None
         commit.semantic_audit_log.append({'kind': 'semantic_audit', **report})
+        if any(row.get('status') != 'supported'
+               for row in report.get('materialization_origins', [])):
+            raise TurnRejected('Materialization origin is not supported; prose repair cannot create a source')
         if report.get('passed') is True and not report.get('issues'):
             from loop.turn import advanced_day
             commit._semantic_approval = _Approval(_policy_version(), revision,
