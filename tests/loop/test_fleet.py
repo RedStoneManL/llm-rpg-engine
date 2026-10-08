@@ -339,13 +339,12 @@ def test_digest_no_summarize_within_window():
         store.close()
 
 
-def test_backstop_flags_dormant_when_no_active_thread():
+def test_generic_mutation_does_not_create_orphan_quest():
     from loop.fleet import digest_fleet
     reg = _reg_full()
     store = _store(reg)
     try:
-        # substantive player event (character_evolved heuristic_floor >=2 with deltas),
-        # empty lore lines → backstop flags one 暗 line via quest_created
+        # A valid state change does not establish a new unresolved objective.
         evs = [kernel_event("character_evolved", day=1, scene="s1", summary="断桥崩塌",
                             actors=["hero"],
                             deltas={"id": "hero", "predicate": "state", "value": "shaken",
@@ -355,17 +354,17 @@ def test_backstop_flags_dormant_when_no_active_thread():
         digest_fleet(reg, store, evs, project(reg, store.iter_events()),
                      provider=FakeLLMProvider(), narration_text="桥塌了。", scene="s1")
         lines = project(reg, store.iter_events())["systems"]["lore"]["lines"]
-        assert any(ln.get("state") == "暗" for ln in lines.values())
+        assert lines == {}
     finally:
         store.close()
 
 
-def test_backstop_silent_when_active_thread_exists():
+def test_digest_preserves_explicit_active_quest():
     from loop.fleet import digest_fleet
     reg = _reg_full()
     store = _store(reg)
     try:
-        # Seed a 明 line via quest_opened → backstop should stay silent
+        # Seed a normal explicit quest; digest must leave it intact.
         store.append(kernel_event("quest_opened", day=1, scene="s1", summary="o",
                                   deltas={"id": "th_x", "summary": "现有活跃线",
                                           "state": "明"}, turn=1))
@@ -377,9 +376,10 @@ def test_backstop_silent_when_active_thread_exists():
             store.append(e)
         digest_fleet(reg, store, evs, project(reg, store.iter_events()),
                      provider=FakeLLMProvider(), narration_text="x", scene="s1")
-        # no new quest_created events (backstop stayed silent because 明 line exists)
+        # Ordinary digest mutations do not add generic quests.
         qc = [e for e in store.iter_events() if e["type"] == "quest_created"]
-        assert len(qc) == 0                              # backstop did not fire
+        assert len(qc) == 0
+        assert project(reg, store.iter_events())["systems"]["lore"]["lines"]["th_x"]["state"] == "明"
     finally:
         store.close()
 

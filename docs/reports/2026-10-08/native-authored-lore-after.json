@@ -1,0 +1,49 @@
+{
+  "base_commit": "40a7d5f6e2bb55b2241dc6cf658a67783b1461fb",
+  "source_hashes": {
+    "loop/fleet.py": "40bc653950ec97a6f0fd48682f949e7fa37da29140805a5bbbcc397b1f5f5079"
+  },
+  "workflow": "Actual play_loop; independent adaptive native Astra player; fresh native Astra provider each request; research tools disabled; normal hooks and thresholds",
+  "committed_and_delivered_actions": 5,
+  "model_responses": 11,
+  "response_roles": {
+    "return_intent": 5,
+    "narration": 5,
+    "density_generation": 1
+  },
+  "repairs": 0,
+  "event_counts": {
+    "variation_sampled": 5,
+    "fact_asserted": 5,
+    "knowledge_set": 5,
+    "quest_surfaced": 1,
+    "clock_advanced": 5,
+    "narration_recorded": 5,
+    "lore_created": 3,
+    "lore_seeded": 1,
+    "player_input_recorded": 5,
+    "oracle_roll": 1,
+    "director_fired": 1,
+    "lore_advanced": 2,
+    "entity_moved": 3,
+    "character_created": 1,
+    "directive_consumed": 3,
+    "scene_advanced": 1
+  },
+  "observations": [
+    "Pre-authored current clue entered normal ambient lore injection, was discussed and surfaced. Hidden umbrella cause/location absent from player-visible prose.",
+    "Player explicitly declined errand; NPC accepted, no later demand to search.",
+    "Normal director introduced theater company without assigning player labor.",
+    "Player watched complete play and rested until lunch; final canonical clock day1 band1.",
+    "No generic quest_created; authored lore/density/director/explicit surface paths remained active."
+  ],
+  "player_review": "独立玩家认为线索回应清楚、女儿送伞有情感分量；拒绝寻物后未被代替承诺或再次催接，喝水、落座、完整听戏和休息一上午均执行。未见杯子/座位/道具或时间连续性错误。五回合有完整小结尾；唯一摩擦是刚说休息戏班就登场，略显安排，但最终服务休息意图，不构成强迫。未覆盖玉印归期或长期连续性。",
+  "limitations": [
+    "First clue was pre-seeded advanced; this does not prove autonomous discovery of its first stage.",
+    "One native stochastic episode, not DS or a matched statistical before/after.",
+    "No claim omitted-objective recovery has been restored.",
+    "Setup failed once before model calls due missing fixture event summary; preserved separately.",
+    "Tool transport disconnected, original session survived. Mistaken resume failed before model call on existing request directory and wrote no events; stopped. Actual story context was not rebuilt. Undelivered error remains separate.",
+    "No unit suite was used as gameplay evidence; existing expectation comments/assertions adjusted for retired contract."
+  ]
+}

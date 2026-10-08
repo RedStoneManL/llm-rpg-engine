@@ -1,5 +1,5 @@
 """loop.fleet — backstage digest_fleet: importance scoring + reflection write-back
-+ P2 recap maintenance (narration recording, scene summarization, quest backstop).
++ P2 recap maintenance (narration recording and scene summarization).
 
 digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
              importance_provider=None, narration_text=None, scene=None,
@@ -20,16 +20,14 @@ digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
     2. Summarize aged scene: if a scene aged out of the recent-N window AND recap_provider
        is given, append a scene_summarized event (cheap-model); if summaries exceed
        RECAP_SUMMARY_FANOUT, append a recap_recompressed event.
-    3. Quest backstop: if no active threads AND substantive player event, append
-       a quest_created event with state:"暗" (conservative FLAG, not auto-open活跃).
+    Generic mutation-to-quest fallback is retired: mutations do not establish
+    unresolved objectives, and its old unanchored records had no lore consumer.
 
   Return value: all events appended by this call (arc + narration_recorded +
-  scene_summarized + recap_recompressed + backstop quest events).
+  scene_summarized + recap_recompressed).
 """
 from __future__ import annotations
 
-import hashlib
-import math
 from typing import Any
 
 from kernel.registry import Registry
@@ -137,116 +135,16 @@ def summarize_scene(provider, scene_id: str, raw_texts: list[str], *, identity=N
         return None
 
 
-# Only understood gameplay mutations may seed this fallback. Clocks, storage,
-# summaries, provenance, rolls, directives and quest-control events are not
-# evidence that the action described in their free-form rationale occurred.
-_BACKSTOP_IDENTIFIERS = {
-    'item_transferred': ('item', 'to'),
-    'entity_moved': ('who', 'to'),
-    'fact_asserted': ('subject', 'predicate'),
-    'relation_added': ('src', 'rel', 'dst'),
-    'relationship_changed': ('id', 'toward'),
-    'character_evolved': ('id', 'predicate'),
-    'knowledge_set': ('knower', 'fact_key'),
-}
+def backstop_quests(world: dict, new_events: list[dict]) -> None:
+    """Retired compatibility entry point; generic mutations do not create quests.
 
-
-def backstop_event_eligible(event: dict) -> bool:
-    """Eligibility for committed event consumers, not a second world validator.
-
-    The caller supplies events already applied by their owners. Most carry no
-    old value, so do not compare them to the POST-world to invent a change test.
-    Resources are the exception: their authoritative before/after are explicit.
-    Unknown types fail closed without affecting intentional quest generation.
+    The old fallback lacked evidence of an unresolved objective and produced
+    unanchored, stage-less dark lines that unified lore could not consume.
+    Explicit narrator quests and authored lore own their normal lifecycle.
+    Historical quest_created events still replay through LoreSystem unchanged.
     """
-    if not isinstance(event, dict) or event.get('retracted'):
-        return False
-    kind, data = event.get('type'), event.get('deltas')
-    if not isinstance(kind, str) or not isinstance(data, dict):
-        return False
-    nonblank = lambda value: isinstance(value, str) and bool(value.strip())
-    if kind == 'resources_resolved':
-        before, after = data.get('before'), data.get('after')
-        if (not nonblank(data.get('subject')) or data.get('outcome') != 'spent'
-                or not isinstance(before, dict) or not before
-                or not isinstance(after, dict) or set(before) != set(after)
-                or not all(nonblank(key) for key in before)):
-            return False
-        try:
-            numeric = all(type(value) in (int, float) and math.isfinite(value)
-                          for value in list(before.values()) + list(after.values()))
-        except (ValueError, OverflowError):
-            return False
-        return numeric and any(before[key] != after[key] for key in before)
-    required = _BACKSTOP_IDENTIFIERS.get(kind)
-    if required is None or not all(nonblank(data.get(key)) for key in required):
-        return False
-    if kind == 'fact_asserted':
-        return 'value' in data
-    if kind in {'relationship_changed', 'character_evolved', 'knowledge_set'}:
-        if data.get('value') is None:
-            return False
-    if kind == 'character_evolved' and data['predicate'] == 'arc':
-        return False  # reflection bookkeeping is not a new player consequence
-    if kind == 'item_transferred' and data.get('from') == data['to']:
-        return False
-    return True
+    return None
 
-
-def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
-    """Conservative backstop: flag a 暗 quest line only when ZERO 明 lines exist
-    AND the turn had a substantive player event (heuristic_floor >= 2).
-
-    Returns a harness-authored quest_created kernel_event with state:"暗",
-    or None if the conditions aren't met.
-    """
-    lines: dict = (world.get("systems", {}).get("lore") or {}).get("lines", {})
-    # Stay silent when any 明 (active) line exists (narrator is doing their job)
-    if any(ln.get("state") == "明" for ln in lines.values()):
-        return None
-
-    # Rank only supported mutations; metadata must not win a score tie merely
-    # because it was appended first or carries a nonempty deltas object.
-    best_ev = None
-    best_floor = 0
-    for ev in new_events:
-        if not backstop_event_eligible(ev):
-            continue
-        floor = importance_mod.heuristic_floor(ev)
-        if floor > best_floor:
-            best_floor = floor
-            best_ev = ev
-
-    if best_ev is None or best_floor < 2:
-        return None
-
-    # Coin a stable id from the event summary (unique enough for a backstop flag)
-    raw_id = best_ev.get("summary", "")[:64]
-    short_hash = hashlib.sha256(raw_id.encode("utf-8")).hexdigest()[:8]
-    tid = f"th_auto_{short_hash}"
-
-    # Drop-on-dup: don't create a duplicate flag for the same event summary
-    if tid in lines:
-        log.debug("backstop_quests: tid=%s already exists in lore lines, skipping", tid)
-        return None
-
-    day = max((ev.get("day", 1) for ev in new_events), default=1)
-    scene = best_ev.get("scene", "unknown")
-
-    ev = kernel_event(
-        "quest_created",
-        day=day,
-        scene=scene,
-        summary=f"backstop 暗 flag: {best_ev.get('summary', '')}",
-        deltas={
-            "id": tid,
-            "summary": best_ev.get("summary", ""),
-            "state": "暗",
-        },
-    )
-    log.debug("backstop_quests: flagging tid=%s from event summary=%r",
-              tid, best_ev.get("summary", "")[:40])
-    return ev
 
 
 def digest_fleet(
@@ -264,7 +162,7 @@ def digest_fleet(
     recap_provider=None,
 ) -> list[dict]:
     """Score importance per new event, accumulate per subject, trigger reflection on threshold.
-    Then maintain recap (narration recording + scene summarization) and storyline backstop.
+    Then maintain recap (narration recording + scene summarization).
 
     Args:
         registry:          Kernel registry (for event type validation and projection).
@@ -442,21 +340,6 @@ def digest_fleet(
                             log.exception("digest_fleet: recompress check failed (non-fatal)")
         except Exception:
             log.exception("digest_fleet: scene summarization failed (non-fatal)")
-
-    # ------------------------------------------------------------------
-    # Phase 4: Storyline backstop (conservative 休眠 flag)
-    # ------------------------------------------------------------------
-    if new_events:
-        try:
-            post_world = project(registry, store.iter_events())
-            backstop_ev = backstop_quests(post_world, new_events)
-            if backstop_ev is not None:
-                backstop_ev["turn"] = _next_turn_in_store(store)
-                store.append(backstop_ev)
-                appended_all.append(backstop_ev)
-                log.debug("digest_fleet: backstop quest event appended")
-        except Exception:
-            log.exception("digest_fleet: backstop_quests failed (non-fatal)")
 
     log.debug("digest_fleet: done; total_appended=%d", len(appended_all))
     return appended_all

@@ -1,5 +1,9 @@
 # Backstop quest sources must be gameplay effects
 
+Historical checkpoint: the mutation fallback was subsequently retired; see
+[the consumer contract](RETIRED_MUTATION_QUEST_FALLBACK.md). This page records
+the earlier narrow metadata gate and its actual trace verification.
+
 The repaired T14 native replay correctly narrated that the bell remained with
 the player, yet its later backstop created a hidden quest from the unchanged
 clock.reason text claiming a handover. This was deterministic event consumption,

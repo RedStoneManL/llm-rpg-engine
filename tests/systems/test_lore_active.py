@@ -130,8 +130,8 @@ def test_resolve_on_missing_id_skips():
     assert "th_ghost" not in world["systems"]["lore"]["lines"]
 
 
-def test_open_honors_explicit_status_for_backstop_dormant_flag():
-    """quest_created(state:'暗') creates a 暗 line (backstop flag equivalent)."""
+def test_legacy_quest_created_preserves_dark_state():
+    """Historical quest_created records retain their original dark state."""
     ev = kernel_event("quest_created", day=1, scene="s1", summary="auto",
                       deltas={"id": "th_auto", "summary": "疑似新线",
                               "state": "暗"}, turn=1)
