@@ -26,7 +26,8 @@ import copy
 import json
 from typing import Any
 from uuid import uuid4
-from loop.resources import prepare_resources, registered_balances, validate_resources
+from loop.resources import (normalize_resource_scope, prepare_resources,
+                            registered_balances, validate_resources)
 from loop.narration_guard import validate_narration
 from loop.repair_outcome import physical_signature, build_repair_outcome
 from systems.time import normalize_clock, validate_resolved_time
@@ -818,6 +819,9 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             # Lock all registered owners, not just the acting protagonist. These
             # private values stay in the host's validation context, never the prompt.
             expected_balances = registered_balances(world)
+            actor = scene.get('protagonist')
+            no_resources = not any(owner == actor for owner, _ in expected_balances)
+            resolution = None
             if registry.owner_of_event('resources_resolved') is not None:
                 resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
                 if resolution:
@@ -827,12 +831,15 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     expected_balances.update(expected)
                     scene = {**scene, '_resolution_prompt':prompt,
                              '_resolved_clock':resolution['deltas'].get('wait_until')}
-            scene = {**scene, '_resolved_values': expected_balances}
+            scene = {**scene, '_resolved_values': expected_balances,
+                     '_semantic_resource_scope': normalize_resource_scope(
+                         resolution, actor, batch.turn, no_resources=no_resources)}
             from loop.variation import prepare_variation, variation_fragment
             variation = prepare_variation(registry, world, scene, batch.turn)
             if variation:
                 batch.append(variation)
                 scene = {**scene, '_variation_prompt': variation_fragment(variation)}
+        scene = {**scene, '_semantic_return_commitment': return_commitment is not None}
         world = {**world, '_action_turn': batch.turn}
         result = _run_turn_staged(registry, batch, world, scene, player_input,
             strategy=strategy, provider=provider, embedder=embedder,

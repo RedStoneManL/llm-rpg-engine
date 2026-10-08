@@ -1,0 +1,218 @@
+{
+  "base_commit": "fe58cd06aac77588e3e29e771bdcf3846f3f613d",
+  "provider": "native-gpt-6-astra",
+  "method": "one fresh extraction per fixed candidate; no fresh author draws or candidate publication",
+  "fresh_requests": 4,
+  "new_gameplay_turns": 0,
+  "cases": [
+    {
+      "case": "recorded_incidental_coin",
+      "fresh_requests": 1,
+      "audit_passed": true,
+      "issues": 0,
+      "incidental_out_of_scope": 1,
+      "original_narration_unchanged": true,
+      "events_written": 0,
+      "claim_verdicts": [
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "你蹲下来，一手托稳摇柄，凑近榫口。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "许掌事也俯下身"
+        },
+        {
+          "kind": "co_presence",
+          "scope": "canonical_transition",
+          "verdict": "supported",
+          "quote": "许掌事也俯下身，沿着你查看的位置看了一遍。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "他伸手扶住井架"
+        },
+        {
+          "kind": "possession",
+          "scope": "incidental_prop",
+          "verdict": "out_of_scope",
+          "quote": "冉三把拨弄的铜钱攥进掌心"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "冉三把拨弄的铜钱攥进掌心，往旁边让出一点空当。"
+        }
+      ]
+    },
+    {
+      "case": "recorded_bell_handoff",
+      "fresh_requests": 1,
+      "audit_passed": false,
+      "issues": 2,
+      "incidental_out_of_scope": 1,
+      "original_narration_unchanged": true,
+      "events_written": 0,
+      "claim_verdicts": [
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "沈掌柜应了一声，转身掀帘进了里屋。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "片刻后他捧出那只铜铃"
+        },
+        {
+          "kind": "possession",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "片刻后他捧出那只铜铃"
+        },
+        {
+          "kind": "transfer",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "片刻后他捧出那只铜铃，铃身还带着柜里的凉气，往你手心里一放：「拿好。」"
+        },
+        {
+          "kind": "possession",
+          "scope": "canonical_transition",
+          "verdict": "supported",
+          "quote": "往你手心里一放：「拿好。」"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "他退回柜台后"
+        },
+        {
+          "kind": "possession",
+          "scope": "incidental_prop",
+          "verdict": "out_of_scope",
+          "quote": "他退回柜台后，重新拨起算盘，没再多问。"
+        }
+      ]
+    },
+    {
+      "case": "recorded_glove_first_placement",
+      "fresh_requests": 1,
+      "audit_passed": false,
+      "issues": 1,
+      "incidental_out_of_scope": 0,
+      "original_narration_unchanged": true,
+      "events_written": 0,
+      "claim_verdicts": [
+        {
+          "kind": "transfer",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "你接过护手，收紧腕口。"
+        },
+        {
+          "kind": "possession",
+          "scope": "canonical_transition",
+          "verdict": "supported",
+          "quote": "你接过护手，收紧腕口。"
+        },
+        {
+          "kind": "co_presence",
+          "scope": "canonical_transition",
+          "verdict": "supported",
+          "quote": "柳阿燎听完你的话，立刻把手从摇柄旁撤开。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "柳阿燎听完你的话，立刻把手从摇柄旁撤开。"
+        },
+        {
+          "kind": "co_presence",
+          "scope": "canonical_transition",
+          "verdict": "supported",
+          "quote": "她挪了挪工具凳，给你让出看榫口的位置。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "她挪了挪工具凳，给你让出看榫口的位置。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "你蹲下，借着斜照进来的日光查看连接处。"
+        },
+        {
+          "kind": "movement",
+          "scope": "local_motion",
+          "verdict": "out_of_scope",
+          "quote": "柳阿燎俯身看了看那道缝，手仍留在膝上。"
+        }
+      ]
+    },
+    {
+      "case": "synthetic_untracked_key_pickup",
+      "fresh_requests": 1,
+      "audit_passed": false,
+      "issues": 3,
+      "incidental_out_of_scope": 0,
+      "original_narration_unchanged": true,
+      "events_written": 0,
+      "claim_verdicts": [
+        {
+          "kind": "possession",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "你从柜台上拿起钥匙"
+        },
+        {
+          "kind": "transfer",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "你从柜台上拿起钥匙"
+        },
+        {
+          "kind": "possession",
+          "scope": "canonical_transition",
+          "verdict": "unsupported",
+          "quote": "你从柜台上拿起钥匙，收进自己的衣袋。"
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "coin": "actual recorded native author candidate and initial events/current resource resolution",
+    "bell": "actual recorded DeepSeek T14 prose plus recorded items repair, on existing 81-event synthetic prior-history fixture; not a new DS session or byte-identical original save claim",
+    "glove": "actual recorded native initial author candidate; initial placement supports endpoint custody but not a source handoff",
+    "key": "explicit constructed negative, not an observed prior game failure"
+  },
+  "host_checks": {
+    "method": "structured synthetic mutations of actual coin claim, separate from model outcomes",
+    "guard_count": 16,
+    "scope_metadata": "current staged event or sealed comparison prefix; helper alone does not authenticate arbitrary host Python",
+    "opening_direct_legacy_missing_proof": "unknown; exemption unavailable"
+  },
+  "limits": [
+    "Incidental relevance/reference interpretation remains model-dependent",
+    "Out of scope is not canonical support or authorization for future transactions",
+    "Transactions and protected task declarations conservatively disable exemption for entire turn",
+    "No broad offline suite/CI pass claim",
+    "No full new gameplay episode or statistical success-rate claim",
+    "Glove uncertain correction/final-custody conflict not fixed",
+    "No DeepSeek API requests"
+  ]
+}

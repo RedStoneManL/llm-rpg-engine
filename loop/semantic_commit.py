@@ -13,8 +13,8 @@ import re
 from llm.provider import json_call
 from loop.repair_outcome import build_repair_outcome
 
-VERSION = 'semantic_commit_v5'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v5'
+VERSION = 'semantic_commit_v6'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v6-incidental'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -22,7 +22,7 @@ _MAX_REQUEST_BYTES = 128 * 1024
 _MODES = {'current', 'completed', 'historical', 'reported', 'conditional',
           'future', 'nonliteral', 'uncertain'}
 _CRITICAL_MODES = {'current', 'completed', 'uncertain'}
-_SCOPES = {'canonical_transition', 'local_motion'}
+_SCOPES = {'canonical_transition', 'local_motion', 'incidental_prop'}
 _MOMENTS = {'before', 'after', 'transition_before', 'transition_after', 'unknown', 'throughout'}
 _REFS = {
     'location': {'who': 'Person', 'place': 'Place'},
@@ -40,6 +40,7 @@ _LIMITS = [
     'Canonical Place placement, named-person co-presence, inter-Place movement, direct graph connectivity, visible physical custody and ordered handoffs are audited; local motion within an established Place needs no event.',
     'Scope and reference binding are model interpretations, checked against typed references and canonical placement where available; background hooks run later.',
     'Player input expresses intent and is not evidence of success.',
+    'Incidental NPC prop relevance is probabilistic; host limits prevent specified typed/task/resource cases from being exempted but cannot prove natural-language irrelevance.',
     'Item custody is physical, not legal ownership or permission. Negative-transfer absence is not proven. Whole-primary-turn custody needs a positive host certificate; historical intervals are not covered.',
 ]
 
@@ -66,7 +67,7 @@ Candidate refs are author-declared bindings only; they do not prove anyone was o
 introduced, or placed. Never turn such a binding into a location or observed identity.
 
 Return exactly one JSON object with keys version, claims, coverage. version must be
-"semantic_commit_v5". claims is an array of at most 64 assertions. Inspect EVERY
+"semantic_commit_v6". claims is an array of at most 64 assertions. Inspect EVERY
 narration span. Extract ALL consequential literal physical assertions about identifiable
 people or particular places: current placement/co-presence, actual arrival/departure,
 direct passage connectivity or opening/closing, current physical possession,
@@ -106,7 +107,7 @@ Each claim must contain these exact common keys:
         the assertion and distinguish literal action from a plan, report, or memory;
  occurrence: the zero-based occurrence of that exact quote within that span;
  kind: location | co_presence | movement | passage | passage_change | possession | transfer;
- scope: canonical_transition | local_motion;
+ scope: canonical_transition | local_motion | incidental_prop;
  binding_reason: a nonempty factual reference/scope justification, at most 640 characters;
  mode: current | completed | historical | reported | conditional | future | nonliteral | uncertain;
  moment: before | after | transition_before | transition_after | unknown | throughout;
@@ -140,7 +141,27 @@ Additional fields depend on kind:
  independently stated possession. Do not change negation into an affirmative action.
  A quoted report or conditional/future handoff keeps its reported/conditional/future
  mode, never upgraded because an item or holder happens to be known.
- Item assertions always use canonical_transition scope, never local_motion.
+ Item assertions use canonical_transition scope, never local_motion, except the narrow
+ incidental_prop case below. A null Object ID alone never qualifies for that exception.
+
+incidental_prop is ONLY positive possession of an untracked ordinary prop by an already
+present, identified NON-PLAYER NPC, used merely in a background gesture. It neither
+changes custody nor affects the player's task, evidence, resources, choices, or requested
+inspection. Keep such a claim in the extraction; do not omit it. Mark out-of-scope only
+through this explicit classification, never claim that the prop's custody is canonical.
+For any claim with scope=incidental_prop add exactly one extra field:
+ relevance: {status: "background_only" | "task_relevant" | "uncertain",
+             object_quote: an exact nonempty contiguous item-description quote inside quote}.
+Explain relevance to the actual player input/whole candidate in binding_reason. Use a
+clear before/after checkpoint; uncertain timing/relevance cannot certify background.
+A canonical or candidate Object is always tracked even in decorative prose. Every
+handoff/pickup/gift/change of custody, player possession, task-relevant use/inspection,
+payment/consumption/damage/evidence manipulation remains canonical_transition, including
+new or unbound objects. Preserve their critical claims separately if mixed with scenery.
+A task's key and an object the player asks about are consequential even without an ID.
+Do not hide a tracked-object contradiction behind a vague label or a null reference.
+The host policy may disable this exception during explicit item/task/resource operations;
+classify the prose honestly anyway. Background relevance remains a model judgment.
 People references must bind to Person and place references to Place. Never invent IDs.
 
 mode=current means a literal state at the narrative endpoint; completed means a literal
@@ -277,6 +298,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
         entities = _bounded([copy.deepcopy(row) for row in physical['entities']
                              if row['type'] in {'Person', 'Place', 'Object'}], 'visible entities')
         candidates = _creation_refs(registry, world, commit, commit.narration)
+        incidental_policy = _incidental_policy(world, scene, commit)
         opening_people, reference_bindings = [], []
         if commit._semantic_context:
             from loop.genesis_opening import reference_packet, opening_material
@@ -312,6 +334,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             'actor_id': physical['actor_id'],
             'entities': entities,
             'candidate_refs': candidates,
+            'incidental_policy': incidental_policy,
             **({'opening_people': opening_people, 'reference_bindings': reference_bindings}
                if commit._semantic_context else {}),
             'before': _safe_state(physical['before'], types),
@@ -388,7 +411,17 @@ def _parse(raw, packet):
                  'passage_change': ['change'], 'possession': ['present'], 'transfer': []}[kind]
         _require_keys(claim, ['id', 'span_id', 'quote', 'occurrence', 'kind', 'scope',
                               'binding_reason', 'mode',
-                              'moment', 'transition_index', 'refs'] + extra, 'claim')
+                              'moment', 'transition_index', 'refs'] + extra
+                      + (['relevance'] if claim.get('scope') == 'incidental_prop' else []), 'claim')
+        if claim.get('scope') == 'incidental_prop':
+            relevance = claim['relevance']
+            _require_keys(relevance, ('status', 'object_quote'), 'incidental relevance')
+            if (relevance['status'] not in {'background_only', 'task_relevant', 'uncertain'}
+                    or not isinstance(relevance['object_quote'], str)
+                    or not relevance['object_quote'].strip()
+                    or not isinstance(claim.get('quote'), str)
+                    or relevance['object_quote'] not in claim['quote']):
+                raise SemanticCommitError('Invalid incidental relevance evidence')
         cid = claim['id']
         if not isinstance(cid, str) or not cid.strip() or len(cid) > 80 or cid in ids:
             raise SemanticCommitError('Semantic claim id is invalid or duplicated')
@@ -542,12 +575,68 @@ def _moment_position(packet, claim):
     return None
 
 
+def _incidental_policy(world, scene, commit):
+    from loop.resources import resource_scope_status
+    graph = world['systems']['ontology']
+    tracked = {eid for eid, entity in graph.entities.items() if entity.etype == 'Object'}
+    protected = any(bool(commit.sections.get(name)) for name in ('items', 'quests', 'promises'))
+    protected |= any(isinstance(row, dict) and row.get('etype') == 'Object'
+                     for row in (commit.sections.get('entities') or []))
+    protected |= any(isinstance(row, dict) and row.get('subject') in tracked
+                     for row in (commit.sections.get('facts') or []))
+    protected |= any(isinstance(row, dict) and (row.get('src') in tracked or row.get('dst') in tracked)
+                     for row in (commit.sections.get('relations') or []))
+    protected |= scene.get('_semantic_return_commitment') is True
+    turn = world.get('_action_turn')
+    records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
+    if type(turn) is int:
+        protected |= any(record.get('debtor') == scene.get('protagonist')
+                         and record.get('created_turn') == turn
+                         for record in records.values() if isinstance(record, dict))
+    return {'resource_action': resource_scope_status(world, scene),
+            'protected_effects': bool(protected)}
+
+
+def _incidental_scope(packet, claim):
+    """Only a bounded exemption, never positive proof of an untracked prop."""
+    canonical = 'canonical_transition'
+    refs = claim['refs']
+    if (claim['kind'] != 'possession' or claim.get('present') is not True
+            or refs.get('item') is not None or claim['mode'] not in {'current', 'completed'}
+            or claim['moment'] not in {'before', 'after'} or claim['transition_index'] is not None
+            or claim.get('relevance', {}).get('status') != 'background_only'):
+        return canonical, 'This assertion cannot qualify as confident incidental NPC prop handling.'
+    holder = refs.get('holder')
+    types = {row['id']: row['type'] for row in packet['entities']}
+    if holder == packet['actor_id'] or types.get(holder) != 'Person':
+        return canonical, 'Player, Place, candidate-only or unbound holders are not incidental NPCs.'
+    policy = packet.get('incidental_policy', {})
+    if policy.get('resource_action') != 'none' or policy.get('protected_effects') is not False:
+        return canonical, 'Current item, task or resource scope does not certify this exemption.'
+    before = packet['before']; state = _state_at(packet, claim)
+    if (state is None or not before.get('actor_location') or not state.get('actor_location')
+            or [r['location'] for r in before['positions'] if r['who'] == holder] != [before['actor_location']]
+            or [r['location'] for r in state['positions'] if r['who'] == holder] != [state['actor_location']]):
+        return canonical, 'Incidental props require an already-present, canonically co-located NPC.'
+    # A literal authorized ID/label hit only blocks an exemption. It is not a
+    # semantic resolver and does not certify that unseen synonyms are unrelated.
+    from systems.player_sources import source_mentions
+    item_quote = claim['relevance']['object_quote']
+    for row in packet['entities'] + packet['candidate_refs']:
+        if row['type'] == 'Object' and any(source_mentions(item_quote, label)
+                for label in (row['id'], row.get('name')) if isinstance(label, str)):
+            return canonical, 'The quoted prop matches a tracked visible object reference.'
+    return 'incidental_prop', 'Model-classified background NPC prop detail is outside typed custody tracking, not a supported canonical fact.'
+
+
 def _effective_scope(packet, claim):
     """Local motion may refine an established position, never establish one.
 
     This guard uses typed canonical references and snapshots only. It does not
     recognize scenery words, infer aliases, or create sublocation entities.
     """
+    if claim['scope'] == 'incidental_prop':
+        return _incidental_scope(packet, claim)
     if claim['scope'] != 'local_motion':
         return 'canonical_transition', 'The extractor identified a canonical physical assertion.'
     kind, refs = claim['kind'], claim['refs']
@@ -614,7 +703,7 @@ def _verdict(packet, claim, minimum_position):
     if claim['mode'] not in _CRITICAL_MODES:
         return 'out_of_scope', 'This assertion does not establish a current or completed physical fact.', None
     scope, scope_reason = _effective_scope(packet, claim)
-    if scope == 'local_motion':
+    if scope in {'local_motion', 'incidental_prop'}:
         return 'out_of_scope', scope_reason, None
     if claim['mode'] == 'uncertain':
         return 'unsupported', 'The extractor could not confidently classify this consequential physical assertion.', None
@@ -782,6 +871,7 @@ def evaluate_extraction(packet, raw):
                                             and row['effective_scope'] == 'canonical_transition'
                                             for row in assessed),
                 'local_motion_count': sum(row['effective_scope'] == 'local_motion' for row in assessed),
+                'incidental_prop_count': sum(row['effective_scope'] == 'incidental_prop' for row in assessed),
                 'scope_override_count': sum(row['scope'] != row['effective_scope'] for row in assessed)}
     report = {'version': VERSION, 'comparator_policy': COMPARATOR_POLICY, 'claims': assessed, 'issues': issues,
               'coverage': coverage, 'passed': not issues,

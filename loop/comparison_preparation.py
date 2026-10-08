@@ -15,19 +15,19 @@ from itertools import chain
 
 from engine.store import EventBatch, RevisionConflict
 from kernel.projection import project
-from loop.resources import prepare_resources, registered_balances
+from loop.resources import normalize_resource_scope, prepare_resources, registered_balances
 from loop.semantic_gate import _hash, _source
 from loop.strategy import _bound_actor_id
 from loop.variation import prepare_variation, variation_fragment
 
-_VERSION = 'comparison-preparation-v1'
+_VERSION = 'comparison-preparation-v2-scope'
 _PROOF_SCENE_KEYS = frozenset({
     '_comparison_preparation', '_comparison_preparation_digest',
     '_comparison_required_prefix',
 })
 _GENERATED_SCENE_KEYS = _PROOF_SCENE_KEYS | frozenset({
     '_resolved_values', '_resolved_clock', '_resolution_prompt',
-    '_variation_prompt',
+    '_variation_prompt', '_semantic_resource_scope', '_semantic_return_commitment',
 })
 
 
@@ -147,6 +147,8 @@ def _preview_scene(scene, data):
     prepared['_resolved_clock'] = copy.deepcopy(data['resolved_clock'])
     prepared['_resolution_prompt'] = data['resolution_prompt']
     prepared['_variation_prompt'] = data['variation_prompt']
+    prepared['_semantic_resource_scope'] = copy.deepcopy(data['semantic_resource_scope'])
+    prepared['_semantic_return_commitment'] = data['semantic_return_commitment']
     return prepared
 
 
@@ -164,6 +166,8 @@ def prepare_comparison(registry, store, world, scene, player_input, provider):
     source = _source(preview, actor)
     source_world = _world_fingerprint(preview, actor)
     expected_balances = registered_balances(preview)
+    no_resources = not any(owner == actor for owner, _ in expected_balances)
+    resolution = None
     resolution_prompt = ''
     resolved_clock = None
     if registry.owner_of_event('resources_resolved') is not None:
@@ -181,6 +185,9 @@ def prepare_comparison(registry, store, world, scene, player_input, provider):
         'resolved_values': [[subject, predicate, value]
                             for (subject, predicate), value in expected_balances.items()],
         'resolved_clock': resolved_clock, 'resolution_prompt': resolution_prompt,
+        'semantic_resource_scope': normalize_resource_scope(
+            resolution, actor, batch.turn, no_resources=no_resources),
+        'semantic_return_commitment': False,
         'variation_prompt': '',
     }
     preview_scene = _preview_scene(scene, data)

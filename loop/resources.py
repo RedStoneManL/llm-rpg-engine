@@ -33,6 +33,61 @@ def registered_balances(world):
     return balances
 
 
+def normalize_resource_scope(resolution, actor, turn, *, no_resources=False):
+    """Describe only this host-prepared action, without copying private values.
+
+    A missing event is unknown unless the staging caller explicitly checked
+    that this actor has no registered resources. Projected last_resolution is
+    historical state and is never evidence for the current action.
+    """
+    if not isinstance(actor, str) or not actor or type(turn) is not int or turn < 1:
+        return {'status': 'unknown'}
+    scope = {'actor': actor, 'turn': turn}
+    if resolution is None:
+        return ({**scope, 'status': 'none', 'no_resources': True}
+                if no_resources is True else {'status': 'unknown'})
+    if not isinstance(resolution, dict):
+        return {'status': 'unknown'}
+    deltas = resolution.get('deltas')
+    if (resolution.get('type') != 'resources_resolved'
+            or resolution.get('retracted')
+            or type(resolution.get('turn')) is not int or resolution['turn'] != turn
+            or not isinstance(resolution.get('id'), str) or not resolution['id']
+            or not isinstance(deltas, dict) or deltas.get('subject') != actor
+            or deltas.get('outcome') not in ('none', 'spent', 'insufficient')):
+        return {'status': 'unknown'}
+    return {**scope, 'status': deltas['outcome'], 'source_event_id': resolution['id']}
+
+
+def resource_scope_status(world, scene):
+    """Read the bounded host proof; direct/legacy callers default to unknown."""
+    scope = scene.get('_semantic_resource_scope')
+    if (not isinstance(scope, dict)
+            or not isinstance(scope.get('actor'), str) or not scope['actor']
+            or scope['actor'] != scene.get('protagonist')
+            or type(scope.get('turn')) is not int or scope['turn'] < 1
+            or type(world.get('_action_turn')) is not int
+            or scope['turn'] != world['_action_turn']):
+        return 'unknown'
+    if set(scope) == {'actor', 'turn', 'status', 'no_resources'}:
+        if scope['status'] != 'none' or scope['no_resources'] is not True:
+            return 'unknown'
+        graph = world.get('systems', {}).get('ontology')
+        entity = graph.get_entity(scope['actor']) if graph is not None else None
+        if entity is None:
+            return 'unknown'
+        rules = entity.attrs.get('fact_rules', {})
+        if isinstance(rules, dict) and any(
+                isinstance(rule, dict) and rule.get('resource') for rule in rules.values()):
+            return 'unknown'
+        return 'none'
+    if (set(scope) != {'actor', 'turn', 'status', 'source_event_id'}
+            or not isinstance(scope['source_event_id'], str) or not scope['source_event_id']
+            or scope['status'] not in ('none', 'spent', 'insufficient')):
+        return 'unknown'
+    return scope['status']
+
+
 def prepare_resources(world, scene, action, provider, turn):
     graph=world.get('systems',{}).get('ontology')
     hero=scene.get('protagonist')

@@ -62,6 +62,8 @@ def _context(scene, player_input):
         'scene': scene.get('id') or scene.get('location') or 'scene',
         'resolved_values': scene.get('_resolved_values', {}),
         'resolved_clock': scene.get('_resolved_clock'),
+        'resource_scope': scene.get('_semantic_resource_scope'),
+        'return_commitment': scene.get('_semantic_return_commitment'),
         'preparation': scene.get('_comparison_preparation_digest')})
 
 
