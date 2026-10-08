@@ -253,6 +253,7 @@ def produce_turn(
     inherited_approval = getattr(commit, '_semantic_approval', None)
     inherited_audit_log = copy.deepcopy(getattr(commit, 'semantic_audit_log', []))
     inherited_preparation = getattr(commit, '_comparison_preparation', None)
+    inherited_semantic_context = copy.deepcopy(getattr(commit, '_semantic_context', {}))
     errors = validate(commit) if output_error is None else []
     narrated_physical = physical_signature(commit, world) if commit is not None else None
     preserved_prose_repair = False
@@ -365,6 +366,7 @@ def produce_turn(
 
     commit.semantic_audit_required = require_semantic
     commit._comparison_preparation = inherited_preparation
+    commit._semantic_context = inherited_semantic_context
     if inherited_approval is not None:
         # Preserve the old seal even if structural repair replaced the object:
         # changed prepared candidates must fail the stale-approval check.
@@ -888,7 +890,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
         # This is the only creation path. Backstage hooks and model sections
         # cannot supply source records, even if they forge plausible evidence.
-        if any(event.get('type') == 'player_input_recorded' for event in batch.events):
+        if any(event.get('type') in {'player_input_recorded', 'opening_observed'} for event in batch.events):
             raise TurnRejected('Player input sources require exact host provenance')
         if captured_input is not None:
             recorded = player_input_event(captured_input, result.world, result.commit,

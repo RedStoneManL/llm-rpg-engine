@@ -1,0 +1,93 @@
+{
+  "base": "cf20a84e30143f8801686e9d98dd9096ec11228e",
+  "provider": "native-gpt-6-astra",
+  "deepseek_called": false,
+  "scope": "Shared generated-opening publication and actor-scoped introduction consumers; not full scenario completion",
+  "original_failure": {
+    "fresh_requests": 19,
+    "genesis_requests": 10,
+    "committed_actions": 1,
+    "defects": [
+      "Opening prose places two remote NPCs beside actor without events",
+      "First action duplicates an unseen original NPC under a new ID",
+      "Glove uncertain rewrite and accepted custody diverge; not fixed in this increment",
+      "Pitch/seed tone mismatch; not fixed in this increment"
+    ]
+  },
+  "A": {
+    "fresh_requests": 12,
+    "recorded_initial_opening": 1,
+    "historical_gate": {
+      "fresh_requests": 3,
+      "published": true,
+      "original_53_world_events_unchanged": true,
+      "residual": "Substituting speaker leaves he/she mismatch and awkward prose; physical pass only"
+    },
+    "fresh_opening": {
+      "fresh_requests": 2,
+      "repaired": false,
+      "original_world_events_unchanged": true,
+      "observed_original_ids": [
+        "npc_0",
+        "npc_2"
+      ]
+    },
+    "first_action": {
+      "fresh_requests": 7,
+      "committed": false,
+      "reason": "Normal auditor lacked actor-owned published display labels; anonymizing correction then remained unbound",
+      "new_events": 0
+    }
+  },
+  "B": {
+    "fresh_requests": 4,
+    "replayed_classifier_author_responses": 4,
+    "same_player_action": true,
+    "same_author_candidate": true,
+    "same_initial_55_events": true,
+    "author_messages_exact": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "author_message_difference": "Only added 72-character source-category explanation; candidate audit input differs only in two published_display entries",
+    "calls": [
+      "semantic extraction",
+      "exact-span correction",
+      "semantic re-extraction",
+      "normal background lore generation"
+    ],
+    "initial_issues": 1,
+    "remaining_issue": "Unregistered copper-coin custody from decorative NPC gesture; potentially overly conservative, not economic validation",
+    "patch": {
+      "start": 185,
+      "end": 197,
+      "before": "冉三把拨弄的铜钱攥进掌心",
+      "after": "冉三侧过身"
+    },
+    "committed": true,
+    "appended_events": 13,
+    "new_npc_ids": [],
+    "re_audit_issues": 0,
+    "elapsed_seconds_including_native_handoff": 503.4569616317749
+  },
+  "source_checks": {
+    "same_production_characters_query_reads": "Original ID now and identity-only after hypothetical in-memory departure; other actor gets none",
+    "departure_was_played": false,
+    "summary_host_source_turn0_bound": true,
+    "fresh_summary_call": false,
+    "old_null_extraction_replay_issues": 6,
+    "old_null_references_auto_upgraded": false,
+    "approval_binds_actor_source_content": true
+  },
+  "limits": [
+    "Model reference interpretation/extraction is probabilistic",
+    "No completed well repair or full fresh-author end-to-end success claim",
+    "B original author/classifier results are replayed, not fresh",
+    "No full offline test suite or CI pass claim",
+    "Native file-handoff timing is not production model latency",
+    "Background generic object gestures may be over-audited",
+    "User supplied prose now audited unchanged or rejected; explicit fake/offline low-level path remains unaudited"
+  ]
+}

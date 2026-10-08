@@ -6,6 +6,8 @@ never writes to this system directly):
   player_input_recorded — exact bound-player input provenance, not world truth.
                           Optional actor-private first-introduction scene sources
                           remain here when recap buckets are compressed.
+  opening_observed    — actor-private published opening display bindings, kept
+                        separately from player input and canonical knowledge.
   narration_recorded  — appended by digest_fleet every turn; carries the
                         verbatim prose for that turn keyed by scene.
   scene_summarized    — appended by digest_fleet when a scene ages out of
@@ -86,7 +88,7 @@ class NarrativeSystem(ContextSystem):
         return set()
 
     def event_types(self) -> set[str]:
-        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled", "player_input_recorded"}
+        return {"narration_recorded", "scene_summarized", "recap_recompressed", "variation_sampled", "player_input_recorded", "opening_observed"}
 
     def commit_sections(self) -> set[str]:
         return set()   # harness-authored only; narrator never writes to this
@@ -95,6 +97,7 @@ class NarrativeSystem(ContextSystem):
         return {
             "scenes": [],
             "player_inputs": [],
+            "opening_observations": [],
             "super_summary": None,
             "super_summary_evidence": None,
             "super_summary_created": None,
@@ -110,6 +113,13 @@ class NarrativeSystem(ContextSystem):
         ns = world["systems"][self.name]
         d = event.get("deltas", {})
         t = event["type"]
+
+        if t == 'opening_observed':
+            from systems.opening_sources import validate_opening_replay
+            validate_opening_replay(world, event)
+            ns.setdefault('opening_observations', []).append({
+                **copy.deepcopy(d), 'source_event_id': event['id'], 'turn': event['turn']})
+            return
 
         if t == 'player_input_recorded':
             from systems.player_sources import valid_player_input

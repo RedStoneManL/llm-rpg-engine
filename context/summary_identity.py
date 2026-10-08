@@ -1,7 +1,7 @@
 """Bound historical identity hints for recap compression, never story evidence.
 
 Each raw passage must resolve to one published narration and one valid original
-player source. Labels come from that source's historical POV, with an additional
+actor source. Labels come from that source's historical POV, with an additional
 public-or-already-published boundary because recaps are not actor-private.
 """
 from __future__ import annotations
@@ -10,7 +10,10 @@ import json
 from collections import Counter, defaultdict
 
 from kernel.projection import project
-from systems.player_sources import LABEL_FIELDS, valid_player_input, visible_source_entities, source_mentions
+from systems.player_sources import (
+    LABEL_FIELDS, published_identity_bindings, source_match_span, source_mentions,
+    valid_narration_source, visible_source_entities,
+)
 
 
 _MAX_SERIALIZED_CHARS = 12000
@@ -32,7 +35,7 @@ def _valid_source(event):
     # The optional introduction validator can encounter missing keys in corrupt
     # legacy rows. Such a row must never establish an actor binding.
     try:
-        return valid_player_input(event)
+        return valid_narration_source(event)
     except (KeyError, TypeError, ValueError, AttributeError):
         return False
 
@@ -45,7 +48,7 @@ def _endpoints(values, limit):
     return values[:first] + values[-(limit - first):] if limit > 1 else values[:1]
 
 
-def _labels(graph, canonical, entity_id, day, text):
+def _labels(graph, canonical, entity_id, day, text, bindings):
     # POV projection can replace a public fact's value with a private belief
     # while retaining its secrecy flag. Public eligibility comes from the
     # original historical canonical values, never that inherited flag.
@@ -63,10 +66,23 @@ def _labels(graph, canonical, entity_id, day, text):
             if (isinstance(value, str) and value.strip()
                     and (value in public or source_mentions(text, value))):
                 labels.add(value)
+    # The actor's published display binding is not a canonical name fact. It
+    # may supplement this passage only when its exact label occurs in the raw
+    # text; the caller supplies the same historical source world as the POV.
+    published = set()
+    binding = bindings.get(entity_id, {})
+    label = binding.get("label")
+    match = source_match_span(text, label)
+    if (binding.get("category") == "published_display_binding" and match is not None
+            and text[match[0]:match[1]] == label):
+        labels.add(label)
+        published.add(label)
     # Never clip a name into a new alias, or turn an entity ID/attr into a name.
     eligible = sorted(value for value in labels if len(value) <= _MAX_LABEL_CHARS)
     selected = eligible[:_MAX_LABELS]
-    return selected, len(labels) - len(selected)
+    return selected, len(labels) - len(selected), [
+        {"label": label, "category": "published_display_binding"}
+        for label in selected if label in published]
 
 
 def build_summary_identity(registry, events, buckets) -> dict:
@@ -89,7 +105,7 @@ def build_summary_identity(registry, events, buckets) -> dict:
                 and isinstance(data.get("scene"), str)
                 and isinstance(data.get("text"), str)):
             narrations[(data["scene"], data["text"])].append((index, event))
-        elif (event.get("type") == "player_input_recorded"
+        elif (event.get("type") in {"player_input_recorded", "opening_observed"}
                 and isinstance(data.get("narration_ref"), str)):
             sources[data["narration_ref"]].append((index, event))
 
@@ -137,7 +153,7 @@ def build_summary_identity(registry, events, buckets) -> dict:
         narration_index, narration = matches[0]
         narration_id, turn = narration.get("id"), narration.get("turn")
         if (not _identifier(narration_id) or ids[narration_id] != 1
-                or type(turn) is not int or turn <= 0):
+                or type(turn) is not int or turn < 0):
             return unknown
         linked = sources.get(narration_id, [])
         if len(linked) != 1:
@@ -160,6 +176,7 @@ def build_summary_identity(registry, events, buckets) -> dict:
                 return unknown
             canonical = historical[source_index]["systems"]["ontology"]
             graph = visible_source_entities(historical[source_index], actor)
+            bindings = published_identity_bindings(historical[source_index], actor)
             if graph is None:
                 return unknown
             person = graph.get_entity(actor)
@@ -173,7 +190,8 @@ def build_summary_identity(registry, events, buckets) -> dict:
                     continue
                 if not _identifier(eid):
                     continue
-                labels, omitted = _labels(graph, canonical, eid, stamp["day"], text)
+                labels, omitted, label_sources = _labels(
+                    graph, canonical, eid, stamp["day"], text, bindings)
                 # A private input reference or known hidden destination is not
                 # a published entity mention. Do not even expose its ID/type
                 # or count it as omitted metadata merely because the actor knows it.
@@ -184,6 +202,8 @@ def build_summary_identity(registry, events, buckets) -> dict:
                     omitted_entities += 1
                     continue
                 entities.append({"id": eid, "type": entity.etype, "labels": labels})
+                if label_sources:
+                    entities[-1]["label_sources"] = label_sources
                 omitted_labels += omitted
         except (KeyError, TypeError, ValueError, AttributeError, IndexError):
             # A malformed historical projection cannot safely be replaced with
@@ -285,8 +305,9 @@ def format_summary_identity(packet: dict) -> str:
         "raw_index 对应原文；raw_span 是该场景原始段落以单个换行连接后的 Unicode 字符偏移，"
         "不是压缩摘要里的位置。各组不可混为同一主角。bound 段落中，原文的第二人称‘你’指 "
         "original_actor，不能用当前主角替换。Object 是物品，不是执行动作的主角；"
-        "Person、Place、Faction、Thread 等类型也不可互换。entities.labels 仅为历史规范来源"
-        "允许使用的名称；同名不代表同一实体，不得发明别名、姓名映射、身份或动作。"
+        "Person、Place、Faction、Thread 等类型也不可互换。entities.labels 仅为历史来源"
+        "允许使用的名称；label_sources 中 published_display_binding 只表示原文已发布的显示称呼绑定，"
+        "不是规范姓名或真名事实。同名不代表同一实体，不得发明别名、姓名映射、身份或动作。"
         "这些身份提示只辅助归属，不能证明任何动作发生；情节仍须来自所给原文。"
         "即使旧摘要混淆了物品与人物，也不可沿用错误归属。保留原文的不确定性、否定、意图与结果区别。"
         "unknown、缺少旧存档来源、未列出或被截限的段落都没有可核验身份绑定，不得猜测补全；"

@@ -125,8 +125,69 @@ def valid_player_input(event):
             and event.get('scene') == committed['scene'])
 
 
+def valid_narration_source(event):
+    """Shared actor/source contract; opening observations are not player inputs."""
+    try:
+        if isinstance(event, dict) and event.get('type') == 'opening_observed':
+            from systems.opening_sources import valid_opening_observation
+            return valid_opening_observation(event)
+        return valid_player_input(event)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
+def published_identity_bindings(world, actor_id):
+    """Bound display references only: no current names, locations or profiles."""
+    result = {}
+    for pid, source in observed_identity_evidence(world, actor_id).items():
+        label = source['person']['observed_identity']['label']
+        if len(label) > 160:
+            continue
+        result[pid] = {'label': label, 'source_event_id': source['source_event_id'],
+            'narration_ref': source['narration_ref'], 'turn': source['turn'],
+            'category': 'published_display_binding'}
+    return result
+
+
+def introduction_sources(world, actor_id):
+    """Yield validated actor-owned sources in one shape, without inventing input.
+
+    No POV calls here: remembered identity is itself an input to POV filtering.
+    """
+    from systems.opening_sources import (
+        DELTA_KEYS as OPENING_KEYS, SUMMARY as OPENING_SUMMARY, valid_opening_observation,
+    )
+    narrative = world.get('systems', {}).get('narrative')
+    if not isinstance(narrative, dict) or not _identifier(actor_id):
+        return
+    for ledger_name, event_type, keys, summary, validator in (
+            ('player_inputs', 'player_input_recorded', DELTA_KEYS | {'cast_introductions'},
+             SUMMARY, valid_player_input),
+            ('opening_observations', 'opening_observed', OPENING_KEYS,
+             OPENING_SUMMARY, valid_opening_observation)):
+        ledger = narrative.get(ledger_name)
+        if not isinstance(ledger, list):
+            continue
+        for row in ledger:
+            if not isinstance(row, dict) or row.get('actor_id') != actor_id:
+                continue
+            if set(row) != keys | {'source_event_id', 'turn'}:
+                continue
+            committed = row.get('committed_at')
+            if not _context_valid(committed):
+                continue
+            event = {'type': event_type, 'id': row['source_event_id'],
+                     'turn': row['turn'], 'day': committed['day'], 'scene': committed['scene'],
+                     'summary': summary, 'actors': [], 'secrecy': 'private',
+                     'deltas': {key: row[key] for key in keys}}
+            if validator(event):
+                yield {key: row[key] for key in (
+                    'actor_id', 'turn', 'source_event_id', 'narration_ref',
+                    'committed_at', 'entity_refs', 'cast_introductions')}
+
+
 def observed_identity_evidence(world, actor_id):
-    """Read only explicit host markers; old scene associations confer no identity.
+    """Read explicit host markers; old scene associations confer no identity.
 
     This pure reader must not call POV/source-visibility helpers: it is also used
     to construct that view. Historical spans never authorize current graph facts.
@@ -135,26 +196,8 @@ def observed_identity_evidence(world, actor_id):
     actor = graph.get_entity(actor_id) if graph and _identifier(actor_id) else None
     if actor is None or actor.etype != 'Person':
         return {}
-    narrative = world.get('systems', {}).get('narrative')
-    ledger = narrative.get('player_inputs') if isinstance(narrative, dict) else None
-    if not isinstance(ledger, list):
-        return {}
     evidence = {}
-    for row in ledger:
-        if not isinstance(row, dict) or row.get('actor_id') != actor_id:
-            continue
-        if set(row) != DELTA_KEYS | {'cast_introductions', 'source_event_id', 'turn'}:
-            continue
-        committed = row.get('committed_at')
-        if not _context_valid(committed):
-            continue
-        event = {'type': 'player_input_recorded', 'id': row['source_event_id'],
-                 'turn': row['turn'], 'day': committed['day'], 'scene': committed['scene'],
-                 'summary': SUMMARY, 'actors': [],
-                 'deltas': {key: value for key, value in row.items()
-                            if key not in {'source_event_id', 'turn'}}}
-        if not valid_player_input(event):
-            continue
+    for row in introduction_sources(world, actor_id):
         snapshot = row['cast_introductions']
         for person in snapshot['persons']:
             entity = graph.get_entity(person['id'])

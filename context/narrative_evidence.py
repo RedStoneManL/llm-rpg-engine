@@ -13,8 +13,10 @@ from collections import Counter, defaultdict
 from context.summary_identity import build_summary_identity
 from kernel.projection import project
 from facts.visibility import held_by_visibility
-from systems.player_sources import (LABEL_FIELDS, source_mentions,
-                                    valid_player_input, visible_source_entities)
+from systems.player_sources import (
+    LABEL_FIELDS, published_identity_bindings, source_match_span, source_mentions,
+    valid_narration_source, visible_source_entities,
+)
 
 
 _CATEGORY = "historical_narration"
@@ -81,7 +83,16 @@ def _endpoint(value, etype):
         return None
     labels = [label for label in _list(value.get("labels"))
               if isinstance(label, str) and label.strip() and len(label) <= _MAX_LABEL]
-    return {"id": value["id"], "type": etype, "labels": sorted(set(labels))[:4]}
+    result = {"id": value["id"], "type": etype, "labels": sorted(set(labels))[:4]}
+    published = {row.get("label") for raw in _list(value.get("label_sources"))
+                 if (row := _dict(raw)).get("category") == "published_display_binding"
+                 and isinstance(row.get("label"), str)}
+    if published:
+        sources = [{"label": label, "category": "published_display_binding"}
+                   for label in result["labels"] if label in published]
+        if sources:
+            result["label_sources"] = sources
+    return result
 
 
 def _relation(value):
@@ -229,13 +240,13 @@ def _bucket_group(bucket):
     return _group(group)
 
 
-def _published_relations(world, actor, text, day):
+def _published_relations(world, actor, text, day, bindings):
     """Use the existing visibility contract plus unambiguous published endpoints."""
     canonical = world["systems"]["ontology"]
     view = visible_source_entities(world, actor)
     if view is None:
         return []
-    names, owners = {}, defaultdict(set)
+    names, owners, published = {}, defaultdict(set), {}
     for eid, entity in view.entities.items():
         if not _identifier(eid) or entity.etype not in {"Object", "Person"}:
             continue
@@ -254,12 +265,25 @@ def _published_relations(world, actor, text, day):
                         and label in public and source_mentions(text, label)):
                     labels.add(label)
                     owners[label.casefold()].add(eid)
+        # Binding evidence is replayed through the later source event, while
+        # typed endpoints and held_by facts remain at narration publication.
+        binding = bindings.get(eid, {}) if entity.etype == "Person" else {}
+        label = binding.get("label")
+        match = source_match_span(text, label)
+        if (binding.get("category") == "published_display_binding" and match is not None
+                and len(label) <= _MAX_LABEL and text[match[0]:match[1]] == label):
+            labels.add(label)
+            owners[label.casefold()].add(eid)
+            published[eid] = label
         names[eid] = labels
     endpoints = {}
     for eid, labels in names.items():
         unique = sorted(label for label in labels if owners[label.casefold()] == {eid})
         if source_mentions(text, eid) or unique:
             endpoints[eid] = {"id": eid, "type": view.get_entity(eid).etype, "labels": unique[:4]}
+            if published.get(eid) in unique[:4]:
+                endpoints[eid]["label_sources"] = [{
+                    "label": published[eid], "category": "published_display_binding"}]
     rows = []
     for relation in canonical.relations:
         if (relation.rel != "held_by" or not isinstance(relation.attrs, dict)
@@ -320,7 +344,8 @@ def build_narrative_evidence(registry, events, buckets, *, identity=None):
         if (event.get("type") == "narration_recorded" and _identifier(data.get("scene"))
                 and isinstance(data.get("text"), str)):
             narrations[(data["scene"], data["text"])].append((index, event))
-        if event.get("type") == "player_input_recorded" and _identifier(data.get("narration_ref")):
+        if (event.get("type") in {"player_input_recorded", "opening_observed"}
+                and _identifier(data.get("narration_ref"))):
             linked[data["narration_ref"]].append((index, event))
     historical, groups = {}, []
     for index, bucket in enumerate(buckets):
@@ -359,12 +384,19 @@ def build_narrative_evidence(registry, events, buckets, *, identity=None):
                 continue
             source_index, original = candidates[0]
             try:
-                if (not valid_player_input(original) or source_index <= narration_index
+                if (not valid_narration_source(original) or source_index <= narration_index
                         or ids[original["id"]] != 1 or original["turn"] != narration.get("turn")
+                        or hint.get("turn") != original["turn"]
                         or hint.get("narration_ref") != narration["id"]
                         or hint.get("source_event_id") != original["id"]
+                        or _dict(hint.get("source_time")).get("day") != original["deltas"]["committed_at"]["day"]
                         or original["deltas"]["actor_id"] != actor):
                     continue
+                # Replay the source too: a turn-0 observation must validate
+                # against its earlier exact narration, context and actor.
+                if source_index not in historical:
+                    historical[source_index] = project(registry, events[:source_index + 1])
+                bindings = published_identity_bindings(historical[source_index], actor)
                 if narration_index not in historical:
                     historical[narration_index] = project(registry, events[:narration_index + 1])
                 world = historical[narration_index]
@@ -374,7 +406,7 @@ def build_narrative_evidence(registry, events, buckets, *, identity=None):
                 source["actor_binding"] = "bound"
                 # A non-monotonic legacy envelope cannot mix a later POV day
                 # with earlier relation validity. Linkage is still independently bound.
-                relations = (_published_relations(world, actor, text, source["day"])
+                relations = (_published_relations(world, actor, text, source["day"], bindings)
                              if world.get("meta", {}).get("day") == source["day"] else [])
                 if relations:
                     source["historical_relations"] = relations
@@ -478,6 +510,7 @@ def format_narrative_evidence(packet):
             "actor_binding=bound 仅表示原始参与者绑定经核验，unknown 表示无可核验绑定；"
             "不得用当前主角或当前持有人补全历史身份。historical_relations 只表示 narration_recorded "
             "时点的公开、原文已点名的 typed held_by(Object→Person) 端点；不是当前持有、转交或动作成功证明。"
+            "端点 label_sources 中 published_display_binding 仅为原文已发布的显示称呼绑定，不是规范姓名或真名事实。"
             "未列出关系不表示不存在关系。coverage.partial/truncated 或 unknown 表示证据不足；"
             "不得把元数据、内部 ID 或来源标记编入剧情正文。\n"
             + json.dumps(safe, ensure_ascii=False, separators=(",", ":")) + "\n")

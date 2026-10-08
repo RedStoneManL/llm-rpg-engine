@@ -38,15 +38,16 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
     """Return an independent graph projection; never modify canonical world data."""
     pov = pov or scene.get('protagonist')
     observed_ids = observed_identity_evidence(world, pov).keys()
-    # The input/introduction ledger is a private host source, not a generic system
-    # read model. Remove it even without a usable graph/actor: generic tools can
+    # Input and opening ledgers are private host sources, not a generic system
+    # read model. Remove both even without a usable graph/actor: generic tools can
     # serialize this view, and missing POV must never expose another actor's log.
     systems = world.get('systems', {})
     narrative = systems.get('narrative')
-    if isinstance(narrative, dict) and 'player_inputs' in narrative:
+    private_ledgers = {'player_inputs', 'opening_observations'}
+    if isinstance(narrative, dict) and private_ledgers.intersection(narrative):
         world = {**world, 'systems': {**systems, 'narrative': {
             key: copy.deepcopy(value) for key, value in narrative.items()
-            if key != 'player_inputs'
+            if key not in private_ledgers
         }}}
     graph = world.get('systems', {}).get('ontology')
     if graph is None or not pov:

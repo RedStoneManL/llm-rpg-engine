@@ -15,6 +15,7 @@ class TurnCommit:
     narration_rewrite_required: bool = field(default=False, init=False, repr=False, compare=False)
 
     semantic_audit_required: bool = field(default=False, init=False, repr=False, compare=False)
+    _semantic_context: dict = field(default_factory=dict, init=False, repr=False, compare=False)
     _semantic_approval: Any = field(default=None, init=False, repr=False, compare=False)
     semantic_audit_log: list = field(default_factory=list, init=False, repr=False, compare=False)
     _comparison_preparation: Any = field(default=None, init=False, repr=False, compare=False)

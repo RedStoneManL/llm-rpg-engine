@@ -5,7 +5,7 @@ import copy
 import json
 
 from systems.player_sources import (
-    source_context, source_mentions, valid_cast_introductions,
+    introduction_sources, source_context, source_mentions,
     visible_source_entities, visible_source_labels,
 )
 
@@ -13,7 +13,7 @@ from systems.player_sources import (
 def read_cast_evidence(world: dict, scene: dict, query: str | None) -> dict:
     """Recall only own introductions by historical name/ID or visible scene NPC.
 
-    The stored passage is scene narrative associated with created IDs. It is not
+    The stored passage is scene narrative associated with explicit IDs. It is not
     an extracted gender, speaker attribution, character profile or current fact.
     Legacy records without the optional snapshot supply no introduction evidence.
     """
@@ -25,16 +25,8 @@ def read_cast_evidence(world: dict, scene: dict, query: str | None) -> dict:
     visible = visible_source_entities(world, actor)
     if visible is None:
         return result
-    ledger = (world.get('systems', {}).get('narrative') or {}).get('player_inputs')
-    if not isinstance(ledger, list):
-        return result
     # Ownership comes first, including before validation and coverage counts.
-    own = [row for row in ledger if isinstance(row, dict) and row.get('actor_id') == actor]
-    own = [row for row in own if type(row.get('turn')) is int
-           and isinstance(row.get('source_event_id'), str)
-           and isinstance(row.get('committed_at'), dict)
-           and valid_cast_introductions(row.get('cast_introductions'), actor,
-                                        row.get('narration_ref'), row.get('entity_refs'))]
+    own = list(introduction_sources(world, actor))
     if not own:
         return result
     current = source_context(world, actor)
@@ -77,8 +69,8 @@ def read_cast_evidence(world: dict, scene: dict, query: str | None) -> dict:
 
 def format_cast_evidence(evidence: dict) -> str:
     return ('【人物初次登场·已发布场景原文 / published introduction evidence】\n'
-        '以下是本主角当时已收到的场景叙述原文，与当回合新建且可见的人物 ID 关联；'
-        'persons.name 只保留创建声明中同时逐字出现在所存原文里的名字。'
+        '以下是本主角当时已收到的场景叙述原文，与新建人物或开场已核对的可见人物 ID 关联；'
+        'persons.name 是逐字出现在所存原文里的登场显示称呼，不证明规范真名。'
         '整段可能包含多个人物与台词，不表示每句话、代词或属性都属于关联人物；'
         '未自动提取性别、说话人或人物事实。延续人物描写时核对原文，不能用压缩摘要补造细节。'
         '这是历史叙事来源，不能覆盖当前规范事实，也不证明 NPC 听见或知道玩家输入。\n'

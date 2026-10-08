@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from llm.provider import json_call
 from kernel.turncommit import TurnCommit
 
-_VERSION = 'foreground-physical-v1'
+_VERSION = 'foreground-physical-v3-identity-sources'
 
 
 def _policy_version():
@@ -42,16 +42,19 @@ def _hash(value):
 
 def _candidate_hash(commit):
     return _hash({'narration': commit.narration,
-                  'ordered_sections': list(commit.sections.items())})
+                  'ordered_sections': list(commit.sections.items()),
+                  'host_context': commit._semantic_context})
 
 
-def _source(world):
+def _source(world, actor):
+    from systems.player_sources import observed_identity_evidence
     graph = world.get('systems', {}).get('ontology')
     meta = world.get('meta', {})
     return _hash({'ontology': None if graph is None else {
         'entities': graph.entities, 'facts': graph.facts, 'relations': graph.relations},
         'clock_scene': {key: meta.get(key) for key in ('day', 'band', 'scene')},
-        'return_commitments': world.get('systems', {}).get('return_commitments')})
+        'return_commitments': world.get('systems', {}).get('return_commitments'),
+        'actor_introduction_sources': observed_identity_evidence(world, actor)})
 
 
 def _context(scene, player_input):
@@ -89,7 +92,7 @@ def approval_matches(commit, world, scene, player_input, revision):
     return (isinstance(stamp, _Approval) and stamp.version == _policy_version()
         and stamp.revision == revision and stamp.actor == scene.get('protagonist')
         and stamp.input_context == _context(scene, player_input)
-        and stamp.candidate == _candidate_hash(commit) and stamp.source == _source(world)
+        and stamp.candidate == _candidate_hash(commit) and stamp.source == _source(world, stamp.actor)
         and stamp.evidence == _hash(commit.semantic_audit_log)
         and stamp.preparation == scene.get('_comparison_preparation_digest')
         and stamp.prefix == _prefix_binding(scene))
@@ -103,7 +106,7 @@ def verify_before_apply(commit, prior_world, revision, *, day, scene,
     stamp = commit._semantic_approval
     if (not isinstance(stamp, _Approval) or stamp.version != _policy_version()
             or stamp.revision != revision or stamp.candidate != _candidate_hash(commit)
-            or stamp.source != _source(prior_world) or stamp.day != day or stamp.scene != scene
+            or stamp.source != _source(prior_world, stamp.actor) or stamp.day != day or stamp.scene != scene
             or stamp.evidence != _hash(commit.semantic_audit_log)):
         raise ValueError('Narrative candidate lacks a current host semantic approval')
     if stamp.preparation is not None:
@@ -131,6 +134,8 @@ def _editable_spans(packet, issues, narration):
             continue
         if claim is not None and claim.get('span_id') in spans:
             start = _quote_offset(spans[claim['span_id']], quote, claim['occurrence'])
+        elif isinstance(issue.get('evidence'), dict) and issue['evidence'].get('span_id') in spans:
+            start = _quote_offset(spans[issue['evidence']['span_id']], quote, issue['evidence']['occurrence'])
         elif narration.count(quote) == 1:
             start = narration.index(quote)
         else:
@@ -196,6 +201,8 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
             '仅使用packet给出的实体ID，不能造ID。moves格式[{who,to}]；'
             + LINKS_GUIDANCE +
             '上述合同不放宽本次修复的允许范围。'
+            + ('这是开场正文修复，不能添加或改变任何moves/links/其他事件；只替换被标注的原文。'
+               if commit._semantic_context.get('policy') == 'opening_text_only' else '') +
             '修改不允许绕过已有资源、类型、持有者和通路前置条件。'
             '不相关修辞无需删除；不能把历史、条件、传闻改成此刻已发生。')},
         {'role': 'user', 'content': json.dumps({'packet': packet,
@@ -222,6 +229,9 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
                     raise ValueError('Semantic correction sections must be arrays')
                 sections[name] = data[name]
         candidate = TurnCommit(_patch_narration(commit.narration, data['patches'], editable), sections)
+        candidate._semantic_context = copy.deepcopy(commit._semantic_context)
+        if commit._semantic_context.get('policy') == 'opening_text_only' and candidate.sections != commit.sections:
+            raise ValueError('Opening correction cannot change world state')
         # A semantic repair cannot change already-approved effects or invent
         # player actions. Only missing placement/connectivity for creations
         # already proposed in this candidate may be explicitly supplied.
@@ -268,6 +278,7 @@ def _correct(registry, world, scene, player_input, commit, report, provider,
         if dropped:
             raise ValueError('Semantic correction violates domain constraints: ' + ', '.join(dropped))
         checked.semantic_audit_required = True
+        checked._semantic_context = copy.deepcopy(commit._semantic_context)
         checked._comparison_preparation = commit._comparison_preparation
         checked.semantic_audit_log = copy.deepcopy(commit.semantic_audit_log)
         checked.semantic_audit_log.append({'kind': 'semantic_correction',
@@ -308,11 +319,11 @@ def finalize_candidate(registry, world, scene, player_input, commit, *, provider
             from loop.turn import advanced_day
             commit._semantic_approval = _Approval(_policy_version(), revision,
                 scene['protagonist'], _context(scene, player_input),
-                _candidate_hash(commit), _source(world), advanced_day(world, commit),
+                _candidate_hash(commit), _source(world, scene['protagonist']), advanced_day(world, commit),
                 scene.get('id') or scene.get('location') or 'scene', _hash(commit.semantic_audit_log),
                 scene.get('_comparison_preparation_digest'), _prefix_binding(scene), world.get('_action_turn'))
             return commit
-        if repaired or attempt:
+        if repaired or attempt or commit._semantic_context.get('immutable_prose') is True:
             raise TurnRejected('Narrative still has unsupported or contradictory physical claims')
         commit = _correct(registry, world, scene, player_input, commit, report, provider,
                           required_sections)

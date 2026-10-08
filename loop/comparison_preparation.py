@@ -48,10 +48,10 @@ def _input_context(scene, player_input):
     return _hash({'scene': _base_scene(scene), 'input': player_input})
 
 
-def _world_fingerprint(world):
+def _world_fingerprint(world, actor):
     # _source retains exact ontology provenance (not merely current balances).
     # The extra state also binds variation history and other projected systems.
-    return _hash({'source': _source(world), 'meta': world.get('meta', {}),
+    return _hash({'source': _source(world, actor), 'meta': world.get('meta', {}),
                   'systems': {key: value for key, value in
                               world.get('systems', {}).items()
                               if key != 'ontology'}})
@@ -130,9 +130,9 @@ def _check_source(registry, batch, events, world, scene):
     if version is not None and version != batch.revision:
         raise RevisionConflict('Refresh the world before preparing a comparison')
     current = project(registry, events)
-    if _source(current) != _source(world):
+    if _source(current, actor) != _source(world, actor):
         _reject('Comparison source does not match the current event snapshot')
-    if _world_fingerprint(current) != _world_fingerprint(world):
+    if _world_fingerprint(current, actor) != _world_fingerprint(world, actor):
         _reject('Comparison world does not match the current event snapshot')
     if _bound_actor_id(current, scene) != actor:
         _reject('Comparison actor does not match the current event snapshot')
@@ -161,8 +161,8 @@ def prepare_comparison(registry, store, world, scene, player_input, provider):
     batch, events = _snapshot_batch(store)
     preview, actor = _check_source(registry, batch, events, world, scene)
     scene = _base_scene(scene)
-    source = _source(preview)
-    source_world = _world_fingerprint(preview)
+    source = _source(preview, actor)
+    source_world = _world_fingerprint(preview, actor)
     expected_balances = registered_balances(preview)
     resolution_prompt = ''
     resolved_clock = None
@@ -192,8 +192,8 @@ def prepare_comparison(registry, store, world, scene, player_input, provider):
     # will. Facts retain the original resources_resolved event IDs.
     preview = project(registry, batch.iter_events())
     data['prefix_events'] = copy.deepcopy(batch.events)
-    data['preview_source'] = _source(preview)
-    data['preview_world'] = _world_fingerprint(preview)
+    data['preview_source'] = _source(preview, actor)
+    data['preview_world'] = _world_fingerprint(preview, actor)
     data['preview_scene'] = _hash(_preview_scene(scene, data))
     payload = json.dumps(data, ensure_ascii=False, sort_keys=True,
                          separators=(',', ':'), allow_nan=False)
@@ -217,8 +217,8 @@ def restore_preparation(registry, store_or_batch, world, scene, player_input,
     current, actor = _check_source(registry, batch, events, world, scene)
     if (data['actor'] != actor
             or data['input_context'] != _input_context(scene, player_input)
-            or data['source'] != _source(current)
-            or data['source_world'] != _world_fingerprint(current)
+            or data['source'] != _source(current, actor)
+            or data['source_world'] != _world_fingerprint(current, actor)
             or data['snapshot'] != _hash(events)):
         _reject('Comparison preparation no longer matches its source or input')
     preview = project(registry, chain(events, data['prefix_events']))
@@ -238,8 +238,9 @@ def verify_staged_preparation(preparation, world, scene):
     if type(preparation) is not ComparisonPreparation:
         _reject('Comparison requires an intact host preparation')
     data = preparation._read()
-    if (data['preview_source'] != _source(world)
-            or data['preview_world'] != _world_fingerprint(world)
+    actor = data['actor']
+    if (data['preview_source'] != _source(world, actor)
+            or data['preview_world'] != _world_fingerprint(world, actor)
             or data['preview_scene'] != _hash({key: value for key, value in scene.items()
                                               if key not in _PROOF_SCENE_KEYS})
             or scene.get('protagonist') != data['actor']

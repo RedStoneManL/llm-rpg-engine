@@ -45,6 +45,7 @@ def _atomic_genesis(function):
         staged = copy.copy(engine)
         staged.store = batch
         offline = isinstance(engine.provider, FakeLLMProvider) or getattr(engine.provider, 'is_offline', False)
+        staged._offline_genesis = offline
         staged.provider = WatchedProvider(engine.provider)
         if engine.cascade_provider is not None:
             staged.cascade_provider = WatchedProvider(engine.cascade_provider)
@@ -307,14 +308,10 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
             world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
             # Resolve the first venue's human-readable name so the prompt never shows an id
             first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
-            opening_evs, narration = gen_opening(
-                provider, frame, world_summary,
-                scene_loc=first_venue, scene_loc_name=first_venue_name,
-                provided=spec.get("opening"),
-            )
-        boundaries["opening"] = store.append(opening_evs[0])
-        for ev in opening_evs[1:]:
-            store.append(ev)
+            from loop.genesis_opening import publish_opening
+            opening_seq, narration = publish_opening(engine, frame=frame, pitch=pitch,
+                provided=spec.get("opening"), legacy_summary=world_summary)
+        boundaries["opening"] = opening_seq
 
         # -----------------------------------------------------------------------
         # Project world
@@ -533,13 +530,10 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
     world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
     first_venue = local_map["venues"][0]
     first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
-    opening_evs, narration = gen_opening(
-        provider, frame, world_summary,
-        scene_loc=first_venue, scene_loc_name=first_venue_name,
-    )
-    new_boundaries["opening"] = store.append(opening_evs[0])
-    for ev in opening_evs[1:]:
-        store.append(ev)
+    from loop.genesis_opening import publish_opening
+    opening_seq, narration = publish_opening(engine, frame=frame, pitch=pitch,
+        provided=spec.get("opening"), legacy_summary=world_summary)
+    new_boundaries["opening"] = opening_seq
 
     # Update attempts
     new_attempts = dict(prev_attempts)

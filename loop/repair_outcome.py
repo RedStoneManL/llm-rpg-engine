@@ -196,7 +196,7 @@ def _state(world, actor):
     return state, view
 
 
-def _names(view, state, actor):
+def _names(view, state, actor, identity_bindings=None):
     ids = {actor}
     if state['actor_location']:
         ids.add(state['actor_location'])
@@ -220,6 +220,8 @@ def _names(view, state, actor):
                 if len(value) <= 160:
                     entry['name'] = value
                 break
+        if entity.etype == 'Person' and eid in (identity_bindings or {}):
+            entry['published_display'] = copy.deepcopy(identity_bindings[eid])
         result[eid] = entry
     return result
 
@@ -277,7 +279,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
     if not isinstance(actor, str) or not actor.strip() or not isinstance(player_input, str):
         raise ValueError('Repair outcome requires the bound actor and exact player input')
     before, before_view = _state(world, actor)
-    labels = _names(before_view, before, actor)
+    from systems.player_sources import published_identity_bindings
+    labels = _names(before_view, before, actor, published_identity_bindings(world, actor))
     # Positive evidence only: intersect after EVERY event, including changes
     # omitted from the public transition list. Never restore removed pairs.
     continuous_custody = {(row['item'], row['holder']) for row in before['held_by']}
@@ -309,6 +312,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                         (event['type'] != 'relation_added' or
                          event.get('deltas', {}).get('rel') == 'located_in'))
             prior, prior_view = _state(preview, actor) if physical else (None, None)
+            prior_bindings = published_identity_bindings(preview, actor) if physical else None
             apply_event_metadata(preview, event)
             event_owner.apply(preview, event)
             current, current_view = _state(preview, actor)
@@ -321,8 +325,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                     transition['before_state'] = {key: copy.deepcopy(prior[key]) for key in keys}
                     transition['after_state'] = {key: copy.deepcopy(current[key]) for key in keys}
                     transitions.append(transition)
-                    labels.update(_names(prior_view, prior, actor))
-                    labels.update(_names(current_view, current, actor))
+                    labels.update(_names(prior_view, prior, actor, prior_bindings))
+                    labels.update(_names(current_view, current, actor, published_identity_bindings(preview, actor)))
             data = event.get('deltas', {})
             if (event['type'] == 'object_created' or (
                     event['type'] == 'entity_created' and data.get('etype') == 'Object')):
@@ -333,7 +337,7 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
     after, after_view = _state(preview, actor)
     continuous_custody.intersection_update(
         (row['item'], row['holder']) for row in after['held_by'])
-    labels.update(_names(after_view, after, actor))
+    labels.update(_names(after_view, after, actor, published_identity_bindings(preview, actor)))
     final_local_items = {row['item'] for row in after['held_by']}
     transitions[:0] = [{'kind': 'item_created', 'item': item, 'day': event_day}
                        for item, event_day in created if item in final_local_items]
