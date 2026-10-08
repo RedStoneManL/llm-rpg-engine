@@ -306,6 +306,17 @@ _MACHINE_BOUNDARY = (
     '主角与持有者引用以最新引擎绑定为准，旧正文和自由事实中的别名不覆盖 canonical 记录。'
 )
 
+_PLAYER_GOAL_PROGRESS = (
+    '\n【回应玩家的办事目标】优先回应玩家本回合明确的请求，区分已有事实、本回合新发生的变化与仍未知的事项。'
+    '查询空结果只说明这次未取到可返回记录，不证明世界中不存在、某人不知道，也不授权补写隐藏事实。'
+    '沿用 DM 的创作职责：尚未确立且不受已有设定限制的普通虚构细节，可以通过符合情境的新行动或新公开安排确立；'
+    '不能把新安排伪装成旧告示早已写明或人物过去已经知道，不能无叙事依据改写既有状态、约定或秘密。'
+    '无法直接答复时，情境允许就给出能实际执行的核实动作、明确的再询条件或可行替代路径；'
+    '有充分剧情理由时仍可保留未知或拒绝。人物答应核实时，应表现具体行动或后续条件，避免只复述问题而没有推进。'
+    '转折应结合当前行动，不用重复线索挤掉主要回应，不强加新任务或替玩家选择。'
+    '新发生的重要事实与信息传达须在正文中清楚表现；本调用仍严格遵守原有输出格式，要求结构化记录时才依既有事实/知识协议落账。'
+)
+
 
 def _system_prompt(verbosity: str | None = None, style: str | None = None, *, actor_id=None) -> str:
     """Build the 甲 system prompt with the current (or given) verbosity + style."""
@@ -316,7 +327,8 @@ def _system_prompt(verbosity: str | None = None, style: str | None = None, *, ac
             .replace("__STYLE__", _style_fragment(s))
             .replace("__VERBOSITY__", frag)
             .replace("__ACTOR_ID_JSON__", json.dumps(actor_id if isinstance(actor_id, str)
-                     and actor_id else '<当前主角的实际id>', ensure_ascii=False)) + _MACHINE_BOUNDARY)
+                     and actor_id else '<当前主角的实际id>', ensure_ascii=False))
+            + _PLAYER_GOAL_PROGRESS + _MACHINE_BOUNDARY)
 
 
 def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> str:
@@ -326,7 +338,7 @@ def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> s
     s = _settings.get_style() if style is None else style
     return (_NARRATE_PROMPT_TEMPLATE
             .replace("__STYLE__", _style_fragment(s))
-            .replace("__NARRATE_VERBOSITY__", frag) + _MACHINE_BOUNDARY)
+            .replace("__NARRATE_VERBOSITY__", frag) + _PLAYER_GOAL_PROGRESS + _MACHINE_BOUNDARY)
 
 
 # ---------------------------------------------------------------------------
