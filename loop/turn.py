@@ -698,14 +698,23 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             # A reaffirmation keeps the original open obligation and its evidence.
             # Validate even a duplicate candidate before taking the no-create path;
             # otherwise direct callers could bypass quote/type/deadline checks.
-            from systems.return_commitments import _creation_record
+            from systems.return_commitments import _creation_record, normalized_deadline
             candidate = _creation_record(world, promised)
             records = world.get('systems', {}).get('return_commitments', {}).get('records', {})
-            already_open = any(
-                record.get('status') == 'open' and all(
+            same_parties_open = [
+                record for record in records.values()
+                if record.get('status') == 'open' and all(
                     record.get(field) == candidate[field]
-                    for field in ('debtor', 'item', 'recipient', 'due'))
-                for record in records.values())
+                    for field in ('debtor', 'item', 'recipient'))]
+            candidate_deadline = normalized_deadline(candidate['due'])
+            already_open = any(
+                normalized_deadline(record['due']) == candidate_deadline
+                for record in same_parties_open)
+            # Legacy history may contain differing deadlines. Reaffirming one
+            # preserves it; a new deadline must not silently duplicate or amend
+            # an existing obligation. This is a host rule, not a replay filter.
+            if same_parties_open and not already_open:
+                raise TurnRejected('An open return commitment already has a different deadline')
             if not already_open:
                 authorized_return_creations[promised['id']] = copy.deepcopy(promised)
                 batch.append(promised)

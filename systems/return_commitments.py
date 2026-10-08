@@ -38,6 +38,22 @@ def _clock(day, band) -> tuple[int, int]:
     return day, band
 
 
+def normalized_deadline(due) -> tuple[int, int, str]:
+    """Validate a deadline and compare legacy dates as inclusive, without edits.
+
+    The original due mapping remains part of the immutable event and record;
+    normalization is only a comparison key, never a replay migration.
+    """
+    if (not isinstance(due, dict)
+            or set(due) not in ({"day", "band"}, {"day", "band", "boundary"})):
+        raise ValueError("return commitment due requires day and band, with optional boundary")
+    day, band = _clock(due["day"], due["band"])
+    boundary = due.get("boundary", "inclusive")
+    if boundary not in ("inclusive", "exclusive"):
+        raise ValueError("return commitment due boundary must be inclusive or exclusive")
+    return day, band, boundary
+
+
 def _now(world, *, day=None) -> tuple[int, int]:
     meta = world.get("meta", {})
     current_day = day if day is not None else meta.get("day")
@@ -98,13 +114,14 @@ def _creation_record(world, event) -> dict:
             raise ValueError(f"return commitment {field} requires an existing typed entity")
     if data["debtor"] == data["recipient"]:
         raise ValueError("return commitment debtor and recipient must differ")
-    due = data["due"]
-    if not isinstance(due, dict) or set(due) != {"day", "band"}:
-        raise ValueError("return commitment due requires exactly day and band")
-    due_time = _clock(due["day"], due["band"])
+    due_day, due_band, boundary = normalized_deadline(data["due"])
+    due_time = due_day, due_band
     created_time = _now(world, day=event.get("day"))
-    if due_time < max(_now(world), created_time):
+    current_time = max(_now(world), created_time)
+    if due_time < current_time:
         raise ValueError("return commitment due cannot precede the current clock")
+    if boundary == "exclusive" and due_time == current_time:
+        raise ValueError("exclusive return commitment due must follow the current clock")
     evidence = data["evidence"]
     if not isinstance(evidence, dict) or set(evidence) != {"player_actions", "quotes"}:
         raise ValueError("return commitment evidence requires player_actions and quotes")
@@ -192,8 +209,10 @@ def visible_records(world, scene, *, commitment_id=None) -> list[dict]:
             continue
         exposed = {key: copy.deepcopy(value) for key, value in record.items()
                    if key in _VISIBLE_FIELDS and (key != "evidence" or actor == record["debtor"])}
+        due_day, due_band, boundary = normalized_deadline(record["due"])
+        due_time = due_day, due_band
         exposed["overdue"] = (record["status"] == "open"
-                              and now > (record["due"]["day"], record["due"]["band"]))
+                              and (now >= due_time if boundary == "exclusive" else now > due_time))
         result.append(exposed)
     return result
 
@@ -305,6 +324,8 @@ class ReturnCommitmentSystem(ContextSystem):
             return None
         text = ("【物品归还承诺·引擎记录】\n" + json.dumps(records, ensure_ascii=False)
                 + "\n以上当事人、期限与玩家原话以此记录为准，不因叙述摘要改写。"
+                  "due.boundary=exclusive 表示须在指定 day/band 到来前归还，到达该时段即逾期；"
+                  "inclusive（含未写 boundary 的旧记录）允许在指定时段内归还，超过该时段才逾期。"
                   "recipient 是约定归还目的地，不代表法定所有者；open/overdue 不推断道德责任或同意。")
         return Fragment(self.name, "scene", text,
                         'promises 仅可声明 [{"op":"fulfill","id":"已有承诺 id"}]；'

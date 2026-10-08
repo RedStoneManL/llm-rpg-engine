@@ -1,0 +1,192 @@
+{
+  "base": "ede3f2ba9f9e91989e25b169b73a5fa9d8f0ab28",
+  "model": "native GPT-6 Astra; fresh completion worker each request",
+  "workflow": "real play_loop, fixed actual-failure input and controlled followups; not adaptive independent player in these boundary cases",
+  "cases": [
+    {
+      "case": "native-deadline-existing-20261008",
+      "source_hashes": {
+        "loop/return_intent.py": "a9f2799f0c59cba2c510272dce98b815ff5a927555ee1350bcc55e2106c8b2e1",
+        "loop/turn.py": "5ba39157a791c03c7dd8cbb1ed549914d9b85fec84c8bd3cc71e484ec2d4c2f6",
+        "systems/return_commitments.py": "c450e6cfeec2425094b8dc68301329f225c3cf2e00708223e3c37f4409fbe8df"
+      },
+      "model_responses": 2,
+      "inputs": 2,
+      "committed_story_turns": 0,
+      "visible_outcomes": [
+        {
+          "input": 1,
+          "output": "[需要确认归还约定] 这件物品给同一接收人的原有约定是“第3天中午”（含该时段）；你这次提出“第3天中午前”（不含该时段），期限不同。请明确重述原期限（例如“第3天中午”），或说“取消这次尚未登记的提议”。这次提议尚未登记，原承诺仍保留。",
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": [
+            {
+              "id": "fixture_return_jade_seal",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "status": "open"
+            }
+          ]
+        },
+        {
+          "input": 2,
+          "output": "[需要确认归还约定] 归还玉印的期限是第三天中午前，还是第三天中午？",
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": [
+            {
+              "id": "fixture_return_jade_seal",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "status": "open"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "native-deadline-new-20261008",
+      "source_hashes": {
+        "loop/return_intent.py": "a9f2799f0c59cba2c510272dce98b815ff5a927555ee1350bcc55e2106c8b2e1",
+        "loop/turn.py": "5ba39157a791c03c7dd8cbb1ed549914d9b85fec84c8bd3cc71e484ec2d4c2f6",
+        "systems/return_commitments.py": "c450e6cfeec2425094b8dc68301329f225c3cf2e00708223e3c37f4409fbe8df"
+      },
+      "model_responses": 6,
+      "inputs": 3,
+      "committed_story_turns": 3,
+      "visible_outcomes": [
+        {
+          "input": 1,
+          "output": "你把玉印仔细收好。沈掌柜点点头：“好，第三天中午前。”\n\n他把柜台上的算盘往旁边一推，朝门外指了指。\n\n“新鲜事？集市今天有个捏面人的摊子。人家捏猫捏狗，他捏客人本人，连眉头上的褶子都不放过。”\n\n掌柜笑着摇头，又拿起手边那只盖不严的茶罐，轻轻按了按。\n\n“顺路的话，帮我问问集市上的修补摊，能不能修这种翘边的罐盖、要多少钱。问个价就行，不用替我定。你要先逛逛，也不耽误。”",
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": [
+            {
+              "due": {
+                "day": 3,
+                "band": 1,
+                "boundary": "exclusive"
+              },
+              "id": "return_9481bb71896f4235a656519af54d76f0",
+              "status": "open"
+            }
+          ]
+        },
+        {
+          "input": 2,
+          "output": "你留在客栈休息，没有再接差事，也没有把随身物品交给任何人。窗外的叫卖声来来去去，日光在窗纸上换了几轮。\n\n第三天中午，你醒了。楼下传来碗筷轻碰的声音。\n\n玉印还在手边。你拿近看了看，它好端端的，尚未交还沈掌柜。你说过的‘第三天中午前’，已经过去了。",
+          "clock": {
+            "day": 3,
+            "band": 1
+          },
+          "promises": [
+            {
+              "due": {
+                "day": 3,
+                "band": 1,
+                "boundary": "exclusive"
+              },
+              "id": "return_9481bb71896f4235a656519af54d76f0",
+              "status": "open"
+            }
+          ]
+        },
+        {
+          "input": 3,
+          "output": "你把玉印亲手交给沈掌柜：“请您收好。”\n\n他接过玉印，仔细看了一眼，放进柜台里的小匣子。\n\n“收到了。说好中午前，这会儿已经中午了。”他合上匣盖，语气平和，“东西好好的就好。”\n\n门外忽然响起急促的马蹄声。一名披着灰色短斗篷的女子跨进门，靴边还沾着泥。她扶住差点被自己撞歪的凳子，才开口：\n\n“我是县里的河工官，许澄。上游闸门卡住了，我来召集懂水道的人，立刻去查看。”\n\n沈掌柜的手停在匣盖上。许澄看向柜台旁的你，又补了一句：\n\n“知道附近旧水渠的人也行。两位可有线索？”",
+          "clock": {
+            "day": 3,
+            "band": 1
+          },
+          "promises": [
+            {
+              "due": {
+                "day": 3,
+                "band": 1,
+                "boundary": "exclusive"
+              },
+              "id": "return_9481bb71896f4235a656519af54d76f0",
+              "status": "fulfilled",
+              "fulfilled_at": {
+                "day": 3,
+                "band": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "native-deadline-existing-grounded-20261008",
+      "source_hashes": {
+        "loop/return_intent.py": "c43ec116b03ead3d5495e8e7d62762c68eb4be9856052da21a8e8b062476069a",
+        "loop/turn.py": "5ba39157a791c03c7dd8cbb1ed549914d9b85fec84c8bd3cc71e484ec2d4c2f6",
+        "systems/return_commitments.py": "c450e6cfeec2425094b8dc68301329f225c3cf2e00708223e3c37f4409fbe8df"
+      },
+      "model_responses": 3,
+      "inputs": 2,
+      "committed_story_turns": 1,
+      "visible_outcomes": [
+        {
+          "input": 1,
+          "output": "[需要确认归还约定] 这件物品给同一接收人的原有约定是“第3天中午”（含该时段）；你这次提出“第3天中午前”（不含该时段），期限不同。请明确重述原期限（例如“第3天中午”），或说“取消这次尚未登记的提议”。这次提议尚未登记，原承诺仍保留。",
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": [
+            {
+              "id": "fixture_return_jade_seal",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "status": "open"
+            }
+          ]
+        },
+        {
+          "input": 2,
+          "output": "你把玉印仔细收好。沈掌柜点点头：“记着呢，第三天中午。”\n\n听你问起镇上的热闹，他将手里的抹布搭在柜边，朝门外一指。\n\n“今天集市有场木偶戏，午前就开演。戏班子还带了只会打拍子的木头鸭，昨儿试演，鸭子比人先谢了幕。”\n\n他笑了一声，又道：“若想顺路搭把手，开场前可以问问他们要不要帮着摆长凳。这会儿过去，正好能赶上搭台。”\n\n街上传来一阵试锣声，敲了两下，又停了。掌柜把门边靠歪的招牌扶正：“听见了吧，已经忙起来了。”",
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": [
+            {
+              "id": "fixture_return_jade_seal",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "status": "open"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "final_source_hashes": {
+    "loop/return_intent.py": "c43ec116b03ead3d5495e8e7d62762c68eb4be9856052da21a8e8b062476069a",
+    "loop/turn.py": "5ba39157a791c03c7dd8cbb1ed549914d9b85fec84c8bd3cc71e484ec2d4c2f6",
+    "systems/return_commitments.py": "c450e6cfeec2425094b8dc68301329f225c3cf2e00708223e3c37f4409fbe8df"
+  },
+  "evidence_notes": [
+    "First existing-promise case failed to progress after clear reaffirmation: classifier lacked original commitment reference. Retained, not excluded.",
+    "Final existing-promise case uses identical two inputs and seed after adding actor-visible minimal ledger references. Old full record unchanged.",
+    "New-promise case ran before final reference-payload addition; domain, strict boundary, host and narrator semantics unchanged. No blind repeat.",
+    "New case actual third-day-noon narrator request included overdue=true, then actual item transfer fulfilled same exclusive obligation.",
+    "One sample per case, no broad semantic accuracy claim. No DS requests or production latency/cost figures.",
+    "Updated three existing parser expectations for the changed boundary contract, but did not run a unit suite as gameplay evidence."
+  ]
+}
