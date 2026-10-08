@@ -120,7 +120,17 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
                 "clock", "", "clock_required",
                 "clock 段每回合必给（恰好一个元素，描述本回合时间是否推进）"))
 
-    if not errors:
+    ready_for_state_preview = not errors
+    if ready_for_state_preview:
+        from kernel.typed_fields import validate_typed_field_commit
+        try:
+            errors.extend(validate_typed_field_commit(registry, commit, world))
+        except (TypeError, ValueError, KeyError, AttributeError) as exc:
+            errors.append(ValidationError('facts', '', 'typed_field_preview',
+                f'类型字段写入预检查失败（{type(exc).__name__}）；请核对实体声明和所属状态段'))
+
+    # Namespace errors must not hide invalid canonical rows from coupled repair.
+    if ready_for_state_preview:
         from kernel.item_integrity import validate_item_commit
         try:
             errors.extend(validate_item_commit(registry, commit, world))

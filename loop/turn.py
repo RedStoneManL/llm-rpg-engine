@@ -35,6 +35,7 @@ from loop.strategy import AuthorOutputError
 from engine.store import EventBatch, RevisionConflict
 
 from kernel.registry import Registry
+from kernel.contextsystem import ValidationError
 from kernel.projection import project
 from kernel.validation import validate_commit, build_repair_request
 from loop.entity_resolve import augment_unresolved_refs
@@ -119,7 +120,8 @@ def _item_preflight(registry, prior_ids, authorized_return_creations=None,
             error = item_event_error(projected, event)
             if error:
                 raise TurnRejected('Invalid item transition: ' + error[2])
-    return lambda history: project(registry, history, before_apply=check_new)
+    from kernel.typed_fields import project_new_fields
+    return lambda history: project_new_fields(registry, history, prior_ids, before_apply=check_new)
 
 
 def _next_turn(store) -> int:
@@ -255,12 +257,31 @@ def produce_turn(
     narrated_physical = physical_signature(commit, world) if commit is not None else None
     preserved_prose_repair = False
     inherited_rewrite = bool(getattr(commit, "narration_rewrite_required", False))
+    protected_owner_rows = {}
     while (output_error is not None or errors) and attempts < max_repairs:
-        failing = {e.section for e in errors}
+        # Resolve other domain errors before expanding a namespace repair.
+        # Ordered domain previews may stop at their first error, so absence of
+        # an items/moves error alone is not proof that its rows already passed.
+        other_errors = [error for error in errors if error.code != 'typed_field_route']
+        repair_errors = other_errors or errors
+        failing = {e.section for e in repair_errors}
+        coupled = {section for error in repair_errors
+                   for section in getattr(error, 'repair_sections', ())}
+        for section in coupled - failing:
+            if section not in protected_owner_rows:
+                protected_owner_rows[section] = copy.deepcopy(commit.sections.get(section) or [])
+        failing |= coupled
+        scoped_errors = list(repair_errors)
+        for section in sorted(coupled):
+            scoped_errors.append(ValidationError(section, '', 'typed_owner_repair',
+                '此段是类型字段的规范写入段，不表示一定发生变化。保留已有合法行和顺序；'
+                '只在实际玩家输入与当前场景有依据时重新提议变化，仍须满足所有前置条件。'
+                '错误的自由事实或旧正文不构成转移/移动授权，也可仅删除错误字段。'))
         log.debug("produce_turn: repair attempt=%d errors=%d failing=%s output_error=%s",
                   attempts + 1, len(errors), sorted(failing),
                   output_error.code if output_error is not None else None)
         reset_narration_baseline = False
+        repair_scope_errors = []
         with get_tracer().span("repair", attempt=attempts + 1):
             try:
                 if output_error is not None:
@@ -272,7 +293,7 @@ def produce_turn(
                     )
                 else:
                     try:
-                        repaired = strategy.repair_sections(failing, errors, provider=provider)
+                        repaired = strategy.repair_sections(failing, scoped_errors, provider=provider)
                         preserved_prose_repair = True
                         # Preserve passing sections only for a usable whole proposal.
                         from kernel.turncommit import TurnCommit as _TC
@@ -288,7 +309,7 @@ def produce_turn(
                         commit = strategy.produce(
                             registry, world, scene, player_input,
                             provider=provider, embedder=embedder,
-                            repair=build_repair_request(errors),
+                            repair=build_repair_request(scoped_errors),
                         )
                         reset_narration_baseline = commit.narration != prior_narration
                         preserved_prose_repair = not reset_narration_baseline
@@ -297,6 +318,14 @@ def produce_turn(
                 commit, output_error = None, exc
         attempts += 1
         errors = validate(commit) if output_error is None else []
+        if output_error is None:
+            for section, prefix in protected_owner_rows.items():
+                proposed = commit.sections.get(section) or []
+                if (not isinstance(proposed, list) or len(proposed) < len(prefix)
+                        or proposed[:len(prefix)] != prefix):
+                    repair_scope_errors.append(ValidationError(section, '', 'typed_repair_scope',
+                        '跨段修复不得删除/改写先前已合法的状态行或改变它们的顺序；保留原行后再追加必要变化。'))
+            errors.extend(repair_scope_errors)
         if output_error is not None:
             narrated_physical = None
             preserved_prose_repair = False
@@ -305,6 +334,9 @@ def produce_turn(
             narrated_physical = physical_signature(commit, world)
             preserved_prose_repair = False
             inherited_rewrite = False
+
+    if any(error.code == 'typed_repair_scope' for error in errors):
+        raise TurnRejected('Coupled field repair changed previously valid owner effects')
 
     if output_error is not None:
         raise TurnRejected(
@@ -326,6 +358,10 @@ def produce_turn(
                           if k not in failing}
         from kernel.turncommit import TurnCommit
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
+
+    for section, prefix in protected_owner_rows.items():
+        if (commit.sections.get(section) or [])[:len(prefix)] != prefix:
+            raise TurnRejected('Fallback would discard previously valid owner effects')
 
     commit.semantic_audit_required = require_semantic
     commit._comparison_preparation = inherited_preparation

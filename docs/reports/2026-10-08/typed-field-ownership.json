@@ -1,0 +1,233 @@
+{
+  "base_commit": "ab2a1913156c3fa868484f00d58317e9bc3f8008",
+  "mechanism": "Exact registered relation-field namespace, scoped enforcement of actual new assert_fact writes, private validation and coupled repair",
+  "model": "native-gpt-6-astra",
+  "new_native_responses": 10,
+  "cases": [
+    {
+      "case": "historical_object",
+      "committed": true,
+      "responses": 3,
+      "repair_attempts": 1,
+      "dropped_sections": [],
+      "narration": "你将铜铃递给沈掌柜，他接了过去。铜铃已交由他保管，玉印仍在你身上。你们仍在客栈内。",
+      "facts": [],
+      "knowledge": [],
+      "transfers": [
+        {
+          "op": "transfer",
+          "item": "brass_bell",
+          "from": "player",
+          "to": "keeper"
+        }
+      ],
+      "moves": [],
+      "holders": {
+        "brass_bell": [
+          "keeper"
+        ],
+        "jade_seal": [
+          "player"
+        ]
+      },
+      "locations": {
+        "player": [
+          "inn"
+        ],
+        "keeper": [
+          "inn"
+        ],
+        "guard": [
+          "bridge"
+        ]
+      },
+      "new_visitor_entity_committed": true
+    },
+    {
+      "case": "derived_person",
+      "committed": true,
+      "responses": 3,
+      "repair_attempts": 1,
+      "dropped_sections": [],
+      "narration": "你走出客栈，来到院子里，停下脚步，抬头察看天色。铜铃和玉印仍随身带着。",
+      "facts": [],
+      "knowledge": [],
+      "transfers": [],
+      "moves": [
+        {
+          "who": "player",
+          "to": "courtyard"
+        }
+      ],
+      "holders": {
+        "brass_bell": [
+          "player"
+        ],
+        "jade_seal": [
+          "player"
+        ]
+      },
+      "locations": {
+        "player": [
+          "courtyard"
+        ],
+        "keeper": [
+          "inn"
+        ],
+        "guard": [
+          "bridge"
+        ]
+      },
+      "new_visitor_entity_committed": false
+    },
+    {
+      "case": "fresh_legal",
+      "committed": true,
+      "responses": 4,
+      "repair_attempts": 0,
+      "dropped_sections": [],
+      "narration": "沈掌柜点点头：「明白，只看看。」\n他俯下身，就着晨光细瞧你掌心里的铜铃，没有伸手接。\n「颜色是暗金黄。看这光泽，像是黄铜，不过光凭眼睛还不能说准。」他指了指铃沿，指尖停在半空，「这几处浅绿的小点是铜锈，表面没见大片锈蚀。」\n他直起身，铜铃始终托在你的掌心。",
+      "facts": [
+        {
+          "subject": "brass_bell",
+          "predicate": "目测检查",
+          "value": {
+            "颜色": "暗金黄色",
+            "材质判断": "沈掌柜目测认为像黄铜，尚未检验",
+            "锈蚀": "表面有几处浅绿色小锈点，未见大片锈蚀"
+          }
+        }
+      ],
+      "knowledge": [
+        {
+          "op": "told",
+          "knower": "player",
+          "fact_key": "brass_bell.目测检查",
+          "value": {
+            "颜色": "暗金黄色",
+            "材质判断": "沈掌柜目测认为像黄铜，尚未检验",
+            "锈蚀": "表面有几处浅绿色小锈点，未见大片锈蚀"
+          },
+          "via": "亲眼查看并听沈掌柜说明"
+        },
+        {
+          "op": "told",
+          "knower": "keeper",
+          "fact_key": "brass_bell.目测检查",
+          "value": {
+            "颜色": "暗金黄色",
+            "材质判断": "沈掌柜目测认为像黄铜，尚未检验",
+            "锈蚀": "表面有几处浅绿色小锈点，未见大片锈蚀"
+          },
+          "via": "当面目测铜铃"
+        }
+      ],
+      "transfers": [],
+      "moves": [],
+      "holders": {
+        "brass_bell": [
+          "player"
+        ],
+        "jade_seal": [
+          "player"
+        ]
+      },
+      "locations": {
+        "player": [
+          "inn"
+        ],
+        "keeper": [
+          "inn"
+        ],
+        "guard": [
+          "bridge"
+        ]
+      },
+      "new_visitor_entity_committed": false
+    }
+  ],
+  "host_evidence": {
+    "method": "Focused machine-write checks on synthetic world; not model gameplay",
+    "results": [
+      {
+        "case": "object_shadow",
+        "errors": [
+          {
+            "section": "facts",
+            "field": "[0]",
+            "code": "typed_field_route",
+            "repair_sections": [
+              "items"
+            ]
+          }
+        ]
+      },
+      {
+        "case": "person_shadow_via_cast",
+        "errors": [
+          {
+            "section": "cast",
+            "field": "[0]",
+            "code": "typed_field_route",
+            "repair_sections": [
+              "moves"
+            ]
+          }
+        ]
+      },
+      {
+        "case": "facts_before_new_object",
+        "errors": [
+          {
+            "section": "facts",
+            "field": "[0]",
+            "code": "typed_field_route",
+            "repair_sections": [
+              "items"
+            ]
+          }
+        ]
+      },
+      {
+        "case": "raw_fact",
+        "new_write_blocked": true,
+        "atomic": true,
+        "legacy_replay_accepted": true,
+        "error_class": "TypedFieldWriteError"
+      },
+      {
+        "case": "raw_character",
+        "new_write_blocked": true,
+        "atomic": true,
+        "legacy_replay_accepted": true,
+        "error_class": "TypedFieldWriteError"
+      },
+      {
+        "case": "resource_shadow",
+        "new_write_blocked": true,
+        "atomic": true,
+        "legacy_replay_accepted": true,
+        "error_class": "TypedFieldWriteError"
+      },
+      {
+        "case": "legal_lore",
+        "errors": []
+      },
+      {
+        "case": "canonical_generic_location",
+        "errors": []
+      },
+      {
+        "case": "belief_about_custody",
+        "errors": []
+      }
+    ]
+  },
+  "limits": [
+    "Historical Object initial candidate is recorded DS output; Person misuse is a constructed source-derived counterexample.",
+    "Full reconciliation shortened prose, changed keeper pronoun and omitted visitor beat while visitor entity/sketch remained committed.",
+    "Exact names only; semantic synonyms/unrestricted metadata and arbitrary trusted Python are outside this namespace guard.",
+    "Legacy shadow facts are not migrated.",
+    "No DeepSeek calls or broad offline suite; startup adapter error had zero native responses."
+  ]
+}

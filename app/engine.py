@@ -109,7 +109,11 @@ def build_engine(
     db_path = campaign_dir / "events.db"
     jsonl_path = campaign_dir / "events.jsonl"
     store = open_store(db_path, jsonl_path, registry.event_types())
-    store.preflight = lambda events: project(registry, events)
+    from kernel.typed_fields import project_new_fields
+    # Read durable IDs inside the store's existing publication transaction.
+    # Old/imported events replay permissively; new raw append writes are checked.
+    store.preflight = lambda events: project_new_fields(registry, events,
+        {event['id'] for event in store.iter_events(include_retracted=True)})
 
     # Resolve provider
     if provider is None:

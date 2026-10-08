@@ -24,7 +24,7 @@ from __future__ import annotations
 import heapq
 from typing import Any
 
-from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
+from kernel.contextsystem import ContextSystem, TypedField, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
 from kernel.place_integrity import link_errors
 from facts.graph import FactGraph
@@ -103,6 +103,9 @@ class PlaceSystem(ContextSystem):
 
     def commit_sections(self) -> set[str]:
         return {"places", "moves", "links", "materialize"}
+
+    def typed_fields(self) -> tuple[TypedField, ...]:
+        return (TypedField("Person", "located_in", repair_section="moves"),)
 
     def empty_state(self) -> dict:
         """PlaceSystem owns no separate slice — places live in the shared graph."""

@@ -5,6 +5,7 @@ from engine.log import get_logger
 from facts.entity import Entity
 from facts.fact import Fact, Relation
 from facts.rules import check_value
+from kernel.typed_fields import check_fact_write
 
 log = get_logger("facts.graph")
 
@@ -75,6 +76,7 @@ class FactGraph:
         source_event: str,
         secrecy: str | None = None,
     ) -> Fact:
+        check_fact_write(self, subject, predicate, source_event)
         # Close the prior current fact for this (subject, predicate)
         key = (subject, predicate)
         prior = self._fact_current.get(key)

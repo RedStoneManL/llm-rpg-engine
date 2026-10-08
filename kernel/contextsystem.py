@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from engine.log import get_logger
+from kernel.typed_fields import TypedField
 
 log = get_logger("kernel.contextsystem")
 
@@ -14,6 +15,7 @@ class ValidationError:
     field: str            # dotted path within the section, e.g. "[0].who"
     code: str             # "missing" | "dangling_ref" | "bad_enum" | "unknown_section" | ...
     hint: str             # preset, LLM-facing repair instruction
+    repair_sections: tuple[str, ...] = ()  # coupled canonical sections allowed in repair
 
 
 @dataclass
@@ -45,6 +47,10 @@ class ContextSystem:
 
     def commit_sections(self) -> set[str]:
         return set()
+
+    def typed_fields(self) -> tuple[TypedField, ...]:
+        """Exact fields whose canonical storage is owned by this system."""
+        return ()
 
     def requires(self) -> set[str]:
         """Return the set of system names that must be registered before this one."""

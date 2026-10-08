@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 import copy
 
-from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
+from kernel.contextsystem import ContextSystem, TypedField, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
 from facts.graph import FactGraph
 from facts.visibility import held_by_visibility
@@ -48,6 +48,9 @@ class ObjectSystem(ContextSystem):
 
     def commit_sections(self) -> set[str]:
         return {"items"}
+
+    def typed_fields(self) -> tuple[TypedField, ...]:
+        return (TypedField("Object", "held_by", repair_section="items"),)
 
     def empty_state(self) -> dict:
         """ObjectSystem owns no separate slice — objects live in the shared graph."""
