@@ -12,13 +12,13 @@ from kernel.contextsystem import ValidationError
 def creation_first_sections(sections):
     """Resolve same-turn entity references independent of JSON key order.
 
-    Move later creation-capable sections before the first items/links section.
+    Move later creation-capable sections before the first items/links/moves section.
     Preserve every declaration row and all other relative section ordering.
     """
     pairs = list(sections.items())
     promises = [pair for pair in pairs if pair[0] == 'promises']
     pairs = [pair for pair in pairs if pair[0] != 'promises']
-    dependent = {'items', 'links'}
+    dependent = {'items', 'links', 'moves'}
     if not any(sections.get(name) for name in dependent):
         return pairs + promises
     index = next(i for i, (name, rows) in enumerate(pairs) if name in dependent and rows)

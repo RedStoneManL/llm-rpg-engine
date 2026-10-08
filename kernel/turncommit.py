@@ -14,6 +14,11 @@ class TurnCommit:
     # Host-only signal; model from_dict/to_dict never read or emit this field.
     narration_rewrite_required: bool = field(default=False, init=False, repr=False, compare=False)
 
+    semantic_audit_required: bool = field(default=False, init=False, repr=False, compare=False)
+    _semantic_approval: Any = field(default=None, init=False, repr=False, compare=False)
+    semantic_audit_log: list = field(default_factory=list, init=False, repr=False, compare=False)
+    _comparison_preparation: Any = field(default=None, init=False, repr=False, compare=False)
+
     @classmethod
     def from_dict(cls, d: dict) -> "TurnCommit":
         d = dict(d)

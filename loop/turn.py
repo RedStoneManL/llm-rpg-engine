@@ -92,9 +92,15 @@ def _whole_turn_repair(player_input: str) -> str:
 
 
 def _item_preflight(registry, prior_ids, authorized_return_creations=None,
-                    authorized_player_inputs=None):
+                    authorized_player_inputs=None, authorized_resource_resolutions=None):
     """Keep legacy replay permissive, but check every new staged item event."""
     def check_new(projected, event):
+        if (event['id'] not in prior_ids and event['type'] == 'resources_resolved'
+                and authorized_resource_resolutions is not None):
+            approved = authorized_resource_resolutions.get(event['id'])
+            body = {key: value for key, value in event.items() if key != 'seq'}
+            if approved is None or body != approved:
+                raise TurnRejected('Resource resolution requires exact host authorization')
         if event['id'] not in prior_ids and event['type'] == 'player_input_recorded':
             approved = (authorized_player_inputs or {}).get(event['id'])
             if approved is None or any(event.get(key) != value for key, value in approved.items()):
@@ -239,6 +245,12 @@ def produce_turn(
         result.extend(validate_narration(proposal, world))
         return result
 
+    from loop.strategy import AuthorStrategy, HybridStrategy
+    require_semantic = isinstance(strategy, (AuthorStrategy, HybridStrategy)) or bool(
+        commit is not None and commit.semantic_audit_required)
+    inherited_approval = getattr(commit, '_semantic_approval', None)
+    inherited_audit_log = copy.deepcopy(getattr(commit, 'semantic_audit_log', []))
+    inherited_preparation = getattr(commit, '_comparison_preparation', None)
     errors = validate(commit) if output_error is None else []
     narrated_physical = physical_signature(commit, world) if commit is not None else None
     preserved_prose_repair = False
@@ -315,6 +327,13 @@ def produce_turn(
         from kernel.turncommit import TurnCommit
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
+    commit.semantic_audit_required = require_semantic
+    commit._comparison_preparation = inherited_preparation
+    if inherited_approval is not None:
+        # Preserve the old seal even if structural repair replaced the object:
+        # changed prepared candidates must fail the stale-approval check.
+        commit._semantic_approval = inherited_approval
+        commit.semantic_audit_log = inherited_audit_log
     commit.narration_rewrite_required = bool(
         not dropped_sections and (inherited_rewrite or (preserved_prose_repair
         and narrated_physical != physical_signature(commit, world))))
@@ -388,7 +407,7 @@ def apply_turn(
         turn_num = max((event.get('turn') or 0 for event in prior_events
                         if not event.get('retracted')), default=0) + 1
     else:
-        source_revision = None
+        source_revision = getattr(store, 'revision', None)
         prior_events = list(store.iter_events(include_retracted=True))
         turn_num = _next_turn(store)
 
@@ -404,6 +423,17 @@ def apply_turn(
         sections = {**sections, "clock": normalized}
         from kernel.turncommit import TurnCommit
         day = advanced_day(prior_world, TurnCommit(commit.narration, sections))
+
+    if commit.semantic_audit_required:
+        from loop.semantic_gate import verify_before_apply
+        prior_world = project(registry, (event for event in prior_events
+                                         if not event.get('retracted')))
+        try:
+            verify_before_apply(commit, prior_world, source_revision, day=day, scene=scene,
+                staged_events=store.events if isinstance(store, EventBatch) else None,
+                current_turn=store.turn if isinstance(store, EventBatch) else None)
+        except (ValueError, TypeError) as exc:
+            raise TurnRejected(str(exc)) from None
 
     events: list[dict] = []
     from kernel.item_integrity import creation_first_sections
@@ -477,9 +507,10 @@ def _run_turn_staged(
         )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
-        if commit.narration_rewrite_required:
-            _rewrite_repaired_narration(registry, world, scene, player_input, commit,
-                                       provider=provider, required_sections=required_sections)
+        from loop.semantic_gate import finalize_candidate
+        commit = finalize_candidate(registry, world, scene, player_input, commit,
+            provider=provider, revision=store.revision if hasattr(store, 'revision') else None,
+            required_sections=required_sections)
 
         scene_id = scene.get("id") or scene.get("location") or "scene"
         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day
@@ -489,7 +520,9 @@ def _run_turn_staged(
         # effect. A failing reflection hook cannot lose a successfully shown turn.
         if commit.narration and registry.owner_of_event('narration_recorded') is not None:
             store.append(kernel_event('narration_recorded', day=day, scene=scene_id,
-                summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration},
+                summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration,
+                    **({'semantic_audit': copy.deepcopy(commit.semantic_audit_log)}
+                       if commit.semantic_audit_required else {})},
                 turn=turn_num_before))
             new_world = project(registry, store.iter_events())
 
@@ -654,7 +687,7 @@ def _backstage_call(store, function, *args, **kwargs):
 def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
-             action_id=None, expected_revision=None, return_commitment=None) -> TurnResult:
+             action_id=None, expected_revision=None, return_commitment=None, preparation=None) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
@@ -673,8 +706,9 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     prior_ids = {event['id'] for event in batch.iter_events(include_retracted=True)}
     authorized_return_creations = {}
     authorized_player_inputs = {}
+    authorized_resources = {}
     batch.preflight = _item_preflight(registry, prior_ids, authorized_return_creations,
-                                      authorized_player_inputs)
+                                      authorized_player_inputs, authorized_resources)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
@@ -683,6 +717,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         strategy.reset()
     old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
     try:
+        if preparation is not None and return_commitment is not None:
+            raise TurnRejected('A prepared comparison cannot add an unpreviewed return commitment')
         if return_commitment is not None:
             if registry.owner_of_event('item_return_promised') is None:
                 raise TurnRejected('Return commitments are not enabled in this registry')
@@ -724,23 +760,41 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 authorized_return_creations[promised['id']] = copy.deepcopy(promised)
                 batch.append(promised)
                 world = project(registry, batch.iter_events())
-        # Lock all registered owners, not just the acting protagonist. These
-        # private values stay in the host's validation context, never the prompt.
-        expected_balances = registered_balances(world)
-        if registry.owner_of_event('resources_resolved') is not None:
-            resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
-            if resolution:
-                batch.append(resolution)
-                world = project(registry, batch.iter_events())
-                expected_balances.update(expected)
-                scene = {**scene, '_resolution_prompt':prompt,
-                         '_resolved_clock':resolution['deltas'].get('wait_until')}
-        scene = {**scene, '_resolved_values': expected_balances}
-        from loop.variation import prepare_variation, variation_fragment
-        variation = prepare_variation(registry, world, scene, batch.turn)
-        if variation:
-            batch.append(variation)
-            scene = {**scene, '_variation_prompt': variation_fragment(variation)}
+        if preparation is not None:
+            from loop.comparison_preparation import restore_preparation, verify_staged_preparation
+            _, prepared_scene = restore_preparation(
+                registry, batch, world, scene, player_input, preparation)
+            prefix = preparation.prefix_events
+            for event in prefix:
+                if event['type'] == 'resources_resolved':
+                    authorized_resources[event['id']] = {
+                        key: value for key, value in event.items() if key != 'seq'}
+            batch.append_many(prefix)
+            world = project(registry, batch.iter_events())
+            world['_revision'], world['_action_turn'] = batch.revision, batch.turn
+            verify_staged_preparation(preparation, world, prepared_scene)
+            scene = {**prepared_scene, '_comparison_preparation_digest': preparation.digest,
+                     '_comparison_required_prefix': prefix}
+            expected_balances = scene['_resolved_values']
+        else:
+            # Lock all registered owners, not just the acting protagonist. These
+            # private values stay in the host's validation context, never the prompt.
+            expected_balances = registered_balances(world)
+            if registry.owner_of_event('resources_resolved') is not None:
+                resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
+                if resolution:
+                    authorized_resources[resolution['id']] = {key: value for key, value in resolution.items() if key != 'seq'}
+                    batch.append(resolution)
+                    world = project(registry, batch.iter_events())
+                    expected_balances.update(expected)
+                    scene = {**scene, '_resolution_prompt':prompt,
+                             '_resolved_clock':resolution['deltas'].get('wait_until')}
+            scene = {**scene, '_resolved_values': expected_balances}
+            from loop.variation import prepare_variation, variation_fragment
+            variation = prepare_variation(registry, world, scene, batch.turn)
+            if variation:
+                batch.append(variation)
+                scene = {**scene, '_variation_prompt': variation_fragment(variation)}
         world = {**world, '_action_turn': batch.turn}
         result = _run_turn_staged(registry, batch, world, scene, player_input,
             strategy=strategy, provider=provider, embedder=embedder,
@@ -750,6 +804,18 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         # Hook return lists are advisory; check the actual staged history even
         # when a hook appended an event but failed to report it to the caller.
         result.world = project(registry, batch.iter_events())
+        for event_id, approved in authorized_resources.items():
+            matches = [event for event in batch.events if event.get('id') == event_id]
+            if (len(matches) != 1 or matches[0].get('retracted')
+                    or {key: value for key, value in matches[0].items() if key != 'seq'} != approved):
+                raise TurnRejected('Authorized resource resolution was removed or changed')
+        if preparation is not None:
+            prefix = preparation.prefix_events
+            for index, approved in enumerate(prefix):
+                matches = [event for event in batch.events if event.get('id') == approved['id']]
+                if (len(matches) != 1 or index >= len(batch.events)
+                        or batch.events[index] != approved or matches[0].get('retracted')):
+                    raise TurnRejected('Prepared comparison prefix was removed, reordered, or changed')
         for event_id, approved in authorized_return_creations.items():
             matches = [event for event in batch.events if event.get('id') == event_id]
             if (len(matches) != 1 or matches[0].get('retracted')

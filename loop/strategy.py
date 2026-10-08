@@ -17,6 +17,8 @@ HybridStrategy (丙):
 """
 from __future__ import annotations
 
+from loop.physical_contracts import LINKS_GUIDANCE
+
 import abc
 import json
 import re
@@ -228,7 +230,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - 【必填】cast：新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）。主角本回合实际同场见到且正文介绍的新人，name 填正文逐字出现的可见称呼；不知真名时可用职务称呼，不要编造真名。后台或未介绍的人物可省略 name；已有角色的某个属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新人物素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条。没有实际变化就给 []；纯路人可省略。characters_query 显示已在场的 NPC 时复用返回的 id，有属性变化才 evolve，避免重复创建同一人物。
 - 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——本回合确立的**客观事实**（subject/predicate/value 必填）；**没有 → 给 []**；只记确有意义的事实，勿把布景滥造成 fact；**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。secrecy 取 "public"|"restricted"|"secret"：街坊皆知的标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写该字段】（默认不进公开层、绝不外泄）。
 - 【必填】clock：[{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。明确结束时刻（如睡到明天清晨）优先用 {"advance":true,"target":{"day":绝对天数,"band":0到3},"reason":"为什么"}，由引擎算经过时间；target 与 days/bands 不能同时出现，晨=0、中午=1、下午=2、夜晚=3。只有持续时长才用 days/bands，避免把“明天”又与跨夜时段重复相加。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}。
-- 【可选】links：开通/更新双向通路用 {"op":"open","a":地点id,"b":地点id,"travel_cost":非负整天数}（省略 op 仍为 open）；已存在通路实际关闭用 {"op":"close","a":地点id,"b":地点id}，close 不带 travel_cost。端点必须是已有或本回合新建的 Place；关闭必须指向实际存在的连接，不能为关闭编造地点。局部通行显式给 travel_cost:0，省略按1天算。按发生顺序列出；撤跳板/断路等实际发生后关闭原端点对，重开再给 open；船从旧岸开走不能保留旧岸跳板为可走路径。只据本回合实际变化落账，不从人物移动、提及、包含、同地或计划自动推断开关；facts/knowledge 和 moves 不代替 links，通路开关也不替玩家移动。一个端点对代表一条聚合双向通路，不支持单向或多个独立平行通道。
+- 【可选】__LINKS_GUIDANCE__
 - 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
 - 【可选】items：创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"转移前持有者id","to":"新持有者id"}。item 必须是 Object，to 必须是 Person 或 Place。已有人持有的物品必须给出与当前账本一致的 from；首次放置未被持有的物品才可省略 from 或给 null。先创建实体，再按顺序转移；A→B→C 的第二次 from 是 B。不要通过 relations 写 held_by，不要用重复创建实体改变其类型。from 仅表示来源，不代表同意、授权或合法性；只记录正文中实际发生的转移。
 - 【可选】relations：[{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
@@ -325,6 +327,7 @@ def _system_prompt(verbosity: str | None = None, style: str | None = None, *, ac
     frag = _VERBOSITY_FRAGMENT.get(v, _VERBOSITY_FRAGMENT["medium"])
     s = _settings.get_style() if style is None else style
     return (_SYSTEM_PROMPT_TEMPLATE
+            .replace("__LINKS_GUIDANCE__", LINKS_GUIDANCE)
             .replace("__STYLE__", _style_fragment(s))
             .replace("__VERBOSITY__", frag)
             .replace("__ACTOR_ID_JSON__", json.dumps(actor_id if isinstance(actor_id, str)
@@ -363,7 +366,7 @@ _SYSTEM_PROMPT_HYBRID = """\
    - 【必填】cast: 新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）。主角本回合实际同场见到且正文介绍的新人，name 填正文逐字出现的可见称呼；不知真名时可用职务称呼，不要编造真名。后台或未介绍的人物可省略 name；已有角色属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条，复用原角色 id。散文没有属性变化就给 []；纯路人可省略。
    - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——散文确立的客观事实（subject/predicate/value 必填）；**没有就给 []**。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
    - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。明确结束时刻优先用 {"advance":true,"target":{"day":绝对天数,"band":0到3},"reason":"为什么"}（晨=0、中午=1、下午=2、夜晚=3），target 不能与 days/bands 同时出现；引擎负责从当前时刻计算推进量。只有持续时长才用 days/bands，勿重复计算跨夜进位。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
-   - 【可选】links：开通/更新双向通路用 {"op":"open","a":地点id,"b":地点id,"travel_cost":非负整天数}（省略 op 仍为 open）；已存在通路实际关闭用 {"op":"close","a":地点id,"b":地点id}，close 不带 travel_cost。端点必须是已有或本回合新建的 Place；关闭必须指向实际存在的连接，不能为关闭编造地点。局部通行显式给 travel_cost:0，省略按1天算。按发生顺序列出；撤跳板/断路等实际发生后关闭原端点对，重开再给 open；船从旧岸开走不能保留旧岸跳板为可走路径。只据本回合实际变化落账，不从人物移动、提及、包含、同地或计划自动推断开关；facts/knowledge 和 moves 不代替 links，通路开关也不替玩家移动。一个端点对代表一条聚合双向通路，不支持单向或多个独立平行通道。
+   - 【可选】__LINKS_GUIDANCE__
    - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
    - 【可选】items: 创建物品用 {"op":"create","id":"物品id"}；转移用 {"op":"transfer","item":"物品id","from":"当前持有者id","to":"新持有者id"}。物品必须是 Object，持有者为 Person 或 Place；未被持有的物品首次放置才可省略 from 或给 null。按行顺序记录 A→B→C，第二次 from 为 B。归属只通过 items/held_by 记录，不另造同义 facts/knowledge；物品颜色材质等描述不受此限制。
    - 【可选】relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
@@ -378,6 +381,7 @@ _SYSTEM_PROMPT_HYBRID = """\
 8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新明线任务（id必须全新，必须提供summary）；surface=暗线浮现进入明账（id须与上文【本地暗线】中 [id] 标签一致，切勿 open 新 id——暗线每条都标有 [id]，散文中玩家触碰了哪条就 surface 该 id）；advance=推进已有明线任务；resolve=收束已有明线任务。id 须与上文【任务·明账】中已列的 id 保持一致（open 除外）。寻常个人场景无任务变化时省略本段。
 """
 
+_SYSTEM_PROMPT_HYBRID = _SYSTEM_PROMPT_HYBRID.replace("__LINKS_GUIDANCE__", LINKS_GUIDANCE)
 _SYSTEM_PROMPT_HYBRID += _MACHINE_BOUNDARY
 
 

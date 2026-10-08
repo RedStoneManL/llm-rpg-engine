@@ -312,6 +312,9 @@ def build_repair_outcome(registry, world, scene, commit, player_input):
                 current, current_view = _state(preview, actor)
                 transition = _physical_transition(event, prior, current)
                 if transition is not None:
+                    keys = ('day', 'band', 'actor_location', 'positions', 'passages')
+                    transition['before_state'] = {key: copy.deepcopy(prior[key]) for key in keys}
+                    transition['after_state'] = {key: copy.deepcopy(current[key]) for key in keys}
                     transitions.append(transition)
                     labels.update(_names(prior_view, prior, actor))
                     labels.update(_names(current_view, current, actor))

@@ -1,0 +1,134 @@
+{
+  "base_commit": "a80241d24c8c03d9aefe30accfccd5ec62e83c5b",
+  "scope": "Shared foreground publication gate: Person placement/co-presence/movement and passage connectivity; model extraction plus deterministic typed comparison, not a universal semantic guarantee",
+  "model": "native GPT-6 Astra; no DeepSeek calls because existing access is blocked",
+  "historical_A": {
+    "newcomer": {
+      "committed": false,
+      "requests": 3,
+      "problem": "Overbroad local-motion/timing checks plus missing creation-first movement transition"
+    },
+    "passage": {
+      "committed": true,
+      "requests": 4,
+      "problem": "Repair created link with cost1; original false positives and broad text edits retained"
+    }
+  },
+  "historical_B": {
+    "newcomer": {
+      "committed": true,
+      "requests": 4,
+      "semantic_calls": 3,
+      "normal_summary_calls": 1,
+      "narration_unchanged": true,
+      "correction": {
+        "patches": [],
+        "moves": [
+          {
+            "who": "ferry_dispatch_manager",
+            "to": "bridge"
+          }
+        ],
+        "links": []
+      }
+    },
+    "passage": {
+      "committed": true,
+      "requests": 4,
+      "semantic_calls": 3,
+      "normal_summary_calls": 1,
+      "narration_unchanged": true,
+      "correction": {
+        "patches": [],
+        "moves": [],
+        "links": [
+          {
+            "op": "open",
+            "a": "chilu9_passenger_deck",
+            "b": "far_bank_landing",
+            "travel_cost": 0
+          }
+        ]
+      }
+    }
+  },
+  "fresh_author": {
+    "newcomer": {
+      "committed": true,
+      "requests": 7,
+      "semantic_calls": 3,
+      "semantic_repair_false_alarm": true,
+      "normal_summary_calls": 1,
+      "research_tool_calls": 2,
+      "physical_events": [
+        {
+          "type": "entity_moved",
+          "deltas": {
+            "who": "ferry_dispatch_steward",
+            "to": "bridge"
+          }
+        }
+      ]
+    },
+    "passage": {
+      "committed": true,
+      "requests": 5,
+      "semantic_calls": 1,
+      "semantic_repair_false_alarm": false,
+      "normal_summary_calls": 1,
+      "research_tool_calls": 1,
+      "physical_events": [
+        {
+          "type": "place_linked",
+          "deltas": {
+            "op": "open",
+            "a": "chilu9_passenger_deck",
+            "b": "far_bank_landing",
+            "travel_cost": 0
+          }
+        }
+      ]
+    }
+  },
+  "resource_compare": {
+    "status": "committed",
+    "requests": 8,
+    "calls_before_selection": 8,
+    "calls_after_selection": 0,
+    "balance": 7,
+    "resolution_count": 1,
+    "variation_count": 1,
+    "initial_balance": 10,
+    "requested_spend": 3,
+    "preview_left_store_unchanged": true,
+    "fixture": "Independent new fixture, never added funds to the ferry save",
+    "semantic_calls": 4,
+    "author_false_alarm_extra_calls": 2
+  },
+  "final_deterministic_replay": {
+    "extractions": 14,
+    "new_model_calls": 0,
+    "removed_false_alarms": [
+      {
+        "case": "newcomer",
+        "request": "0004"
+      },
+      {
+        "case": "native-semantic-resource-compare-20261008",
+        "request": "0005"
+      }
+    ],
+    "initial_real_defects_still_rejected": true,
+    "legacy_protocol": "A uses its frozen V1 parser with only universal checkpoint rule; no invented V2 scope labels",
+    "policy": "canonical-checkpoints-v3"
+  },
+  "remaining_limits": [
+    "Extraction can miss or misclassify semantics, identity or time; coverage is not proof",
+    "Initial author intent alignment, free facts, knowledge/hearing, finer geometry, ownership prose and background narrative are not all covered",
+    "Repair preserves approved effects/player moves and outside-span text; content inside a permitted patch is still model-written",
+    "Ordinary candidates add one audit call; repair adds two more. Recorded normal-newcomer and resource-Author false alarms incurred those extra calls",
+    "Final checkpoint rule was validated on unchanged recorded extraction outputs, not by new sampling; no live-call savings claimed",
+    "Native bridge timing includes worker coordination and is not provider latency",
+    "No full offline test-suite campaign; actual model evidence and targeted host checks/reviews are listed separately"
+  ]
+}

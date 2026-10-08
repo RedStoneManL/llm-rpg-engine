@@ -470,6 +470,7 @@ def play_loop(
                         scene,
                         player_input,
                         provider=engine.provider,
+                        store=engine.store,
                         embedder=engine.embedder,
                         max_repairs=max_repairs,
                         required_sections=required_sections,
@@ -489,7 +490,8 @@ def play_loop(
                     scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
                     embedder=engine.embedder, required_sections=required_sections,
                     cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
-                    return_commitment=return_commitment)
+                    return_commitment=return_commitment,
+                    preparation=jia_commit._comparison_preparation)
                 engine.world = applied.world
                 engine.pending_return_intent = None
                 prev_scene = scene
