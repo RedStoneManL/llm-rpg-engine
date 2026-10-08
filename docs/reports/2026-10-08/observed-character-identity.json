@@ -1,0 +1,2205 @@
+{
+  "base_commit": "3436d06f188404ccaea30fa51d3ff8c8d6d9d368",
+  "scope": "Future-only host-observed identity provenance, bounded identity/intro lookup, and explicit newcomer placement guidance. No private-profile grant or legacy backfill.",
+  "before": {
+    "method": "Original real source-revisit T9",
+    "character_query": [
+      {
+        "player_turn": 9,
+        "name": "characters_query",
+        "arguments": {
+          "q": ""
+        },
+        "result": "{\"query\": \"\", \"matches\": [{\"id\": \"player\", \"name\": \"林舟\"}, {\"id\": \"keeper\", \"co_present\": true, \"班表复询答复\": \"沈掌柜再次明确其可说明来源的班次是今早亲眼所见旧表上的青桐三号、酉初；本次未提供经其核实的新班次，仍建议以发船负责人确认为准。\"}, {\"id\": \"guard\", \"known\": false}, {\"id\": \"ferry_attendant_xulan\", \"班次问询答复\": \"许岚自称潮汐渡口值守者，在集市路口接待问询；称发船管事正在核对船只，自己尚未取得青桐三号酉初班次的今日确认，并指示沿路口通向河边的路前往渡口。\", \"替代班次与核实指引\": \"许岚表示自己目前没有已核准的其他客船名单，建议向发船管事询问今日全部可载客过河班次、开船时辰及上船处；称桥边写有潮汐渡口的问询牌处是管事核船后的答复地点，午前为约定再次交换消息的时间，但不保证届时完成核准。\"}]}"
+      }
+    ],
+    "finding": "The previously introduced ferry_dispatcher was absent from character results; no duplicate NPC was generated."
+  },
+  "attempt_a": {
+    "outcome": {
+      "status": "completed_but_identity_prerequisite_failed",
+      "committed_actions": 1,
+      "native_responses": 5,
+      "tool_calls": 4,
+      "repairs": 0,
+      "failure": "Prose says dispatcher arrives and cast creates him with literal name, but moves=[] and no located_in exists. Host correctly emits no introduction snapshot or observed marker.",
+      "continuation": "Stopped normally via /quit before next action; no source changes while running. New separate branch adds explicit cast/moves guidance, no forced position or weakened marker."
+    },
+    "source_version": {
+      "base_commit": "3436d06f188404ccaea30fa51d3ff8c8d6d9d368",
+      "sha256": {
+        "llm/tools.py": "20d143d5a301f9f2843b3ddbc265f8a6ee8b4499c4d25457cc61476d5812b0e6",
+        "loop/strategy.py": "f9c47b712fe4f7062ff01e2ad840a2d7a55e2e2a0ec2a2f6655a8ee488e4d36b",
+        "systems/player_sources.py": "8826b848f54ffc4c8079ff4fb35fad19748055dd04f4fab0c7bf23ee5343aede",
+        "context/access.py": "c778f89d202cafcfa2df1cd3150e5e36e33fd92505c99f1275f300cb04907c0f"
+      }
+    },
+    "turn": {
+      "player_turn": 6,
+      "action": "我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+      "visible_output": [
+        "> 你：我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+        "（DM 落笔中…）",
+        "----------------------------------------",
+        "[DM]",
+        "你在候船处横绳外找了块平整的石头坐下。问询桌就在斜前方，来人不用起身也能看见。\n\n日头渐高，还没到中午，一名夹着木板的人快步走到桌后，将几张纸压在砚台下。\n「我是今日的发船管事。问班次的，可以过来了。」\n\n你走到桌前，问起今日过河的客船、时辰和登船处。管事摊开核定单，指着其中一行给你看。\n「眼下能确认的是赤鹭九号，午后开。具体几刻、在哪个口上船，还要等最后的安排，不能看见候船处就当成登船口。」\n\n他提笔在问询牌旁另添了一张告示，写下「赤鹭九号，午后」，下方注明「具体开船时刻及登船口待公布」。\n「你要的三样，现在还差细处。补齐以后，我就在这里写清楚。」\n\n桌前几名旅客凑过去看新纸。你还没有买票，问询处终于有了今日核准的船名。"
+      ],
+      "state_before": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "names": {
+          "player": "林舟",
+          "keeper": "沈掌柜",
+          "guard": "何桥守",
+          "inn": "客栈",
+          "courtyard": "客栈院子",
+          "bridge": "石桥",
+          "market": "集市",
+          "brass_bell": "铜铃",
+          "jade_seal": "玉印"
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+              ],
+              "quotes": [
+                "答应在第3天中午归还沈掌柜"
+              ]
+            },
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 0,
+            "initial_held_by_source_event": "fixture_026",
+            "debtor_known_entities": [
+              "jade_seal",
+              "player",
+              "keeper"
+            ]
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "requests_before": 0,
+      "state_after": {
+        "holders": {
+          "brass_bell": [
+            "player"
+          ],
+          "jade_seal": [
+            "player"
+          ]
+        },
+        "locations": {
+          "player": [
+            "bridge"
+          ],
+          "keeper": [
+            "inn"
+          ],
+          "guard": [
+            "bridge"
+          ]
+        },
+        "names": {
+          "player": "林舟",
+          "keeper": "沈掌柜",
+          "guard": "何桥守",
+          "inn": "客栈",
+          "courtyard": "客栈院子",
+          "bridge": "石桥",
+          "market": "集市",
+          "brass_bell": "铜铃",
+          "jade_seal": "玉印"
+        },
+        "borrowed_from": "keeper",
+        "borrowed_from_sources": [
+          "fixture_029"
+        ],
+        "clock": {
+          "day": 1,
+          "band": 0
+        },
+        "promises": {
+          "fixture_return_jade_seal": {
+            "id": "fixture_return_jade_seal",
+            "item": "jade_seal",
+            "debtor": "player",
+            "recipient": "keeper",
+            "due": {
+              "day": 3,
+              "band": 1
+            },
+            "evidence": {
+              "player_actions": [
+                "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+              ],
+              "quotes": [
+                "答应在第3天中午归还沈掌柜"
+              ]
+            },
+            "status": "open",
+            "created_at": {
+              "day": 1,
+              "band": 0
+            },
+            "created_turn": 0,
+            "initial_held_by_source_event": "fixture_026",
+            "debtor_known_entities": [
+              "jade_seal",
+              "player",
+              "keeper"
+            ]
+          }
+        },
+        "guard_name_knowledge": []
+      },
+      "requests_after": 5,
+      "new_events": [
+        {
+          "seq": 87,
+          "id": "ev_63210e79ebef",
+          "type": "variation_sampled",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narrative variation selected",
+          "deltas": {
+            "id": "consequence",
+            "hint": "若先前行动已有可见后果，以轻巧的生活变化呈现，避免重复解释。",
+            "flavor": "isekai",
+            "seed": 256784974760903,
+            "version": 1
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 88,
+          "id": "ev_3244ce67f48e",
+          "type": "character_created",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "ferry_dispatch_manager 登场",
+          "deltas": {
+            "id": "ferry_dispatch_manager",
+            "op": "create",
+            "sketch": "夹着木板来到桥头问询桌、负责公布今日客船安排的管事。",
+            "goal": "核齐今日客船的具体开船时刻与登船口，再向候船旅客公布。",
+            "name": "发船管事"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 89,
+          "id": "ev_2199b7bb5655",
+          "type": "fact_asserted",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "bridge.今日渡口告示=桥头潮汐渡口问询牌旁新增告示：今日已确认赤鹭九号，午后开；具体开船时刻及登船口待公布，旧班表不作今日乘船凭据。",
+          "deltas": {
+            "subject": "bridge",
+            "predicate": "今日渡口告示",
+            "value": "桥头潮汐渡口问询牌旁新增告示：今日已确认赤鹭九号，午后开；具体开船时刻及登船口待公布，旧班表不作今日乘船凭据。",
+            "secrecy": "public"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 90,
+          "id": "ev_509ede9605a5",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 ferry.今日班次",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "ferry.今日班次",
+            "value": "赤鹭九号，午后",
+            "via": "午前在桥头查看发船管事出示的核定单，并听其当面公布"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 91,
+          "id": "ev_4beb9759777c",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "ferry_dispatch_manager 得知 ferry.今日班次",
+          "deltas": {
+            "knower": "ferry_dispatch_manager",
+            "fact_key": "ferry.今日班次",
+            "value": "赤鹭九号，午后",
+            "via": "在桥头问询桌摊开并核读当日核定单"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 92,
+          "id": "ev_c5a12d089df7",
+          "type": "knowledge_set",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "player 得知 bridge.今日渡口告示",
+          "deltas": {
+            "knower": "player",
+            "fact_key": "bridge.今日渡口告示",
+            "value": "桥头潮汐渡口问询牌旁新增告示：今日已确认赤鹭九号，午后开；具体开船时刻及登船口待公布，旧班表不作今日乘船凭据。",
+            "via": "亲眼看见管事在问询牌旁添写今日告示"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 93,
+          "id": "ev_a0e3b0a40701",
+          "type": "clock_advanced",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "时间未推进：在桥头歇脚等至午前，管事于中午之前到场并答复；仍处于第1天晨，未跨时段。",
+          "deltas": {
+            "advance": false,
+            "days": 0,
+            "bands": 0,
+            "reason": "在桥头歇脚等至午前，管事于中午之前到场并答复；仍处于第1天晨，未跨时段。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 94,
+          "id": "ev_af8adf494663",
+          "type": "narration_recorded",
+          "day": 1,
+          "scene": "s3",
+          "arc": null,
+          "actors": [],
+          "summary": "narration recorded",
+          "deltas": {
+            "scene": "s3",
+            "text": "你在候船处横绳外找了块平整的石头坐下。问询桌就在斜前方，来人不用起身也能看见。\n\n日头渐高，还没到中午，一名夹着木板的人快步走到桌后，将几张纸压在砚台下。\n「我是今日的发船管事。问班次的，可以过来了。」\n\n你走到桌前，问起今日过河的客船、时辰和登船处。管事摊开核定单，指着其中一行给你看。\n「眼下能确认的是赤鹭九号，午后开。具体几刻、在哪个口上船，还要等最后的安排，不能看见候船处就当成登船口。」\n\n他提笔在问询牌旁另添了一张告示，写下「赤鹭九号，午后」，下方注明「具体开船时刻及登船口待公布」。\n「你要的三样，现在还差细处。补齐以后，我就在这里写清楚。」\n\n桌前几名旅客凑过去看新纸。你还没有买票，问询处终于有了今日核准的船名。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 95,
+          "id": "ev_94c9422fe7eb",
+          "type": "scene_summarized",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "scene summary: inn",
+          "deltas": {
+            "scene": "inn",
+            "summary": "沈掌柜告诉林舟今早班表写着青桐三号酉初开船，但需向渡口当日发船负责人核实现时安排，林舟告辞后进入集市，遇到自称渡口值守的许岚，她表示管事仍在核对船只、尚未取得该班今日确认，提醒众人勿凭旧表买票，并为林舟指向渡口的路、询问其欲核实哪条船。"
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 96,
+          "id": "ev_60accc8a6fea",
+          "type": "directive_consumed",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "directive consumed through turn=2",
+          "deltas": {
+            "through_turn": 2
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": null,
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        },
+        {
+          "seq": 97,
+          "id": "ev_840c1389f4dd",
+          "type": "player_input_recorded",
+          "day": 1,
+          "scene": "inn",
+          "arc": null,
+          "actors": [],
+          "summary": "player input source recorded",
+          "deltas": {
+            "actor_id": "player",
+            "input": "我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+            "requested_at": {
+              "day": 1,
+              "band": 0,
+              "scene": "s3",
+              "location": "bridge"
+            },
+            "committed_at": {
+              "day": 1,
+              "band": 0,
+              "scene": "inn",
+              "location": "bridge"
+            },
+            "outcome": "committed_response_not_proof_of_success",
+            "entity_refs": [
+              "bridge"
+            ],
+            "narration_ref": "ev_af8adf494663",
+            "effect_refs": [
+              "ev_63210e79ebef",
+              "ev_3244ce67f48e",
+              "ev_2199b7bb5655",
+              "ev_509ede9605a5",
+              "ev_4beb9759777c",
+              "ev_c5a12d089df7",
+              "ev_a0e3b0a40701",
+              "ev_94c9422fe7eb",
+              "ev_60accc8a6fea"
+            ]
+          },
+          "thread_refs": [],
+          "chunk_ids": [],
+          "secrecy": "private",
+          "roll": null,
+          "turn": 6,
+          "retracted": false
+        }
+      ]
+    }
+  },
+  "attempt_b": {
+    "method": "Fresh actual native Astra Author/tool run from original pre-T6 JSONL; one repeated setup action followed by two independently chosen player actions. Original tool executor and normal summaries.",
+    "source_version": {
+      "base_commit": "3436d06f188404ccaea30fa51d3ff8c8d6d9d368",
+      "sha256": {
+        "llm/tools.py": "20d143d5a301f9f2843b3ddbc265f8a6ee8b4499c4d25457cc61476d5812b0e6",
+        "loop/strategy.py": "53cdc32fff00849cd99599b9984a91f503a7fe11579e25919817e173af1aa1eb",
+        "systems/player_sources.py": "8826b848f54ffc4c8079ff4fb35fad19748055dd04f4fab0c7bf23ee5343aede",
+        "context/access.py": "c778f89d202cafcfa2df1cd3150e5e36e33fd92505c99f1275f300cb04907c0f"
+      },
+      "difference_from_first_attempt": "Explicit actual newcomer placement guidance in Author/Hybrid only; host observation conditions unchanged"
+    },
+    "seed_source": {
+      "source": "native-ferry-continuation-20261008/campaign/events.jsonl",
+      "source_sha256": "b31df2bf1d5b5e00ee0e7692d6b5a18d02f34166b7c7c36b47ff258f832547d1",
+      "events": 86,
+      "method": "Original EventStore JSONL export; top-level secrecy values preserved as original null/private, not normalized from prior raw SQLite seed"
+    },
+    "committed_actions": 3,
+    "native_responses": 14,
+    "actual_tool_calls": 11,
+    "repairs": 0,
+    "normal_summaries": 3,
+    "tool_calls": [
+      {
+        "player_turn": 6,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "班次"
+        },
+        "result": "{\"query\": \"班次\", \"public_places\": [], \"public_facts\": [{\"subject\": \"ferry\", \"predicate\": \"今日班次\", \"value\": \"赤鹭九号，午后\"}, {\"subject\": \"keeper\", \"predicate\": \"knows:ferry.今日班次\", \"value\": \"青桐三号，酉初\"}, {\"subject\": \"guard\", \"predicate\": \"sketch\", \"value\": \"何桥守刚来到这个镇，今天没有看过渡口班表，也没有听过有关班次的介绍。\"}, {\"subject\": \"bridge\", \"predicate\": \"今日渡口告示\", \"value\": \"桥头潮汐渡口问询牌旁张贴的今日告示称：客船班次正在核定，船名、开船时辰及登船口待发船管事到问询处公布；旧班表不作今日乘船凭据。\"}]}"
+      },
+      {
+        "player_turn": 6,
+        "name": "characters_query",
+        "arguments": {
+          "q": "管事"
+        },
+        "result": "{\"query\": \"管事\", \"matches\": []}"
+      },
+      {
+        "player_turn": 6,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "赤鹭九号"
+        },
+        "result": "{\"query\": \"赤鹭九号\", \"public_places\": [], \"public_facts\": [{\"subject\": \"ferry\", \"predicate\": \"今日班次\", \"value\": \"赤鹭九号，午后\"}]}"
+      },
+      {
+        "player_turn": 6,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "登船"
+        },
+        "result": "{\"query\": \"登船\", \"public_places\": [], \"public_facts\": [{\"subject\": \"bridge\", \"predicate\": \"今日渡口告示\", \"value\": \"桥头潮汐渡口问询牌旁张贴的今日告示称：客船班次正在核定，船名、开船时辰及登船口待发船管事到问询处公布；旧班表不作今日乘船凭据。\"}]}"
+      },
+      {
+        "player_turn": 7,
+        "name": "map_query",
+        "arguments": {
+          "q": "inn",
+          "path_to": "inn"
+        },
+        "result": "{\"query\": \"inn\", \"matches\": [{\"id\": \"inn\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"客栈\", \"exits\": [{\"to\": \"courtyard\", \"travel_cost\": 0}, {\"to\": \"market\", \"travel_cost\": 0}]}], \"path\": [\"bridge\", \"courtyard\", \"inn\"], \"total_cost\": 0}"
+      },
+      {
+        "player_turn": 7,
+        "name": "characters_query",
+        "arguments": {
+          "q": "keeper"
+        },
+        "result": "{\"query\": \"keeper\", \"matches\": [{\"id\": \"keeper\"}]}"
+      },
+      {
+        "player_turn": 8,
+        "name": "map_query",
+        "arguments": {
+          "q": "bridge",
+          "path_to": "bridge"
+        },
+        "result": "{\"query\": \"bridge\", \"matches\": [{\"id\": \"bridge\", \"level\": 3, \"kind\": \"venue\", \"seed\": \"石桥\", \"exits\": [{\"to\": \"courtyard\", \"travel_cost\": 0}, {\"to\": \"market\", \"travel_cost\": 0}], \"known_facts\": {\"候船设施\": \"问询牌附近的岸边石阶通向挂有客船候船处标牌的木栈台；当前入口横绳未解，未挂具体船名。下游堆放竹筐的坡道用于货运。\", \"今日渡口告示\": \"桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。\"}}], \"path\": [\"inn\", \"courtyard\", \"bridge\"], \"total_cost\": 0}"
+      },
+      {
+        "player_turn": 8,
+        "name": "characters_query",
+        "arguments": {
+          "q": "ferry_dispatcher"
+        },
+        "result": "{\"query\": \"ferry_dispatcher\", \"matches\": [{\"id\": \"ferry_dispatcher\", \"introduced_as\": \"发船管事\", \"introduction_evidence\": {\"actor_id\": \"player\", \"turn\": 6, \"source_event_id\": \"ev_e378618acae2\", \"narration_ref\": \"ev_c492b7688e75\", \"committed_at\": {\"day\": 1, \"band\": 0, \"scene\": \"inn\", \"location\": \"bridge\"}, \"person\": {\"id\": \"ferry_dispatcher\", \"name\": \"发船管事\", \"observed_identity\": {\"location\": \"bridge\", \"label\": \"发船管事\", \"start\": 76, \"end\": 80}}, \"span\": {\"text\": \"你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\\n\\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\\n\\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\\n\\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\\n\\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\\n\\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\\n\\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\\n\\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。\", \"start\": 0, \"end\": 310, \"original_length\": 310, \"truncated\": false}}}], \"introduction_coverage\": {\"matched\": 1, \"returned\": 1, \"partial\": false}}"
+      },
+      {
+        "player_turn": 8,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "赤鹭九号"
+        },
+        "result": "{\"query\": \"赤鹭九号\", \"public_places\": [], \"public_facts\": [{\"subject\": \"ferry\", \"predicate\": \"今日班次\", \"value\": \"赤鹭九号，午后\"}, {\"subject\": \"bridge\", \"predicate\": \"今日渡口告示\", \"value\": \"桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。\"}]}"
+      },
+      {
+        "player_turn": 8,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "售票"
+        },
+        "result": "{\"query\": \"售票\", \"public_places\": [], \"public_facts\": []}"
+      },
+      {
+        "player_turn": 8,
+        "name": "ambient_query",
+        "arguments": {
+          "q": "票价"
+        },
+        "result": "{\"query\": \"票价\", \"public_places\": [], \"public_facts\": []}"
+      }
+    ],
+    "turns": [
+      {
+        "player_turn": 6,
+        "action": "我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+        "visible_output": [
+          "> 你：我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+          "（DM 落笔中…）",
+          "----------------------------------------",
+          "[DM]",
+          "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。"
+        ],
+        "state_before": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "bridge"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_before": 0,
+        "state_after": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "bridge"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_after": 5,
+        "new_events": [
+          {
+            "seq": 87,
+            "id": "ev_dce7c2a4c4dd",
+            "type": "variation_sampled",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "narrative variation selected",
+            "deltas": {
+              "id": "consequence",
+              "hint": "若先前行动已有可见后果，以轻巧的生活变化呈现，避免重复解释。",
+              "flavor": "isekai",
+              "seed": 256784974760903,
+              "version": 1
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 88,
+            "id": "ev_10d98bb36e00",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "ferry_dispatcher 移动至 bridge",
+            "deltas": {
+              "who": "ferry_dispatcher",
+              "to": "bridge"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 89,
+            "id": "ev_01387c3e5318",
+            "type": "character_created",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "ferry_dispatcher 登场",
+            "deltas": {
+              "id": "ferry_dispatcher",
+              "op": "create",
+              "sketch": "夹着新告示来到桥头问询桌后，自称今日的发船管事；答复时逐行核对纸面内容。",
+              "goal": "张贴新告示并回应候船旅客的班次问询。",
+              "name": "发船管事"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 90,
+            "id": "ev_d0160afe7d2b",
+            "type": "fact_asserted",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "bridge.今日渡口告示=桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。",
+            "deltas": {
+              "subject": "bridge",
+              "predicate": "今日渡口告示",
+              "value": "桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。",
+              "secrecy": "public"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 91,
+            "id": "ev_f0fc2784e768",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "player 得知 ferry.今日班次",
+            "deltas": {
+              "knower": "player",
+              "fact_key": "ferry.今日班次",
+              "value": "赤鹭九号，午后",
+              "via": "亲眼阅读桥头问询处新贴的告示，并听到发船管事当面对照告示答复。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 92,
+            "id": "ev_da037919ae3f",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "ferry_dispatcher 得知 ferry.今日班次",
+            "deltas": {
+              "knower": "ferry_dispatcher",
+              "fact_key": "ferry.今日班次",
+              "value": "赤鹭九号，午后",
+              "via": "在桥头问询处当面阅读并核对新告示。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 93,
+            "id": "ev_367ab590780f",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "player 得知 bridge.今日渡口告示",
+            "deltas": {
+              "knower": "player",
+              "fact_key": "bridge.今日渡口告示",
+              "value": "桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。",
+              "via": "在问询桌前亲眼阅读新告示。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 94,
+            "id": "ev_5d1c8565725c",
+            "type": "clock_advanced",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "时间未推进：歇脚等候期间管事到场，随即上前问询；仍在第1天晨段，尚未跨入中午。",
+            "deltas": {
+              "advance": false,
+              "days": 0,
+              "bands": 0,
+              "reason": "歇脚等候期间管事到场，随即上前问询；仍在第1天晨段，尚未跨入中午。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 95,
+            "id": "ev_c492b7688e75",
+            "type": "narration_recorded",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "narration recorded",
+            "deltas": {
+              "scene": "s3",
+              "text": "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 96,
+            "id": "ev_efc06bb79b8b",
+            "type": "scene_summarized",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "scene summary: inn",
+            "deltas": {
+              "scene": "inn",
+              "summary": "沈掌柜向林舟说明“青桐三号酉初开船”仅是今早班表所载、当前是否有效须向渡口今日发船负责人核实，林舟告辞离开客栈后进入集市，遇见自称渡口值守的许岚，她表示发船管事仍在核对船只、自己尚未取得该班次的今日确认，提醒众人勿凭旧表买票，并为林舟指向渡口的路、询问他要核实哪条船。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 97,
+            "id": "ev_1897e5f7fbd7",
+            "type": "directive_consumed",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "directive consumed through turn=2",
+            "deltas": {
+              "through_turn": 2
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          },
+          {
+            "seq": 98,
+            "id": "ev_e378618acae2",
+            "type": "player_input_recorded",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "player input source recorded",
+            "deltas": {
+              "actor_id": "player",
+              "input": "我暂不买票，在候船处附近找个能看见问询桌的位置歇脚，等到午前；如果发船管事提前来了，我就过去问：“我今天要过河，现在核准了哪些客船？各是什么时辰开、从哪处上船？”",
+              "requested_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "s3",
+                "location": "bridge"
+              },
+              "committed_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "inn",
+                "location": "bridge"
+              },
+              "outcome": "committed_response_not_proof_of_success",
+              "entity_refs": [
+                "bridge",
+                "ferry_dispatcher"
+              ],
+              "narration_ref": "ev_c492b7688e75",
+              "effect_refs": [
+                "ev_dce7c2a4c4dd",
+                "ev_10d98bb36e00",
+                "ev_01387c3e5318",
+                "ev_d0160afe7d2b",
+                "ev_f0fc2784e768",
+                "ev_da037919ae3f",
+                "ev_367ab590780f",
+                "ev_5d1c8565725c",
+                "ev_efc06bb79b8b",
+                "ev_1897e5f7fbd7"
+              ],
+              "cast_introductions": {
+                "narration_ref": "ev_c492b7688e75",
+                "persons": [
+                  {
+                    "id": "ferry_dispatcher",
+                    "name": "发船管事",
+                    "observed_identity": {
+                      "location": "bridge",
+                      "label": "发船管事",
+                      "start": 76,
+                      "end": 80
+                    }
+                  }
+                ],
+                "span": {
+                  "text": "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。",
+                  "start": 0,
+                  "end": 310,
+                  "original_length": 310,
+                  "truncated": false
+                }
+              }
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": "private",
+            "roll": null,
+            "turn": 6,
+            "retracted": false
+          }
+        ]
+      },
+      {
+        "player_turn": 7,
+        "action": "我记下告示上的消息，沿原路回客栈找沈掌柜：“我刚在桥头问过今天的发船管事。新告示写的是赤鹭九号、午后，但具体几刻开、从哪里登船都还没说准。青桐三号那班也没有得到今日确认，先别让赶船的人照旧表去等。”",
+        "visible_output": [
+          "> 你：我记下告示上的消息，沿原路回客栈找沈掌柜：“我刚在桥头问过今天的发船管事。新告示写的是赤鹭九号、午后，但具体几刻开、从哪里登船都还没说准。青桐三号那班也没有得到今日确认，先别让赶船的人照旧表去等。”",
+          "（DM 落笔中…）",
+          "----------------------------------------",
+          "[DM]",
+          "你沿来路穿过院子，回到客栈，把桥头的新消息告诉沈掌柜。\n\n听到「赤鹭九号」，沈掌柜抬起头，等你把时辰和登船处尚未说准的事讲完，才点了点头。\n\n「记下了。有人来问，我就提醒他：今早那张旧表不能当今日乘船的准信。」\n\n他掰着指头复述了一遍：「赤鹭九号，午后。具体几刻、在哪儿上船，还要去桥头核实。青桐三号也没得到今日确认。」\n\n「这几处可不能省，不然人提着包袱跑过去，又得干等。」"
+        ],
+        "state_before": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "bridge"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_before": 5,
+        "state_after": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "inn"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_after": 9,
+        "new_events": [
+          {
+            "seq": 99,
+            "id": "ev_3fdb0cd8d5f0",
+            "type": "variation_sampled",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "narrative variation selected",
+            "deltas": {
+              "id": "quiet",
+              "hint": "给平凡日常留空间，吃饭、办事或闲聊可以顺利完成，不必接连触发委托。",
+              "flavor": "isekai",
+              "seed": 210303205694024,
+              "version": 1
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 100,
+            "id": "ev_d67fd72d6948",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "player 移动至 courtyard",
+            "deltas": {
+              "who": "player",
+              "to": "courtyard"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 101,
+            "id": "ev_d881a9ed2702",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "player 移动至 inn",
+            "deltas": {
+              "who": "player",
+              "to": "inn"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 102,
+            "id": "ev_8b1514cfbb33",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "keeper 得知 bridge.今日渡口告示",
+            "deltas": {
+              "knower": "keeper",
+              "fact_key": "bridge.今日渡口告示",
+              "value": "桥头潮汐渡口问询处已张贴新告示：赤鹭九号，午后；告示未列具体开船时刻或登船口。",
+              "via": "林舟回到客栈，当面转述刚在桥头亲眼所见的告示及问询结果"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 103,
+            "id": "ev_2213ba18b19f",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "keeper 得知 ferry.今日班次",
+            "deltas": {
+              "knower": "keeper",
+              "fact_key": "ferry.今日班次",
+              "value": "赤鹭九号，午后",
+              "via": "林舟当面转述今日新告示；具体开船时刻和登船口尚未确认"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 104,
+            "id": "ev_7aef1da28445",
+            "type": "clock_advanced",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "时间未推进：沿近路返回客栈并转述消息，仍在同一晨间时段",
+            "deltas": {
+              "advance": false,
+              "days": 0,
+              "bands": 0,
+              "reason": "沿近路返回客栈并转述消息，仍在同一晨间时段"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 105,
+            "id": "ev_6ddd7acb4ae1",
+            "type": "narration_recorded",
+            "day": 1,
+            "scene": "inn",
+            "arc": null,
+            "actors": [],
+            "summary": "narration recorded",
+            "deltas": {
+              "scene": "inn",
+              "text": "你沿来路穿过院子，回到客栈，把桥头的新消息告诉沈掌柜。\n\n听到「赤鹭九号」，沈掌柜抬起头，等你把时辰和登船处尚未说准的事讲完，才点了点头。\n\n「记下了。有人来问，我就提醒他：今早那张旧表不能当今日乘船的准信。」\n\n他掰着指头复述了一遍：「赤鹭九号，午后。具体几刻、在哪儿上船，还要去桥头核实。青桐三号也没得到今日确认。」\n\n「这几处可不能省，不然人提着包袱跑过去，又得干等。」"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 106,
+            "id": "ev_f0ab19cf5e92",
+            "type": "scene_summarized",
+            "day": 1,
+            "scene": "s2",
+            "arc": null,
+            "actors": [],
+            "summary": "scene summary: s2",
+            "deltas": {
+              "scene": "s2",
+              "summary": "林舟向许岚转述沈掌柜的话后，获告午前可到潮汐渡口询问青桐三号及其他今日客船，但核准时间不定，须确认船名、开船时辰和登船口后再买票，而他到场时问询处无人、今日班次仍未公布，告示也明确旧班表不能作为今日乘船凭据。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 107,
+            "id": "ev_5719560d136f",
+            "type": "directive_consumed",
+            "day": 1,
+            "scene": "s2",
+            "arc": null,
+            "actors": [],
+            "summary": "directive consumed through turn=2",
+            "deltas": {
+              "through_turn": 2
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 108,
+            "id": "ev_09c050f15c4c",
+            "type": "oracle_roll",
+            "day": 1,
+            "scene": "s2",
+            "arc": null,
+            "actors": [],
+            "summary": "暗骰 roll=0.12 prob=0.48",
+            "deltas": {
+              "prob": 0.48,
+              "roll": 0.12,
+              "scene_ordinal": 5,
+              "campaign_seed": 72916001
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 109,
+            "id": "ev_e700fd5a5815",
+            "type": "director_fired",
+            "day": 1,
+            "scene": "s2",
+            "arc": null,
+            "actors": [],
+            "summary": "突发:机遇（牵出旧线）",
+            "deltas": {
+              "type": "front_stage",
+              "magnitude": "small",
+              "valence": null,
+              "event_type": "机遇",
+              "event_hint": "发现宝藏/获得情报/意外之喜",
+              "twist": "牵出旧线",
+              "twist_hint": "与某条暗线相关"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 110,
+            "id": "ev_6a78f38fd65f",
+            "type": "scene_advanced",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "场景推进→s4",
+            "deltas": {
+              "scene_id": "s4",
+              "scene_no": 4,
+              "location": "inn",
+              "day": 1
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          },
+          {
+            "seq": 111,
+            "id": "ev_5af71b81511e",
+            "type": "player_input_recorded",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "player input source recorded",
+            "deltas": {
+              "actor_id": "player",
+              "input": "我记下告示上的消息，沿原路回客栈找沈掌柜：“我刚在桥头问过今天的发船管事。新告示写的是赤鹭九号、午后，但具体几刻开、从哪里登船都还没说准。青桐三号那班也没有得到今日确认，先别让赶船的人照旧表去等。”",
+              "requested_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "inn",
+                "location": "bridge"
+              },
+              "committed_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "s4",
+                "location": "inn"
+              },
+              "outcome": "committed_response_not_proof_of_success",
+              "entity_refs": [
+                "courtyard",
+                "inn",
+                "keeper"
+              ],
+              "narration_ref": "ev_6ddd7acb4ae1",
+              "effect_refs": [
+                "ev_3fdb0cd8d5f0",
+                "ev_d67fd72d6948",
+                "ev_d881a9ed2702",
+                "ev_8b1514cfbb33",
+                "ev_2213ba18b19f",
+                "ev_7aef1da28445",
+                "ev_f0ab19cf5e92",
+                "ev_5719560d136f",
+                "ev_09c050f15c4c",
+                "ev_e700fd5a5815",
+                "ev_6a78f38fd65f"
+              ]
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": "private",
+            "roll": null,
+            "turn": 7,
+            "retracted": false
+          }
+        ]
+      },
+      {
+        "player_turn": 8,
+        "action": "我向沈掌柜告辞，回到桥头问询桌，找刚才那位发船管事：“我回来问问赤鹭九号的票。现在能买了吗，在哪里买、多少钱？具体开船时刻和登船口有新消息了吗？”",
+        "visible_output": [
+          "> 你：我向沈掌柜告辞，回到桥头问询桌，找刚才那位发船管事：“我回来问问赤鹭九号的票。现在能买了吗，在哪里买、多少钱？具体开船时刻和登船口有新消息了吗？”",
+          "（DM 落笔中…）",
+          "----------------------------------------",
+          "[DM]",
+          "你向沈掌柜告辞，穿过院子，回到桥头的问询桌。刚才那位发船管事正在压平被风吹卷的纸角。\n\n你把买票和登船的几个问题一并问了。\n\n管事先指了指告示：「纸上仍是赤鹭九号、午后。具体几刻、哪个登船口，这里还没有写明。」\n\n他抽出一张空笺，记下售票处和票价。\n\n「现在能不能买、到哪儿买、多少钱，我还得核实，眼下不能给你准话。也不能因为这张纸没写，就说一定没开卖。」\n\n他翻纸时，桌角露出一张旧表，上面正是「青桐三号　酉初」。你先前追问的班次，在这里也有纸面记录。\n\n「这张可以留着对照。」他把旧表放在旁边，与新告示分开，「可别混用。青桐三号今天是否照常，仍得另核。」\n\n他把写好的问询笺压在手边。候船处的横绳还拦着，桌前暂时空出一个位置。"
+        ],
+        "state_before": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "inn"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_before": 9,
+        "state_after": {
+          "holders": {
+            "brass_bell": [
+              "player"
+            ],
+            "jade_seal": [
+              "player"
+            ]
+          },
+          "locations": {
+            "player": [
+              "bridge"
+            ],
+            "keeper": [
+              "inn"
+            ],
+            "guard": [
+              "bridge"
+            ]
+          },
+          "names": {
+            "player": "林舟",
+            "keeper": "沈掌柜",
+            "guard": "何桥守",
+            "inn": "客栈",
+            "courtyard": "客栈院子",
+            "bridge": "石桥",
+            "market": "集市",
+            "brass_bell": "铜铃",
+            "jade_seal": "玉印"
+          },
+          "borrowed_from": "keeper",
+          "borrowed_from_sources": [
+            "fixture_029"
+          ],
+          "clock": {
+            "day": 1,
+            "band": 0
+          },
+          "promises": {
+            "fixture_return_jade_seal": {
+              "id": "fixture_return_jade_seal",
+              "item": "jade_seal",
+              "debtor": "player",
+              "recipient": "keeper",
+              "due": {
+                "day": 3,
+                "band": 1
+              },
+              "evidence": {
+                "player_actions": [
+                  "【合成历史夹具，非实测玩家输入】我向沈掌柜借了玉印，答应在第3天中午归还沈掌柜。"
+                ],
+                "quotes": [
+                  "答应在第3天中午归还沈掌柜"
+                ]
+              },
+              "status": "open",
+              "created_at": {
+                "day": 1,
+                "band": 0
+              },
+              "created_turn": 0,
+              "initial_held_by_source_event": "fixture_026",
+              "debtor_known_entities": [
+                "jade_seal",
+                "player",
+                "keeper"
+              ]
+            }
+          },
+          "guard_name_knowledge": []
+        },
+        "requests_after": 14,
+        "new_events": [
+          {
+            "seq": 112,
+            "id": "ev_cc32a9f29a9a",
+            "type": "variation_sampled",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "narrative variation selected",
+            "deltas": {
+              "id": "routine",
+              "hint": "让配角忙于自己已有的生活小事，用一笔动作展示这个世界并非只为主角而存在。",
+              "flavor": "isekai",
+              "seed": 48738967610976,
+              "version": 1
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 113,
+            "id": "ev_81dc19f1617d",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "player 移动至 courtyard",
+            "deltas": {
+              "who": "player",
+              "to": "courtyard"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 114,
+            "id": "ev_aa8847c18999",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "player 移动至 bridge",
+            "deltas": {
+              "who": "player",
+              "to": "bridge"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 115,
+            "id": "ev_a4a36e87ad1a",
+            "type": "entity_moved",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "ferry_dispatcher 移动至 bridge",
+            "deltas": {
+              "who": "ferry_dispatcher",
+              "to": "bridge"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 116,
+            "id": "ev_616997231952",
+            "type": "fact_asserted",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "ferry_dispatcher.售票与登船问询答复=发船管事表示目前尚不能确认赤鹭九号是否开售、售票地点或票价，已记下问题待核实；当前所示告示仍只有赤鹭九号、午后，未列具体开船时刻与登船口。未获答复不等于确认尚未开售。",
+            "deltas": {
+              "subject": "ferry_dispatcher",
+              "predicate": "售票与登船问询答复",
+              "value": "发船管事表示目前尚不能确认赤鹭九号是否开售、售票地点或票价，已记下问题待核实；当前所示告示仍只有赤鹭九号、午后，未列具体开船时刻与登船口。未获答复不等于确认尚未开售。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 117,
+            "id": "ev_2569520197a2",
+            "type": "fact_asserted",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "bridge.问询桌旧表=问询桌留有写着青桐三号、酉初的旧班表，已与今日新告示分开放置，可用于比对线索，不构成该班次今日有效的确认。",
+            "deltas": {
+              "subject": "bridge",
+              "predicate": "问询桌旧表",
+              "value": "问询桌留有写着青桐三号、酉初的旧班表，已与今日新告示分开放置，可用于比对线索，不构成该班次今日有效的确认。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 118,
+            "id": "ev_168d0e9e528d",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "player 得知 ferry_dispatcher.售票与登船问询答复",
+            "deltas": {
+              "knower": "player",
+              "fact_key": "ferry_dispatcher.售票与登船问询答复",
+              "value": "发船管事表示目前尚不能确认赤鹭九号是否开售、售票地点或票价，已记下问题待核实；当前所示告示仍只有赤鹭九号、午后，未列具体开船时刻与登船口。未获答复不等于确认尚未开售。",
+              "via": "桥头问询桌当面询问发船管事并查看告示"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 119,
+            "id": "ev_75130401c431",
+            "type": "knowledge_set",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "player 得知 bridge.问询桌旧表",
+            "deltas": {
+              "knower": "player",
+              "fact_key": "bridge.问询桌旧表",
+              "value": "问询桌留有写着青桐三号、酉初的旧班表，已与今日新告示分开放置，可用于比对线索，不构成该班次今日有效的确认。",
+              "via": "在问询桌亲眼看见旧表，并听到发船管事说明"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 120,
+            "id": "ev_7965f1941b68",
+            "type": "clock_advanced",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "时间未推进：从客栈沿院子返回桥头并作简短问询，仍在同一晨间时段。",
+            "deltas": {
+              "advance": false,
+              "days": 0,
+              "bands": 0,
+              "reason": "从客栈沿院子返回桥头并作简短问询，仍在同一晨间时段。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 121,
+            "id": "ev_718f7a926cec",
+            "type": "narration_recorded",
+            "day": 1,
+            "scene": "s4",
+            "arc": null,
+            "actors": [],
+            "summary": "narration recorded",
+            "deltas": {
+              "scene": "s4",
+              "text": "你向沈掌柜告辞，穿过院子，回到桥头的问询桌。刚才那位发船管事正在压平被风吹卷的纸角。\n\n你把买票和登船的几个问题一并问了。\n\n管事先指了指告示：「纸上仍是赤鹭九号、午后。具体几刻、哪个登船口，这里还没有写明。」\n\n他抽出一张空笺，记下售票处和票价。\n\n「现在能不能买、到哪儿买、多少钱，我还得核实，眼下不能给你准话。也不能因为这张纸没写，就说一定没开卖。」\n\n他翻纸时，桌角露出一张旧表，上面正是「青桐三号　酉初」。你先前追问的班次，在这里也有纸面记录。\n\n「这张可以留着对照。」他把旧表放在旁边，与新告示分开，「可别混用。青桐三号今天是否照常，仍得另核。」\n\n他把写好的问询笺压在手边。候船处的横绳还拦着，桌前暂时空出一个位置。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 122,
+            "id": "ev_da74a164123f",
+            "type": "scene_summarized",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "scene summary: s3",
+            "deltas": {
+              "scene": "s3",
+              "summary": "林舟在候船处旁等到尚未正午时向发船管事核实新告示，得知目前仅公布赤鹭九号午后发船，具体时刻与登船口尚未明确，旁边候船处也不能视为已确认的登船口。"
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 123,
+            "id": "ev_50ad332e12f6",
+            "type": "directive_consumed",
+            "day": 1,
+            "scene": "s3",
+            "arc": null,
+            "actors": [],
+            "summary": "directive consumed through turn=7",
+            "deltas": {
+              "through_turn": 7
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 124,
+            "id": "ev_823b650d8356",
+            "type": "scene_advanced",
+            "day": 1,
+            "scene": "s5",
+            "arc": null,
+            "actors": [],
+            "summary": "场景推进→s5",
+            "deltas": {
+              "scene_id": "s5",
+              "scene_no": 5,
+              "location": "bridge",
+              "day": 1
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": null,
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          },
+          {
+            "seq": 125,
+            "id": "ev_9f989ae4b690",
+            "type": "player_input_recorded",
+            "day": 1,
+            "scene": "s5",
+            "arc": null,
+            "actors": [],
+            "summary": "player input source recorded",
+            "deltas": {
+              "actor_id": "player",
+              "input": "我向沈掌柜告辞，回到桥头问询桌，找刚才那位发船管事：“我回来问问赤鹭九号的票。现在能买了吗，在哪里买、多少钱？具体开船时刻和登船口有新消息了吗？”",
+              "requested_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "s4",
+                "location": "inn"
+              },
+              "committed_at": {
+                "day": 1,
+                "band": 0,
+                "scene": "s5",
+                "location": "bridge"
+              },
+              "outcome": "committed_response_not_proof_of_success",
+              "entity_refs": [
+                "bridge",
+                "courtyard",
+                "ferry_dispatcher",
+                "keeper"
+              ],
+              "narration_ref": "ev_718f7a926cec",
+              "effect_refs": [
+                "ev_cc32a9f29a9a",
+                "ev_81dc19f1617d",
+                "ev_aa8847c18999",
+                "ev_a4a36e87ad1a",
+                "ev_616997231952",
+                "ev_2569520197a2",
+                "ev_168d0e9e528d",
+                "ev_75130401c431",
+                "ev_7965f1941b68",
+                "ev_da74a164123f",
+                "ev_50ad332e12f6",
+                "ev_823b650d8356"
+              ]
+            },
+            "thread_refs": [],
+            "chunk_ids": [],
+            "secrecy": "private",
+            "roll": null,
+            "turn": 8,
+            "retracted": false
+          }
+        ]
+      }
+    ],
+    "identity_tool_reads": {
+      "method": "Production tool reads on real committed T7 prefix; no new model responses or knowledge writes",
+      "scene": {
+        "protagonist": "player",
+        "present": [
+          "keeper"
+        ],
+        "day": 1,
+        "id": "s4",
+        "location": "inn"
+      },
+      "introduced_id": "ferry_dispatcher",
+      "results": [
+        {
+          "tool": "characters_query",
+          "arguments": {
+            "q": ""
+          },
+          "result": {
+            "query": "",
+            "matches": [
+              {
+                "id": "player",
+                "name": "林舟"
+              },
+              {
+                "id": "keeper",
+                "co_present": true
+              },
+              {
+                "id": "guard",
+                "known": false
+              },
+              {
+                "id": "ferry_attendant_xulan",
+                "班次问询答复": "许岚自称潮汐渡口值守者，在集市路口接待问询；称发船管事正在核对船只，自己尚未取得青桐三号酉初班次的今日确认，并指示沿路口通向河边的路前往渡口。",
+                "替代班次与核实指引": "许岚表示自己目前没有已核准的其他客船名单，建议向发船管事询问今日全部可载客过河班次、开船时辰及上船处；称桥边写有潮汐渡口的问询牌处是管事核船后的答复地点，午前为约定再次交换消息的时间，但不保证届时完成核准。"
+              },
+              {
+                "id": "ferry_dispatcher",
+                "introduced_as": "发船管事",
+                "introduction_evidence": {
+                  "actor_id": "player",
+                  "turn": 6,
+                  "source_event_id": "ev_e378618acae2",
+                  "narration_ref": "ev_c492b7688e75",
+                  "committed_at": {
+                    "day": 1,
+                    "band": 0,
+                    "scene": "inn",
+                    "location": "bridge"
+                  },
+                  "person": {
+                    "id": "ferry_dispatcher",
+                    "name": "发船管事",
+                    "observed_identity": {
+                      "location": "bridge",
+                      "label": "发船管事",
+                      "start": 76,
+                      "end": 80
+                    }
+                  },
+                  "span": {
+                    "text": "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。",
+                    "start": 0,
+                    "end": 310,
+                    "original_length": 310,
+                    "truncated": false
+                  }
+                }
+              }
+            ],
+            "introduction_coverage": {
+              "matched": 1,
+              "returned": 1,
+              "partial": false
+            }
+          }
+        },
+        {
+          "tool": "characters_query",
+          "arguments": {
+            "q": "发船管事"
+          },
+          "result": {
+            "query": "发船管事",
+            "matches": [
+              {
+                "id": "ferry_dispatcher",
+                "introduced_as": "发船管事",
+                "introduction_evidence": {
+                  "actor_id": "player",
+                  "turn": 6,
+                  "source_event_id": "ev_e378618acae2",
+                  "narration_ref": "ev_c492b7688e75",
+                  "committed_at": {
+                    "day": 1,
+                    "band": 0,
+                    "scene": "inn",
+                    "location": "bridge"
+                  },
+                  "person": {
+                    "id": "ferry_dispatcher",
+                    "name": "发船管事",
+                    "observed_identity": {
+                      "location": "bridge",
+                      "label": "发船管事",
+                      "start": 76,
+                      "end": 80
+                    }
+                  },
+                  "span": {
+                    "text": "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。",
+                    "start": 0,
+                    "end": 310,
+                    "original_length": 310,
+                    "truncated": false
+                  }
+                }
+              }
+            ],
+            "introduction_coverage": {
+              "matched": 1,
+              "returned": 1,
+              "partial": false
+            }
+          }
+        },
+        {
+          "tool": "characters_query",
+          "arguments": {
+            "q": "夹着新告示来到桥头问询桌后，自称今日的发船管事；答复时逐行核对纸面内容。"
+          },
+          "result": {
+            "query": "夹着新告示来到桥头问询桌后，自称今日的发船管事；答复时逐行核对纸面内容。",
+            "matches": []
+          }
+        },
+        {
+          "tool": "characters_query",
+          "arguments": {
+            "q": "张贴新告示并回应候船旅客的班次问询。"
+          },
+          "result": {
+            "query": "张贴新告示并回应候船旅客的班次问询。",
+            "matches": []
+          }
+        }
+      ],
+      "identity_only_view": {
+        "attrs": {},
+        "facts": [],
+        "relations": []
+      },
+      "source": {
+        "actor_id": "player",
+        "turn": 6,
+        "source_event_id": "ev_e378618acae2",
+        "narration_ref": "ev_c492b7688e75",
+        "committed_at": {
+          "day": 1,
+          "band": 0,
+          "scene": "inn",
+          "location": "bridge"
+        },
+        "person": {
+          "id": "ferry_dispatcher",
+          "name": "发船管事",
+          "observed_identity": {
+            "location": "bridge",
+            "label": "发船管事",
+            "start": 76,
+            "end": 80
+          }
+        },
+        "span": {
+          "text": "你在候船处旁的石阶上歇脚，问询桌一直在视线里。入口的横绳还拦着，买票的人也没排起队。\n\n等了一阵，尚未到中午，一个夹着告示的人来到桌后。\n\n「我是今日的发船管事。新告示先贴在这里，各位看清再作打算。」\n\n他将纸压在竹片下。你起身走过去，问起今天核准的客船、时辰和登船处。\n\n管事低头逐行核对，指给你看：「眼下公布的是赤鹭九号，午后。」\n\n新纸上确实写着这几个字。你再问具体时刻和登船口，他摊开纸角，下面没有更多安排。\n\n「几刻开、从哪处上，这张告示还没写明，我现在给不了准话。其他客船也不能凭空报给你。旁边那个候船处，先别当成已经确认的登船口。」\n\n他将告示压稳，又把问询桌前挤在一起的包袱挪开，腾出了一小块站人的地方。",
+          "start": 0,
+          "end": 310,
+          "original_length": 310,
+          "truncated": false
+        }
+      }
+    },
+    "observed_result": "Same dispatcher ID remains queryable after leaving. Fresh native continuation actually queries it and receives original introduction; final prose reuses the same person with cast=[] and no duplicate creation.",
+    "residual": "Ticket price/sale point/precise time/boarding point remain unconfirmed; identity continuity improved in this example but information progression remains slow."
+  },
+  "limits": [
+    "One fresh branch, not a universal semantic guarantee or isolated ablation.",
+    "Source marker depends on actual placement and a literal unambiguous label; missing prerequisites stay unknown.",
+    "Attempt A is preserved, never retroactively located or given a marker.",
+    "B seeds exactly match original JSONL; earlier before-revisit seed representation limitations remain in that earlier evidence.",
+    "Four saved direct tool reads are not native provider calls; they create no story knowledge.",
+    "Native Astra, no DS API calls; no broad offline suite."
+  ],
+  "independent_audit": "Verified actor ownership, the actual narration reference and exact 310-character passage, label offsets 76–80, actual move/create events, no earlier NPC-facet knowledge grant, the native character query, the cast=[] continuation, unchanged frozen source hashes, and exact 86-event seed prefixes.",
+  "player_review": [
+    "人物前后一致，返回桥头后仍是刚才那位管事。",
+    "旧表与新告示来源清楚；记下售票处和票价后又说待核实，文字稍显矛盾。",
+    "报信有结果；买票、出发与登船细节仍悬着，也没有明确再问时间或替代选择，玩家不知道如何继续过河。"
+  ]
+}

@@ -68,14 +68,29 @@ def valid_cast_introductions(value, actor_id, narration_ref, entity_refs):
         return False
     ids = []
     for person in persons:
-        if not isinstance(person, dict) or set(person) not in ({'id'}, {'id', 'name'}):
+        if not isinstance(person, dict) or set(person) not in (
+                {'id'}, {'id', 'name'}, {'id', 'name', 'observed_identity'}):
             return False
         pid = person['id']
         if not _identifier(pid) or pid == actor_id or pid not in entity_refs:
             return False
         if 'name' in person and not (_identifier(person['name']) and person['name'] in span['text']):
             return False
+        if 'observed_identity' in person:
+            marker = person['observed_identity']
+            if not (isinstance(marker, dict) and set(marker) == {'location', 'label', 'start', 'end'}
+                    and _identifier(marker['location']) and marker['label'] == person['name']
+                    and type(marker['start']) is int and type(marker['end']) is int
+                    and 0 <= marker['start'] < marker['end'] <= len(span['text'])
+                    and (marker['start'], marker['end']) == source_match_span(span['text'], person['name'])
+                    and span['text'][marker['start']:marker['end']] == marker['label']):
+                return False
         ids.append(pid)
+    for person in persons:
+        if 'observed_identity' in person and sum(
+                other.get('name', '').strip().casefold() == person['name'].strip().casefold()
+                for other in persons) != 1:
+            return False
     return len(ids) == len(set(ids))
 
 
@@ -101,9 +116,58 @@ def valid_player_input(event):
             and (data['narration_ref'] is None or _identifier(data['narration_ref']))):
         return False
     committed = data['committed_at']
+    if any(person.get('observed_identity', {}).get('location', committed['location'])
+           != committed['location']
+           for person in data.get('cast_introductions', {}).get('persons', [])):
+        return False
     return (event.get('summary') == SUMMARY and event.get('actors') == []
             and type(event.get('day')) is int and event['day'] == committed['day']
             and event.get('scene') == committed['scene'])
+
+
+def observed_identity_evidence(world, actor_id):
+    """Read only explicit host markers; old scene associations confer no identity.
+
+    This pure reader must not call POV/source-visibility helpers: it is also used
+    to construct that view. Historical spans never authorize current graph facts.
+    """
+    graph = world.get('systems', {}).get('ontology')
+    actor = graph.get_entity(actor_id) if graph and _identifier(actor_id) else None
+    if actor is None or actor.etype != 'Person':
+        return {}
+    narrative = world.get('systems', {}).get('narrative')
+    ledger = narrative.get('player_inputs') if isinstance(narrative, dict) else None
+    if not isinstance(ledger, list):
+        return {}
+    evidence = {}
+    for row in ledger:
+        if not isinstance(row, dict) or row.get('actor_id') != actor_id:
+            continue
+        if set(row) != DELTA_KEYS | {'cast_introductions', 'source_event_id', 'turn'}:
+            continue
+        committed = row.get('committed_at')
+        if not _context_valid(committed):
+            continue
+        event = {'type': 'player_input_recorded', 'id': row['source_event_id'],
+                 'turn': row['turn'], 'day': committed['day'], 'scene': committed['scene'],
+                 'summary': SUMMARY, 'actors': [],
+                 'deltas': {key: value for key, value in row.items()
+                            if key not in {'source_event_id', 'turn'}}}
+        if not valid_player_input(event):
+            continue
+        snapshot = row['cast_introductions']
+        for person in snapshot['persons']:
+            entity = graph.get_entity(person['id'])
+            if 'observed_identity' not in person or entity is None or entity.etype != 'Person':
+                continue
+            record = {key: copy.deepcopy(row[key]) for key in (
+                'actor_id', 'turn', 'source_event_id', 'narration_ref', 'committed_at')}
+            record.update(person=copy.deepcopy(person), span=copy.deepcopy(snapshot['span']))
+            prior = evidence.get(person['id'])
+            if prior is None or (record['turn'], record['source_event_id']) < (
+                    prior['turn'], prior['source_event_id']):
+                evidence[person['id']] = record
+    return evidence
 
 
 def source_context(world, actor_id):
@@ -191,12 +255,14 @@ def capture_player_input(world, scene, player_input):
             'existing_ids': set(world['systems']['ontology'].entities)}
 
 
-def _cast_introductions(captured, after, commit, active, narration_ref):
+def _cast_introductions(captured, after, world, commit, active, narration_ref, committed):
     """Associate visible foreground creations with exact published scene prose."""
     if after is None or narration_ref is None or not commit.narration:
         return None
     text = commit.narration[:INTRO_MAX_CHARS]
     persons = {}
+    graph = world['systems']['ontology']
+    creations = {}
     for section, event_type in (('cast', 'character_created'), ('entities', 'entity_created')):
         for declaration in commit.sections.get(section) or []:
             if not isinstance(declaration, dict):
@@ -204,19 +270,53 @@ def _cast_introductions(captured, after, commit, active, narration_ref):
             if section == 'cast' and declaration.get('op', 'create') != 'create':
                 continue
             pid = declaration.get('id')
-            entity = after.get_entity(pid) if isinstance(pid, str) else None
+            entity = graph.get_entity(pid) if isinstance(pid, str) else None
             if (entity is None or entity.etype != 'Person'
                     or pid in captured['existing_ids'] or pid == captured['actor_id']):
                 continue
             if not any(event['type'] == event_type and event.get('deltas') == declaration
                        for event in active):
                 continue
-            person = persons.setdefault(pid, {'id': pid})
             name = declaration.get('name')
+            creations.setdefault(pid, []).append(name)
+            if after.get_entity(pid) is None:
+                continue
+            person = persons.setdefault(pid, {'id': pid})
             if _identifier(name) and name in text:
                 person['name'] = name
     if not persons:
         return None
+    # Same-place creation alone is insufficient: a unique creation label must
+    # literally occur in the published, bounded passage. Unknown/off-scene and
+    # duplicate labels keep only their legacy scene association, never a marker.
+    labels = {}
+    for pid, names in creations.items():
+        for name in names:
+            if _identifier(name):
+                labels.setdefault(name.strip().casefold(), set()).add(pid)
+    for view, day in ((captured['visible'], captured['requested_at']['day']),
+                      (after, committed['day'])):
+        for pid in captured['existing_ids']:
+            entity = view.get_entity(pid)
+            if entity is not None and entity.etype == 'Person':
+                for label in visible_source_labels(view, pid, day):
+                    labels.setdefault(label.strip().casefold(), set()).add(pid)
+    for pid, source in observed_identity_evidence(world, captured['actor_id']).items():
+        label = source['person']['observed_identity']['label']
+        labels.setdefault(label.strip().casefold(), set()).add(pid)
+    actor_locations = graph.neighbors(captured['actor_id'], 'located_in', committed['day'])
+    location = committed['location']
+    for pid, person in persons.items():
+        name = person.get('name')
+        match = source_match_span(text, name) if _identifier(name) else None
+        if (match is None or text[match[0]:match[1]] != name or len(creations[pid]) != 1
+                or labels.get(name.strip().casefold()) != {pid}
+                or not _identifier(location) or actor_locations != [location]
+                or graph.neighbors(pid, 'located_in', committed['day']) != [location]):
+            continue
+        start, end = match
+        person['observed_identity'] = {'location': location, 'label': name,
+                                       'start': start, 'end': end}
     return {'narration_ref': narration_ref, 'persons': [persons[pid] for pid in sorted(persons)],
             'span': {'text': text, 'start': 0, 'end': len(text),
                      'original_length': len(commit.narration),
@@ -260,7 +360,7 @@ def player_input_event(captured, world, commit, events, *, turn):
                 'entity_refs': sorted(relevant), 'narration_ref': narration_ref,
                 'effect_refs': [event['id'] for event in active
                                 if event['type'] not in {'narration_recorded', 'player_input_recorded'}]})
-    introductions = _cast_introductions(captured, after, commit, active, narration_ref)
+    introductions = _cast_introductions(captured, after, world, commit, active, narration_ref, committed)
     if introductions is not None:
         event['deltas']['cast_introductions'] = introductions
     if not valid_player_input(event):

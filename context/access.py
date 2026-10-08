@@ -8,7 +8,9 @@ authored hidden entities opt in with attrs.visibility='hidden'.
 import copy
 
 from facts.graph import FactGraph
+from facts.entity import Entity
 from systems.knowledge import knows
+from systems.player_sources import observed_identity_evidence
 
 
 def entity_visible(graph, entity, scene, pov, day):
@@ -34,6 +36,8 @@ def entity_visible(graph, entity, scene, pov, day):
 
 def pov_world(world, scene, *, pov=None, redact_facts=True):
     """Return an independent graph projection; never modify canonical world data."""
+    pov = pov or scene.get('protagonist')
+    observed_ids = observed_identity_evidence(world, pov).keys()
     # The input/introduction ledger is a private host source, not a generic system
     # read model. Remove it even without a usable graph/actor: generic tools can
     # serialize this view, and missing POV must never expose another actor's log.
@@ -45,7 +49,6 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
             if key != 'player_inputs'
         }}}
     graph = world.get('systems', {}).get('ontology')
-    pov = pov or scene.get('protagonist')
     if graph is None or not pov:
         return world
     day = scene.get('day') or world.get('meta', {}).get('day') or 1
@@ -89,5 +92,10 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
     view.relations = [copy.deepcopy(r) for r in graph.relations
                       if r.src in view.entities and r.dst in view.entities
                       and r.attrs.get('visibility') not in {'hidden', 'secret'}]
+    # Remembered identity grants only existence. Add these after normal filtering
+    # so no current attrs, facts, location or other edges ride along with the ID.
+    for pid in observed_ids:
+        if pid not in view.entities:
+            view.entities[pid] = Entity(pid, 'Person')
     view.reindex_facts()
     return {**world, 'systems': {**world['systems'], 'ontology': view}}

@@ -223,9 +223,9 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 
 【输出格式】返回**一个 JSON 对象**；下列每段都显式标了【必填】或【可选】，照此输出（文末另有一个完整范例，照抄它的结构）：
 - 【必填】narration：字符串，本回合面向玩家的叙事散文。
-- 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪；**没人移动 → 给 []**。
+- 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪；**没人移动 → 给 []**。新人物在正文中实际来到/首次出现在某地点，也必须用同一个新 id 写 moves 的 who/to；cast.create 不会自动安放位置。仅被提及或远程交谈的人物，不得默认搬到主角身边。
 - 【必填】places：[{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——本回合**新出现**的地点；**没有 → 给 []**；kind 只能取列出的五个值，别自造（如 ruin/forest）。
-- 【必填】cast：新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）；已有角色的某个属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新人物素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条。没有实际变化就给 []；纯路人可省略。characters_query 显示已在场的 NPC 时复用返回的 id，有属性变化才 evolve，避免重复创建同一人物。
+- 【必填】cast：新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）。主角本回合实际同场见到且正文介绍的新人，name 填正文逐字出现的可见称呼；不知真名时可用职务称呼，不要编造真名。后台或未介绍的人物可省略 name；已有角色的某个属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新人物素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条。没有实际变化就给 []；纯路人可省略。characters_query 显示已在场的 NPC 时复用返回的 id，有属性变化才 evolve，避免重复创建同一人物。
 - 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——本回合确立的**客观事实**（subject/predicate/value 必填）；**没有 → 给 []**；只记确有意义的事实，勿把布景滥造成 fact；**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。secrecy 取 "public"|"restricted"|"secret"：街坊皆知的标 "public"（路人/打听才转述得到）；需特定人才知的秘密/真相/谎言标 "secret"（或 "restricted"）；拿不准就【不写该字段】（默认不进公开层、绝不外泄）。
 - 【必填】clock：[{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。明确结束时刻（如睡到明天清晨）优先用 {"advance":true,"target":{"day":绝对天数,"band":0到3},"reason":"为什么"}，由引擎算经过时间；target 与 days/bands 不能同时出现，晨=0、中午=1、下午=2、夜晚=3。只有持续时长才用 days/bands，避免把“明天”又与跨夜时段重复相加。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}。
 - 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
@@ -263,7 +263,7 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
  "facts":[{"subject":"npc_laozhe","predicate":"火灾真凶","value":"镖局所为","secrecy":"secret"}],
  "knowledge":[{"op":"told","knower":__ACTOR_ID_JSON__,"fact_key":"npc_laozhe.火灾真凶","value":"镖局所为","via":"老者亲口"}],
  "clock":[{"advance":false,"days":0,"bands":0,"reason":"同一段对话，时间未实质推进"}]}
-——若主角移动了：moves 给 [{"who":__ACTOR_ID_JSON__,"to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
+——若主角移动了：moves 给 [{"who":__ACTOR_ID_JSON__,"to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}，并在 moves 中写 {"who":"同一个新人id","to":"其实际登场地点id"}；不能只创建角色而漏记其实际在场位置。
 
 规则：
 1. 只在剧情真正发生该变化时才给对应段落；不要把布景细节（石板、树冠、手掌等）滥造成 entity。
@@ -345,9 +345,9 @@ _SYSTEM_PROMPT_HYBRID = """\
 1. 只记录散文中【真实发生】的世界变化；不要新增散文里没有的人物/地点/事件。
 2. 上文给出了当前世界状态与已存在实体的 canonical id——散文指向已知对象（主角、已知 NPC、已知地点）时必须复用其原有 id，只为散文中首次出现的新对象创建新 id。
 3. 每个段落都是对象数组，下面标了【必填】/【可选】：
-   - 【必填】moves: [{"who":实体id, "to":地点id}]——散文里谁移动了；**没有就给 []**
+   - 【必填】moves: [{"who":实体id, "to":地点id}]——散文里谁移动了；**没有就给 []**。新人物实际来到/首次出现在某地点，同样用新 id 写 who/to；cast.create 不会自动安放位置。仅提及或远程人物不得默认移到主角身边
    - 【必填】places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——散文里**新出现**的地点；**没有就给 []**；kind 只能取列出五值之一
-   - 【必填】cast: 新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）；已有角色属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条，复用原角色 id。散文没有属性变化就给 []；纯路人可省略。
+   - 【必填】cast: 新登场且有戏的 NPC 用 [{"id":...,"op":"create","sketch":...,"goal":...,"name":可选}]（id/sketch/goal 必填）。主角本回合实际同场见到且正文介绍的新人，name 填正文逐字出现的可见称呼；不知真名时可用职务称呼，不要编造真名。后台或未介绍的人物可省略 name；已有角色属性实际改变，用 [{"id":已有角色id,"op":"evolve","predicate":"goal","value":"新的目标"}]，更新素描则 predicate="sketch"、value=新素描。每条 evolve 必须有 id/predicate/value；多个属性分多条，复用原角色 id。散文没有属性变化就给 []；纯路人可省略。
    - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——散文确立的客观事实（subject/predicate/value 必填）；**没有就给 []**。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
    - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。明确结束时刻优先用 {"advance":true,"target":{"day":绝对天数,"band":0到3},"reason":"为什么"}（晨=0、中午=1、下午=2、夜晚=3），target 不能与 days/bands 同时出现；引擎负责从当前时刻计算推进量。只有持续时长才用 days/bands，勿重复计算跨夜进位。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
    - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）

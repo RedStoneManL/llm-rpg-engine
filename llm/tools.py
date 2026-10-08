@@ -480,7 +480,8 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
       - trust:/rank:/group: structural to other systems — never surfaced.
       - Existence/location:
           * Co-present (NPC in scene["present"]) → existence is public (id visible).
-          * Never-met (no knows on any facet, not co-present) → {"id": cid, "known": false}.
+          * A verified own introduction restores identity, not private facets.
+          * Otherwise no known facet and not co-present → {"id": cid, "known": false}.
     """
     def fn(q: str, pov: str | None = None) -> dict:
         args = {}
@@ -495,6 +496,14 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
         day = scene.get("day", 1)
         present: list[str] = scene.get("present", [])
         location = scene.get("location")
+        from systems.player_sources import observed_identity_evidence
+        introductions = observed_identity_evidence(world, pov_id)
+
+        def _knows_any(cid: str) -> bool:
+            return any(fact.subject == pov_id and fact.valid_at(day)
+                       and fact.value is not None
+                       and fact.predicate.startswith(f"knows:{cid}.")
+                       for fact in graph.facts)
 
         def _co_located(cid: str) -> bool:
             # Physically in the scene: in present (tracked) OR co-located at the
@@ -513,11 +522,19 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
         for eid, entity in graph.entities.items():
             if entity.etype != "Person":
                 continue
-            hay = " ".join(str(x) for x in (
-                eid,
-                graph.value_at(eid, "真名", day) or "",
-                graph.value_at(eid, "sketch", day) or "",
-            ))
+            introduction = introductions.get(eid)
+            if introduction is not None and not _co_located(eid) and not _knows_any(eid):
+                # Remembered existence is not permission to search a private
+                # profile, nor to attribute the whole scene passage to this NPC.
+                hay = " ".join((eid, introduction["person"]["observed_identity"]["label"]))
+            else:
+                hay = " ".join(str(x) for x in (
+                    eid,
+                    (introduction["person"]["observed_identity"]["label"]
+                     if introduction is not None else ""),
+                    graph.value_at(eid, "真名", day) or "",
+                    graph.value_at(eid, "sketch", day) or "",
+                ))
             if q in hay:
                 matches.append(eid)
 
@@ -525,6 +542,7 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
             return {"query": q, "matches": []}
 
         results = []
+        introduction_count = introduction_chars = introduction_matches = 0
         for cid in matches:
             # Self-knowledge rule: an agent ALWAYS knows itself.
             # When pov_id == cid, bypass the knows() gate entirely and return the
@@ -553,19 +571,26 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
             # Recognition is broader than knowing a profile/goal: an earlier
             # conversation may establish any character facet. Values below
             # remain independently gated; recognition grants no new facets.
-            knowledge_prefix = f"knows:{cid}."
-            pov_knows_any = any(
-                fact.subject == pov_id and fact.valid_at(day) and fact.value is not None
-                and fact.predicate.startswith(knowledge_prefix)
-                for fact in graph.facts)
+            pov_knows_any = _knows_any(cid)
+            introduction = introductions.get(cid)
 
-            # Never-met: no knows on any facet AND not co-present → known:false
-            if not pov_knows_any and not co_present:
+            # No remembered introduction, facet or co-presence → known:false.
+            if not pov_knows_any and not co_present and introduction is None:
                 results.append({"id": cid, "known": False})
                 continue
 
             # Build the character record with only known facets
             record = {"id": cid}
+            if introduction is not None:
+                introduction_matches += 1
+                record["introduced_as"] = introduction["person"]["observed_identity"]["label"]
+                # Whole published passages retain their source/truncation data;
+                # limit this optional lane without hiding the remembered ID.
+                size = len(json.dumps(introduction, ensure_ascii=False, allow_nan=False))
+                if introduction_count < 4 and introduction_chars + size <= 12000:
+                    record["introduction_evidence"] = introduction
+                    introduction_count += 1
+                    introduction_chars += size
             if co_present:
                 # Co-presence makes existence public — note it. (sketch/goal stay
                 # fog-gated below: you see someone is here, but learn their
@@ -600,7 +625,13 @@ def _characters_query_fn(world: dict, scene: dict) -> Callable:
 
             results.append(record)
 
-        return {"query": q, "matches": results}
+        result = {"query": q, "matches": results}
+        if introduction_matches:
+            result["introduction_coverage"] = {
+                "matched": introduction_matches, "returned": introduction_count,
+                "partial": introduction_count < introduction_matches,
+            }
+        return result
 
     return fn
 
@@ -926,13 +957,18 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     tools.append(Tool(
         name="characters_query",
         description=(
-            "Look up characters by id substring. For each match, returns ONLY the"
+            "Look up characters by id or a stored published introduction label. For each match, returns ONLY the"
             " facets (sketch/goal/etc.) the POV agent knows via knowledge grants."
             " sketch and goal are gated via knows('<id>.sketch', '<id>.goal')."
             " The 'hidden' facet is ALWAYS fog-gated (never surfaced)."
             " A never-met character (no knowledge + not co-present) returns"
             " {\"id\": \"...\", \"known\": false}."
             " Co-present characters have their existence visible, but unknown facets remain gated."
+            " A host-verified earlier introduction may restore identity and bounded"
+            " introduction_evidence even after leaving the scene. introduced_as is"
+            " a previously seen name/role label, not proof of a true name. The quoted"
+            " scene may describe several people; it grants no private profile,"
+            " current whereabouts, speaker attribution or NPC knowledge."
             " Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry."
         ),
         parameters={
@@ -940,7 +976,7 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             "properties": {
                 "q": {
                     "type": "string",
-                    "description": "Substring to search in character id.",
+                    "description": "Substring in character id or a host-recorded published introduction label.",
                 },
                 "pov": {
                     "type": "string",
