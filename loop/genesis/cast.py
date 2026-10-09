@@ -1,6 +1,8 @@
 """loop.genesis.cast — gen_protagonist / gen_factions / gen_npcs."""
 from __future__ import annotations
 
+import json
+
 from engine.oracle import Oracle, scene_seed, load_table  # noqa: F401
 from engine.log import get_logger
 from kernel.events import kernel_event  # noqa: F401
@@ -16,6 +18,9 @@ from loop.genesis.common import _draw_distinct, _empty_str  # noqa: F401
 
 _SYSTEM_GEN_PROTAGONIST = (
     "你是 TRPG 主角背景生成器，只返回严格符合字段规范的 JSON，所有故事文本用中文。"
+    "玩家已确认的设定和非空预设主角字段优先于随机种子；预设字段保持原值，其余字段与之协调。"
+    "随机种子只是可选灵感，不是已发生的剧情、必须成立的身世或强制任务。"
+    "仅采用与玩家设定及世界基调相容的部分；冲突的种子可以舍弃或改写，不必全部采用。"
 )
 
 
@@ -40,9 +45,9 @@ def _roll_protagonist_seeds(oracle, flavor: str = "classic") -> dict:
 
 
 def _protagonist_seed_block(seeds: dict) -> str:
-    """Render rolled protagonist seeds as a prompt direction (融进世界设定, 勿照抄)."""
+    """Render unchanged rolls as optional, lower-priority inspiration."""
     return (
-        "【主角种子·创作方向(据此发挥，要融进上面的世界设定，勿照抄字面)】\n"
+        "【主角随机种子·低优先级可选灵感(仅采用相容部分；冲突时舍弃，不是既定事实)】\n"
         f"  出身原型：{seeds.get('origin', '')}\n"
         f"  卷入此局的明面缘由：{seeds.get('hook', '')}\n"
         f"  一个区别于他人的具体特征：{seeds.get('quirk', '')}\n\n"
@@ -60,7 +65,8 @@ def gen_protagonist(
 ) -> tuple[list, dict]:
     """Author a protagonist that fits the generated world frame.
 
-    Engine context: world frame (tone/conflict/world_name) + local_map (first venue).
+    Engine context: resolved player premise, explicit protagonist fields, world
+    frame (tone/conflict/world_name) + local_map (first venue).
     LLM writes: name, origin (身世/background 1-3 sentences), goal (driving goal),
                 objective (concrete starting quest — "what I'm doing right now").
 
@@ -104,7 +110,19 @@ def gen_protagonist(
     ) if venues else "（无场所）"
 
     seeds = _roll_protagonist_seeds(oracle, flavor)
+    # frame.genre is the premise already resolved through pitch, import,
+    # blueprint and session-zero precedence. Do not reintroduce an overridden
+    # raw pitch or treat a rolled seed as a higher-priority player instruction.
+    requirements = {
+        "resolved_player_premise": (frame["genre"] if not _empty_str(frame.get("genre")) else ""),
+        "provided_protagonist": {field: provided[field]
+            for field in ("name", "origin", "goal", "objective")
+            if not _empty_str(provided.get(field))},
+    }
     user = (
+        "【玩家已确认的设定与主角预设·优先约束】\n"
+        + json.dumps(requirements, ensure_ascii=False) + "\n"
+        "缺失部分可以创作；不得用世界生成结果或随机种子覆盖这里已明确的人物身份、体验方向、目标与范围。\n\n"
         f"世界名称：{frame.get('world_name', '未名之地')}\n"
         f"世界基调：{frame.get('tone', '冒险')}\n"
         f"核心冲突：{frame.get('central_conflict', '未知冲突')}\n"
@@ -125,10 +143,10 @@ def gen_protagonist(
         f"用地点的名字（如「{first_venue_name}」「{town_name}」）指代地点，"
         f"绝不要在面向玩家的文本里出现 town_0 / venue_0 这类内部 id\n"
         f"示例（仅示意 JSON 结构与字段，切勿照搬其内容或桥段）："
-        f"{{\"name\": \"<符合世界与上面种子的姓名>\","
-        f" \"origin\": \"<由出身原型展开的 1-3 句身世，融入世界设定>\","
+        f"{{\"name\": \"<符合玩家设定与世界风格的姓名>\","
+        f" \"origin\": \"<与玩家设定、主角预设及世界相容的 1-3 句身世>\","
         f" \"goal\": \"<驱动主角行动的核心目标>\","
-        f" \"objective\": \"<由卷入缘由展开、用地点名字指代的当前具体行动>\"}}"
+        f" \"objective\": \"<符合玩家要求与目标范围、用地点名字指代的当前具体行动>\"}}"
     )
 
     obj, errors = complete_structured(

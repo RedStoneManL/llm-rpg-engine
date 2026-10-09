@@ -48,6 +48,17 @@ A spec is assembled from, in increasing precedence:
 
 Then the model fills everything still absent at bootstrap.
 
+The protagonist generator receives the resolved `world_premise.genre` text
+through the frame, plus every non-empty supplied protagonist field. It does not
+reintroduce an older raw pitch after a higher-priority source replaced it.
+Supplied fields remain enforced by the existing host overlay; generated fields
+are instructed to fit those fields and the resolved player premise. Random
+protagonist archetypes/hooks remain unchanged deterministic draws, but are
+optional lower-priority inspiration that may be omitted when incompatible.
+This improves prompt propagation and model guidance; it is not a deterministic
+validator for arbitrary natural-language preferences. The offline fallback and
+fully-specified-character fast path are unchanged.
+
 **Merge rules:**
 - **Scalars** (`world_premise.*`, `protagonist.*`, `local_map.town.*`, `opening`):
   a later source's non-empty value wins.
