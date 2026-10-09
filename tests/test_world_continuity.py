@@ -1,5 +1,6 @@
 """Regression cases for genesis, replayable variety and long-scene memory."""
 import shutil
+import pickle
 import pytest
 
 from app.engine import build_engine
@@ -32,13 +33,17 @@ def test_failed_real_genesis_leaves_original_save_intact(tmp_path, reroll):
         e.world = project(e.registry, e.store.iter_events())
     before = list(e.store.iter_events(include_retracted=True))
     revision = e.store.revision
-    with pytest.raises(GenesisError):
+    world_before = pickle.dumps(e.world)
+    with pytest.raises(GenesisError) as caught:
         if reroll:
             reroll_all(e, {'_state':{'pitch':'冒险','attempts':{}}})
         else:
             bootstrap_world(e, '冒险')
     assert list(e.store.iter_events(include_retracted=True)) == before
     assert e.store.revision == revision
+    assert pickle.dumps(e.world) == world_before
+    assert isinstance(caught.value.__cause__, ConnectionError)
+    assert str(caught.value.__cause__) == 'transport failed'
     e.store.close()
 
 

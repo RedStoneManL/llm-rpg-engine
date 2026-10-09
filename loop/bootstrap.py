@@ -50,7 +50,16 @@ def _atomic_genesis(function):
         if engine.cascade_provider is not None:
             staged.cascade_provider = WatchedProvider(engine.cascade_provider)
         with collect_failures() as failures:
-            result = function(staged, *args, **kwargs)
+            try:
+                result = function(staged, *args, **kwargs)
+            except Exception as exc:
+                escaped = [f for f in failures if f.get('exception') is exc]
+                if offline or not escaped:
+                    raise
+                stages = ', '.join(sorted({f['stage'] for f in escaped}))
+                raise GenesisError(
+                    '世界生成未完成，原存档保持不变；可重试。失败阶段：' + stages
+                ) from exc
         if failures and not offline:
             stages = ', '.join(sorted({f['stage'] for f in failures}))
             raise GenesisError('世界生成未完成，原存档保持不变；可重试。失败阶段：' + stages)

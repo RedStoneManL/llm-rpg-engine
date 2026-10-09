@@ -5,10 +5,15 @@ from contextvars import ContextVar
 _failures = ContextVar('rpg_generation_failures', default=None)
 
 
-def record_failure(label, errors):
+def record_failure(label, errors, *, exception=None):
     current = _failures.get()
     if current is not None:
-        current.append({'stage':label, 'errors':list(errors)})
+        failure = {'stage':label, 'errors':list(errors)}
+        if exception is not None:
+            # Private, context-local identity: an earlier recovered provider
+            # failure must not misclassify an unrelated host exception later.
+            failure['exception'] = exception
+        current.append(failure)
 
 
 @contextmanager
@@ -33,6 +38,6 @@ class WatchedProvider:
             try:
                 return value(*args, **kwargs)
             except Exception as exc:
-                record_failure(name, [type(exc).__name__])
+                record_failure(name, [type(exc).__name__], exception=exc)
                 raise
         return invoke
