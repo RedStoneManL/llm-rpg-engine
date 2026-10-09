@@ -12,10 +12,10 @@ import json
 import re
 
 from llm.provider import json_call
-from loop.repair_outcome import build_repair_outcome
+from loop.repair_outcome import build_repair_outcome, CUSTODY_INTERVAL_POLICY
 
 VERSION = 'semantic_commit_v12'
-COMPARATOR_POLICY = 'canonical-checkpoints-items-v14-certified-point-custody'
+COMPARATOR_POLICY = 'canonical-checkpoints-items-v17-narrative-bracketed-custody'
 _MAX_ROWS = 64
 _MAX_PROSE = 32768
 _MAX_RESPONSE = 262144
@@ -47,6 +47,7 @@ _LIMITS = [
     'Player input expresses intent and is not evidence of success.',
     'Incidental NPC prop relevance is probabilistic; host limits prevent specified typed/task/resource cases from being exempted but cannot prove natural-language irrelevance.',
     'Item custody is physical, not legal ownership or permission. Negative-transfer absence is not proven. Whole-primary-turn custody needs a positive host certificate; historical intervals are not covered.',
+    'Host custody intervals certify continuous visible possession only within this primary turn, including checks after events omitted from public transitions. Missing or interrupted certificates cannot establish continuity, ownership, or permission.',
     'Materialization source entailment is a probabilistic semantic attestation of an exact actor-visible historical fact, not proof of legal ownership, permission, or action authority. Preview custody cannot attest its own origin.',
     'Narration-context dependencies are model interpretations, not proof of semantic independence. Reused interpretations receive fresh deterministic verdicts against the current packet.',
     'Static untracked scene continuity receives a fresh model source-entailment attestation, distinct from canonical physical support. Prior fact provenance is authenticated; classification, identity and natural-language continuity remain probabilistic.',
@@ -143,10 +144,13 @@ Additional fields depend on kind:
  it is checked against host continuous_custody positive certificates, not endpoint
  equality. Do not extend it to old history, 'always since borrowing', or an unspecified
  lifetime. For current/completed custody at an unspecified point WITHIN this primary
- turn, preserve moment=unknown rather than invent a checkpoint. The host can support
- that point only using a positive whole-primary-turn certificate; equal endpoints alone
- do not suffice. Missing identity/holder or uncertain classification is not resolved by
- that certificate. Preserve uncertain mode if the statement's physical meaning or
+ turn, preserve moment=unknown rather than invent a checkpoint. The host may support
+ that point with a positive whole-primary-turn certificate, or for completed positive
+ custody with an every-event certificate covering the entire interval between exact,
+ non-overlapping narrated receipt and release of that item. Extract both actual handoffs
+ separately; do not invent timing, boundaries, or a favorable checkpoint. Equal endpoints
+ alone do not suffice. Missing identity/holder or uncertain classification is not resolved
+ by certificates. Preserve uncertain mode if the statement's physical meaning or
  within-turn scope cannot be confidently classified.
  transfer: refs={item,from,to}; no extra fields. A positive completed physical handoff
  or change of custody, not creation, initial placement, display, an offer, a future
@@ -329,7 +333,8 @@ def _safe_state(state, types):
         'actor_location': state['actor_location'],
         'positions': _bounded([dict(row) for row in state['positions']
                                if types.get(row['who']) == 'Person'], 'positions'),
-        'held_by': _bounded([dict(row) for row in state.get('held_by', [])
+        'held_by': _bounded([{'item': row['item'], 'holder': row['holder']}
+                             for row in state.get('held_by', [])
                              if types.get(row['item']) == 'Object'
                              and types.get(row['holder']) in {'Person', 'Place'}], 'item custody'),
         'passages': _bounded([{'a': row['a'], 'b': row['b']}
@@ -411,6 +416,29 @@ def _scene_sources(physical):
     return result
 
 
+def _custody_intervals(checkpoints, types):
+    """Export only positive ranges over PUBLIC positions, never private runs.
+
+    Each run was intersected with visible truth after every projected event,
+    including events omitted from the public transition stream. The certificate
+    reveals no hidden holder, hidden event count, or reason for a missing range.
+    Its rows and byte size remain bounded by the bounded snapshot/request sizes.
+    """
+    runs = {}
+    for position, state in checkpoints:
+        for row in state.get('held_by', []):
+            item, holder, run = row['item'], row['holder'], row.get('_custody_run')
+            if (types.get(item) != 'Object' or types.get(holder) not in {'Person', 'Place'}
+                    or type(run) is not int or run < 0):
+                continue
+            key = (item, holder, run)
+            if key not in runs:
+                runs[key] = {'item': item, 'holder': holder, 'first': position, 'last': position}
+            else:
+                runs[key]['last'] = position
+    return sorted(runs.values(), key=lambda row: (row['item'], row['holder'], row['first']))
+
+
 def build_semantic_packet(registry, world, scene, commit, player_input):
     """Build a bounded JSON-safe whitelist for one already-validated candidate.
 
@@ -422,7 +450,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
     try:
         origins = _materialization_origins(world, commit, scene['protagonist'])
         physical = build_repair_outcome(registry, world, scene, commit, player_input,
-                                        include_scene_sources=True)
+                                        include_scene_sources=True, include_custody_runs=True)
         entities = _bounded([copy.deepcopy(row) for row in physical['entities']
                              if row['type'] in {'Person', 'Place', 'Object'}], 'visible entities')
         candidates = _creation_refs(registry, world, commit, commit.narration)
@@ -436,6 +464,7 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             opening_people = opening_materials['people']
         types = {row['id']: row['type'] for row in entities + candidates}
         transitions = []
+        custody_checkpoints = [(0, physical['before'])]
         for original in physical['transitions']:
             kind = original['kind']
             if kind == 'move' and types.get(original.get('who')) != 'Person':
@@ -456,7 +485,10 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             for key in ('before_state', 'after_state'):
                 if key in original:
                     row[key] = _safe_state(original[key], types)
+                    custody_checkpoints.append((2 * row['index'] +
+                        (1 if key == 'before_state' else 2), original[key]))
             transitions.append(row)
+        custody_checkpoints.append((2 * len(transitions) + 1, physical['after']))
         packet = {
             'version': VERSION,
             'scope': physical['scope'],
@@ -478,6 +510,8 @@ def build_semantic_packet(registry, world, scene, commit, player_input):
             'continuous_custody': _bounded([dict(row) for row in physical['continuous_custody']
                 if types.get(row['item']) == 'Object'
                 and types.get(row['holder']) in {'Person', 'Place'}], 'continuous custody'),
+            'custody_interval_policy': CUSTODY_INTERVAL_POLICY,
+            'custody_intervals': _custody_intervals(custody_checkpoints, types),
             'narration_spans': spans,
             'limits': list(_LIMITS),
         }
@@ -1093,6 +1127,143 @@ def _certified_custody_verdict(packet, claim, minimum_position):
     return 'contradiction', 'The assertion conflicts with the positive whole-turn custody certificate.', None
 
 
+def _exact_transfer_index(packet, claim):
+    """Bind a complete handoff without choosing among repeated occurrences."""
+    if (claim['kind'] != 'transfer' or claim['mode'] != 'completed'
+            or claim['scope'] != 'canonical_transition'
+            or any(value is None for value in claim['refs'].values())):
+        return None
+    matching = [row['index'] for row in packet['transitions']
+                if row['kind'] == 'item_transfer' and row.get('from') != row.get('to')
+                and all(row.get(key) == value for key, value in claim['refs'].items())]
+    explicit = claim['transition_index']
+    if explicit is not None:
+        return explicit if explicit in matching else None
+    if claim['moment'] == 'unknown' and len(matching) == 1:
+        return matching[0]
+    return None
+
+
+def _coclaimed_transfer_precondition(packet, claim, claims, minimum_position):
+    """Identify a positive custody qualifier, never relax its state verdict.
+
+    A compound quote may list both tools' source custody before either handoff.
+    Only its exactly bound outgoing handoffs define this narrow interval. The
+    predicate must hold at EVERY event from the earliest such handoff's
+    before side (or the incoming cursor, if later) through the selected anchor.
+    Starting at that boundary admits initial materialization before the first
+    handoff, but never fills a missing snapshot or skips an intervening holder.
+    The caller first checks the original anchor against the unchanged cursor;
+    every transfer is still independently evaluated in ordinary narrative order.
+    """
+    if (packet.get('custody_interval_policy') != CUSTODY_INTERVAL_POLICY
+            or claim['kind'] != 'possession' or claim['mode'] != 'completed'
+            or claim['scope'] != 'canonical_transition' or not claim['present']
+            or claim['moment'] != 'transition_before'):
+        return None
+    index, refs = claim['transition_index'], claim['refs']
+    transition = packet['transitions'][index]
+    if (transition['kind'] != 'item_transfer'
+            or refs['item'] is None or refs['holder'] is None
+            or transition.get('item') != refs['item']
+            or transition.get('from') != refs['holder']):
+        return None
+    handoffs = []
+    for other in claims:
+        if any(other[key] != claim[key] for key in ('span_id', 'quote', 'occurrence')):
+            continue
+        matched = _exact_transfer_index(packet, other)
+        if matched is not None:
+            handoffs.append((other['id'], matched))
+    companion = next((cid for cid, matched in handoffs if matched == index), None)
+    if companion is None:
+        return None
+    anchor = _moment_position(packet, claim)
+    first = max(minimum_position, 2 * min(matched for _, matched in handoffs) + 1)
+    certificates = packet.get('custody_intervals')
+    if not isinstance(certificates, list) or not any(
+            isinstance(row, dict) and row.get('item') == refs['item']
+            and row.get('holder') == refs['holder']
+            and type(row.get('first')) is int and type(row.get('last')) is int
+            and 0 <= row['first'] <= first <= anchor <= row['last']
+                <= 2 * len(packet['transitions']) + 1 for row in certificates):
+        return None
+    supported, checked, _ = _state_interval_supported(packet, claim, first, anchor)
+    if not supported:
+        return None
+    return {'transfer_claim_id': companion, 'transition_index': index,
+            'anchor_position': anchor, 'continuous_from_position': first,
+            'checked_checkpoints': checked}
+
+
+
+def _bracketed_custody_interval(packet, claim, claims, offsets, assessed, minimum_position):
+    """Certify an unknown use point between exact narrated receipt and release.
+
+    The entire narrative-bracketed interval must have positive EVERY-EVENT
+    custody support. No favorable snapshot is selected, no unknown timing is
+    invented, and neither boundary action is exempted from ordinary chronology.
+    Overlapping quotes, unbound/repeated handoffs, and a cursor outside the
+    interval cannot establish these bounds.
+    """
+    if (packet.get('custody_interval_policy') != CUSTODY_INTERVAL_POLICY
+            or claim['kind'] != 'possession' or claim['mode'] != 'completed'
+            or claim['scope'] != 'canonical_transition' or not claim['present']
+            or claim['moment'] != 'unknown'
+            or any(value is None for value in claim['refs'].values())):
+        return None
+    refs = claim['refs']
+    start, end = offsets[claim['id']], offsets[claim['id']] + len(claim['quote'])
+    preceding, following = [], []
+    for other in claims:
+        if (other['kind'] != 'transfer' or other['mode'] != 'completed'
+                or other['scope'] != 'canonical_transition'
+                or other['refs']['item'] != refs['item']):
+            continue
+        left, right = offsets[other['id']], offsets[other['id']] + len(other['quote'])
+        if right <= start:
+            preceding.append((right, other))
+        elif left >= end:
+            following.append((left, other))
+        else:
+            return None
+    if not preceding or not following:
+        return None
+    before_edge = max(position for position, _ in preceding)
+    after_edge = min(position for position, _ in following)
+    before = [row for position, row in preceding if position == before_edge]
+    after = [row for position, row in following if position == after_edge]
+    if len(before) != 1 or len(after) != 1:
+        return None
+    before, after = before[0], after[0]
+    if before['refs']['to'] != refs['holder'] or after['refs']['from'] != refs['holder']:
+        return None
+    incoming, outgoing = _exact_transfer_index(packet, before), _exact_transfer_index(packet, after)
+    if incoming is None or outgoing is None:
+        return None
+    first, last = 2 * incoming + 2, 2 * outgoing + 1
+    if not first <= minimum_position <= last:
+        return None
+    previous = next((row for row in assessed if row['id'] == before['id']), None)
+    if (previous is None or previous['verdict'] != 'supported'
+            or previous['matched_narrative_position'] != first):
+        return None
+    certificates = packet.get('custody_intervals')
+    if not isinstance(certificates, list) or not any(
+            isinstance(row, dict) and row.get('item') == refs['item']
+            and row.get('holder') == refs['holder']
+            and type(row.get('first')) is int and type(row.get('last')) is int
+            and 0 <= row['first'] <= first <= last <= row['last']
+                <= 2 * len(packet['transitions']) + 1 for row in certificates):
+        return None
+    supported, checked, _ = _state_interval_supported(packet, claim, first, last)
+    if not supported:
+        return None
+    return {'receipt_claim_id': before['id'], 'release_claim_id': after['id'],
+            'first_position': first, 'last_position': last,
+            'checked_checkpoints': checked}
+
+
 def _verdict(packet, claim, minimum_position, source_assessment=None):
     """Return verdict/reason/consumed moment using only the host packet.
 
@@ -1278,9 +1449,24 @@ def evaluate_extraction(packet, raw):
         selected_position = _moment_position(packet, claim)
         verdict, reason, position = _verdict(packet, claim, minimum_position,
             source_support.get((claim['id'], claim['span_id'])))
+        bracketed = (_bracketed_custody_interval(
+            packet, claim, data['claims'], offsets, assessed, minimum_position)
+            if verdict == 'unsupported' else None)
+        if bracketed is not None:
+            verdict, position = 'supported', minimum_position
+            reason = ('Positive every-event custody evidence covers the entire interval '
+                      'between the exact narrated receipt and release. The unknown use '
+                      'point stays unspecified and does not advance the narrative cursor.')
+        precondition = (_coclaimed_transfer_precondition(
+            packet, claim, data['claims'], minimum_position)
+            if verdict == 'supported' else None)
+        if precondition is not None:
+            reason += (' Its exact co-claimed handoff precondition is continuously '
+                       'supported across the bound interval and does not advance the narrative cursor.')
         matched = None
         if position is not None:
-            minimum_position = position  # Multiple claims can share one moment.
+            if precondition is None:
+                minimum_position = position  # Multiple claims can share one moment.
             matched = ((position - 2) // 2 if claim['kind'] in {'movement', 'passage_change', 'transfer'}
                        else claim['transition_index'])
         effective_scope, scope_reason = _effective_scope(packet, claim)
@@ -1289,6 +1475,9 @@ def evaluate_extraction(packet, raw):
                   'matched_narrative_position': position,
                   'selected_narrative_position': selected_position,
                   'narrative_cursor_before': cursor_before,
+                  'narrative_cursor_after': minimum_position,
+                  'co_claimed_transfer_precondition': precondition,
+                  'bracketed_custody_interval': bracketed,
                   'point_state_carried_forward': (verdict == 'supported'
                       and claim['kind'] in {'location', 'co_presence', 'passage'}
                       and selected_position is not None

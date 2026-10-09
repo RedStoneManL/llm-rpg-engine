@@ -18,6 +18,29 @@ from systems.time import normalize_clock
 _MAX_ROWS = 64
 _NAME_FIELDS = ('name', '真名')
 _PRIVATE = {'hidden', 'secret', 'undiscovered'}
+CUSTODY_INTERVAL_POLICY = 'every-event-visible-custody-intervals-v1'
+
+
+def _mark_custody_runs(state, active, counters):
+    """Privately mark positive visible custody after EVERY projected event.
+
+    Disappearance terminates a run even when no public transition is emitted.
+    Counters are per item, so interleaving independent item chains is harmless.
+    These private marks are never part of an ordinary narration outcome.
+    """
+    current = {}
+    for row in state['held_by']:
+        item, holder = row['item'], row['holder']
+        prior = active.get(item)
+        if prior is not None and prior[0] == holder:
+            run = prior[1]
+        else:
+            run = counters.get(item, -1) + 1
+            counters[item] = run
+        current[item] = (holder, run)
+        row['_custody_run'] = run
+    active.clear()
+    active.update(current)
 
 
 def _freeze(value):
@@ -268,7 +291,8 @@ def _physical_transition(event, before, after):
     return None
 
 
-def build_repair_outcome(registry, world, scene, commit, player_input, *, include_scene_sources=False):
+def build_repair_outcome(registry, world, scene, commit, player_input, *, include_scene_sources=False,
+                         include_custody_runs=False):
     """Build a JSON-safe packet after validation and before any store write.
 
     Unknown/redacted relations stay unknown. Background hooks, resource values,
@@ -279,6 +303,9 @@ def build_repair_outcome(registry, world, scene, commit, player_input, *, includ
     if not isinstance(actor, str) or not actor.strip() or not isinstance(player_input, str):
         raise ValueError('Repair outcome requires the bound actor and exact player input')
     before, before_view = _state(world, actor)
+    custody_active, custody_counters = {}, {}
+    if include_custody_runs:
+        _mark_custody_runs(before, custody_active, custody_counters)
     from systems.player_sources import published_identity_bindings
     labels = _names(before_view, before, actor, published_identity_bindings(world, actor))
     # Positive evidence only: intersect after EVERY event, including changes
@@ -315,10 +342,14 @@ def build_repair_outcome(registry, world, scene, commit, player_input, *, includ
                         (event['type'] != 'relation_added' or
                          event.get('deltas', {}).get('rel') == 'located_in'))
             prior, prior_view = _state(preview, actor) if physical else (None, None)
+            if physical and include_custody_runs:
+                _mark_custody_runs(prior, custody_active, custody_counters)
             prior_bindings = published_identity_bindings(preview, actor) if physical else None
             apply_event_metadata(preview, event)
             event_owner.apply(preview, event)
             current, current_view = _state(preview, actor)
+            if include_custody_runs:
+                _mark_custody_runs(current, custody_active, custody_counters)
             continuous_custody.intersection_update(
                 (row['item'], row['holder']) for row in current['held_by'])
             if physical:
@@ -338,6 +369,8 @@ def build_repair_outcome(registry, world, scene, commit, player_input, *, includ
                         row[0] for row in created}:
                     created.append((item, event['day']))
     after, after_view = _state(preview, actor)
+    if include_custody_runs:
+        _mark_custody_runs(after, custody_active, custody_counters)
     continuous_custody.intersection_update(
         (row['item'], row['holder']) for row in after['held_by'])
     labels.update(_names(after_view, after, actor, published_identity_bindings(preview, actor)))
