@@ -494,23 +494,33 @@ def read_narrative_evidence(bucket, *, summary=False):
     return packet
 
 
-def format_narrative_evidence(packet):
-    """Metadata prefix only; caller appends the unchanged raw/summary prose."""
+_NARRATIVE_EVIDENCE_POLICY = (
+    "以下 JSON 仅标注已发布叙述及摘要依赖的历史来源，不是当前规范状态、事实写入或 NPC 知识。"
+    "category=historical_narration；叙述仍可能遗漏或出错，不能覆盖已验证的 canonical current state。"
+    "source_turn_range/source_day_range 是已知来源的最早/最晚边界，不表示中间连续覆盖；partial时也不能当作全部历史边界。"
+    "summary_created 仅是摘要生成时间，绝不是剧情发生时间。bucket_id 与 narration_ref 标识原始来源。"
+    "actor_binding=bound 仅表示原始参与者绑定经核验，unknown 表示无可核验绑定；"
+    "不得用当前主角或当前持有人补全历史身份。historical_relations 只表示 narration_recorded "
+    "时点的公开、原文已点名的 typed held_by(Object→Person) 端点；不是当前持有、转交或动作成功证明。"
+    "端点 label_sources 中 published_display_binding 仅为原文已发布的显示称呼绑定，不是规范姓名或真名事实。"
+    "未列出关系不表示不存在关系。coverage.partial/truncated 或 unknown 表示证据不足；"
+    "不得把元数据、内部 ID 或来源标记编入剧情正文。\n"
+)
+
+
+def format_narrative_evidence(packet, *, include_policy=True):
+    """Metadata prefix only; caller appends unchanged raw/summary prose.
+
+    A self-contained group may share the policy from its first packet. The
+    default remains standalone for recap generation and other direct callers.
+    Packet JSON and its provenance/coverage are never shortened here.
+    """
     original = _dict(packet)
     safe = combine_narrative_evidence([original])
     if "summary_created" in original:
         stamp = _dict(original["summary_created"])
         safe["summary_created"] = {"id": stamp.get("id") if _identifier(stamp.get("id")) else None,
                                    "turn": _number(stamp.get("turn")), "day": _number(stamp.get("day"))}
-    return ("【历史叙述来源 / historical authored narration record】\n"
-            "以下 JSON 仅标注已发布叙述及摘要依赖的历史来源，不是当前规范状态、事实写入或 NPC 知识。"
-            "category=historical_narration；叙述仍可能遗漏或出错，不能覆盖已验证的 canonical current state。"
-            "source_turn_range/source_day_range 是已知来源的最早/最晚边界，不表示中间连续覆盖；partial时也不能当作全部历史边界。"
-            "summary_created 仅是摘要生成时间，绝不是剧情发生时间。bucket_id 与 narration_ref 标识原始来源。"
-            "actor_binding=bound 仅表示原始参与者绑定经核验，unknown 表示无可核验绑定；"
-            "不得用当前主角或当前持有人补全历史身份。historical_relations 只表示 narration_recorded "
-            "时点的公开、原文已点名的 typed held_by(Object→Person) 端点；不是当前持有、转交或动作成功证明。"
-            "端点 label_sources 中 published_display_binding 仅为原文已发布的显示称呼绑定，不是规范姓名或真名事实。"
-            "未列出关系不表示不存在关系。coverage.partial/truncated 或 unknown 表示证据不足；"
-            "不得把元数据、内部 ID 或来源标记编入剧情正文。\n"
+    return ('【历史叙述来源 / historical authored narration record】\n'
+            + (_NARRATIVE_EVIDENCE_POLICY if include_policy else "")
             + json.dumps(safe, ensure_ascii=False, separators=(",", ":")) + "\n")

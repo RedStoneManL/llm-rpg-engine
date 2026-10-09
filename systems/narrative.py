@@ -203,10 +203,13 @@ class NarrativeSystem(ContextSystem):
         from context.narrative_evidence import read_narrative_evidence, format_narrative_evidence
         recent = buckets[-RECAP_RAW_SCENES:]
         lines = ["【最近剧情·原文】（延续性，每回合必看）"]
+        policy_rendered = False
         for bucket in recent:
             raw_texts = bucket.get("raw", [])
             if raw_texts:
-                lines.append(format_narrative_evidence(read_narrative_evidence(bucket)))
+                lines.append(format_narrative_evidence(read_narrative_evidence(bucket),
+                                                       include_policy=not policy_rendered))
+                policy_rendered = True
                 lines.append(f"〔{bucket['scene']}〕" + "".join(raw_texts))
 
         if len(lines) == 1:

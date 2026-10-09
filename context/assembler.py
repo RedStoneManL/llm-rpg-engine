@@ -255,8 +255,11 @@ def assemble_context(
                 'summary_evidence': ns.get('super_summary_evidence'),
                 'summary_created': ns.get('super_summary_created')}, summary=True)))
             recap_summary_lines.append(f"«总览» {super_summary}")
+        policy_rendered = bool(super_summary)
         for b in aged_with_summary:
-            recap_summary_lines.append(format_narrative_evidence(read_narrative_evidence(b, summary=True)))
+            recap_summary_lines.append(format_narrative_evidence(
+                read_narrative_evidence(b, summary=True), include_policy=not policy_rendered))
+            policy_rendered = True
             recap_summary_lines.append(f"«{b['scene']}» {b['summary']}")
 
     # Build final output: recap stable block + base + scene viewpoint block + volatile recall block
