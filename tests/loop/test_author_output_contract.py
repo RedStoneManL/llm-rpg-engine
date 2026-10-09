@@ -9,7 +9,7 @@ from engine import settings
 from kernel.events import kernel_event, open_store
 from kernel.projection import project
 from kernel.registry import Registry
-from llm.provider import FakeLLMProvider
+from tests.scripted_provider import StrictScriptedProvider
 from loop.strategy import AuthorOutputError, AuthorStrategy
 from loop.turn import REQUIRED_SECTIONS, TurnRejected, produce_turn, run_turn
 from systems.character import CharacterSystem
@@ -30,19 +30,101 @@ def _handover(source="hero"):
     return [dict(op="transfer", item="umbrella", **{"from": source}, to="companion")]
 
 
-class RecordingProvider(FakeLLMProvider):
-    def __init__(self, responses):
-        super().__init__(responses=[json.dumps(raw, ensure_ascii=False)
-                                    if isinstance(raw, dict) else raw for raw in responses])
-        self.requests = []
+class RecordingProvider(StrictScriptedProvider):
+    """Finite phase scripts; ``requests`` retains author-only budget accounting."""
+    instances = []
 
-    def complete_messages(self, messages, **kwargs):
-        self.requests.append(copy.deepcopy(messages))
-        return super().complete_messages(messages, **kwargs)
+    def __init__(self, responses, *, audits=(), reconciliations=()):
+        from loop.strategy import _system_prompt
+        from loop.semantic_commit import extraction_system_prompt
+        self._responses = [json.dumps(raw, ensure_ascii=False)
+                           if isinstance(raw, dict) else raw for raw in responses]
 
+        def payload(request):
+            messages = request['messages']
+            if len(messages) != 2 or messages[-1].get('role') != 'user':
+                return None
+            try:
+                value = json.loads(messages[-1]['content'])
+            except (TypeError, ValueError):
+                return None
+            return value if isinstance(value, dict) else None
+
+        def extraction(request):
+            data = payload(request)
+            return data is not None and set(data) == {
+                'candidate_prose', 'player_input', 'pov_packet'} and request['messages'][0] == {
+                    'role': 'system', 'content': extraction_system_prompt(data['pov_packet'])}
+
+        def reconciliation(request):
+            data = payload(request)
+            return (data is not None and data.get('scope') == 'primary_turn_before_background_hooks'
+                    and {'before', 'after', 'transitions', 'actor_id'} <= set(data)
+                    and request['messages'][0]['content'].startswith(
+                        '你负责根据已校验的本回合可见结果写最终正文，不负责决定或修改事件。'))
+
+        super().__init__(routes={
+            'author': lambda request: request['messages'][0].get('role') == 'system'
+                and request['messages'][0].get('content') in {
+                    _system_prompt(actor_id='hero'), 'sys'},  # explicit warm-cache fixture
+            'semantic_extraction': extraction,
+            'narration_reconciliation': reconciliation,
+        }, scripts={'author': self._responses, 'semantic_extraction': list(audits),
+                    'narration_reconciliation': list(reconciliations)})
+        self.instances.append(self)
+
+    @property
+    def requests(self):
+        return [call['messages'] for call in self.calls if call['phase'] == 'author']
+
+
+def _fixture_extraction(request, *, noop=False):
+    """Explicit complete readings of just two known fixture texts, never arbitrary prose."""
+    from loop.semantic_commit import VERSION
+    payload = json.loads(request['messages'][-1]['content'])
+    expected = "  你暂时停下。\n\n同行者静静等待。\n" if noop else "你把伞交到同行者手里。"
+    assert payload['candidate_prose'] == expected
+    spans = payload['pov_packet']['narration_spans']
+    assert len(spans) == (2 if noop else 1)
+    claims = []
+    if noop:
+        for i, (who, scope) in enumerate((('hero', 'local_motion'), ('companion', 'canonical_transition'))):
+            assert spans[i]['text'].strip() == ('你暂时停下。' if i == 0 else '同行者静静等待。')
+            claims.append({'id': f'waiting_{i}', 'span_id': spans[i]['id'],
+                'quote': spans[i]['text'], 'occurrence': 0, 'kind': 'location', 'scope': scope,
+                'binding_reason': 'An already located actor stops locally; the named companion waits in the current inn.',
+                'mode': 'current', 'moment': 'after', 'transition_index': None,
+                'refs': {'who': who, 'place': 'inn'}, 'present': True})
+    else:
+        quote = '你把伞交到同行者手里。'
+        assert spans[0]['text'] == quote
+        for cid, kind, refs, extra in (
+            ('handoff', 'transfer', {'item': 'umbrella', 'from': 'hero', 'to': 'companion'}, {}),
+            ('present_together', 'co_presence', {'a': 'hero', 'b': 'companion'}, {'together': True}),
+        ):
+            claims.append({'id': cid, 'span_id': spans[0]['id'], 'quote': quote,
+                'occurrence': 0, 'kind': kind, 'scope': 'canonical_transition',
+                'binding_reason': 'The exact sentence asserts the umbrella handoff to the physically present companion.',
+                'mode': 'completed' if kind == 'transfer' else 'current',
+                'moment': 'unknown' if kind == 'transfer' else 'after',
+                'transition_index': None, 'refs': refs, **extra})
+    return {'version': VERSION, 'claims': claims, 'scene_state_support': [],
+        'coverage': {'complete': True, 'spans': [{
+            'span_id': span['id'], 'claim_ids': [c['id'] for c in claims if c['span_id'] == span['id']],
+            'status': 'checked', 'no_critical_claims': noop and span['id'] == spans[0]['id'],
+            'context_span_ids': [], 'context_complete': True} for span in spans]}}
+
+
+def _handoff_audit(request):
+    return _fixture_extraction(request)
+
+
+def _noop_audit(request):
+    return _fixture_extraction(request, noop=True)
 
 @pytest.fixture
 def game(tmp_path, monkeypatch):
+    RecordingProvider.instances = []
     for name in ("digest_fleet", "run_director", "run_cascade", "run_catchup",
                  "run_lore", "run_density", "_run_demote_on_leave"):
         monkeypatch.setattr("loop.turn." + name, lambda *args, **kwargs: [])
@@ -58,6 +140,9 @@ def game(tmp_path, monkeypatch):
         ("entity_created", dict(id="inn", etype="Place", attrs={"level": 3, "kind": "venue"})),
         ("object_created", dict(id="umbrella")),
         ("item_transferred", dict(item="umbrella", to="hero")),
+        ("entity_moved", dict(who="hero", to="inn")),
+        ("entity_moved", dict(who="companion", to="inn")),
+        ("fact_asserted", dict(subject="companion", predicate="name", value="同行者")),
     ]
     store.append_many([kernel_event(kind, day=1, scene="inn", turn=0,
                                    summary="contract fixture", deltas=deltas)
@@ -66,15 +151,25 @@ def game(tmp_path, monkeypatch):
     world["_revision"] = store.revision
     scene = dict(protagonist="hero", present=["hero", "companion"], day=1,
                  location="inn", id="inn")
-    yield registry, store, world, scene
-    store.close()
+    try:
+        yield registry, store, world, scene
+    finally:
+        try:
+            for provider in RecordingProvider.instances:
+                provider.assert_consumed()
+        finally:
+            store.close()
 
 
 def _run(game, provider, strategy=None, max_repairs=3):
     registry, store, world, scene = game
-    return run_turn(registry, store, world, scene, "把雨伞交给同行者", provider=provider,
+    result = run_turn(registry, store, world, scene, "把雨伞交给同行者", provider=provider,
                     strategy=strategy or AuthorStrategy(), max_repairs=max_repairs,
                     required_sections=REQUIRED_SECTIONS)
+    assert provider.consumed['semantic_extraction'] == 1
+    assert any(row['kind'] == 'semantic_audit' and row['passed']
+               for row in result.commit.semantic_audit_log)
+    return result
 
 
 def _produce(game, provider, strategy=None, max_repairs=3):
@@ -135,7 +230,7 @@ INVALID_OUTPUTS = [
 @pytest.mark.parametrize("invalid", INVALID_OUTPUTS)
 def test_unusable_whole_output_recovers_complete_turn_with_optional_items(game, invalid):
     settings.set_conversation_mode("multiturn")
-    provider = RecordingProvider([invalid, _proposal(items=_handover())])
+    provider = RecordingProvider([invalid, _proposal(items=_handover())], audits=[_handoff_audit])
     strategy = AuthorStrategy()
     result = _run(game, provider, strategy, max_repairs=1)
     assert result.repair_attempts == 1 and result.dropped_sections == []
@@ -179,7 +274,7 @@ def test_exhaustion_rejects_without_event_world_or_cache_advance(game, compactio
     revision = store.revision
     mirror = Path(store.jsonl_path).read_bytes()
     graph, meta = copy.deepcopy(world["systems"]["ontology"].__dict__), copy.deepcopy(world["meta"])
-    provider = RecordingProvider(['{"facts":[{"value":"PRIVATE_MARKER"}]}'])
+    provider = RecordingProvider(['{"facts":[{"value":"PRIVATE_MARKER"}]}'] * 3)
     with pytest.raises(TurnRejected) as caught:
         _run(game, provider, strategy, max_repairs=2)
     assert len(provider.requests) == 3
@@ -199,8 +294,10 @@ def test_zero_budget_rejects_unusable_output_without_a_hidden_call(game):
 
 @pytest.mark.parametrize("budget", [1, 2])
 def test_whole_and_modular_repairs_share_budget_and_validate_item_provenance(game, budget):
-    provider = RecordingProvider([" ", _proposal(items=_handover("companion")),
-                                  {"items": _handover()}])
+    responses = [" ", _proposal(items=_handover("companion")), {"items": _handover()}]
+    provider = RecordingProvider(responses[:1 + budget],
+        audits=[_handoff_audit] if budget == 2 else [],
+        reconciliations=[{'narration': '你把伞交到同行者手里。'}] if budget == 2 else [])
     if budget == 1:
         with pytest.raises(TurnRejected, match="items"):
             _run(game, provider, max_repairs=budget)
@@ -234,7 +331,7 @@ def test_whole_recovery_runs_all_existing_guards(game, guard):
 
 def test_valid_intentional_noop_and_paragraph_compatibility_need_no_retry(game):
     paragraphs = ["  你暂时停下。", "同行者静静等待。\n"]
-    provider = RecordingProvider([_proposal(narration=paragraphs)])
+    provider = RecordingProvider([_proposal(narration=paragraphs)], audits=[_noop_audit])
     result = _run(game, provider, max_repairs=0)
     assert result.narration == "\n\n".join(paragraphs)
     assert result.repair_attempts == 0 and len(provider.requests) == 1
@@ -257,7 +354,7 @@ def test_tool_final_failure_uses_shared_budget_and_retains_tool_groups(game):
             ])
             return "UNUSABLE_TOOL_FINAL"
 
-    provider = ToolProvider([_proposal(items=_handover())])
+    provider = ToolProvider([_proposal(items=_handover())], audits=[_handoff_audit])
     strategy = AuthorStrategy()
     result = _run(game, provider, strategy, max_repairs=1)
     assert result.repair_attempts == 1 and provider.tool_calls == 1
@@ -268,7 +365,41 @@ def test_tool_final_failure_uses_shared_budget_and_retains_tool_groups(game):
     assert not any(m.get("content") == "UNUSABLE_TOOL_FINAL" for m in request)
     assert any(m.get("content") == "UNUSABLE_TOOL_FINAL" for m in strategy._messages)
 
-    no_budget = ToolProvider([_proposal()])
+    no_budget = ToolProvider([])
     with pytest.raises(TurnRejected):
         _produce(game, no_budget, max_repairs=0)
     assert no_budget.tool_calls == 1 and no_budget.requests == []
+
+
+def test_recovered_author_cannot_publish_when_separate_audit_is_malformed(game):
+    _, store, world, _ = game
+    before = list(store.iter_events(include_retracted=True))
+    revision = store.revision
+    mirror = Path(store.jsonl_path).read_bytes()
+    provider = RecordingProvider([" ", _proposal(items=_handover())],
+                                 audits=[{"narration": "PRIVATE_AUDIT_MARKER"}])
+    with pytest.raises(TurnRejected, match="Invalid semantic response fields") as caught:
+        _run(game, provider, max_repairs=1)
+    assert "PRIVATE_AUDIT_MARKER" not in str(caught.value)
+    assert provider.consumed == {'author': 2, 'semantic_extraction': 1,
+                                 'narration_reconciliation': 0}
+    assert list(store.iter_events(include_retracted=True)) == before
+    assert store.revision == revision and Path(store.jsonl_path).read_bytes() == mirror
+    assert world['systems']['ontology'].neighbors('umbrella', 'held_by', 1) == ['hero']
+
+
+def test_repaired_structure_cannot_skip_invalid_narration_reconciliation(game):
+    _, store, world, _ = game
+    before = list(store.iter_events(include_retracted=True))
+    revision = store.revision
+    provider = RecordingProvider([" ", _proposal(items=_handover("companion")),
+                                  {"items": _handover()}],
+        reconciliations=[{"narration": "PRIVATE_RECONCILE_MARKER", "items": []}])
+    with pytest.raises(TurnRejected, match="Unable to reconcile") as caught:
+        _run(game, provider, max_repairs=2)
+    assert "PRIVATE_RECONCILE_MARKER" not in str(caught.value)
+    assert provider.consumed == {'author': 3, 'semantic_extraction': 0,
+                                 'narration_reconciliation': 1}
+    assert list(store.iter_events(include_retracted=True)) == before
+    assert store.revision == revision
+    assert world['systems']['ontology'].neighbors('umbrella', 'held_by', 1) == ['hero']
