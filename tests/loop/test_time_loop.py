@@ -239,6 +239,87 @@ def _full_reg_with_all():
             .register(TimeSystem()))
 
 
+def _scripted_time_narrator(actor_id, proposals, claims_by_prose, *, malformed_prose=None):
+    assert set(claims_by_prose) == {row['narration'] for row in proposals}
+    import json
+    from loop.strategy import _system_prompt
+    from loop.semantic_commit import VERSION, extraction_system_prompt
+    from tests.scripted_provider import StrictScriptedProvider
+
+    def semantic_payload(request):
+        messages = request['messages']
+        if len(messages) != 2 or messages[-1].get('role') != 'user':
+            return None
+        try:
+            payload = json.loads(messages[-1]['content'])
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(payload, dict) or set(payload) != {
+                'candidate_prose', 'player_input', 'pov_packet'}:
+            return None
+        return payload
+
+    def is_extraction(request):
+        payload = semantic_payload(request)
+        return payload is not None and request['messages'][0] == {
+            'role': 'system', 'content': extraction_system_prompt(payload['pov_packet'])}
+
+    def extraction_for(turn):
+        def respond(request):
+            payload = semantic_payload(request)
+            expected = proposals[turn - 1]['narration']
+            assert payload['candidate_prose'] == expected
+            packet = payload['pov_packet']
+            assert len(packet['narration_spans']) == 1
+            span = packet['narration_spans'][0]
+            assert span['text'] == expected
+            # Every known sentence has its own explicit extraction. This helper
+            # only binds span IDs; it cannot auto-approve arbitrary new prose.
+            import copy
+            claims = copy.deepcopy(claims_by_prose[expected])
+            for claim in claims:
+                claim['span_id'] = span['id']
+            result = {'version': VERSION, 'claims': claims, 'scene_state_support': [],
+                'coverage': {'complete': True, 'spans': [{
+                    'span_id': span['id'], 'claim_ids': [row['id'] for row in claims],
+                    'status': 'checked', 'no_critical_claims': not claims,
+                    'context_span_ids': [], 'context_complete': True}]}}
+            if expected == malformed_prose:
+                # Deliberately invalid extraction must stop this otherwise valid
+                # author proposal before publication and before catch-up.
+                result.pop('coverage')
+            return result
+        return respond
+
+    return StrictScriptedProvider(
+        routes={
+            'author': lambda request: request['messages'][0] == {
+                'role': 'system', 'content': _system_prompt(actor_id=actor_id)},
+            'semantic_extraction': is_extraction,
+        },
+        scripts={'author': proposals,
+                 'semantic_extraction': [extraction_for(i + 1) for i in range(len(proposals))]})
+
+
+
+def _location_claim(who, place, quote):
+    return {'id': 'named_person_here', 'quote': quote, 'occurrence': 0,
+        'kind': 'location', 'scope': 'canonical_transition',
+        'binding_reason': 'The fixture explicitly names this person in this canonical place.',
+        'mode': 'current', 'moment': 'after', 'transition_index': None,
+        'refs': {'who': who, 'place': place}, 'present': True}
+
+
+def _place_people(store, place, people):
+    store.append(kernel_event('entity_created', day=1, scene='s', summary='场所',
+        deltas={'id': place, 'etype': 'Place'}, turn=1))
+    for who, name in people.items():
+        store.append(kernel_event('fact_asserted', day=1, scene='s', summary='公开名字',
+            deltas={'subject': who, 'predicate': 'name', 'value': name}, turn=1))
+        store.append(kernel_event('entity_moved', day=1, scene='s', summary='已有位置',
+            deltas={'who': who, 'to': place}, turn=1))
+
+
 def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
     """run_turn(prev_scene=<old scene without npc>) causes catch-up to fire for
     an NPC that was stale (last_update < now) and is now in new_scene["present"].
@@ -256,6 +337,7 @@ def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
     # Seed: NPC created on day=1 (stale by day=5).
     store.append(_person("hero", 1))  # Narrator POV must bind an existing Person.
     store.append(_person("inn_keeper", 1))
+    _place_people(store, "inn", {"hero": "主角", "inn_keeper": "掌柜"})
     # Advance time to day=5 (so now=5, and inn_keeper.last_update=1 < 5 → stale)
     store.append(kernel_event("time_advanced", day=5, scene="s",
                               summary="五天过去",
@@ -267,7 +349,7 @@ def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
     prev_scene = {"protagonist": "hero", "present": [], "day": 5,
                   "id": "inn", "location": "inn"}
 
-    # New scene: inn_keeper NOW enters present (the protagonist walks into the inn).
+    # New scene: inn_keeper NOW enters the explicit present scope.
     new_scene = {"protagonist": "hero", "present": ["inn_keeper"], "day": 5,
                  "id": "inn", "location": "inn"}
 
@@ -277,14 +359,14 @@ def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
                        "value": "疲惫", "note": "五日无客"}
     })
 
-    # Minimal narrator commit: nothing special — just a narration.
-    narrator_prov = FakeLLMProvider(json_responses=[{
-        "narration": "你走进旅馆，掌柜抬起头来。",
+    # This case tests entering scope, not an unrecorded physical arrival.
+    narrator_prov = _scripted_time_narrator('hero', [{
+        "narration": "掌柜在旅馆里。",
         "moves": [], "places": [], "cast": [], "facts": [],
-    }])
+    }], {'掌柜在旅馆里。': [_location_claim('inn_keeper', 'inn', '掌柜在旅馆里')]})
 
     result = run_turn(
-        reg, store, world, new_scene, "进入旅馆",
+        reg, store, world, new_scene, "看看掌柜",
         strategy=AuthorStrategy(),
         provider=narrator_prov,
         catchup_provider=catchup_prov,
@@ -300,7 +382,12 @@ def test_run_turn_with_prev_scene_fires_catchup_for_entering_stale_npc():
     assert evolved["deltas"]["id"] == "inn_keeper"
     assert evolved["deltas"]["value"] == "疲惫"
     # Catchup provider must have been called (not narrator provider)
-    assert len(catchup_prov.calls) >= 1
+    assert len(catchup_prov.calls) == 1
+    narrator_prov.assert_consumed()
+    assert narrator_prov.consumed == {'author': 1, 'semantic_extraction': 1}
+    assert any(row['kind'] == 'semantic_audit' and row['passed']
+               for row in result.commit.semantic_audit_log)
+    store.close()
 
 
 def test_run_turn_without_prev_scene_does_not_fire_catchup():
@@ -321,6 +408,7 @@ def test_run_turn_without_prev_scene_does_not_fire_catchup():
     # NPC created today (day=1): last_update=1, now=1 → NOT stale
     store.append(_person("hero", 1))
     store.append(_person("guard", 1))
+    _place_people(store, "gate", {"hero": "主角", "guard": "守卫"})
     world = project(reg, store.iter_events())
 
     scene = {"protagonist": "hero", "present": ["guard"], "day": 1,
@@ -328,10 +416,10 @@ def test_run_turn_without_prev_scene_does_not_fire_catchup():
 
     catchup_prov = KeyedCatchup({"guard": {"changed": True, "predicate": "mood",
                                             "value": "警觉"}})
-    narrator_prov = FakeLLMProvider(json_responses=[{
-        "narration": "守卫注视着你。",
+    narrator_prov = _scripted_time_narrator('hero', [{
+        "narration": "守卫在城门前。",
         "moves": [], "places": [], "cast": [], "facts": [],
-    }])
+    }], {'守卫在城门前。': [_location_claim('guard', 'gate', '守卫在城门前')]})
 
     # No prev_scene passed → defaults to None → empty prev_scope.
     # But guard.last_update=1 == now=1 → NOT stale → no catch-up.
@@ -348,9 +436,14 @@ def test_run_turn_without_prev_scene_does_not_fire_catchup():
         f"Catch-up must NOT fire when NPC is not stale; got: {all_ev_types}"
     )
     assert len(catchup_prov.calls) == 0
+    narrator_prov.assert_consumed()
+    assert narrator_prov.consumed == {'author': 1, 'semantic_extraction': 1}
+    assert any(row['kind'] == 'semantic_audit' and row['passed']
+               for row in result.commit.semantic_audit_log)
+    store.close()
 
 
-def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
+def _play_loop_catchup_fixture(tmp_path, *, malformed_second_audit=False):
     """play_loop must track prev_scene across iterations so that when an NPC
     enters scope on turn 2 after being absent in turn 1, catch-up fires.
 
@@ -389,6 +482,8 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     reg.register(DirectorSystem())
     reg.register(CascadeSystem())
     reg.register(TimeSystem())
+    from systems.narrative import NarrativeSystem
+    reg.register(NarrativeSystem())
 
     db = camp / "events.db"
     jsonl = camp / "events.jsonl"
@@ -397,6 +492,16 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     # Seed: NPC at day=1, then jump to day=5
     store.append(kernel_event("entity_created", day=1, scene="genesis",
                               summary="主角登场", deltas={"id": "protagonist", "etype": "Person"}, turn=0))
+    # The audit needs real pre-turn identities and canonical locations, not
+    # just a synthetic scene.present list. Scope changes independently below.
+    store.append(kernel_event("entity_created", day=1, scene="genesis",
+        summary="客栈", deltas={"id": "inn", "etype": "Place"}, turn=0))
+    store.append(kernel_event("entity_created", day=1, scene="genesis",
+        summary="掌柜", deltas={"id": "innkeeper", "etype": "Person",
+                            "attrs": {"name": "掌柜"}}, turn=0))
+    for who in ("protagonist", "innkeeper"):
+        store.append(kernel_event("entity_moved", day=1, scene="genesis",
+            summary="在客栈", deltas={"who": who, "to": "inn"}, turn=0))
     store.append(kernel_event("character_created", day=1, scene="genesis",
                               summary="innkeeper 登场",
                               deltas={"id": "innkeeper", "tier": "tracked",
@@ -416,7 +521,7 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     from loop.strategy import AuthorStrategy
     from loop.turn import REQUIRED_SECTIONS
 
-    # We need narrator to return valid commits. Use FakeLLMProvider with keyed JSON.
+    # Finite author and extraction queues exercise the real semantic gate.
     # Patch _build_scene so we control "present" output.
     import app.play as play_mod
 
@@ -429,10 +534,14 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
          "id": "inn", "location": "inn"},
     ]
     scene_call_idx = [0]
+    before_second_turn = {}
 
     def _fake_build_scene(eng):
         idx = scene_call_idx[0]
         scene_call_idx[0] += 1
+        if idx == 1:
+            before_second_turn.update(events=list(eng.store.iter_events(include_retracted=True)),
+                                      revision=eng.store.revision)
         return scenes_returned[min(idx, len(scenes_returned) - 1)]
 
     # Catchup provider records calls
@@ -446,7 +555,10 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
         {"narration": "第二回合，掌柜在此。", "moves": [], "places": [], "cast": [], "facts": [],
          "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}]},
     ]
-    engine.provider = FakeLLMProvider(json_responses=narrator_resps)
+    engine.provider = _scripted_time_narrator('protagonist', narrator_resps, {
+        '第一回合。': [],
+        '第二回合，掌柜在此。': [_location_claim('innkeeper', 'inn', '掌柜在此')],
+    }, malformed_prose=narrator_resps[1]['narration'] if malformed_second_audit else None)
 
     collected = []
     original_build_scene = play_mod._build_scene
@@ -457,11 +569,37 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     finally:
         play_mod._build_scene = original_build_scene
 
-    all_ev_types = [e["type"] for e in store.iter_events()]
-    assert "character_evolved" in all_ev_types, (
-        f"Catch-up must fire on turn 2 when innkeeper enters scope; "
-        f"got event types: {all_ev_types}"
-    )
+    engine.provider.assert_consumed()
+    assert engine.provider.consumed == {'author': 2, 'semantic_extraction': 2}
+    assert [call['phase'] for call in engine.provider.calls] == [
+        'author', 'semantic_extraction', 'author', 'semantic_extraction']
+    events = list(store.iter_events())
+    narrations = [e for e in events if e['type'] == 'narration_recorded']
+    evolved = [e for e in events if e['type'] == 'character_evolved']
+    if malformed_second_audit:
+        assert len(narrations) == 1
+        assert narrations[0]['deltas']['text'] == narrator_resps[0]['narration']
+        assert not evolved and catchup_prov.calls == []
+        assert list(store.iter_events(include_retracted=True)) == before_second_turn['events']
+        assert store.revision == before_second_turn['revision']
+        assert not any(narrator_resps[1]['narration'] == line for line in collected)
+    else:
+        assert [e['deltas']['text'] for e in narrations] == [r['narration'] for r in narrator_resps]
+        assert len(evolved) == 1 and evolved[0]['deltas']['id'] == 'innkeeper'
+        assert len(catchup_prov.calls) == 1
+        assert narrator_resps[1]['narration'] in collected
+    for event in narrations:
+        audits = event['deltas']['semantic_audit']
+        assert any(row['kind'] == 'semantic_audit' and row['passed'] for row in audits)
+    store.close()
+
+
+def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
+    _play_loop_catchup_fixture(tmp_path)
+
+
+def test_play_loop_rejects_bad_audit_before_second_turn_catchup(tmp_path):
+    _play_loop_catchup_fixture(tmp_path, malformed_second_audit=True)
 
 
 def test_run_catchup_repair_loop_uses_repaired_result():
