@@ -23,3 +23,16 @@ def test_public_history_rejects_explicit_private_reference():
     import pytest
     with pytest.raises(ValueError):
         public_event_history([normal, private])
+
+
+def test_engine_public_history_uses_complete_history_for_private_reference_check(tmp_path):
+    from app.engine import build_engine
+    engine = build_engine(tmp_path / "campaign")
+    try:
+        # Default no-memory campaigns retain ordinary history unchanged.
+        ordinary = kernel_event("fact_asserted", day=1, scene="s", summary="ordinary",
+                                deltas={"subject":"hero", "predicate":"note", "value":"ok"}, turn=1)
+        engine.store.append(ordinary)
+        assert engine.public_history() == [next(engine.store.iter_events(include_retracted=True))]
+    finally:
+        engine.store.close()

@@ -56,6 +56,11 @@ class Engine:
     campaign_seed: int = 0
     cascade_provider: Any = None  # Optional cheap LLMProvider for cascade node calls
 
+    def public_history(self) -> list[dict]:
+        """Public DTO history; raw EventStore access remains host-internal."""
+        from systems.interpretive_memory import public_event_history
+        return public_event_history(self.store.iter_events(include_retracted=True))
+
 
 def _derive_campaign_seed(campaign_dir: Path) -> int:
     """Deterministic seed from the campaign dir NAME (rewind-safe: replays identically)."""
