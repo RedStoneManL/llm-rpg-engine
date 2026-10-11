@@ -67,6 +67,24 @@ def test_host_handle_is_bound_to_exact_world_store_role_and_lifecycle(tmp_path):
             session.read(object(), world, store)
         with pytest.raises(PermissionError):
             session.read(handle, project(registry, store.iter_events()), store)
+        other_session = open_memory_read_session(world, store, "npc")
+        with pytest.raises(PermissionError):
+            other_session.read(handle, world, store)
+        with EventStore(tmp_path / "other.db", tmp_path / "other.jsonl", registry.event_types()) as other_store:
+            with pytest.raises(PermissionError):
+                session.read(handle, world, other_store)
         session.close()
         with pytest.raises(PermissionError):
             session.read(handle, world, store)
+
+
+def test_default_model_tool_registry_cannot_issue_or_read_memory_handles(tmp_path):
+    engine = build_engine(tmp_path / "campaign")
+    try:
+        from app.play import _build_scene
+        from llm.tools import build_tool_registry
+        tools = build_tool_registry(engine.registry, engine.world, _build_scene(engine), dm=True)
+        assert "character_interpretation_recorded" not in engine.registry.event_types()
+        assert not any("memory" in name for name in tools._tools)
+    finally:
+        engine.store.close()
