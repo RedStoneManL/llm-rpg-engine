@@ -267,6 +267,34 @@ def test_run_turn_memory_opt_in_stages_private_record_with_narration(engine, mon
     assert memory[0]['deltas']['source_event_id'] == narration[0]['id']
 
 
+def test_run_turn_memory_generator_receives_deep_isolated_source(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    generator = OfflineInterpretationGenerator('private')
+    def mutate(source):
+        source['deltas']['text'] = 'mutated'; source['actors'].append('peer')
+        return 'private'
+    monkeypatch.setattr(generator, 'generate', mutate)
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=generator)
+    narration = next(e for e in result.events if e['type'] == 'narration_recorded')
+    memory = next(e for e in result.events if e['type'] == 'character_interpretation_recorded')
+    assert narration['deltas']['text'] == commit()['narration'] and narration['actors'] == []
+    assert memory['deltas']['source_event_id'] == narration['id']
+
+
+def test_memory_generator_source_toctou_is_rejected_before_publish(engine, monkeypatch):
+    engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    batch = EventBatch(engine.store, turn=1)
+    source = kernel_event('narration_recorded', day=1, scene='inn', summary='narration recorded', deltas={'text':'original'}, turn=1)
+    batch.append(source); actual = batch.events[0]; before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision; mirror = engine.store.jsonl_path.read_bytes()
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda dto: (actual['deltas'].__setitem__('text', 'tampered'), 'private')[1])
+    with pytest.raises(PermissionError):
+        stage_offline_interpretation(batch, engine.registry, 'hero', generator, protagonist='hero', role_exists=True)
+    assert list(engine.store.iter_events(include_retracted=True)) == before and engine.store.revision == revision
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 0
+    assert engine.store.jsonl_path.read_bytes() == mirror
+
+
 def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypatch):
     quiet(monkeypatch); engine.registry._by_event.pop('quest_demoted', None)
     assert engine.registry.owner_of_event('quest_demoted') is None

@@ -8,6 +8,7 @@ application registry does not register it.  Reading is actor-scoped through
 from __future__ import annotations
 import hashlib
 import json
+import copy
 
 from kernel.contextsystem import ContextSystem
 from engine.log import get_logger
@@ -40,10 +41,11 @@ def stage_offline_interpretation(batch, registry, role, generator, *, protagonis
                    and not event.get("retracted")), None)
     if source is None:
         return False
-    text = generator.generate(dict(source))
+    writer = open_memory_write_session(batch, registry, role, source)
+    text = generator.generate(copy.deepcopy(source))
     if not isinstance(text, str) or not text:
         raise ValueError("offline interpretation generator returned invalid text")
-    open_memory_write_session(batch, registry, role, source).stage(text, "mem_" + source["id"])
+    writer.stage(text, "mem_" + source["id"])
     return True
 
 
