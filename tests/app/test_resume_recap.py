@@ -69,3 +69,20 @@ def test_resume_recap_never_raises_on_corrupt_state():
     ):
         out = []
         _print_resume_recap(types.SimpleNamespace(world=world), out.append)  # must not raise
+
+
+def test_resume_recap_ignores_opt_in_private_memory_slice():
+    world = _world_with_journey()
+    world["systems"]["interpretive_memory"] = {
+        "by_actor": {
+            "protagonist": [{"id": "PRIVATE_EVENT_ID", "text": "PRIVATE_MEMORY_BODY"}],
+            "npc": [{"id": "RETRACTED_PRIVATE_ID", "text": "RETRACTED_PRIVATE_BODY"}],
+        }
+    }
+    out = []
+    _print_resume_recap(types.SimpleNamespace(world=world), out.append)
+    rendered = "\n".join(out)
+    assert "继续游戏" in rendered
+    assert "PRIVATE_MEMORY_BODY" not in rendered
+    assert "RETRACTED_PRIVATE_BODY" not in rendered
+    assert "PRIVATE_EVENT_ID" not in rendered
