@@ -65,3 +65,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   均为 `d58822d1d2f936b1f086cbddff25973671b73fa2`，tree 均为
   `aabd5669fb5f4b88c142c41a146f918204a17b74`，且恢复 checkout clean。该 bundle 是
   增量包，明确要求已有 `6b54411` 基线；不是单独完整仓库快照。
+- 2026-10-11：随后生成完整历史 bundle 并直接 clone 到另一全新目录（无预置
+  基线）。恢复 HEAD `472ffde2a67a7e568c808a6530dd61ca9155b2b9`、tree
+  `8d8b8c132b395a43b604c36ca9c82cac6e224cf4`、checkout clean；bundle SHA-256
+  `fead3f028fd80062a440413d315ffda6d1ae0512ffeed13a045b9cb49c730e3e`。该完整包
+  作为后续阶段的持久恢复起点。
