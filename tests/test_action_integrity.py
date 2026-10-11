@@ -127,6 +127,59 @@ def test_mirror_failure_is_a_saved_receipt_and_retry_is_idempotent(engine, monke
         engine.store.append_many([event(subject='hero',predicate='coins',value=2)], action_id='pay')
 
 
+def test_action_result_metadata_commits_with_event_batch_receipt(engine):
+    batch = EventBatch(engine.store)
+    batch.append(event(subject='hero', predicate='coins', value=7))
+    metadata = {'version': 1, 'outcome': {'reply': 'paid'}}
+
+    receipt = batch.publish(action_id='metadata-commit', result_metadata=metadata)
+
+    stored_receipt = engine.store._conn.execute(
+        'SELECT * FROM action_receipts WHERE action_id=?', ('metadata-commit',)).fetchone()
+    stored_metadata = engine.store._conn.execute(
+        'SELECT metadata FROM action_result_metadata WHERE action_id=?', ('metadata-commit',)
+    ).fetchone()
+    assert stored_receipt['revision'] == receipt['revision'] == engine.store.revision
+    assert (stored_receipt['first_seq'], stored_receipt['last_seq']) == (
+        receipt['first_seq'], receipt['last_seq'])
+    assert json.loads(stored_metadata['metadata']) == metadata
+
+
+def test_action_result_metadata_write_failure_rolls_back_entire_action(engine, monkeypatch):
+    before = list(engine.store.iter_events(include_retracted=True))
+    revision = engine.store.revision
+    monkeypatch.setattr(engine.store, '_insert_action_result_metadata',
+                        lambda *args: (_ for _ in ()).throw(OSError('metadata disk failed')))
+
+    with pytest.raises(OSError, match='metadata disk failed'):
+        engine.store.append_many(
+            [event(subject='hero', predicate='coins', value=7)], action_id='metadata-failure',
+            result_metadata={'version': 1, 'outcome': 'paid'})
+
+    assert list(engine.store.iter_events(include_retracted=True)) == before
+    assert engine.store.revision == revision
+    assert engine.store._conn.execute(
+        'SELECT 1 FROM action_receipts WHERE action_id=?', ('metadata-failure',)).fetchone() is None
+    assert engine.store._conn.execute(
+        'SELECT 1 FROM action_result_metadata WHERE action_id=?', ('metadata-failure',)).fetchone() is None
+
+
+def test_duplicate_action_does_not_overwrite_original_result_metadata(engine):
+    events = [event(subject='hero', predicate='coins', value=7)]
+    original = {'version': 1, 'outcome': {'reply': 'original'}}
+    engine.store.append_many(events, action_id='metadata-duplicate', result_metadata=original)
+
+    receipt = engine.store.append_many(
+        events, action_id='metadata-duplicate', expected_revision=0,
+        result_metadata={'version': 1, 'outcome': {'reply': 'replacement'}})
+
+    stored = engine.store._conn.execute(
+        'SELECT metadata FROM action_result_metadata WHERE action_id=?', ('metadata-duplicate',)
+    ).fetchone()
+    assert receipt['duplicate']
+    assert json.loads(stored['metadata']) == original
+
+
 def test_concurrent_snapshot_and_undo_cannot_accept_stale_proposals(engine):
     left = EventBatch(engine.store)
     right = EventBatch(engine.store)

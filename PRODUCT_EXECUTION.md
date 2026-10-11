@@ -41,10 +41,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | M4-01 | P1 | 已验收（离线宿主原子写入） | batch/source/output 绑定的私有解释写入 | 红例驱动修复后，stage/publish 双重绑定复验、savepoint rollback、篡改/跨生命周期拒绝通过；默认 app 禁用 |
 | M4-02 | P1 | 已验收（实际 payload 终检） | preflight 后的待插入副本不可绕过 M4 绑定 | `final_validate` 在同一 SQLite 事务内、preflight 之后、insert 之前校验；前台 source body 和私有 record 的 actor/source/type/id/turn 篡改均原子拒绝 |
 | M4-03 | P1 | 已验收（savepoint 表示保真） | 失败 hook 不得把缺失的 `retracted` 字段规范化为 `False` | savepoint 精确恢复字段存在性与值；缺键 source 的既有 memory writer/validator 在失败 hook 后仍可发布 |
+| AID-01 | P1 | 已验收（仅持久化 sidecar） | 为未来 action-id preflight retry 保存可选、版本化的结果元数据 | `action_receipts` 保持五列与原 payload 指纹；sidecar 与 event/revision/receipt 同事务，写入失败全回滚，duplicate 不覆盖首份元数据；尚未实现 retry 入口 |
 
 ## 执行规则
 
-- 每一个完成且已验收的小阶段做本地 git commit；禁止 remote push/PR。
+- 每一个完成且已验收的小阶段做本地 git commit，并 push 到用户指定的
+  `recovery/m4-savepoint-fix` 后用 `ls-remote` 核对；仍禁止 force push、main 改动、PR 与部署。
 - 每个关键检查点保存 git bundle、源码版本和测试证据到 Library；临时磁盘不算交付。
 - 新记忆不得成为事实、权限或发布权威。缺少 owner 的生产写入必须在调用前拒绝，不能靠投影层忽略。
 - 不能删除合理失败测试、扩大 skip/xfail 或只针对样例加分支。所有测试结果都注明 commit、命令与实际结果。
@@ -161,3 +163,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   复制同 ID source 的值相等漏洞已有红→绿 identity 证据；wrong turn/role/cross-batch（含伪造
   JSON provenance）均在 generator 前拒绝。默认仍禁用；未实现 action_id 前置幂等、通用
   event-level ACL 或真实模型验收。
+- 2026-10-11：`4b2de8ab17aaa2951165f4f93fc588f73f05b13d` 已 push 到同一恢复分支并以
+  `ls-remote` 核对。两份专项 70 passed；完整 offline gate `1775 passed, 1 deselected`
+  （17.87s）。memory helper 现显式接收调用方 expected batch，先做 binding 类型检查，再要求
+  binding.batch identity 与调用方一致；完整合法 left binding 用于 right workflow、复制 source、
+  wrong turn/role、malformed binding 均在 generator 前拒绝。默认仍禁用，真实模型未调用；
+  前置 action_id 幂等、通用来源 ACL 仍待设计。
+- 2026-10-11：AID-01 只增加可选 `action_result_metadata` SQLite sidecar，调用方须传入带整数
+  `version` 的 JSON object。`EventStore.append_many` 与 `EventBatch.publish` 都可传递该参数；它在
+  既有 events/revision/action receipt 事务内写入。duplicate 在事务早退前只核验原 payload
+  fingerprint，绝不覆盖首份 metadata。红例覆盖 batch 提交、metadata 写入故障时 events/revision/
+  receipt/metadata 全回滚，以及带不同 metadata 的 duplicate 保留原值。`tests/test_action_integrity.py`
+  为 43 passed；完整离线 gate（`/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o addopts='' -q`）
+  为 `1778 passed, 1 skipped`（17.40s）。本切片不添加 `run_turn` retry/preflight 流程、不改 receipt
+  schema 或 fingerprint、未调用真实模型；下一项仍是 action-id 重试协议的单独设计与验收。

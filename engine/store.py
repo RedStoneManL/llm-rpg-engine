@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS action_receipts (
     action_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
     first_seq INTEGER NOT NULL, last_seq INTEGER NOT NULL, revision INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS action_result_metadata (
+    action_id TEXT PRIMARY KEY, metadata TEXT NOT NULL
+);
 """
 
 
@@ -74,7 +77,7 @@ class EventStore:
             raise
 
     def append_many(self, events, *, expected_revision=None, action_id=None,
-                    preflight=None, final_validate=None, retractions=()):
+                    preflight=None, final_validate=None, retractions=(), result_metadata=None):
         """Publish a complete proposal atomically; JSONL is a recoverable mirror.
 
         All LLM work belongs before this short transaction. The preflight callback
@@ -86,6 +89,9 @@ class EventStore:
         for ev in events:
             validate_event(ev, self.allowed_types)
         retractions = list(retractions)
+        if result_metadata is not None and not action_id:
+            raise ValueError('result_metadata requires action_id')
+        metadata_json = self._serialize_result_metadata(result_metadata)
         if any(kind not in {'seq', 'turn'} for kind, value in retractions):
             raise ValueError('unknown retraction boundary')
         fingerprint = hashlib.sha256(json.dumps({'events':events, 'retractions':retractions}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
@@ -122,6 +128,8 @@ class EventStore:
             if action_id:
                 self._conn.execute('INSERT INTO action_receipts VALUES (?,?,?,?,?)',
                                    (action_id, fingerprint, first, last, revision))
+                if result_metadata is not None:
+                    self._insert_action_result_metadata(action_id, metadata_json)
             self._conn.commit()
         except BaseException:
             self._conn.rollback()
@@ -129,6 +137,24 @@ class EventStore:
         self._sync_mirror_safely()
         return {'action_id': action_id, 'first_seq': first, 'last_seq': last,
                 'revision': revision, 'duplicate': False, 'mirror_pending': bool(self.mirror_error)}
+
+    @staticmethod
+    def _serialize_result_metadata(result_metadata):
+        """Encode the explicitly versioned, action-scoped retry sidecar."""
+        if result_metadata is None:
+            return None
+        if not isinstance(result_metadata, dict) or type(result_metadata.get('version')) is not int:
+            raise ValueError('result_metadata must be an object with an integer version')
+        try:
+            return json.dumps(result_metadata, sort_keys=True, ensure_ascii=False,
+                              separators=(',', ':'), allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('result_metadata must be JSON serializable') from exc
+
+    def _insert_action_result_metadata(self, action_id, metadata_json):
+        """Write the sidecar inside append_many's existing transaction."""
+        self._conn.execute('INSERT INTO action_result_metadata VALUES (?,?)',
+                           (action_id, metadata_json))
 
     def _insert(self, ev) -> int:
         validate_event(ev, self.allowed_types)
@@ -339,7 +365,7 @@ class EventBatch:
                     ev.pop('retracted', None)
             raise
 
-    def publish(self, *, action_id=None):
+    def publish(self, *, action_id=None, result_metadata=None):
         events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
         for validator in self.publish_validators:
             validator(events)
@@ -356,4 +382,4 @@ class EventBatch:
         return self.store.append_many(events, expected_revision=self.revision,
                                       action_id=action_id, preflight=final_preflight,
                                       final_validate=final_validate,
-                                      retractions=self.retractions)
+                                      retractions=self.retractions, result_metadata=result_metadata)
