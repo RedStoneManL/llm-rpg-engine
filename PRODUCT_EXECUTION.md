@@ -5,7 +5,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 
 ## 可复现基线
 
-- 当前仓库：本地分支 `work`，HEAD `6b544111a1b0e26fbc232ba0dcb3df33e92b8dbb`。
+- 初始恢复基线：本地分支 `work` 的 `6b544111a1b0e26fbc232ba0dcb3df33e92b8dbb`。
+  这不是当前 HEAD；当前实现检查点另见本页更新记录与 `git rev-parse HEAD`。
 - 没有恢复到历史报告中的 `9928c1d2`，也没有 `AGENTS.md`、PreparedTurn、
   专用角色解释记忆或 GUI 子项目实现；不得把历史的 6133 通过当作本基线结果。
 - 初次全量离线 gate（2026-10-11）：`PYTHONPATH=/tmp/llm-rpg-test-deps:. python -m pytest`
@@ -19,7 +20,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | 区域 | 已从源码核对的能力 | 未验收/缺口 |
 | --- | --- | --- |
 | 回合持久化 | `EventBatch` 在最终 SQLite publish 时做 revision/preflight/整批事务，撤回按 turn 保留历史 | 仍需审计所有后台写入是否共享同一批次，及失败/取消/重开完整回放 |
-| 事实和投影 | Registry 为事件与 commit section 指定单一 owner；projection 忽略 retracted events | 未拥有事件仅 debug 后忽略；须明确何处应 fail-closed，避免静默丢失 |
+| 事实和投影 | Registry 为事件与 commit section 指定单一 owner；projection 忽略 retracted events；直接 `apply_turn` 现在先检查全部 section owner 并 fail-closed | 旧历史流中的无 owner event 仍为兼容性而由 projection 记录 debug 后忽略；须审计其迁移/读档边界，不能把它与新写入混同 |
 | 叙事与摘要 | narration、digest/recap 与 `working_memory` 已有旧实现 | 需验证摘要失败的局部性、回放一致性以及摘要不作为事实权威 |
 | 可见性和记忆 | 旧 POV/knowledge 过滤与 recall 模块存在 | 没有历史所述的私有角色解释记忆入口、隔离存储、冷启动/replay/retraction 验收；默认不启用新记忆 |
 | 前端/运维 | CLI、trace viewer、portable handoff 存在 | 没有可核对的 GUI 实现；测试仍残留旧工作区路径 |
@@ -70,3 +71,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `8d8b8c132b395a43b604c36ca9c82cac6e224cf4`、checkout clean；bundle SHA-256
   `fead3f028fd80062a440413d315ffda6d1ae0512ffeed13a045b9cb49c730e3e`。该完整包
   作为后续阶段的持久恢复起点。
+- 2026-10-11：提交链关系已核对：`7a3c82c` 是 RCV-01 的可移植 trace CLI 代码修复；
+  `74071f6` 只记录该修复的证据并以 `7a3c82c` 为父；随后 `7e31198`（savepoint
+  撤回回滚）、`d58822d`（owner preflight）、`472ffde`（增量恢复演练）和
+  `9ef6746`（完整恢复演练）依次累积。完整自包含 bundle 已保存到 Library，但从
+  Library 签名 materialization URL 实际下载连续两次收到 403，尚不能宣称“从
+  持久化字节恢复已验收”；本地生成 bundle 的独立 clone 已通过，等待连接器下载恢复。
