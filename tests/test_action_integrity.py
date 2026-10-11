@@ -45,6 +45,12 @@ def commit(coins=7):
         'clock':[{'advance':False,'days':0,'bands':0,'reason':'片刻'}]}
 
 
+def world_signature(world):
+    assert set(world) <= {'meta', 'systems', '_revision'}
+    graph = world['systems']['ontology']
+    return {'meta': world['meta'], 'systems': {name: value for name, value in world['systems'].items() if name != 'ontology'}, 'ontology': {'entities': {key: asdict(value) for key, value in graph.entities.items()}, 'facts': [asdict(value) for value in graph.facts], 'relations': [asdict(value) for value in graph.relations]}}
+
+
 def quiet(monkeypatch):
     import loop.turn as turns
     for name in ['digest_fleet','run_director','run_cascade','run_catchup','run_lore','run_density','_run_demote_on_leave']:
@@ -266,6 +272,7 @@ def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypat
     assert engine.registry.owner_of_event('quest_demoted') is None
     engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
     result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    assert [json.loads(line) for line in engine.store.jsonl_path.read_text(encoding='utf-8').splitlines()] == list(engine.store.iter_events(include_retracted=True))
     replay = project(engine.registry, engine.store.iter_events())
     assert any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
     def signature(world):
@@ -279,6 +286,36 @@ def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypat
     reopened = EventStore(db_path, jsonl_path, engine.registry.event_types())
     try:
         assert signature(result.world) == signature(project(engine.registry, reopened.iter_events()))
+    finally:
+        reopened.close()
+
+
+def test_rewind_retracts_memory_with_its_foreground_turn(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    before = list(engine.store.iter_events(include_retracted=True))
+    seed_world = project(engine.registry, engine.store.iter_events())
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    turn = result.events[0]['turn']; receipt_count = engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0]
+    rewind(engine, turn)
+    history = list(engine.store.iter_events(include_retracted=True))
+    assert [json.loads(line) for line in engine.store.jsonl_path.read_text(encoding='utf-8').splitlines()] == history
+    assert all(event['retracted'] for event in history if event.get('turn') == turn)
+    assert history[:len(before)] == before
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == receipt_count
+    assert project(engine.registry, engine.store.iter_events())['systems']['interpretive_memory']['by_actor'] == {}
+    revision = engine.store.revision; db_path, jsonl_path = engine.store.db_path, engine.store.jsonl_path
+    receipt_rows = [dict(row) for row in engine.store._conn.execute('SELECT * FROM action_receipts')]
+    engine.store.close(); reopened = EventStore(db_path, jsonl_path, engine.registry.event_types())
+    try:
+        replay = project(engine.registry, reopened.iter_events())
+        assert set(replay) == {'meta', 'systems'}
+        assert reopened.revision == revision
+        assert replay['systems']['interpretive_memory']['by_actor'] == {}
+        assert [(e['id'], e['retracted']) for e in reopened.iter_events(include_retracted=True)] == [(e['id'], e['retracted']) for e in history]
+        assert [dict(row) for row in reopened._conn.execute('SELECT * FROM action_receipts')] == receipt_rows
+        assert world_signature(replay) == world_signature(seed_world)
+        mirror = [json.loads(line) for line in jsonl_path.read_text(encoding='utf-8').splitlines()]
+        assert mirror == list(reopened.iter_events(include_retracted=True))
     finally:
         reopened.close()
 
