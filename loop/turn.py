@@ -378,7 +378,7 @@ def _run_turn_staged(
                 if canonical_binding is not None:
                     with store.savepoint():
                         graph = world.get('systems', {}).get('ontology')
-                        stage_offline_interpretation(canonical_binding, registry, memory_generator,
+                        stage_offline_interpretation(store, canonical_binding, registry, memory_generator,
                             protagonist=trusted_memory_role,
                             role_exists=bool(graph and graph.get_entity(trusted_memory_role)))
             except asyncio.CancelledError:

@@ -39,12 +39,14 @@ class HostNarrationBinding:
     role: str
 
 
-def stage_offline_interpretation(binding, registry, generator, *, protagonist, role_exists):
+def stage_offline_interpretation(expected_batch, binding, registry, generator, *, protagonist, role_exists):
     """Stage one host-selected private interpretation, never a model event."""
+    if not isinstance(binding, HostNarrationBinding):
+        raise PermissionError("invalid host narration binding")
     if registry.owner_of_event("character_interpretation_recorded") is None:
         return False
-    batch, source, role = binding.batch, binding.source, binding.role
-    if (not isinstance(binding, HostNarrationBinding) or binding.batch is not batch
+    batch, source, role = expected_batch, binding.source, binding.role
+    if (binding.batch is not expected_batch
             or not any(event is source for event in batch.events) or source.get('id') != binding.source_id
             or source.get('turn') != binding.turn or source.get('type') != 'narration_recorded'):
         raise PermissionError("invalid host narration binding")

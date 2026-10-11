@@ -154,3 +154,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   EventBatch/staging 边界：前置 seed、revision、receipt 数和 JSONL bytes 不变；不是 run_turn
   端到端异常承诺，也未比较 receipt 全内容。前置 action_id 幂等、显式 narration 来源/可见性
   ACL 与真实模型行为仍未解决/未调用。
+- 2026-10-11：`6ca9dcce0e33d3cef32c1a2be634a142eab94419` 已 push 到同一恢复分支并以
+  `ls-remote` 核对。两份专项 67 passed；完整 offline gate `1772 passed, 1 deselected`
+  （17.33s）。memory source 现为 canonical narration append 现场创建的 in-process host
+  binding（exact batch/source object/id/turn/role），helper 不扫描 JSON narration 重建授权。
+  复制同 ID source 的值相等漏洞已有红→绿 identity 证据；wrong turn/role/cross-batch（含伪造
+  JSON provenance）均在 generator 前拒绝。默认仍禁用；未实现 action_id 前置幂等、通用
+  event-level ACL 或真实模型验收。

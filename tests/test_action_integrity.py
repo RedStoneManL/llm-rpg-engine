@@ -170,7 +170,7 @@ def test_run_turn_memory_default_does_not_call_generator(engine, monkeypatch):
 
 
 def test_run_turn_without_canonical_narration_continues_backstage(engine, monkeypatch):
-    quiet(monkeypatch); calls = []
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types(); calls = []
     monkeypatch.setattr('loop.turn.digest_fleet', lambda *args, **kwargs: calls.append(1) or [])
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
@@ -215,12 +215,13 @@ def test_memory_generator_ignores_old_turn_narration(engine, monkeypatch):
     engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
     engine.store.append(kernel_event('narration_recorded', day=1, scene='inn', summary='old', deltas={'text':'old'}, turn=1))
     batch = EventBatch(engine.store, turn=2)
-    old_source = next(engine.store.iter_events())
+    old_source = next(event for event in engine.store.iter_events()
+                      if event['type'] == 'narration_recorded')
     binding = HostNarrationBinding(batch, old_source, old_source['id'], 1, 'hero')
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator,
+        stage_offline_interpretation(batch, binding, engine.registry, generator,
                                      protagonist='hero', role_exists=True)
 
 
@@ -303,7 +304,7 @@ def test_memory_generator_source_toctou_is_rejected_before_publish(engine, monke
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda dto: (actual['deltas'].__setitem__('text', 'tampered'), 'private')[1])
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator, protagonist='hero', role_exists=True)
+        stage_offline_interpretation(batch, binding, engine.registry, generator, protagonist='hero', role_exists=True)
     assert list(engine.store.iter_events(include_retracted=True)) == before and engine.store.revision == revision
     assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 0
     assert engine.store.jsonl_path.read_bytes() == mirror
@@ -319,7 +320,7 @@ def test_memory_binding_rejects_copied_source_before_generation(engine, monkeypa
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator, protagonist='hero', role_exists=True)
+        stage_offline_interpretation(batch, binding, engine.registry, generator, protagonist='hero', role_exists=True)
 
 
 def test_memory_binding_rejects_wrong_turn_before_generation(engine, monkeypatch):
@@ -331,7 +332,7 @@ def test_memory_binding_rejects_wrong_turn_before_generation(engine, monkeypatch
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator, protagonist='hero', role_exists=True)
+        stage_offline_interpretation(batch, binding, engine.registry, generator, protagonist='hero', role_exists=True)
 
 
 def test_memory_binding_rejects_wrong_role_before_generation(engine, monkeypatch):
@@ -343,7 +344,7 @@ def test_memory_binding_rejects_wrong_role_before_generation(engine, monkeypatch
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator, protagonist='hero', role_exists=True)
+        stage_offline_interpretation(batch, binding, engine.registry, generator, protagonist='hero', role_exists=True)
 
 
 def test_memory_binding_rejects_cross_batch_before_generation(engine, monkeypatch):
@@ -355,7 +356,34 @@ def test_memory_binding_rejects_cross_batch_before_generation(engine, monkeypatc
     generator = OfflineInterpretationGenerator('private')
     monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
     with pytest.raises(PermissionError):
-        stage_offline_interpretation(binding, engine.registry, generator, protagonist='hero', role_exists=True)
+        stage_offline_interpretation(right, binding, engine.registry, generator, protagonist='hero', role_exists=True)
+
+
+def test_memory_binding_rejects_valid_other_batch_before_generation(engine, monkeypatch):
+    engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    left, right = EventBatch(engine.store, turn=1), EventBatch(engine.store, turn=1)
+    for batch in (left, right):
+        batch.append(kernel_event('narration_recorded', day=1, scene='inn', summary='narration recorded', deltas={'text':'original'}, turn=1))
+    source = left.events[0]
+    binding = HostNarrationBinding(left, source, source['id'], left.turn, 'hero')
+    calls = []; generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda dto: calls.append(dto) or pytest.fail('generator called'))
+    before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
+    with pytest.raises(PermissionError):
+        stage_offline_interpretation(right, binding, engine.registry, generator, protagonist='hero', role_exists=True)
+    assert not calls and len(left.events) == len(right.events) == 1
+    assert left.publish_validators == right.publish_validators == [] and left.retractions == right.retractions == []
+    assert list(engine.store.iter_events(include_retracted=True)) == before and engine.store.revision == revision
+
+
+@pytest.mark.parametrize('binding', [None, {'batch': 'forged'}])
+def test_memory_binding_rejects_malformed_before_generation(engine, monkeypatch, binding):
+    engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    batch = EventBatch(engine.store, turn=1)
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    with pytest.raises(PermissionError):
+        stage_offline_interpretation(batch, binding, engine.registry, generator, protagonist='hero', role_exists=True)
 
 
 def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypatch):
