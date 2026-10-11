@@ -295,6 +295,12 @@ def test_rewind_retracts_memory_with_its_foreground_turn(engine, monkeypatch):
     before = list(engine.store.iter_events(include_retracted=True))
     seed_world = project(engine.registry, engine.store.iter_events())
     result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    narration = [e for e in result.events if e['type'] == 'narration_recorded']; memory = [e for e in result.events if e['type'] == 'character_interpretation_recorded']
+    assert len(narration) == len(memory) == 1 and narration[0]['turn'] == memory[0]['turn']
+    assert memory[0]['deltas']['source_event_id'] == narration[0]['id']
+    assert result.world['systems']['interpretive_memory']['by_actor']['hero']
+    receipts_before = [dict(row) for row in engine.store._conn.execute('SELECT * FROM action_receipts')]
+    assert len(receipts_before) == 1 and receipts_before[0]['action_id'] == result.receipt['action_id']
     turn = result.events[0]['turn']; receipt_count = engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0]
     rewind(engine, turn)
     history = list(engine.store.iter_events(include_retracted=True))
@@ -305,6 +311,7 @@ def test_rewind_retracts_memory_with_its_foreground_turn(engine, monkeypatch):
     assert project(engine.registry, engine.store.iter_events())['systems']['interpretive_memory']['by_actor'] == {}
     revision = engine.store.revision; db_path, jsonl_path = engine.store.db_path, engine.store.jsonl_path
     receipt_rows = [dict(row) for row in engine.store._conn.execute('SELECT * FROM action_receipts')]
+    assert receipt_rows == receipts_before
     engine.store.close(); reopened = EventStore(db_path, jsonl_path, engine.registry.event_types())
     try:
         replay = project(engine.registry, reopened.iter_events())
@@ -318,6 +325,24 @@ def test_rewind_retracts_memory_with_its_foreground_turn(engine, monkeypatch):
         assert mirror == list(reopened.iter_events(include_retracted=True))
     finally:
         reopened.close()
+
+
+def test_memory_turn_mirror_failure_recovers_without_replay(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    old_mirror = engine.store.jsonl_path.read_bytes() if engine.store.jsonl_path.exists() else b''
+    original = engine.store._rewrite_jsonl
+    monkeypatch.setattr(engine.store, '_rewrite_jsonl', lambda: (_ for _ in ()).throw(OSError('mirror down')))
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    events = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
+    receipts = [dict(row) for row in engine.store._conn.execute('SELECT * FROM action_receipts')]
+    assert result.receipt['mirror_pending'] and any(e['type'] == 'character_interpretation_recorded' for e in events)
+    assert (engine.store.jsonl_path.read_bytes() if engine.store.jsonl_path.exists() else b'') == old_mirror
+    monkeypatch.setattr(engine.store, '_rewrite_jsonl', original)
+    engine.store.sync_jsonl()
+    assert [json.loads(line) for line in engine.store.jsonl_path.read_text(encoding='utf-8').splitlines()] == events
+    assert list(engine.store.iter_events(include_retracted=True)) == events and engine.store.revision == revision
+    assert [dict(row) for row in engine.store._conn.execute('SELECT * FROM action_receipts')] == receipts
+    assert engine.store.mirror_error is None
 
 
 def test_failed_backstage_retraction_cannot_leak_out_of_batch_savepoint(engine, monkeypatch):
