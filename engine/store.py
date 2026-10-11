@@ -322,7 +322,7 @@ class EventBatch:
         # would make a later publish retract already-committed history even
         # though the hook itself was rolled back.  Keep the exact pre-savepoint
         # flags so nested savepoints can restore only their own mutations.
-        prior_retracted = [(ev, ev.get('retracted', False))
+        prior_retracted = [(ev, 'retracted' in ev, ev.get('retracted'))
                            for ev in self._snapshot + self.events]
         try:
             yield
@@ -332,8 +332,11 @@ class EventBatch:
             del self.events[start:]
             del self.retractions[retractions_start:]
             del self.publish_validators[validators_start:]
-            for ev, was_retracted in prior_retracted:
-                ev['retracted'] = was_retracted
+            for ev, had_retracted, was_retracted in prior_retracted:
+                if had_retracted:
+                    ev['retracted'] = was_retracted
+                else:
+                    ev.pop('retracted', None)
             raise
 
     def publish(self, *, action_id=None):

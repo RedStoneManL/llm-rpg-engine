@@ -40,6 +40,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | M3b-01 | P1 | 已验收（续玩输出隔离） | resume recap 不读取 opt-in 私有记忆 slice | real store→projection→`_print_resume_recap` 覆盖 active/retracted、当前/其他角色私有记录；其余出口未测 |
 | M4-01 | P1 | 已验收（离线宿主原子写入） | batch/source/output 绑定的私有解释写入 | 红例驱动修复后，stage/publish 双重绑定复验、savepoint rollback、篡改/跨生命周期拒绝通过；默认 app 禁用 |
 | M4-02 | P1 | 已验收（实际 payload 终检） | preflight 后的待插入副本不可绕过 M4 绑定 | `final_validate` 在同一 SQLite 事务内、preflight 之后、insert 之前校验；前台 source body 和私有 record 的 actor/source/type/id/turn 篡改均原子拒绝 |
+| M4-03 | P1 | 已验收（savepoint 表示保真） | 失败 hook 不得把缺失的 `retracted` 字段规范化为 `False` | savepoint 精确恢复字段存在性与值；缺键 source 的既有 memory writer/validator 在失败 hook 后仍可发布 |
 
 ## 执行规则
 
@@ -104,3 +105,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `b99c6c0dae8c17706ccd307d8f467ef050926732`，checkout clean，且记忆目标测试 27 passed。
   Library 的本执行台账保持同一 ID，更新至 v17；此前 Library materialization 403 的限制仍
   存在，不能把这次本地 bundle clone 说成已从 Library 下载恢复。
+- 2026-10-11（doc-only，代码冻结于 `8f27a52`）：复核临时离线测试环境时，最初的
+  `1747 passed, 1 skipped, 1 deselected` 中的唯一 skip 是既有 YAML blueprint 测试在
+  缺少可选 PyYAML 时触发的 `pytest.importorskip("yaml")`，不是本轮新增 skip、xfail 或
+  测试修改。仅向 `/tmp/llm-rpg-engine-testenv` 安装 PyYAML 6.0.3 后，目标 YAML 测试
+  `5 passed`，完整 offline gate 为 `1748 passed, 1 deselected`（16.80s）。唯一 deselect
+  是仓库初始便以 `slow` 标记排除的真实 embedding 测试，可能需要模型下载/网络；本轮未运行
+  或改动它。独立审查材料已另存 Library，M4 不因此记录为独立审查已通过。
+- 2026-10-11：独立审查提出手工合法 event 可省略 `retracted`，而 `EventBatch.savepoint()`
+  失败路径先前会无条件写回 `False`，从而改变写入前已有 memory source 的完整摘要并使其
+  validator 误拒绝。savepoint 现保存键是否存在及原值，异常时恢复该精确表示。红例覆盖缺键
+  source + savepoint 前已有 writer/validator + savepoint 内撤回失败后的正常 publish；控制例
+  覆盖缺键、显式 False、显式 True 以及 retraction/validator 列表。目标 29 passed，完整
+  offline gate `1750 passed, 1 deselected`（17.42s）。本切片没有接入 `run_turn`。

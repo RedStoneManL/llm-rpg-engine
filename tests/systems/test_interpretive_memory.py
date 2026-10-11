@@ -217,3 +217,49 @@ def test_memory_write_lifecycle_mutations_are_rejected(tmp_path, mutation):
         elif mutation == "store": batch.store = object()
         with pytest.raises(PermissionError): batch.publish(action_id="blocked")
         assert list(store.iter_events()) == [] and store.revision == 0
+
+
+def test_failed_savepoint_preserves_missing_retracted_for_existing_memory_writer(tmp_path):
+    """A pre-savepoint writer remains publishable when its source omits the flag."""
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl",
+                    {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store)
+        batch.append({"id": "manual-source", "type": "fact_asserted", "day": 1,
+                      "scene": "s", "actors": [], "summary": "source",
+                      "deltas": {"subject": "hero", "predicate": "mood", "value": "ok"},
+                      "turn": 1})
+        source = batch.events[0]
+        open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+        validators_before = list(batch.publish_validators)
+        with pytest.raises(RuntimeError):
+            with batch.savepoint():
+                batch.retract_from_turn(1)
+                raise RuntimeError("failed backstage hook")
+        assert "retracted" not in source
+        assert batch.events[1]["retracted"] is False
+        assert batch.retractions == [] and batch.publish_validators == validators_before
+        batch.publish(action_id="missing-retracted-source")
+        assert len(list(store.iter_events())) == 2
+
+
+def test_failed_savepoint_restores_retracted_field_presence_and_value(tmp_path):
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted"}) as store:
+        batch = EventBatch(store)
+        def source(event_id, retracted):
+            event = {"id": event_id, "type": "fact_asserted", "day": 1, "scene": "s",
+                     "actors": [], "summary": event_id, "deltas": {}, "turn": 1}
+            if retracted is not None:
+                event["retracted"] = retracted
+            return event
+        batch.append(source("missing", None))
+        batch.append(source("false", False))
+        batch.append(source("true", True))
+        with pytest.raises(RuntimeError):
+            with batch.savepoint():
+                batch.retract_from_turn(1)
+                raise RuntimeError("failed backstage hook")
+        assert "retracted" not in batch.events[0]
+        assert batch.events[1]["retracted"] is False
+        assert batch.events[2]["retracted"] is True
+        assert batch.retractions == [] and batch.publish_validators == []
