@@ -1,12 +1,15 @@
+import asyncio
 import pytest
 
 from app.engine import build_engine
 from engine.store import EventStore
+from engine.store import EventBatch
 from kernel.events import kernel_event
 from kernel.projection import project
 from kernel.registry import Registry
 from systems.interpretive_memory import (InterpretiveMemorySystem, records_for_actor,
                                          open_memory_read_session)
+from systems.interpretive_memory import open_memory_write_session
 
 
 def _registry():
@@ -88,3 +91,104 @@ def test_default_model_tool_registry_cannot_issue_or_read_memory_handles(tmp_pat
         assert not any("memory" in name for name in tools._tools)
     finally:
         engine.store.close()
+
+
+def test_host_write_session_requires_unchanged_current_batch_source(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl",
+                    {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store)
+        source = kernel_event("fact_asserted", day=1, scene="inn", summary="source",
+            deltas={"subject":"hero", "predicate":"mood", "value":"calm"}, turn=1)
+        batch.append(source)
+        source = batch.events[0]
+        writer = open_memory_write_session(batch, registry, "hero", source)
+        writer.stage("host interpretation", "m1")
+        assert [e["type"] for e in batch.events] == ["fact_asserted", "character_interpretation_recorded"]
+        batch.publish(action_id="memory-write")
+        assert len(list(store.iter_events())) == 2
+
+
+def test_host_write_session_rejects_changed_or_cross_batch_source(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl",
+                    {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store)
+        source = kernel_event("fact_asserted", day=1, scene="inn", summary="source",
+            deltas={"subject":"hero", "predicate":"mood", "value":"calm"}, turn=1)
+        batch.append(source); source = batch.events[0]
+        writer = open_memory_write_session(batch, registry, "hero", source)
+        source["summary"] = "tampered"
+        with pytest.raises(PermissionError): writer.stage("x", "m1")
+        assert len(batch.events) == 1
+        with pytest.raises(PermissionError):
+            open_memory_write_session(EventBatch(store), registry, "hero", source)
+
+
+def test_memory_publish_rechecks_source_and_keeps_store_unchanged(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]
+        open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+        source["summary"] = "tampered"
+        with pytest.raises(PermissionError): batch.publish(action_id="bad")
+        assert list(store.iter_events()) == [] and store.revision == 0
+
+
+@pytest.mark.parametrize("exc", [RuntimeError, asyncio.CancelledError])
+def test_memory_stage_savepoint_rollback_removes_validator(tmp_path, exc):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]
+        with pytest.raises(exc):
+            with batch.savepoint():
+                open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+                raise exc()
+        assert len(batch.events) == 1 and batch.publish_validators == []
+        batch.publish(action_id="ordinary")
+        assert len(list(store.iter_events())) == 1
+
+
+def test_preflight_mutation_cannot_bypass_memory_final_validation(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]
+        open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+        def mutate(history): source["summary"] = "changed-by-preflight"
+        batch.preflight = mutate
+        with pytest.raises(PermissionError): batch.publish(action_id="blocked")
+        assert list(store.iter_events()) == [] and store.revision == 0
+
+
+def test_original_preflight_error_is_not_masked_by_memory_validator(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]
+        open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+        batch.preflight = lambda history: (_ for _ in ()).throw(RuntimeError("original preflight"))
+        with pytest.raises(RuntimeError, match="original preflight"): batch.publish(action_id="blocked")
+        assert list(store.iter_events()) == [] and store.revision == 0
+
+
+@pytest.mark.parametrize("mutation", ["text", "actor", "source", "remove_source", "retract_source", "turn", "revision", "registry", "store"])
+def test_memory_write_lifecycle_mutations_are_rejected(tmp_path, mutation):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]; writer = open_memory_write_session(batch, registry, "hero", source); writer.stage("private", "m1")
+        record = batch.events[-1]
+        if mutation == "text": record["deltas"]["text"] = "changed"
+        elif mutation == "actor": record["deltas"]["actor"] = "npc"
+        elif mutation == "source": record["deltas"]["source_event_id"] = "other"
+        elif mutation == "remove_source": batch.events.remove(source)
+        elif mutation == "retract_source": source["retracted"] = True
+        elif mutation == "turn": batch.turn += 1
+        elif mutation == "revision": batch.revision += 1
+        elif mutation == "registry": writer.registry = Registry()
+        elif mutation == "store": batch.store = object()
+        with pytest.raises(PermissionError): batch.publish(action_id="blocked")
+        assert list(store.iter_events()) == [] and store.revision == 0

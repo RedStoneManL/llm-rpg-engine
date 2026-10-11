@@ -6,6 +6,8 @@ application registry does not register it.  Reading is actor-scoped through
 ``records_for_actor`` and never uses ``inject`` or ``recall``.
 """
 from __future__ import annotations
+import hashlib
+import json
 
 from kernel.contextsystem import ContextSystem
 from engine.log import get_logger
@@ -65,6 +67,58 @@ class MemoryReadSession:
 def open_memory_read_session(world: dict, store, role: str) -> MemoryReadSession:
     """Trusted host factory; intentionally not wired into model tools or app defaults."""
     return MemoryReadSession(world, store, role)
+
+
+class MemoryWriteSession:
+    """Trusted-host staging adapter bound to one foreground EventBatch."""
+    def __init__(self, batch, registry, role: str, source_event: dict):
+        self.batch, self.registry, self.role = batch, registry, role
+        self.registry_identity = registry
+        self.store, self.revision, self.turn = batch.store, batch.revision, batch.turn
+        self.source_id = source_event.get("id")
+        self.source_digest = _event_digest(source_event)
+
+    def _verify_binding(self):
+        if (self.batch.store is not self.store or self.registry is not self.registry_identity
+                or self.batch.revision != self.revision or self.batch.turn != self.turn):
+            raise PermissionError("memory write session no longer matches batch")
+
+    def stage(self, text: str, memory_id: str):
+        self._verify_binding()
+        source = next((e for e in self.batch.events if e.get("id") == self.source_id), None)
+        if (source is None or source.get("retracted") or source.get("type") == "character_interpretation_recorded"
+                or _event_digest(source) != self.source_digest):
+            raise PermissionError("memory source is missing, retracted, or changed")
+        if self.registry.owner_of_event("character_interpretation_recorded") is None:
+            raise PermissionError("interpretive memory is not enabled for this registry")
+        def verify_before_publish():
+            self._verify_binding()
+            source_now = next((e for e in self.batch.events if e.get("id") == self.source_id), None)
+            if source_now is None or source_now.get("retracted") or _event_digest(source_now) != self.source_digest:
+                raise PermissionError("memory source changed before publish")
+        from kernel.events import kernel_event
+        record = kernel_event("character_interpretation_recorded", day=source["day"], scene=source["scene"],
+            summary="private character interpretation", deltas={"actor":self.role, "text":text,
+            "memory_id":memory_id, "source_event_id":self.source_id}, turn=self.turn)
+        self.batch.append(record)
+        record = self.batch.events[-1]
+        record_digest = _event_digest(record)
+        def verify_record():
+            if record not in self.batch.events or _event_digest(record) != record_digest:
+                raise PermissionError("memory record changed before publish")
+        self.batch.add_publish_validator(verify_before_publish)
+        self.batch.add_publish_validator(verify_record)
+
+
+def _event_digest(event):
+    return hashlib.sha256(json.dumps(event, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
+
+
+def open_memory_write_session(batch, registry, role: str, source_event: dict) -> MemoryWriteSession:
+    """Trusted host factory; source must already be staged in this batch."""
+    if not isinstance(role, str) or not role or source_event not in batch.events:
+        raise PermissionError("host must bind a current staged source and role")
+    return MemoryWriteSession(batch, registry, role, source_event)
 
 
 class InterpretiveMemorySystem(ContextSystem):

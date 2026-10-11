@@ -254,6 +254,7 @@ class EventBatch:
         self.db_path, self.jsonl_path = store.db_path, store.jsonl_path
         self.turn = turn if turn is not None else max((e.get('turn') or 0 for e in self._snapshot if not e.get('retracted')), default=0) + 1
         self.preflight = preflight or store.preflight
+        self.publish_validators = []
         self._last_seq = max((e.get('seq') or 0 for e in self._snapshot), default=0)
 
     def next_turn(self):
@@ -292,6 +293,9 @@ class EventBatch:
                 'last_seq': self._last_seq + len(self.events) if len(self.events)>start else 0,
                 'revision': self.revision, 'duplicate': False, 'mirror_pending': False}
 
+    def add_publish_validator(self, validator):
+        self.publish_validators.append(validator)
+
     def iter_events(self, include_retracted=False):
         for ev in self._snapshot + self.events:
             if include_retracted or not ev.get('retracted'):
@@ -301,6 +305,7 @@ class EventBatch:
     def savepoint(self):
         start = len(self.events)
         retractions_start = len(self.retractions)
+        validators_start = len(self.publish_validators)
         # A hook may stage a rewind as well as append events.  Both are part of
         # its proposal: if the hook fails, leaving the retraction intent behind
         # would make a later publish retract already-committed history even
@@ -315,12 +320,21 @@ class EventBatch:
         except BaseException:
             del self.events[start:]
             del self.retractions[retractions_start:]
+            del self.publish_validators[validators_start:]
             for ev, was_retracted in prior_retracted:
                 ev['retracted'] = was_retracted
             raise
 
     def publish(self, *, action_id=None):
+        for validator in self.publish_validators:
+            validator()
+        original_preflight = self.preflight
+        def final_preflight(history):
+            if original_preflight:
+                original_preflight(history)
+            for validator in self.publish_validators:
+                validator()
         events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
         return self.store.append_many(events, expected_revision=self.revision,
-                                      action_id=action_id, preflight=self.preflight,
+                                      action_id=action_id, preflight=final_preflight,
                                       retractions=self.retractions)
