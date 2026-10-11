@@ -29,7 +29,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | ID | 优先级 | 状态 | 根因与下一动作 | 验收 |
 | --- | --- | --- | --- | --- |
 | RCV-01 | P0 | 已验收 | 清除 trace CLI 测试中的旧绝对 checkout 假设 | `tests/app/test_trace_view.py` 38 passed；完整 gate 1712 passed / 1 deselected（16.66s） |
-| RCV-02 | P0 | 排队 | 对 `run_turn`/`EventBatch`/后台 hooks 做实际原子性与 owner 拒绝审计 | 正反例覆盖发布前拒绝、后台失败局部回滚、整 turn 撤回与重开 replay |
+| RCV-02 | P0 | 执行中（savepoint 切片已验收） | 对 `run_turn`/`EventBatch`/后台 hooks 做实际原子性与 owner 拒绝审计 | 已覆盖后台失败撤回与嵌套 savepoint；仍需 owner fail-closed 与重开/replay 审计 |
 | RCV-03 | P1 | HOLD | 角色解释性记忆恢复 | 仅在离线 provider/temp DB 下，证明同角色读取、跨角色隔离、冷启动、异常/取消回滚、replay；此前默认禁用 |
 | RCV-04 | P1 | 排队 | 摘要/recap 与事实权威边界 | 摘要后台失败不污染事实或已提交回合；公开/GM/CLI 不泄漏私有文本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
@@ -51,3 +51,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `PermissionError: /root/rpg-engine-app` 全部消除；目标文件 38 passed，完整 gate
   `1712 passed, 1 deselected`。下一项为 RCV-02，不把这次测试可移植性修复表述为
   回合/记忆架构已恢复。
+- 2026-10-11：RCV-02 审计发现 `EventBatch.savepoint()` 没有回滚 savepoint 内的
+  `retractions`，使失败后台钩子可能在最终 publish 时撤回早已提交的 turn。现保存
+  savepoint 前的撤回意图和事件标记，异常时一并恢复；针对性 59 passed、完整 gate
+  `1714 passed, 1 deselected`。这只关闭 savepoint 的局部原子性缺口，owner
+  fail-closed、重开和完整 replay 尚待审计。

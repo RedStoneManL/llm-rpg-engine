@@ -300,12 +300,23 @@ class EventBatch:
     @contextmanager
     def savepoint(self):
         start = len(self.events)
+        retractions_start = len(self.retractions)
+        # A hook may stage a rewind as well as append events.  Both are part of
+        # its proposal: if the hook fails, leaving the retraction intent behind
+        # would make a later publish retract already-committed history even
+        # though the hook itself was rolled back.  Keep the exact pre-savepoint
+        # flags so nested savepoints can restore only their own mutations.
+        prior_retracted = [(ev, ev.get('retracted', False))
+                           for ev in self._snapshot + self.events]
         try:
             yield
             if self.preflight and len(self.events) != start:
                 self.preflight(list(self.iter_events()))
         except BaseException:
             del self.events[start:]
+            del self.retractions[retractions_start:]
+            for ev, was_retracted in prior_retracted:
+                ev['retracted'] = was_retracted
             raise
 
     def publish(self, *, action_id=None):

@@ -127,6 +127,52 @@ def test_backstage_failure_drops_only_its_partial_proposal_and_keeps_narration(e
     assert not any(e['type']=='narration_recorded' for e in engine.store.iter_events())
 
 
+def test_failed_backstage_retraction_cannot_leak_out_of_batch_savepoint(engine, monkeypatch):
+    """A failed hook may not leave a deferred rewind behind for publish()."""
+    quiet(monkeypatch)
+    engine.store.append(kernel_event(
+        'fact_asserted', day=1, scene='inn', summary='prior committed turn',
+        deltas={'subject':'hero', 'predicate':'coins', 'value':8}, turn=1,
+    ))
+    history_before = list(engine.store.iter_events(include_retracted=True))
+
+    def broken(registry, store, *args, **kwargs):
+        store.retract_from_turn(1)
+        raise RuntimeError('rollback after staging a rewind')
+
+    monkeypatch.setattr('loop.turn.digest_fleet', broken)
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '查看酒馆',
+                      strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]))
+
+    persisted = list(engine.store.iter_events(include_retracted=True))
+    assert persisted[len(history_before) - 1] == history_before[-1]
+    assert persisted[len(history_before) - 1]['retracted'] is False
+    assert any(ev['type'] == 'narration_recorded' for ev in result.events)
+
+
+def test_nested_failed_savepoint_restores_only_its_own_retraction_intent(engine):
+    """An inner hook failure does not erase its caller's valid staged work."""
+    engine.store.append(kernel_event(
+        'fact_asserted', day=1, scene='inn', summary='prior committed turn',
+        deltas={'subject':'hero', 'predicate':'coins', 'value':8}, turn=1,
+    ))
+    batch = EventBatch(engine.store)
+    batch.append(event(subject='hero', predicate='coins', value=7))
+    with batch.savepoint():
+        try:
+            with batch.savepoint():
+                batch.retract_from_turn(1)
+                raise RuntimeError('inner hook failed')
+        except RuntimeError:
+            pass
+        batch.append(event(subject='hero', predicate='coins', value=6))
+
+    assert batch.retractions == []
+    receipt = batch.publish(action_id='nested-savepoint')
+    assert receipt['revision'] == engine.store.revision
+    assert all(not ev['retracted'] for ev in engine.store.iter_events(include_retracted=True))
+
+
 def test_required_sections_and_invalid_id_shapes_are_repairable(engine):
     incomplete = TurnCommit('hello', {'clock':commit()['clock']})
     errors = validate_commit(engine.registry,incomplete,engine.world,required_sections=REQUIRED_SECTIONS)
