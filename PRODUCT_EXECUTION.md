@@ -39,6 +39,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | M3-01 | P1 | 已验收（新公开历史 API） | 完整历史的私有记忆过滤 DTO | `Engine.public_history()` 过滤 active/retracted 私有行及显式引用；既有 CLI/GUI/GM/raw-store 未接入 |
 | M3b-01 | P1 | 已验收（续玩输出隔离） | resume recap 不读取 opt-in 私有记忆 slice | real store→projection→`_print_resume_recap` 覆盖 active/retracted、当前/其他角色私有记录；其余出口未测 |
 | M4-01 | P1 | 已验收（离线宿主原子写入） | batch/source/output 绑定的私有解释写入 | 红例驱动修复后，stage/publish 双重绑定复验、savepoint rollback、篡改/跨生命周期拒绝通过；默认 app 禁用 |
+| M4-02 | P1 | 已验收（实际 payload 终检） | preflight 后的待插入副本不可绕过 M4 绑定 | `final_validate` 在同一 SQLite 事务内、preflight 之后、insert 之前校验；前台 source body 和私有 record 的 actor/source/type/id/turn 篡改均原子拒绝 |
 
 ## 执行规则
 
@@ -87,3 +88,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   历史重放的结构签名都回到 pre-turn world，且撤回标记原样保留。针对性 41 passed，
   完整 gate `1716 passed, 1 deselected`。RCV-02 以当前已注册后台机制为范围验收；
   将来新后台类型必须重跑相同原子性矩阵。
+- 2026-10-11：M4 的独立源码顺序审查发现，旧的 publish validator 只检查
+  `EventBatch.events`，而 `EventStore.append_many()` 会在 preflight 前深拷贝输入；因此
+  preflight 可以改动真实待插入副本而不改变 batch。新增 `final_validate(events)`：它在同一
+  SQLite transaction 内、preflight 后、任何 insert 前取得精确复制 payload。记忆写入同时
+  固定 batch 视图摘要和去除临时 `seq` 的发布视图摘要。六个红例分别修改 source body 及
+  private record 的 actor/source/type/id/turn，并确认 events、revision、action receipt 和
+  JSONL mirror 均未变化。目标 27 passed；完整 gate `1747 passed, 1 skipped, 1 deselected`
+  （17.29s）。这不会启用默认 app 或将记忆变成事实/权限权威。

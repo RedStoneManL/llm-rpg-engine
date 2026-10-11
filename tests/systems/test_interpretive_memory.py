@@ -174,6 +174,31 @@ def test_original_preflight_error_is_not_masked_by_memory_validator(tmp_path):
         assert list(store.iter_events()) == [] and store.revision == 0
 
 
+@pytest.mark.parametrize("target,path,value", [
+    ("source", ("deltas", "value"), "changed"),
+    ("record", ("deltas", "actor"), "npc"),
+    ("record", ("deltas", "source_event_id"), "other"),
+    ("record", ("type",), "fact_asserted"),
+    ("record", ("id",), "changed-id"),
+    ("record", ("turn",), 99),
+])
+def test_preflight_payload_mutation_is_rejected_atomically(tmp_path, target, path, value):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", {"fact_asserted", "character_interpretation_recorded"}) as store:
+        batch = EventBatch(store); source = kernel_event("fact_asserted", day=1, scene="s", summary="source", deltas={"subject":"hero","predicate":"mood","value":"ok"}, turn=1)
+        batch.append(source); source = batch.events[0]; open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
+        def mutate(history):
+            event = history[0 if target == "source" else 1]
+            for key in path[:-1]:
+                event = event[key]
+            event[path[-1]] = value
+        batch.preflight = mutate
+        with pytest.raises(PermissionError): batch.publish(action_id="payload-mutation")
+        assert list(store.iter_events(include_retracted=True)) == [] and store.revision == 0
+        assert store._conn.execute("SELECT COUNT(*) FROM action_receipts").fetchone()[0] == 0
+        assert not (tmp_path / "events.jsonl").exists()
+
+
 @pytest.mark.parametrize("mutation", ["text", "actor", "source", "remove_source", "retract_source", "turn", "revision", "registry", "store"])
 def test_memory_write_lifecycle_mutations_are_rejected(tmp_path, mutation):
     registry = _registry()

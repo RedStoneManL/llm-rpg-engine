@@ -73,11 +73,14 @@ class EventStore:
             self._conn.rollback()
             raise
 
-    def append_many(self, events, *, expected_revision=None, action_id=None, preflight=None, retractions=()):
+    def append_many(self, events, *, expected_revision=None, action_id=None,
+                    preflight=None, final_validate=None, retractions=()):
         """Publish a complete proposal atomically; JSONL is a recoverable mirror.
 
         All LLM work belongs before this short transaction. The preflight callback
         folds the entire prospective history and must perform no external I/O.
+        ``final_validate`` receives the exact, copied event payload after
+        preflight and before insertion, while the SQLite transaction is open.
         """
         events = copy.deepcopy(list(events))
         for ev in events:
@@ -107,6 +110,8 @@ class EventStore:
             check = preflight or self.preflight
             if check is not None:
                 check(list(self.iter_events()) + events)
+            if final_validate is not None:
+                final_validate(events)
             first = last = 0
             for ev in events:
                 last = self._insert(ev)
@@ -294,6 +299,12 @@ class EventBatch:
                 'revision': self.revision, 'duplicate': False, 'mirror_pending': False}
 
     def add_publish_validator(self, validator):
+        """Register a validator for the exact event payload about to publish.
+
+        Validators receive a list of payload dictionaries without transient
+        ``seq`` fields.  They run once before publication and again after the
+        preflight callback has seen the store's copied payload.
+        """
         self.publish_validators.append(validator)
 
     def iter_events(self, include_retracted=False):
@@ -326,15 +337,20 @@ class EventBatch:
             raise
 
     def publish(self, *, action_id=None):
+        events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
         for validator in self.publish_validators:
-            validator()
+            validator(events)
         original_preflight = self.preflight
+
         def final_preflight(history):
             if original_preflight:
                 original_preflight(history)
+
+        def final_validate(events):
             for validator in self.publish_validators:
-                validator()
-        events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
+                validator(events)
+
         return self.store.append_many(events, expected_revision=self.revision,
                                       action_id=action_id, preflight=final_preflight,
+                                      final_validate=final_validate,
                                       retractions=self.retractions)
