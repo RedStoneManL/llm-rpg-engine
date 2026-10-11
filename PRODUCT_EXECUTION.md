@@ -96,3 +96,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   private record 的 actor/source/type/id/turn，并确认 events、revision、action receipt 和
   JSONL mirror 均未变化。目标 27 passed；完整 gate `1747 passed, 1 skipped, 1 deselected`
   （17.29s）。这不会启用默认 app 或将记忆变成事实/权限权威。
+- 2026-10-11：M4-02 提交 `05ec5648e64cbe6e045a047844fedcd8e4551c6e` 后生成完整历史
+  bundle（SHA-256 `e9f2e51cc4ca20023e8afda0e75a76bf34582e21d4fec3655c70bb3c1dd044b9`）及
+  source archive（SHA-256 `75cb1aafcd12eb9a3db02b0d2d254a52090046952fb78a908a6840ada68505aa`），
+  并保存到 Library。全新临时目录从该 bundle clone 后，HEAD 与 tree 分别为
+  `05ec5648e64cbe6e045a047844fedcd8e4551c6e` 与
+  `b99c6c0dae8c17706ccd307d8f467ef050926732`，checkout clean，且记忆目标测试 27 passed。
+  Library 的本执行台账保持同一 ID，更新至 v17；此前 Library materialization 403 的限制仍
+  存在，不能把这次本地 bundle clone 说成已从 Library 下载恢复。

@@ -52,3 +52,23 @@ not change project dependencies or call a model provider.
 
 The skipped test and deselection are inherited pytest marker configuration; no
 test was deleted, skipped, or xfailed for this repair.
+
+## Recovery checkpoint
+
+The committed repair was `05ec5648e64cbe6e045a047844fedcd8e4551c6e` with
+tree `b99c6c0dae8c17706ccd307d8f467ef050926732`. A complete-history bundle
+was verified with `git bundle verify`, then cloned into a new temporary
+directory with no pre-existing repository. The clone was clean at the same
+commit and tree, and rerunning its memory test yielded `27 passed`.
+
+Artifact hashes before the documentation-only checkpoint that records this
+result:
+
+```text
+e9f2e51cc4ca20023e8afda0e75a76bf34582e21d4fec3655c70bb3c1dd044b9  llm-rpg-engine-05ec564-full.bundle
+75cb1aafcd12eb9a3db02b0d2d254a52090046952fb78a908a6840ada68505aa  llm-rpg-engine-05ec564-source.tar.gz
+```
+
+Both source artifacts and this evidence were saved to Library. The existing
+Library retrieval path has previously returned HTTP 403, so this proves local
+bundle recovery, not a download from Library.
