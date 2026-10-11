@@ -81,6 +81,29 @@ def test_bad_event_is_rejected_before_it_can_poison_reopen(engine):
     assert project(engine.registry, engine.store.iter_events())['systems']['ontology'].value_at('hero','coins',1) == 10
 
 
+def test_apply_turn_rejects_unowned_sections_before_any_owner_runs(engine, monkeypatch):
+    calls = []
+    owner = engine.registry.owner_of_section('facts')
+    original = owner.to_events
+
+    def record(*args, **kwargs):
+        calls.append(args[0])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(owner, 'to_events', record)
+    before = list(engine.store.iter_events())
+    proposed = TurnCommit('plain prose', {
+        'facts': [{'subject':'hero', 'predicate':'coins', 'value':7, 'secrecy':'public'}],
+        'missing_owner': [],
+    })
+
+    with pytest.raises(TurnRejected, match='missing_owner'):
+        apply_turn(engine.registry, engine.store, proposed, day=1, scene='inn')
+
+    assert calls == []
+    assert list(engine.store.iter_events()) == before
+
+
 def test_mirror_failure_is_a_saved_receipt_and_retry_is_idempotent(engine, monkeypatch):
     def broken():
         raise OSError('mirror disk unavailable')

@@ -265,12 +265,28 @@ def apply_turn(
     """
     turn_num = _next_turn(store)
 
+    # `apply_turn` is public and some callers use it without `produce_turn`.
+    # Do the ownership check before asking *any* system to materialize events:
+    # skipping an unknown section would make a model-declared effect silently
+    # disappear, while checking during iteration could produce a partial local
+    # proposal before the error is reported.  Normal run_turn callers already
+    # receive the same diagnosis from validate_commit; this is the durable
+    # boundary for direct callers too.
+    unowned_sections = sorted(
+        section for section in commit.sections
+        if registry.owner_of_section(section) is None
+    )
+    if unowned_sections:
+        raise TurnRejected(
+            'No registered owner for commit section(s): ' + ', '.join(unowned_sections)
+        )
+
     events: list[dict] = []
     for section, decl in commit.sections.items():
         owner = registry.owner_of_section(section)
-        if owner is None:
-            log.warning("apply_turn: no owner for section=%r (skipped)", section)
-            continue
+        # The preflight above establishes this invariant; keep the assertion
+        # explicit so a future Registry change cannot reintroduce silent loss.
+        assert owner is not None
         section_events = owner.to_events(section, decl,
                                          turn=turn_num, day=day, scene=scene)
         events.extend(section_events)
