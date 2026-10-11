@@ -8,8 +8,12 @@ covers the entry-point to satisfy the end-to-end requirement.
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
+
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -27,14 +31,16 @@ def _run(path, *args, env=None):
     """Invoke python -m app.trace via subprocess (end-to-end)."""
     import os
     e = dict(os.environ)
-    e["PYTHONPATH"] = "/root/rpg-engine-app"
+    project_path = str(_PROJECT_ROOT)
+    inherited = e.get("PYTHONPATH")
+    e["PYTHONPATH"] = project_path if not inherited else os.pathsep.join((project_path, inherited))
     if env:
         e.update(env)
     return subprocess.run(
         [sys.executable, "-m", "app.trace", str(path), *args],
         capture_output=True,
         text=True,
-        cwd="/root/rpg-engine-app",
+        cwd=_PROJECT_ROOT,
         env=e,
     )
 
@@ -108,9 +114,9 @@ FIXTURE_RECS = [
 def _import_trace():
     import importlib
     import sys as _sys
-    # ensure /root/rpg-engine-app is on the path
-    if "/root/rpg-engine-app" not in _sys.path:
-        _sys.path.insert(0, "/root/rpg-engine-app")
+    project_path = str(_PROJECT_ROOT)
+    if project_path not in _sys.path:
+        _sys.path.insert(0, project_path)
     return importlib.import_module("app.trace")
 
 

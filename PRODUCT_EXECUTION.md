@@ -1,0 +1,53 @@
+# RPG 产品与持续开发执行追踪
+
+最后核对：2026-10-11 UTC。本文是当前仓库恢复工作的唯一执行入口；历史
+Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。
+
+## 可复现基线
+
+- 当前仓库：本地分支 `work`，HEAD `6b544111a1b0e26fbc232ba0dcb3df33e92b8dbb`。
+- 没有恢复到历史报告中的 `9928c1d2`，也没有 `AGENTS.md`、PreparedTurn、
+  专用角色解释记忆或 GUI 子项目实现；不得把历史的 6133 通过当作本基线结果。
+- 初次全量离线 gate（2026-10-11）：`PYTHONPATH=/tmp/llm-rpg-test-deps:. python -m pytest`
+  得到 **1705 passed、7 failed、1 deselected**。失败均为 `tests/app/test_trace_view.py`
+  将子进程 cwd/PYTHONPATH 固定为失效的旧绝对路径 `/root/rpg-engine-app`；原始失败
+  应保留到该根因修复后的回归记录中。
+- 测试依赖仅临时安装在 `/tmp/llm-rpg-test-deps`；没有调用付费模型、没有远程 push。
+
+## 当前能力与缺口
+
+| 区域 | 已从源码核对的能力 | 未验收/缺口 |
+| --- | --- | --- |
+| 回合持久化 | `EventBatch` 在最终 SQLite publish 时做 revision/preflight/整批事务，撤回按 turn 保留历史 | 仍需审计所有后台写入是否共享同一批次，及失败/取消/重开完整回放 |
+| 事实和投影 | Registry 为事件与 commit section 指定单一 owner；projection 忽略 retracted events | 未拥有事件仅 debug 后忽略；须明确何处应 fail-closed，避免静默丢失 |
+| 叙事与摘要 | narration、digest/recap 与 `working_memory` 已有旧实现 | 需验证摘要失败的局部性、回放一致性以及摘要不作为事实权威 |
+| 可见性和记忆 | 旧 POV/knowledge 过滤与 recall 模块存在 | 没有历史所述的私有角色解释记忆入口、隔离存储、冷启动/replay/retraction 验收；默认不启用新记忆 |
+| 前端/运维 | CLI、trace viewer、portable handoff 存在 | 没有可核对的 GUI 实现；测试仍残留旧工作区路径 |
+
+## 工作队列
+
+| ID | 优先级 | 状态 | 根因与下一动作 | 验收 |
+| --- | --- | --- | --- | --- |
+| RCV-01 | P0 | 已验收 | 清除 trace CLI 测试中的旧绝对 checkout 假设 | `tests/app/test_trace_view.py` 38 passed；完整 gate 1712 passed / 1 deselected（16.66s） |
+| RCV-02 | P0 | 排队 | 对 `run_turn`/`EventBatch`/后台 hooks 做实际原子性与 owner 拒绝审计 | 正反例覆盖发布前拒绝、后台失败局部回滚、整 turn 撤回与重开 replay |
+| RCV-03 | P1 | HOLD | 角色解释性记忆恢复 | 仅在离线 provider/temp DB 下，证明同角色读取、跨角色隔离、冷启动、异常/取消回滚、replay；此前默认禁用 |
+| RCV-04 | P1 | 排队 | 摘要/recap 与事实权威边界 | 摘要后台失败不污染事实或已提交回合；公开/GM/CLI 不泄漏私有文本 |
+| RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
+
+## 执行规则
+
+- 每一个完成且已验收的小阶段做本地 git commit；禁止 remote push/PR。
+- 每个关键检查点保存 git bundle、源码版本和测试证据到 Library；临时磁盘不算交付。
+- 新记忆不得成为事实、权限或发布权威。缺少 owner 的生产写入必须在调用前拒绝，不能靠投影层忽略。
+- 不能删除合理失败测试、扩大 skip/xfail 或只针对样例加分支。所有测试结果都注明 commit、命令与实际结果。
+
+## 本轮记录
+
+- 2026-10-11：环境恢复后核对 Library `PRODUCT_EXECUTION.md` v7；它描述的
+  `9928c1d2` 不存在于当前 repository。创建本台账，先恢复可移植的真实全套 gate，
+  然后进入 RCV-02 原子性审计。
+- 2026-10-11：RCV-01 将 trace subprocess 的 cwd 与 `PYTHONPATH` 从旧机器路径改为
+  测试文件推导的仓库根目录，并保留继承的 `PYTHONPATH`。先前完整 gate 的 7 项
+  `PermissionError: /root/rpg-engine-app` 全部消除；目标文件 38 passed，完整 gate
+  `1712 passed, 1 deselected`。下一项为 RCV-02，不把这次测试可移植性修复表述为
+  回合/记忆架构已恢复。
