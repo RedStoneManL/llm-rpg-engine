@@ -5,7 +5,8 @@ from engine.store import EventStore
 from kernel.events import kernel_event
 from kernel.projection import project
 from kernel.registry import Registry
-from systems.interpretive_memory import InterpretiveMemorySystem, records_for_actor
+from systems.interpretive_memory import (InterpretiveMemorySystem, records_for_actor,
+                                         open_memory_read_session)
 
 
 def _registry():
@@ -51,3 +52,21 @@ def test_opt_in_memory_replays_after_reopen_and_retraction(tmp_path):
         world = project(registry, reopened.iter_events())
         assert records_for_actor(world, "hero") == []
         assert list(reopened.iter_events(include_retracted=True))[0]["retracted"] is True
+
+
+def test_host_handle_is_bound_to_exact_world_store_role_and_lifecycle(tmp_path):
+    registry = _registry()
+    with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl", registry.event_types()) as store:
+        store.append_many([_memory("hero", "hero only", memory_id="m1"),
+                           _memory("npc", "npc only", memory_id="m2")])
+        world = project(registry, store.iter_events())
+        session = open_memory_read_session(world, store, "hero")
+        handle = session.issue_handle()
+        assert [r["text"] for r in session.read(handle, world, store)] == ["hero only"]
+        with pytest.raises(PermissionError):
+            session.read(object(), world, store)
+        with pytest.raises(PermissionError):
+            session.read(handle, project(registry, store.iter_events()), store)
+        session.close()
+        with pytest.raises(PermissionError):
+            session.read(handle, world, store)

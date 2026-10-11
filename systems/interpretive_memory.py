@@ -13,6 +13,37 @@ from engine.log import get_logger
 log = get_logger("systems.interpretive_memory")
 
 
+class MemoryReadSession:
+    """Trusted-host-only binding for one in-memory world/store/role session."""
+    def __init__(self, world: dict, store, role: str):
+        if not isinstance(role, str) or not role:
+            raise ValueError("role must be a non-empty host-selected id")
+        self._world, self._store, self._role = world, store, role
+        self._closed = False
+        self._handles: set[object] = set()
+
+    def issue_handle(self):
+        if self._closed:
+            raise RuntimeError("memory read session is closed")
+        handle = object()
+        self._handles.add(handle)
+        return handle
+
+    def close(self):
+        self._closed = True
+        self._handles.clear()
+
+    def read(self, handle, world: dict, store) -> list[dict]:
+        if self._closed or world is not self._world or store is not self._store or handle not in self._handles:
+            raise PermissionError("invalid or revoked interpretive-memory handle")
+        return records_for_actor(world, self._role)
+
+
+def open_memory_read_session(world: dict, store, role: str) -> MemoryReadSession:
+    """Trusted host factory; intentionally not wired into model tools or app defaults."""
+    return MemoryReadSession(world, store, role)
+
+
 class InterpretiveMemorySystem(ContextSystem):
     """Private, replayable interpretations with no commit section."""
 
