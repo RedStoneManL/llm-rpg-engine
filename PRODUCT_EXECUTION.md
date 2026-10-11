@@ -34,6 +34,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-03 | P1 | HOLD | 角色解释性记忆恢复 | 仅在离线 provider/temp DB 下，证明同角色读取、跨角色隔离、冷启动、异常/取消回滚、replay；此前默认禁用 |
 | RCV-04 | P1 | 排队 | 摘要/recap 与事实权威边界 | 摘要后台失败不污染事实或已提交回合；公开/GM/CLI 不泄漏私有文本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
+| M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；参数分组不是授权，读取接入仍 HOLD |
 
 ## 执行规则
 
