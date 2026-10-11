@@ -262,11 +262,25 @@ def test_run_turn_memory_opt_in_stages_private_record_with_narration(engine, mon
 
 
 def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypatch):
-    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    quiet(monkeypatch); engine.registry._by_event.pop('quest_demoted', None)
+    assert engine.registry.owner_of_event('quest_demoted') is None
+    engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
     result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
     replay = project(engine.registry, engine.store.iter_events())
     assert any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
-    assert result.world['systems']['interpretive_memory'] == replay['systems']['interpretive_memory']
+    def signature(world):
+        graph = world['systems']['ontology']
+        return {'meta': world['meta'], 'systems': {name: value for name, value in world['systems'].items() if name != 'ontology'}, 'ontology': {'entities': {key: asdict(value) for key, value in graph.entities.items()}, 'facts': [asdict(value) for value in graph.facts], 'relations': [asdict(value) for value in graph.relations]}}
+    assert result.world['_revision'] == engine.store.revision
+    assert signature(result.world) == signature(replay)
+    assert set(result.world) == {'meta', 'systems', '_revision'}
+    db_path, jsonl_path = engine.store.db_path, engine.store.jsonl_path
+    engine.store.close()
+    reopened = EventStore(db_path, jsonl_path, engine.registry.event_types())
+    try:
+        assert signature(result.world) == signature(project(engine.registry, reopened.iter_events()))
+    finally:
+        reopened.close()
 
 
 def test_failed_backstage_retraction_cannot_leak_out_of_batch_savepoint(engine, monkeypatch):
