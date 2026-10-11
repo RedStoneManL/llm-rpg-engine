@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import copy
+import asyncio
 from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
@@ -314,6 +315,9 @@ def _run_turn_staged(
     cascade_provider=None,
     catchup_provider=None,
     prev_scene=None,
+    memory_role=None,
+    memory_generator=None,
+    trusted_memory_role=None,
 ) -> TurnResult:
     """Run one complete turn: produce → validate/repair → drop → events → append → project.
 
@@ -362,6 +366,20 @@ def _run_turn_staged(
                 summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration},
                 turn=turn_num_before))
             new_world = project(registry, store.iter_events())
+        if memory_generator is not None:
+            from systems.interpretive_memory import stage_offline_interpretation
+            try:
+                with store.savepoint():
+                    graph = world.get('systems', {}).get('ontology')
+                    stage_offline_interpretation(store, registry, memory_role, memory_generator,
+                        protagonist=trusted_memory_role,
+                        role_exists=bool(graph and graph.get_entity(trusted_memory_role)))
+            except asyncio.CancelledError:
+                raise
+            except PermissionError:
+                raise
+            except Exception:
+                log.exception("offline interpretation failed; keeping foreground turn")
 
         # Collect newly appended events (those with turn == turn_num_before)
         events: list[dict] = [
@@ -523,13 +541,14 @@ def _backstage_call(store, function, *args, **kwargs):
 def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
-             action_id=None, expected_revision=None) -> TurnResult:
+             action_id=None, expected_revision=None, memory_role=None, memory_generator=None) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
+    trusted_memory_role = scene.get('protagonist')
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
     version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
@@ -555,7 +574,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
-            prev_scene=prev_scene)
+            prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
+            trusted_memory_role=trusted_memory_role)
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

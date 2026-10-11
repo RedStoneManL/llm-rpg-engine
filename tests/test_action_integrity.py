@@ -1,5 +1,6 @@
 """Persistence, rewind and visibility guarantees at the real engine boundary."""
 import json
+import asyncio
 from dataclasses import asdict
 import pytest
 
@@ -16,6 +17,7 @@ from llm.provider import FakeLLMProvider, DeepSeekProvider, _openai_parse, _open
 from llm.tools import build_tool_registry
 from loop.strategy import AuthorStrategy
 from loop.turn import run_turn, apply_turn, TurnRejected, REQUIRED_SECTIONS
+from systems.interpretive_memory import InterpretiveMemorySystem, OfflineInterpretationGenerator, stage_offline_interpretation
 
 
 def event(kind='fact_asserted', **data):
@@ -149,6 +151,104 @@ def test_backstage_failure_drops_only_its_partial_proposal_and_keeps_narration(e
     rewind(engine, 1)
     assert engine.world['systems']['ontology'].value_at('hero','coins',1) == 10
     assert not any(e['type']=='narration_recorded' for e in engine.store.iter_events())
+
+
+def test_run_turn_memory_default_does_not_call_generator(engine, monkeypatch):
+    quiet(monkeypatch)
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+             strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+             memory_role='hero', memory_generator=generator)
+    assert not any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
+
+
+def test_run_turn_memory_no_owner_does_not_call_generator(engine, monkeypatch):
+    quiet(monkeypatch)
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+             strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+             memory_role='hero', memory_generator=generator)
+    assert not any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
+
+
+def test_run_turn_memory_nonexistent_role_does_not_call_generator(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    scene = {**_build_scene(engine), 'protagonist': 'missing'}
+    with pytest.raises(PermissionError):
+        run_turn(engine.registry, engine.store, engine.world, scene, '买酒', strategy=AuthorStrategy(),
+                 provider=FakeLLMProvider(json_responses=[commit()]), memory_role='missing', memory_generator=generator)
+    assert not any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
+
+
+def test_run_turn_memory_captured_protagonist_rejects_later_peer_role(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    engine.store.append(event('entity_created', id='peer', etype='Person', tier='tracked'))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    with pytest.raises(PermissionError):
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(),
+                 provider=FakeLLMProvider(json_responses=[commit()]), memory_role='peer', memory_generator=generator)
+
+
+def test_memory_generator_ignores_old_turn_narration(engine, monkeypatch):
+    engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    engine.store.append(kernel_event('narration_recorded', day=1, scene='inn', summary='old', deltas={'text':'old'}, turn=1))
+    batch = EventBatch(engine.store, turn=2)
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: pytest.fail('generator called'))
+    assert not stage_offline_interpretation(batch, engine.registry, 'hero', generator,
+                                            protagonist='hero', role_exists=True)
+
+
+def test_run_turn_memory_generator_error_keeps_foreground(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: (_ for _ in ()).throw(RuntimeError('offline failure')))
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=generator)
+    assert any(e['type'] == 'narration_recorded' for e in result.events)
+    assert not any(e['type'] == 'character_interpretation_recorded' for e in result.events)
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 1
+
+
+def test_run_turn_memory_generator_cancelled_rejects_whole_turn(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: (_ for _ in ()).throw(asyncio.CancelledError()))
+    before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
+    with pytest.raises(asyncio.CancelledError):
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=generator)
+    assert list(engine.store.iter_events(include_retracted=True)) == before and engine.store.revision == revision
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 0
+
+
+def test_run_turn_memory_generator_permission_error_rejects(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: (_ for _ in ()).throw(PermissionError('integrity')))
+    before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
+    with pytest.raises(PermissionError):
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=generator)
+    assert list(engine.store.iter_events(include_retracted=True)) == before and engine.store.revision == revision
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 0
+
+
+def test_run_turn_memory_opt_in_stages_private_record_with_narration(engine, monkeypatch):
+    quiet(monkeypatch)
+    engine.registry.register(InterpretiveMemorySystem())
+    engine.store.allowed_types = engine.registry.event_types()
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+                      strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+                      memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    memory = [e for e in result.events if e['type'] == 'character_interpretation_recorded']
+    narration = [e for e in result.events if e['type'] == 'narration_recorded']
+    assert len(memory) == len(narration) == 1
+    assert memory[0]['turn'] == narration[0]['turn'] == 1
+    assert memory[0]['deltas']['source_event_id'] == narration[0]['id']
 
 
 def test_failed_backstage_retraction_cannot_leak_out_of_batch_savepoint(engine, monkeypatch):

@@ -16,6 +16,37 @@ log = get_logger("systems.interpretive_memory")
 PRIVATE_EVENT_TYPES = frozenset({"character_interpretation_recorded"})
 
 
+class OfflineInterpretationGenerator:
+    """Closed host-provided offline generator; it returns text only."""
+    def __init__(self, text: str):
+        if not isinstance(text, str) or not text:
+            raise ValueError("interpretation text must be non-empty")
+        self._text = text
+
+    def generate(self, source: dict) -> str:
+        return self._text
+
+
+def stage_offline_interpretation(batch, registry, role, generator, *, protagonist, role_exists):
+    """Stage one host-selected private interpretation, never a model event."""
+    if registry.owner_of_event("character_interpretation_recorded") is None:
+        return False
+    if not isinstance(role, str) or not role or role != protagonist or not role_exists:
+        raise PermissionError("memory role must be the host-selected protagonist")
+    if not isinstance(generator, OfflineInterpretationGenerator):
+        raise PermissionError("interpretive generator must be offline and host-owned")
+    source = next((event for event in reversed(batch.events)
+                   if event.get("type") == "narration_recorded" and event.get("turn") == batch.turn
+                   and not event.get("retracted")), None)
+    if source is None:
+        return False
+    text = generator.generate(dict(source))
+    if not isinstance(text, str) or not text:
+        raise ValueError("offline interpretation generator returned invalid text")
+    open_memory_write_session(batch, registry, role, source).stage(text, "mem_" + source["id"])
+    return True
+
+
 def public_event_history(events):
     """Return public DTOs, omitting private-memory rows without mutation.
 

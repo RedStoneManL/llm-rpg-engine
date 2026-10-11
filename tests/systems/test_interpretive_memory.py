@@ -219,7 +219,8 @@ def test_memory_write_lifecycle_mutations_are_rejected(tmp_path, mutation):
         assert list(store.iter_events()) == [] and store.revision == 0
 
 
-def test_failed_savepoint_preserves_missing_retracted_for_existing_memory_writer(tmp_path):
+@pytest.mark.parametrize("exc", [RuntimeError, asyncio.CancelledError])
+def test_failed_savepoint_preserves_missing_retracted_for_existing_memory_writer(tmp_path, exc):
     """A pre-savepoint writer remains publishable when its source omits the flag."""
     registry = _registry()
     with EventStore(tmp_path / "events.db", tmp_path / "events.jsonl",
@@ -232,10 +233,10 @@ def test_failed_savepoint_preserves_missing_retracted_for_existing_memory_writer
         source = batch.events[0]
         open_memory_write_session(batch, registry, "hero", source).stage("private", "m1")
         validators_before = list(batch.publish_validators)
-        with pytest.raises(RuntimeError):
+        with pytest.raises(exc):
             with batch.savepoint():
                 batch.retract_from_turn(1)
-                raise RuntimeError("failed backstage hook")
+                raise exc("failed backstage hook")
         assert "retracted" not in source
         assert batch.events[1]["retracted"] is False
         assert batch.retractions == [] and batch.publish_validators == validators_before
