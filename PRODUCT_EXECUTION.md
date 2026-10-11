@@ -30,7 +30,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | ID | 优先级 | 状态 | 根因与下一动作 | 验收 |
 | --- | --- | --- | --- | --- |
 | RCV-01 | P0 | 已验收 | 清除 trace CLI 测试中的旧绝对 checkout 假设 | `tests/app/test_trace_view.py` 38 passed；完整 gate 1712 passed / 1 deselected（16.66s） |
-| RCV-02 | P0 | 执行中（两切片已验收） | 对 `run_turn`/`EventBatch`/后台 hooks 做实际原子性与 owner 拒绝审计 | 已覆盖后台失败撤回、嵌套 savepoint、direct `apply_turn` owner fail-closed；仍需重开/replay 审计 |
+| RCV-02 | P0 | 已验收（本基线范围） | 对 `run_turn`/`EventBatch`/后台 hooks 做实际原子性与 owner 拒绝审计 | 已覆盖后台失败撤回、嵌套 savepoint、direct `apply_turn` owner fail-closed、撤回后的关闭/重开/完整 replay；新后台类别仍须随新增功能各自回归 |
 | RCV-03 | P1 | HOLD | 角色解释性记忆恢复 | 仅在离线 provider/temp DB 下，证明同角色读取、跨角色隔离、冷启动、异常/取消回滚、replay；此前默认禁用 |
 | RCV-04 | P1 | 排队 | 摘要/recap 与事实权威边界 | 摘要后台失败不污染事实或已提交回合；公开/GM/CLI 不泄漏私有文本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
@@ -77,3 +77,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `9ef6746`（完整恢复演练）依次累积。完整自包含 bundle 已保存到 Library，但从
   Library 签名 materialization URL 实际下载连续两次收到 403，尚不能宣称“从
   持久化字节恢复已验收”；本地生成 bundle 的独立 clone 已通过，等待连接器下载恢复。
+- 2026-10-11：RCV-02 的重开/replay 子项新增真实 `run_turn` 回归：第一回合产生的
+  事实与 narration 全部撤回后，关闭并重新打开 SQLite，常规投影和以完整（含撤回）
+  历史重放的结构签名都回到 pre-turn world，且撤回标记原样保留。针对性 41 passed，
+  完整 gate `1716 passed, 1 deselected`。RCV-02 以当前已注册后台机制为范围验收；
+  将来新后台类型必须重跑相同原子性矩阵。

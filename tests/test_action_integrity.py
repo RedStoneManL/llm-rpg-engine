@@ -1,5 +1,6 @@
 """Persistence, rewind and visibility guarantees at the real engine boundary."""
 import json
+from dataclasses import asdict
 import pytest
 
 from app.engine import build_engine, rewind
@@ -194,6 +195,50 @@ def test_nested_failed_savepoint_restores_only_its_own_retraction_intent(engine)
     receipt = batch.publish(action_id='nested-savepoint')
     assert receipt['revision'] == engine.store.revision
     assert all(not ev['retracted'] for ev in engine.store.iter_events(include_retracted=True))
+
+
+def test_reopened_store_replays_retracted_whole_turn_as_pre_turn_world(engine, monkeypatch):
+    """A rewind remains complete after closing and reopening the SQLite store."""
+    def signature(world):
+        graph = world['systems']['ontology']
+        systems = {name: value for name, value in world['systems'].items()
+                   if name != 'ontology'}
+        return {
+            'meta': world['meta'],
+            'systems': systems,
+            'ontology': {
+                'entities': {key: asdict(value) for key, value in graph.entities.items()},
+                'facts': [asdict(value) for value in graph.facts],
+                'relations': [asdict(value) for value in graph.relations],
+            },
+        }
+
+    quiet(monkeypatch)
+    campaign_dir = engine.store.db_path.parent
+    before = project(engine.registry, engine.store.iter_events())
+
+    result = run_turn(
+        engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        required_sections=REQUIRED_SECTIONS,
+    )
+    assert any(ev['type'] == 'narration_recorded' for ev in result.events)
+    rewind(engine, 1)
+    retracted = list(engine.store.iter_events(include_retracted=True))
+    assert all(ev['retracted'] for ev in retracted if ev.get('turn') == 1)
+    engine.store.close()
+
+    reopened = build_engine(campaign_dir, provider=FakeLLMProvider())
+    try:
+        assert signature(reopened.world) == signature(before)
+        full_history = list(reopened.store.iter_events(include_retracted=True))
+        assert [(ev['id'], ev['retracted']) for ev in full_history] == [
+            (ev['id'], ev['retracted']) for ev in retracted
+        ]
+        # Replaying all rows uses the same retracted-event policy as cold start.
+        assert signature(project(reopened.registry, full_history)) == signature(before)
+    finally:
+        reopened.store.close()
 
 
 def test_required_sections_and_invalid_id_shapes_are_repairable(engine):
