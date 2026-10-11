@@ -60,3 +60,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   preflight；未知 section 在任何 owner 的 `to_events` 调用前抛出 `TurnRejected`，
   不再只写日志并丢弃。针对性 43 passed、完整 gate `1715 passed, 1 deselected`；
   保存新的恢复 bundle 后继续重开/replay 审计。
+- 2026-10-11：在全新临时目录实际恢复最新增量 bundle：先将新 clone 固定到
+  `6b54411`，再 `fetch` bundle 并 checkout `recovery/HEAD`。恢复 HEAD 与源工作区
+  均为 `d58822d1d2f936b1f086cbddff25973671b73fa2`，tree 均为
+  `aabd5669fb5f4b88c142c41a146f918204a17b74`，且恢复 checkout clean。该 bundle 是
+  增量包，明确要求已有 `6b54411` 基线；不是单独完整仓库快照。
