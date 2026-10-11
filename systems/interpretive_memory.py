@@ -11,6 +11,29 @@ from kernel.contextsystem import ContextSystem
 from engine.log import get_logger
 
 log = get_logger("systems.interpretive_memory")
+PRIVATE_EVENT_TYPES = frozenset({"character_interpretation_recorded"})
+
+
+def public_event_history(events):
+    """Return public DTOs, omitting private-memory rows without mutation.
+
+    This is deliberately separate from EventStore.iter_events(): raw storage is
+    trusted-host-only.  Public callers receive copied ordinary events in their
+    original order, including their body and retracted flag.  A normal row that
+    names a private event id in an explicit reference list is rejected rather
+    than silently leaving a dangling private reference.
+    """
+    source = list(events)
+    private_ids = {ev.get("id") for ev in source if ev.get("type") in PRIVATE_EVENT_TYPES}
+    out = []
+    for ev in source:
+        if ev.get("type") in PRIVATE_EVENT_TYPES:
+            continue
+        refs = list(ev.get("thread_refs") or []) + list(ev.get("chunk_ids") or [])
+        if any(ref in private_ids for ref in refs):
+            raise ValueError("public event references private memory")
+        out.append(dict(ev))
+    return out
 
 
 class MemoryReadSession:
