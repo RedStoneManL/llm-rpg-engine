@@ -118,3 +118,39 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   source + savepoint 前已有 writer/validator + savepoint 内撤回失败后的正常 publish；控制例
   覆盖缺键、显式 False、显式 True 以及 retraction/validator 列表。目标 29 passed，完整
   offline gate `1750 passed, 1 deselected`（17.42s）。本切片没有接入 `run_turn`。
+- 2026-10-11：受限、默认禁用的离线 `run_turn` memory staging 提交为 `76b7f58`，并已 push
+  到 `recovery/m4-savepoint-fix` 且 `ls-remote` 核对同一 SHA。专项矩阵 9 passed；完整
+  offline gate `1760 passed, 1 deselected`（18.07s）。默认/缺 owner、合法 opt-in、role
+  存在性与入口绑定、旧 narration、普通错误、PermissionError、取消和 savepoint 表示保真均有
+  离线覆盖。独立静态审查尚待结论，不能据此称生产启用：narration 没有 event-level viewer ACL；
+  普通错误会记录异常栈，第三方异常消息可能含私有正文；且 action_id receipt 去重发生在
+  generator 之后，持久化不会重复记录但 generator 可能再次执行。没有真实模型、B1 或 profiling。
+- 2026-10-11：私有 memory 的后台边界修复提交为 `5408eb1`，已 push 到
+  `recovery/m4-savepoint-fix` 并以 `ls-remote` 核对完整 SHA。`digest_fleet` 直接入口统一
+  使用公共 DTO；memory stage 成功后立即重投影；普通私有生成异常仅记录固定安全诊断。专项
+  `tests/test_action_integrity.py tests/systems/test_interpretive_memory.py tests/loop/test_fleet.py` 通过；
+  全量为 `1763 passed, 1 deselected`（17.57s）。fleet capture-provider 是防回归：正常旧格式
+  record 会被 subject 选择器偶然跳过，不能表述为已证实旧路径泄漏；world 测试只验证提交后的
+  完整 store replay，尚无 cold reopen 覆盖；修前 red 未运行。独立复核待结论。
+- 2026-10-11（独立复核口径更正）：上述 world 回归只比较 `interpretive_memory` slice，
+  不是完整 world；它使用完整 engine registry，`quiet` 仅令 `_run_demote_on_leave` 返回空，
+  而已注册的 `quest_demoted` owner 分支仍可能无条件重投影。因此不能称最小 registry、不能
+  称已排除其他投影来源，也不能称修前 red 已验证。fleet capture-provider 确实触发真实 provider，
+  但正常旧格式私有 record 也会被旧 subject 选择器跳过，故仍仅为防回归。后续须补最小 registry
+  与 world cold-reopen/replay 证据；本轮结论不扩大。
+- 2026-10-11：测试强化提交 `818e4a9` 已 push 到 `recovery/m4-savepoint-fix`，并以
+  `ls-remote` 核对远端完整 SHA。`tests/test_action_integrity.py` 为 30 passed；完整 offline
+  gate 为 `1765 passed, 1 deselected`（19.10s）。撤回回归现在先证明 narration/private
+  非真空及 source 关联，再验证整 turn 撤回、完整 receipt 行在 rewind/cold reopen 前后保留、
+  语义 world 回到 seed、可信 JSONL mirror 在成功/rewind/reopen 三时点均等于 SQLite 完整历史。
+  mirror 写故障回归确认 SQLite 提交和 `mirror_pending`，恢复 `sync_jsonl()` 后不重跑 turn 且
+  events/revision/receipt 不变、`mirror_error` 清空。未解决：action_id 去重在 generator 之后，
+  可能重复执行 generator；narration 没有 event-level 来源/可见性 ACL；未调用真实模型，生产
+  行为仍未验收。
+- 2026-10-11：`815da8de02573e2017deba50db871dffe82aaab8` 已 push 到同一恢复分支并以
+  `ls-remote` 核对。`tests/test_action_integrity.py` 与 `tests/systems/test_interpretive_memory.py`
+  专项 62 passed；完整 offline gate `1767 passed, 1 deselected`（17.60s）。离线 generator
+  现在在生成前固定 writer/source binding，且只收 source 的深拷贝 DTO。TOCTOU 证据仅为
+  EventBatch/staging 边界：前置 seed、revision、receipt 数和 JSONL bytes 不变；不是 run_turn
+  端到端异常承诺，也未比较 receipt 全内容。前置 action_id 幂等、显式 narration 来源/可见性
+  ACL 与真实模型行为仍未解决/未调用。

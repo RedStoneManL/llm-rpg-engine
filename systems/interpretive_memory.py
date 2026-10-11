@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import copy
+from dataclasses import dataclass
 
 from kernel.contextsystem import ContextSystem
 from engine.log import get_logger
@@ -28,19 +29,31 @@ class OfflineInterpretationGenerator:
         return self._text
 
 
-def stage_offline_interpretation(batch, registry, role, generator, *, protagonist, role_exists):
+@dataclass(frozen=True)
+class HostNarrationBinding:
+    """Opaque in-process host binding; never reconstructed from event JSON."""
+    batch: object
+    source: dict
+    source_id: str
+    turn: int
+    role: str
+
+
+def stage_offline_interpretation(binding, registry, generator, *, protagonist, role_exists):
     """Stage one host-selected private interpretation, never a model event."""
     if registry.owner_of_event("character_interpretation_recorded") is None:
         return False
+    batch, source, role = binding.batch, binding.source, binding.role
+    if (not isinstance(binding, HostNarrationBinding) or binding.batch is not batch
+            or not any(event is source for event in batch.events) or source.get('id') != binding.source_id
+            or source.get('turn') != binding.turn or source.get('type') != 'narration_recorded'):
+        raise PermissionError("invalid host narration binding")
     if not isinstance(role, str) or not role or role != protagonist or not role_exists:
         raise PermissionError("memory role must be the host-selected protagonist")
     if not isinstance(generator, OfflineInterpretationGenerator):
         raise PermissionError("interpretive generator must be offline and host-owned")
-    source = next((event for event in reversed(batch.events)
-                   if event.get("type") == "narration_recorded" and event.get("turn") == batch.turn
-                   and not event.get("retracted")), None)
-    if source is None:
-        return False
+    if source.get('retracted') or binding.turn != batch.turn:
+        raise PermissionError("host narration source is no longer current")
     writer = open_memory_write_session(batch, registry, role, source)
     text = generator.generate(copy.deepcopy(source))
     if not isinstance(text, str) or not text:

@@ -361,19 +361,26 @@ def _run_turn_staged(
         new_world = apply_turn(registry, store, commit, day=day, scene=scene_id)
         # The visible story is part of the action, never an optional digest side
         # effect. A failing reflection hook cannot lose a successfully shown turn.
+        canonical_binding = None
         if commit.narration and registry.owner_of_event('narration_recorded') is not None:
             store.append(kernel_event('narration_recorded', day=day, scene=scene_id,
                 summary='narration recorded', deltas={'scene': scene_id, 'text': commit.narration},
                 turn=turn_num_before))
+            canonical_narration = store.events[-1]
+            if memory_role is not None:
+                from systems.interpretive_memory import HostNarrationBinding
+                canonical_binding = HostNarrationBinding(store, canonical_narration,
+                    canonical_narration['id'], store.turn, memory_role)
             new_world = project(registry, store.iter_events())
         if memory_generator is not None:
-            from systems.interpretive_memory import stage_offline_interpretation
+            from systems.interpretive_memory import HostNarrationBinding, stage_offline_interpretation
             try:
-                with store.savepoint():
-                    graph = world.get('systems', {}).get('ontology')
-                    stage_offline_interpretation(store, registry, memory_role, memory_generator,
-                        protagonist=trusted_memory_role,
-                        role_exists=bool(graph and graph.get_entity(trusted_memory_role)))
+                if canonical_binding is not None:
+                    with store.savepoint():
+                        graph = world.get('systems', {}).get('ontology')
+                        stage_offline_interpretation(canonical_binding, registry, memory_generator,
+                            protagonist=trusted_memory_role,
+                            role_exists=bool(graph and graph.get_entity(trusted_memory_role)))
             except asyncio.CancelledError:
                 raise
             except PermissionError:
