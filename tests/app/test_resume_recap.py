@@ -2,6 +2,10 @@
 ONLY from world state (option A: reuse the narrative scene summaries). No LLM."""
 import types
 from collections import namedtuple
+from app.engine import build_engine
+from kernel.events import kernel_event
+from kernel.projection import project
+from systems.interpretive_memory import InterpretiveMemorySystem
 
 from app.__main__ import _print_resume_recap
 
@@ -86,3 +90,23 @@ def test_resume_recap_ignores_opt_in_private_memory_slice():
     assert "PRIVATE_MEMORY_BODY" not in rendered
     assert "RETRACTED_PRIVATE_BODY" not in rendered
     assert "PRIVATE_EVENT_ID" not in rendered
+
+
+def test_resume_recap_uses_canonical_store_projection_without_private_memory(tmp_path):
+    engine = build_engine(tmp_path / "campaign")
+    try:
+        engine.registry.register(InterpretiveMemorySystem())
+        engine.store.allowed_types.add("character_interpretation_recorded")
+        engine.store.append(kernel_event("narration_recorded", day=1, scene="inn",
+            summary="narration", deltas={"scene":"inn", "text":"PUBLIC_RECAP_BODY"}, turn=1))
+        engine.store.append(kernel_event("character_interpretation_recorded", day=1, scene="inn",
+            summary="PRIVATE", deltas={"actor":"npc", "text":"PRIVATE_NPC_BODY", "memory_id":"private-id"}, turn=2))
+        engine.store.retract_from_turn(2)
+        engine.world = project(engine.registry, engine.store.iter_events())
+        out = []
+        _print_resume_recap(engine, out.append)
+        rendered = "\n".join(out)
+        assert "PUBLIC_RECAP_BODY" in rendered
+        assert "PRIVATE_NPC_BODY" not in rendered and "private-id" not in rendered
+    finally:
+        engine.store.close()
