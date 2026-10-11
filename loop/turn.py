@@ -379,7 +379,9 @@ def _run_turn_staged(
             except PermissionError:
                 raise
             except Exception:
-                log.exception("offline interpretation failed; keeping foreground turn")
+                log.warning("offline interpretation failed; keeping foreground turn (private-error)")
+            else:
+                new_world = project(registry, store.iter_events())
 
         # Collect newly appended events (those with turn == turn_num_before)
         events: list[dict] = [

@@ -136,6 +136,24 @@ def test_digest_fleet_high_importance_triggers_reflection():
         store.close()
 
 
+def test_digest_fleet_reflection_receives_public_events_only():
+    from loop.fleet import digest_fleet
+    registry = _make_registry(); store = _open_temp_store(registry)
+    try:
+        store.append(_make_character_created_event('ryn')); world = project(registry, store.iter_events())
+        public = kernel_event('relationship_change', day=2, scene='sc01', summary='PUBLIC_CONTROL', actors=['ryn'], deltas={'subject':'ryn','predicate':'loyalty','value':'broken'})
+        private = kernel_event('character_interpretation_recorded', day=2, scene='sc01', summary='private character interpretation', deltas={'actor':'ryn','text':'PRIVATE_SENTINEL','memory_id':'PRIVATE_MEMORY_ID','source_event_id':public['id']})
+        class Capture(FakeLLMProvider):
+            def __init__(self): super().__init__(responses=['10', '{"predicate":"arc","value":"PUBLIC_ARC"}']); self.inputs=[]
+            def complete(self, system, user, **kwargs): self.inputs.append(user); return super().complete(system, user, **kwargs)
+        provider = Capture()
+        out = digest_fleet(registry, store, [public, private], world, provider=provider, importance_provider=provider, threshold=8)
+        assert any(e['type'] == 'character_evolved' for e in out)
+        joined = '\n'.join(provider.inputs)
+        assert 'PUBLIC_CONTROL' in joined and 'PRIVATE_SENTINEL' not in joined and 'PRIVATE_MEMORY_ID' not in joined
+    finally: store.close()
+
+
 # ---------------------------------------------------------------------------
 # Test 3: arc event projected into world (value_at returns the arc)
 # ---------------------------------------------------------------------------

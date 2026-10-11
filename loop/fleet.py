@@ -207,6 +207,11 @@ def digest_fleet(
     Returns:
         List of all events appended to the store by this call.
     """
+    # Backstage providers are not role-authorized memory readers.  Keep store
+    # persistence/projection raw, but enforce the public DTO boundary at this
+    # direct fleet entrypoint for every caller.
+    from systems.interpretive_memory import public_event_history
+    new_events = public_event_history(new_events)
     appended_all: list[dict] = []
 
     # ------------------------------------------------------------------

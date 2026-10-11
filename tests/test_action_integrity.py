@@ -215,6 +215,16 @@ def test_run_turn_memory_generator_error_keeps_foreground(engine, monkeypatch):
     assert engine.store._conn.execute('SELECT COUNT(*) FROM action_receipts').fetchone()[0] == 1
 
 
+def test_run_turn_memory_private_error_is_not_logged(engine, monkeypatch, caplog):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    sentinel = 'PRIVATE_SENTINEL_DO_NOT_LOG'
+    generator = OfflineInterpretationGenerator('private')
+    monkeypatch.setattr(generator, 'generate', lambda source: (_ for _ in ()).throw(RuntimeError(sentinel)))
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=generator)
+    assert any(e['type'] == 'narration_recorded' for e in result.events)
+    assert sentinel not in caplog.text and 'Traceback' not in caplog.text
+
+
 def test_run_turn_memory_generator_cancelled_rejects_whole_turn(engine, monkeypatch):
     quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
     generator = OfflineInterpretationGenerator('private')
@@ -249,6 +259,14 @@ def test_run_turn_memory_opt_in_stages_private_record_with_narration(engine, mon
     assert len(memory) == len(narration) == 1
     assert memory[0]['turn'] == narration[0]['turn'] == 1
     assert memory[0]['deltas']['source_event_id'] == narration[0]['id']
+
+
+def test_run_turn_memory_result_world_matches_persisted_replay(engine, monkeypatch):
+    quiet(monkeypatch); engine.registry.register(InterpretiveMemorySystem()); engine.store.allowed_types = engine.registry.event_types()
+    result = run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒', strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]), memory_role='hero', memory_generator=OfflineInterpretationGenerator('private'))
+    replay = project(engine.registry, engine.store.iter_events())
+    assert any(e['type'] == 'character_interpretation_recorded' for e in engine.store.iter_events())
+    assert result.world['systems']['interpretive_memory'] == replay['systems']['interpretive_memory']
 
 
 def test_failed_backstage_retraction_cannot_leak_out_of_batch_savepoint(engine, monkeypatch):
