@@ -100,13 +100,19 @@ def test_resume_recap_uses_canonical_store_projection_without_private_memory(tmp
         engine.store.append(kernel_event("narration_recorded", day=1, scene="inn",
             summary="narration", deltas={"scene":"inn", "text":"PUBLIC_RECAP_BODY"}, turn=1))
         engine.store.append(kernel_event("character_interpretation_recorded", day=1, scene="inn",
-            summary="PRIVATE", deltas={"actor":"npc", "text":"PRIVATE_NPC_BODY", "memory_id":"private-id"}, turn=2))
+            summary="PRIVATE", deltas={"actor":"protagonist", "text":"PRIVATE_HERO_BODY", "memory_id":"private-hero"}, turn=1))
+        engine.store.append(kernel_event("character_interpretation_recorded", day=1, scene="inn",
+            summary="PRIVATE", deltas={"actor":"npc", "text":"PRIVATE_NPC_BODY", "memory_id":"private-id"}, turn=1))
+        engine.store.append(kernel_event("character_interpretation_recorded", day=1, scene="inn",
+            summary="PRIVATE", deltas={"actor":"npc", "text":"RETRACTED_PRIVATE_BODY", "memory_id":"retracted-id"}, turn=2))
         engine.store.retract_from_turn(2)
         engine.world = project(engine.registry, engine.store.iter_events())
         out = []
         _print_resume_recap(engine, out.append)
         rendered = "\n".join(out)
         assert "PUBLIC_RECAP_BODY" in rendered
+        assert "PRIVATE_HERO_BODY" not in rendered and "private-hero" not in rendered
         assert "PRIVATE_NPC_BODY" not in rendered and "private-id" not in rendered
+        assert "RETRACTED_PRIVATE_BODY" not in rendered and "retracted-id" not in rendered
     finally:
         engine.store.close()
