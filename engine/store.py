@@ -44,10 +44,11 @@ class RevisionConflict(RuntimeError):
 class ActionAlreadyCommitted(RevisionConflict):
     """A caller retried an active action before any new generation began."""
 
-    def __init__(self, receipt, result_metadata):
+    def __init__(self, receipt, result_metadata, *, metadata_status='missing'):
         super().__init__('action_id has already been committed')
         self.receipt = receipt
         self.result_metadata = result_metadata
+        self.metadata_status = metadata_status
 
 
 class EventStore:
@@ -92,6 +93,31 @@ class EventStore:
             'SELECT 1 FROM events WHERE seq BETWEEN ? AND ? AND retracted=1 LIMIT 1',
             (receipt['first_seq'], receipt['last_seq']),
         ).fetchone() is not None
+
+    def read_committed_action(self, action_id):
+        """Read one completed action from a consistent, short SQLite snapshot.
+
+        This is deliberately separate from append_many's transaction helpers:
+        callers use it only to stop a retried run before any generation starts.
+        Metadata stays raw so the caller can classify legacy, corrupt and future
+        versions without turning malformed stored bytes into a JSON exception.
+        """
+        self._conn.execute('BEGIN')
+        try:
+            receipt = self.get_action_receipt(action_id)
+            if receipt is None:
+                self._conn.commit()
+                return None
+            retracted = self.action_receipt_is_retracted(receipt)
+            row = self._conn.execute(
+                'SELECT metadata FROM action_result_metadata WHERE action_id=?', (action_id,)
+            ).fetchone()
+            self._conn.commit()
+            return {'receipt': receipt, 'retracted': retracted,
+                    'metadata_raw': row['metadata'] if row is not None else None}
+        except BaseException:
+            self._conn.rollback()
+            raise
 
     def snapshot(self):
         """Read events and revision from one SQLite snapshot, then release it."""

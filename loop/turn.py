@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import copy
 import asyncio
+import json
 from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
@@ -73,6 +74,21 @@ class TurnResult:
 
 class TurnRejected(ValueError):
     """The proposed action has no coherent, validated result to publish."""
+
+
+def _read_preflight_metadata(metadata_raw):
+    """Classify a committed sidecar without leaking malformed stored content."""
+    if metadata_raw is None:
+        return None, 'missing'
+    try:
+        metadata = json.loads(metadata_raw)
+    except (TypeError, ValueError):
+        return None, 'corrupt'
+    if not isinstance(metadata, dict) or type(metadata.get('version')) is not int:
+        return None, 'corrupt'
+    if metadata['version'] != 1:
+        return None, 'unsupported_version'
+    return metadata, 'available'
 
 
 def _next_turn(store) -> int:
@@ -558,11 +574,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     narrator's committed conversation. Callers may supply an action identity.
     """
     if action_id:
-        prior = store.get_action_receipt(action_id)
+        prior = store.read_committed_action(action_id)
         if prior is not None:
-            if store.action_receipt_is_retracted(prior):
+            if prior['retracted']:
                 raise RevisionConflict('action was retracted; submit a new action_id')
-            raise ActionAlreadyCommitted(prior, store.get_action_result_metadata(action_id))
+            metadata, status = _read_preflight_metadata(prior['metadata_raw'])
+            raise ActionAlreadyCommitted(prior['receipt'], metadata, metadata_status=status)
     trusted_memory_role = scene.get('protagonist')
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
     version = expected_revision if expected_revision is not None else world.get('_revision')

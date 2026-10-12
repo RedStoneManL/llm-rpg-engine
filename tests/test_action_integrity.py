@@ -259,6 +259,7 @@ def test_run_turn_duplicate_action_id_stops_before_strategy_or_provider(engine, 
 
     assert exc.value.receipt['action_id'] == first.receipt['action_id']
     assert exc.value.result_metadata is None
+    assert exc.value.metadata_status == 'missing'
 
 
 def test_run_turn_retracted_action_id_requires_new_id_before_strategy(engine, monkeypatch):
@@ -278,6 +279,114 @@ def test_run_turn_retracted_action_id_requires_new_id_before_strategy(engine, mo
             engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
             strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[commit()]),
             action_id='retracted-preflight')
+
+
+@pytest.mark.parametrize(('metadata', 'raw_metadata', 'expected_status'), [
+    (None, None, 'missing'),
+    ({'version': 1, 'outcome': 'saved'}, None, 'available'),
+    ({'version': 2, 'outcome': 'future'}, None, 'unsupported_version'),
+    (None, '{not json', 'corrupt'),
+])
+def test_completed_action_preflight_stops_all_generation_paths(
+        engine, monkeypatch, metadata, raw_metadata, expected_status):
+    action_id = f'completed-{expected_status}'
+    event_payload = event(subject='hero', predicate='coins', value=7)
+    receipt = engine.store.append_many([event_payload], action_id=action_id,
+                                       result_metadata=metadata)
+    if raw_metadata is not None:
+        engine.store._conn.execute(
+            'INSERT INTO action_result_metadata VALUES (?,?)', (action_id, raw_metadata))
+        engine.store._conn.commit()
+    before_events = list(engine.store.iter_events(include_retracted=True))
+    before_revision = engine.store.revision
+    before_receipts = list(engine.store._conn.execute('SELECT * FROM action_receipts'))
+    before_mirror = engine.store.jsonl_path.read_bytes()
+    calls = {name: 0 for name in ('batch', 'resources', 'strategy', 'provider', 'generator', 'thread')}
+
+    def forbidden(name):
+        def call(*args, **kwargs):
+            calls[name] += 1
+            raise AssertionError(f'{name} called for committed action')
+        return call
+
+    class MustNotRun:
+        produce = staticmethod(forbidden('strategy'))
+        commit_to_thread = staticmethod(forbidden('thread'))
+
+    class MustNotGenerate:
+        generate = staticmethod(forbidden('generator'))
+
+    monkeypatch.setattr('loop.turn.EventBatch', forbidden('batch'))
+    monkeypatch.setattr('loop.turn.prepare_resources', forbidden('resources'))
+    provider = type('MustNotProvide', (), {'complete_json': staticmethod(forbidden('provider'))})()
+
+    with pytest.raises(ActionAlreadyCommitted) as exc:
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+                 strategy=MustNotRun(), provider=provider, action_id=action_id,
+                 memory_role='hero', memory_generator=MustNotGenerate())
+
+    assert exc.value.receipt['action_id'] == action_id
+    assert exc.value.metadata_status == expected_status
+    assert exc.value.result_metadata == (metadata if expected_status == 'available' else None)
+    assert calls == {name: 0 for name in calls}
+    assert list(engine.store.iter_events(include_retracted=True)) == before_events
+    assert engine.store.revision == before_revision
+    assert list(engine.store._conn.execute('SELECT * FROM action_receipts')) == before_receipts
+    assert engine.store.jsonl_path.read_bytes() == before_mirror
+
+
+def test_retracted_action_preflight_stops_all_generation_paths(engine, monkeypatch):
+    receipt = engine.store.append_many(
+        [event(subject='hero', predicate='coins', value=7)], action_id='completed-retracted')
+    engine.store.retract_from_seq(receipt['first_seq'])
+    before_events = list(engine.store.iter_events(include_retracted=True))
+    before_revision = engine.store.revision
+    before_mirror = engine.store.jsonl_path.read_bytes()
+    calls = []
+
+    def forbidden(*args, **kwargs):
+        calls.append(1)
+        raise AssertionError('generation path called for retracted action')
+
+    monkeypatch.setattr('loop.turn.EventBatch', forbidden)
+    monkeypatch.setattr('loop.turn.prepare_resources', forbidden)
+
+    with pytest.raises(RevisionConflict, match='retracted; submit a new action_id'):
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+                 strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden),
+                                                   'commit_to_thread': staticmethod(forbidden)})(),
+                 provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
+                 action_id='completed-retracted', memory_role='hero',
+                 memory_generator=type('MustNotGenerate', (), {'generate': staticmethod(forbidden)})())
+
+    assert calls == []
+    assert list(engine.store.iter_events(include_retracted=True)) == before_events
+    assert engine.store.revision == before_revision
+    assert engine.store.jsonl_path.read_bytes() == before_mirror
+
+
+def test_committed_action_read_uses_one_sqlite_snapshot(engine, monkeypatch):
+    receipt = engine.store.append_many(
+        [event(subject='hero', predicate='coins', value=7)], action_id='snapshot-action',
+        result_metadata={'version': 1, 'outcome': 'saved'})
+    peer = EventStore(engine.store.db_path, engine.store.jsonl_path, engine.store.allowed_types)
+    try:
+        engine.store._conn.execute('PRAGMA journal_mode=WAL')
+        peer._conn.execute('PRAGMA journal_mode=WAL')
+        original = engine.store.action_receipt_is_retracted
+
+        def retract_after_receipt_read(receipt_row):
+            peer.retract_from_seq(receipt['first_seq'])
+            return original(receipt_row)
+
+        monkeypatch.setattr(engine.store, 'action_receipt_is_retracted', retract_after_receipt_read)
+        observed = engine.store.read_committed_action('snapshot-action')
+
+        assert observed['retracted'] is False
+        assert observed['metadata_raw'] == '{"outcome":"saved","version":1}'
+        assert original(receipt) is True
+    finally:
+        peer.close()
 
 
 def test_concurrent_snapshot_and_undo_cannot_accept_stale_proposals(engine):
