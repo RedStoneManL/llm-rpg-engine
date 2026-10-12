@@ -127,7 +127,9 @@ narration, recap, or retracted history. It never exposes private
 `character_interpretation_recorded` rows, does not add them to player or model
 context, and has no edit, delete, advance, or player-action controls. Hidden
 places and world events may appear there by design, but never in the default
-player server.
+player server. It also reuses the public-history reference boundary: if an
+ordinary narration or recap row references a private-memory event, the GM
+endpoint fails closed with a neutral result instead of returning either body.
 
 Interpretive memory remains disabled for this GUI; raw-store download,
 DM-ground-truth tools, multi-user accounts, public deployment, and editing are

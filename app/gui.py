@@ -32,7 +32,6 @@ from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
-from systems.interpretive_memory import PRIVATE_EVENT_TYPES
 
 
 log = logging.getLogger(__name__)
@@ -297,11 +296,12 @@ def build_gm_state(engine) -> dict[str, Any]:
                     continue
                 seen_edges.add(pair)
                 edges.append({"from": pair[0], "to": pair[1], "cost": _safe_value(attrs.get("travel_cost", 1))})
-    timeline = [
-        _gm_timeline_event(event)
-        for event in engine.store.iter_events(include_retracted=True)
-        if event.get("type") not in PRIVATE_EVENT_TYPES
-    ]
+    # Reuse the existing public-history boundary rather than merely dropping
+    # private rows ourselves.  In particular it fails closed when an otherwise
+    # ordinary narration/summary row references a private-memory event through
+    # thread_refs or chunk_ids.  GM may still see canonical secret facts and
+    # retracted ordinary events; neither is a private interpretation record.
+    timeline = [_gm_timeline_event(event) for event in engine.public_history()]
     narrative = engine.world.get("systems", {}).get("narrative", {}) or {}
     recaps = [
         {"scene": str(bucket.get("scene") or ""), "summary": str(bucket["summary"])}

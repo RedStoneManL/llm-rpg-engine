@@ -346,3 +346,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   布局、3 个真实节点/2 条边、零写入按钮和无私有解释，另一个 player server 真实保存行动且 GM endpoint 仍为 404。正式 gate 为
   `1843 passed, 1 deselected`（20.66s，唯一既有 slow real embedding）；全新目录从完整 bundle clone 后可 `--gm --demo`
   启动并返回 `gm_read_only`、3 nodes/2 edges，GUI 专项 18 passed。该实现已自验，尚未声称独立复核通过。
+- 2026-10-12：RCV-09 复核补齐 timeline 的引用型泄漏边界：原 GM 仅按 `PRIVATE_EVENT_TYPES` 丢弃私有行，若一个普通
+  narration/summary 的 `thread_refs` 或 `chunk_ids` 指向私有 memory event，GM 会输出该普通行正文，而既有 player
+  `public_event_history` 已对这种 dangling-private reference fail-closed。GM 现在先复用 `engine.public_history()` 再构造
+  timeline，因而仍显示普通 secret fact 与普通 retracted event，却在 active 或已撤回私有 ID 被普通行引用时拒绝整个 DTO；HTTP
+  只返回中性“请求结果未能显示”且日志不含私有/普通正文。新反例同时覆盖 active/retracted private ID、thread_refs/chunk_ids
+  与 GM HTTP 输出。专项 `tests/app/test_gui.py -rA` 为 19 passed；正式 gate 为 `1844 passed, 1 deselected`（19.45s，唯一
+  既有 slow real embedding）；全新 bundle clone clean、GUI 专项 19 passed 且 `--gm --demo` 可启动。该小修已本地提交和归档，
+  但不能表述为独立复核通过。

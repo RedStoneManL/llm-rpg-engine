@@ -300,3 +300,45 @@ def test_gm_timeline_marks_retracted_history_without_leaking_private_memory(tmp_
     assert any(event["type"] == "narration_recorded" and event["category"] == "public_narrative" for event in retracted)
     assert "character_interpretation_recorded" not in {event["type"] for event in gm_state["timeline"]}
     dashboard.engine.store.close()
+
+
+def test_gm_fails_closed_when_ordinary_history_references_active_or_retracted_private_memory(tmp_path, caplog):
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+                          enable_interpretive_memory=True)
+    _seed_demo_campaign(engine)
+    active_private = kernel_event(
+        "character_interpretation_recorded", day=1, scene="s1", turn=0, id="private-active-ref",
+        summary="private", deltas={"actor": "protagonist", "text": "PRIVATE_ACTIVE_BODY_SENTINEL", "memory_id": "active"},
+    )
+    retracted_private = kernel_event(
+        "character_interpretation_recorded", day=1, scene="s1", turn=0, id="private-retracted-ref",
+        summary="private", deltas={"actor": "protagonist", "text": "PRIVATE_RETRACTED_BODY_SENTINEL", "memory_id": "retracted"},
+    )
+    retracted_private["retracted"] = True
+    engine.store.append_many([
+        active_private,
+        retracted_private,
+        kernel_event("narration_recorded", day=1, scene="s1", turn=0, summary="ordinary active ref",
+                     deltas={"scene": "s1", "text": "ORDINARY_ACTIVE_REFERENCE_BODY"},
+                     thread_refs=["private-active-ref"]),
+        kernel_event("scene_summarized", day=1, scene="s1", turn=0, summary="ordinary retracted ref",
+                     deltas={"scene": "s1", "summary": "ORDINARY_RETRACTED_REFERENCE_BODY"},
+                     chunk_ids=["private-retracted-ref"]),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    gm = GmDashboard(engine)
+    with pytest.raises(ValueError, match="public event references private memory") as excinfo:
+        gm.state()
+    assert "PRIVATE_" not in str(excinfo.value)
+
+    gm_app = make_app(gm, mode="gm")
+    status, raw = _get_wsgi(gm_app, "/api/gm/state")
+    payload = json.loads(raw.decode("utf-8"))
+    assert status.startswith("500")
+    assert payload == {"message": "请求结果未能显示；请刷新查看当前状态。"}
+    rendered = json.dumps(payload, ensure_ascii=False) + caplog.text
+    for sentinel in ("PRIVATE_ACTIVE_BODY_SENTINEL", "PRIVATE_RETRACTED_BODY_SENTINEL",
+                     "ORDINARY_ACTIVE_REFERENCE_BODY", "ORDINARY_RETRACTED_REFERENCE_BODY"):
+        assert sentinel not in rendered
+    engine.store.close()
