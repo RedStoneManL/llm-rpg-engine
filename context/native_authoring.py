@@ -35,7 +35,8 @@ def _current_public_fact(graph, fact_key: str, day: int):
     return None
 
 
-def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None) -> dict:
+def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
+                             host_authorized_routes: list[dict[str, str]] | None = None) -> dict:
     """Build a bounded author-only supplement from safe, attributable material.
 
     ``player_context`` remains the public UI view.  This supplement does not
@@ -139,6 +140,9 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         "scene_time": {"day": day, "band": band_name(band)},
         "stateful_inventory": inventory,
         "present_people": people,
+        # Empty by default.  Only a host-side validator may put an existing,
+        # undiscovered direct route here; proposal text never creates one.
+        "host_authorized_routes": list(host_authorized_routes or []),
         "current_player_intent": player_input or None,
         "deadline": {
             "status": "not_scheduled",
@@ -146,7 +150,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         },
         "answering_policy": {
             "missing_evidence": "未提供材料不等于 NPC 不知；不要断言不知道、不要捏造答案，应保留为待调查或请求宿主裁定。",
-            "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物用 reported:<topic> 事实记录，并以 knowledge.told（via 为该人物 id）交给主角；它表示‘此人这样说’，不是对既存世界真相的覆写。既存实体只可复述本 brief 的 speakable_evidence；不得改写其事实、引入 hidden/past 或 secret/restricted 内容。",
+            "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物，或本 brief 中当前可见的既存人物，使用一个此前不存在的 public reported:<topic> 事实记录，并以同值的 knowledge.told（via 为该人物 id）交给主角；它表示‘此人这样说’，不是对既存世界真相的覆写。既存人物旧事实只能逐字复述 speakable_evidence，不能覆盖旧 reported:*；不得引入 hidden/past 或 secret/restricted 内容。",
             "item_state": "若叙事改变物品持有人或持有地点，必须提交 items.transfer；临时动作若没有可寻址目的地，不得声称已改变 canonical 持有状态。",
         },
     }
@@ -194,7 +198,22 @@ def _native_speakable_sources(world: dict, scene: dict) -> dict[str, tuple[Any, 
     return supplied
 
 
-def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str]:
+def _native_visible_speakers(world: dict, scene: dict) -> set[str]:
+    """Return only the sources explicitly present in the redacted brief.
+
+    Presence here is a capability, not a claim about every canonical person at
+    the location.  Reusing ``native_authoring_context`` keeps policy and the
+    material actually handed to the author on the same POV boundary.
+    """
+    return {
+        person["id"]
+        for person in native_authoring_context(world, scene).get("present_people", [])
+        if isinstance(person, dict) and isinstance(person.get("id"), str)
+    }
+
+
+def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
+                                   trusted_discovery_keys=frozenset()) -> list[str]:
     """Validate the native author's *authority*, not ordinary creative quality.
 
     A native author may create public places/people and may preserve a new
@@ -204,9 +223,14 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str
     without silently declaring the report to be the world truth.
 
     Existing canonical facts remain host authority unless their exact public,
-    attributed evidence was placed in the brief.  Hidden/restricted material,
-    existing-person evolution, and topology edits between pre-existing places
-    are denied rather than guessed from prose.
+    attributed evidence was placed in the brief.  One narrow exception keeps a
+    real conversation usable: a visible present speaker may append a *new*
+    public ``reported:<topic>`` key about what that speaker says now, paired
+    with exact protagonist ``knowledge.told`` provenance.  It cannot replace
+    an older report, upgrade it into a world fact, or write for an absent
+    person.  Hidden/restricted material, existing-person evolution, and
+    topology edits between pre-existing places are denied rather than guessed
+    from prose.
     """
     graph = world.get("systems", {}).get("ontology")
     existing = set(graph.entities) if graph is not None else set()
@@ -257,6 +281,7 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str
             errors.append("native author may not alter topology between existing places")
 
     supplied = _native_speakable_sources(world, scene)
+    visible_speakers = _native_visible_speakers(world, scene)
     reports: dict[str, tuple[Any, str]] = {}
     for fact in commit.sections.get("facts", []):
         if not isinstance(fact, dict):
@@ -267,6 +292,21 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str
             errors.append("native author may not introduce secret or restricted facts")
             continue
         if subject in existing:
+            # A present source may add a new, source-scoped statement to a
+            # conversation.  ``reported:*`` is deliberately not a world
+            # predicate, and the predicate must be genuinely new so an older
+            # statement cannot be silently superseded or upgraded.
+            existing_report = (
+                subject in visible_speakers
+                and isinstance(predicate, str)
+                and predicate.startswith("reported:")
+                and fact.get("secrecy") == "public"
+                and graph is not None
+                and all(current.predicate != predicate for current in graph.current_facts(subject))
+            )
+            if existing_report:
+                reports[fact_key] = (fact.get("value"), subject)
+                continue
             supplied_value = supplied.get(fact_key)
             if supplied_value is None or fact.get("value") != supplied_value[0] or fact.get("secrecy") != "public":
                 errors.append("native author may change an existing fact only by exactly recording supplied public speakable evidence")
@@ -288,6 +328,19 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str
     told: dict[str, tuple[Any, str | None]] = {}
     for item in commit.sections.get("knowledge", []):
         if not isinstance(item, dict):
+            continue
+        op = item.get("op", "told")
+        discovery_key = None
+        if op == "discover_place" and isinstance(item.get("place"), str):
+            discovery_key = f"{item['place']}.discovered"
+        elif (op == "discover_route" and isinstance(item.get("a"), str)
+              and isinstance(item.get("b"), str)):
+            first, second = sorted((item["a"], item["b"]))
+            discovery_key = f"route:{first}|{second}.discovered"
+        if discovery_key is not None:
+            if (item.get("knower") != scene.get("protagonist")
+                    or discovery_key not in trusted_discovery_keys):
+                errors.append("native author discovery records require an exact host-authorized route grant")
             continue
         if item.get("op", "told") != "told" or item.get("knower") != scene.get("protagonist"):
             errors.append("native author knowledge may only be protagonist told records")

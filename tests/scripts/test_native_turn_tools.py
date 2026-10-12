@@ -75,6 +75,7 @@ def test_exporter_creates_rich_safe_native_brief_from_real_campaign(tmp_path):
         "speakable_evidence": [],
         "absence_meaning": "not_supplied_not_npc_unknown",
     }]
+    assert authoring["host_authorized_routes"] == []
     assert brief["turncommit_schema"]["canonical"].startswith("TurnCommit.to_dict")
     schema = brief["turncommit_schema"]
     assert set(schema["optional_sections"]) == {"entities", "relations", "items", "knowledge", "quests", "world"}
@@ -225,3 +226,138 @@ def test_native_policy_rejects_existing_fact_overwrite_and_unsourced_report(tmp_
         assert native_authoring_policy_errors(engine.world, scene, TurnCommit.from_dict(unsourced))
     finally:
         engine.store.close()
+
+
+def test_visible_existing_source_can_append_new_report_but_cannot_overwrite_it(tmp_path):
+    """Natural follow-up questions extend provenance without rewriting history."""
+    campaign = _native_campaign(tmp_path)
+    proposal = tmp_path / "mara-follow-up.json"
+    first_value = "玛拉自述她清晨离开客栈门口时，小路仍通向石桥集市；她没有亲自到过渡口。"
+    proposal.write_text(json.dumps({
+        "narration": "你追问玛拉离开客栈时看见的路况；她只说明自己的观察范围。",
+        "moves": [], "places": [], "links": [], "cast": [],
+        "facts": [{
+            "subject": "innkeeper_mara", "predicate": "reported:market_route_observation",
+            "value": first_value, "secrecy": "public",
+        }],
+        "knowledge": [{
+            "op": "told", "knower": "protagonist",
+            "fact_key": "innkeeper_mara.reported:market_route_observation",
+            "value": first_value, "via": "innkeeper_mara",
+        }],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "同场追问仍在晨间"}],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    accepted = subprocess.run([
+        sys.executable, str(IMPORTER), str(campaign), str(proposal), "询问玛拉看见的路况",
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    assert json.loads(accepted.stdout)["revision"] > 0
+
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        graph = engine.world["systems"]["ontology"]
+        assert graph.value_at("innkeeper_mara", "reported:market_route_observation", 1) == first_value
+        assert graph.value_at("protagonist", "knows:innkeeper_mara.reported:market_route_observation", 1) == first_value
+
+        from kernel.turncommit import TurnCommit
+        overwrite = TurnCommit.from_dict({
+            "narration": "你把玛拉的话改成已经确认的道路状态。",
+            "moves": [], "places": [], "links": [], "cast": [],
+            "facts": [{
+                "subject": "innkeeper_mara", "predicate": "reported:market_route_observation",
+                "value": "玛拉确认渡口已经恢复通行。", "secrecy": "public",
+            }],
+            "knowledge": [{
+                "op": "told", "knower": "protagonist",
+                "fact_key": "innkeeper_mara.reported:market_route_observation",
+                "value": "玛拉确认渡口已经恢复通行。", "via": "innkeeper_mara",
+            }],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试"}],
+        })
+        assert native_authoring_policy_errors(engine.world, _build_scene(engine), overwrite)
+        assert graph.value_at("stonebridge_market", "status", 1) is None
+    finally:
+        engine.store.close()
+
+
+def test_native_host_route_authorization_is_explicit_and_separate_from_direction_report(tmp_path):
+    """Only a host option exposes and authorizes an existing hidden route."""
+    campaign = _native_campaign(tmp_path)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("place_created", day=1, scene="s1", turn=0, summary="运河栈桥", deltas={
+                "id": "canal_landing", "level": 2, "kind": "venue", "seed": "运河边的栈桥",
+                "visibility": "undiscovered",
+            }),
+            kernel_event("place_linked", day=1, scene="s1", turn=0, summary="客栈至运河栈桥", deltas={
+                "a": "stonebridge_inn", "b": "canal_landing", "visibility": "undiscovered",
+            }),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+    finally:
+        engine.store.close()
+
+    ordinary = tmp_path / "ordinary-brief.json"
+    subprocess.run([
+        sys.executable, str(EXPORTER), str(campaign), "--goal", "先问路，不预设目的地。",
+        "--output", str(ordinary),
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    assert "canal_landing" not in ordinary.read_text(encoding="utf-8")
+    forbidden = subprocess.run([
+        sys.executable, str(EXPORTER), str(campaign), "--goal", "尝试暴露隐藏地点。",
+        "--host-authorize-route", "north_bank_old_tower", "--output", str(tmp_path / "forbidden.json"),
+    ], cwd=tmp_path, env=_offline_env(), capture_output=True, text=True)
+    assert forbidden.returncode != 0
+    assert "north_bank_old_tower" not in forbidden.stdout
+
+    authorized = tmp_path / "authorized-brief.json"
+    subprocess.run([
+        sys.executable, str(EXPORTER), str(campaign), "--goal", "宿主已授权的路线可供选择。",
+        "--host-authorize-route", "canal_landing", "--output", str(authorized),
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    brief = json.loads(authorized.read_text(encoding="utf-8"))
+    assert brief["player_context"]["available_exits"] == [{
+        "id": "stonebridge_market", "label": "石桥集市", "kind": "settlement",
+    }]
+    assert brief["authoring_context"]["host_authorized_routes"] == [{
+        "from": "stonebridge_inn", "to": "canal_landing",
+        "place_discovery_key": "canal_landing.discovered",
+        "route_discovery_key": "route:canal_landing|stonebridge_inn.discovered",
+    }]
+
+    proposal = tmp_path / "authorized-route.json"
+    proposal.write_text(json.dumps({
+        "narration": "你按宿主已批准的线索前往运河栈桥。",
+        "moves": [{"who": "protagonist", "to": "canal_landing"}],
+        "places": [], "links": [], "cast": [], "facts": [],
+        "knowledge": [
+            {"op": "discover_place", "knower": "protagonist", "place": "canal_landing"},
+            {"op": "discover_route", "knower": "protagonist", "a": "stonebridge_inn", "b": "canal_landing"},
+        ],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程前往仍在晨间"}],
+    }, ensure_ascii=False), encoding="utf-8")
+    before = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    revision = before.store.revision
+    before.store.close()
+    rejected = subprocess.run([
+        sys.executable, str(IMPORTER), str(campaign), str(proposal), "前往运河栈桥",
+    ], cwd=tmp_path, env=_offline_env(), capture_output=True, text=True)
+    assert rejected.returncode != 0
+    after_reject = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    assert after_reject.store.revision == revision
+    after_reject.store.close()
+
+    accepted = subprocess.run([
+        sys.executable, str(IMPORTER), str(campaign), str(proposal), "前往运河栈桥",
+        "--host-authorize-route", "canal_landing",
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    assert json.loads(accepted.stdout)["revision"] > revision
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        graph = reopened.world["systems"]["ontology"]
+        assert graph.neighbors("protagonist", "located_in", 1) == ["canal_landing"]
+        assert graph.value_at("protagonist", "knows:canal_landing.discovered", 1) is True
+        assert graph.value_at("protagonist", "knows:route:canal_landing|stonebridge_inn.discovered", 1) is True
+    finally:
+        reopened.store.close()

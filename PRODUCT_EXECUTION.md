@@ -519,3 +519,22 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`21 passed in 0.85s`**，正式完整 gate 为 **`1877 passed, 1 deselected in 18.36s`**，唯一 deselect 为既有 slow
   real embedding。没有调用真实模型/embedding/网络，没有新增原生剧情、没有 push/PR/部署；下一回合仍须先得到新的作者
   proposal，不能由宿主补写。
+- 2026-10-12：独立质量评审以第三次真实导入为依据，确认“有限亲历自述 + 同源转述”的 provenance 模型正确，
+  但发现“既存人物只能逐字复述”会把自然追问逼成不断新建 NPC。native-only policy 现允许 **brief 中可见且在场的
+  既存人物**新增一个此前不存在的公开 `reported:<topic>`；必须同时给 protagonist 写同值 `knowledge.told`，且
+  `via` 为该人物 ID。它仍拒绝旧 `reported:*` 键的覆盖/升级、非在场人物、existing world facts、secret/restricted、
+  hidden/past 和人物 evolve，因此新增的是“此人此刻这样说”的来源记录，不是世界真相。真实第四玩家输入已经固定为
+  “询问洛恩候船位置、离开时点及从集市如何前往，先听后决定”，但本阶段没有代写其答案、proposal 或导入。
+
+  路线也明确分成两个通路：公开询路只可形成上述 source-bound `reported:*`，不能新增地图边或移动；仅宿主在
+  export/import 两端都显式传入 `--host-authorize-route DESTINATION` 时，才会暴露并临时授权一条**已存在、undiscovered、
+  从当前地点直连**的路线。proposal 仍须同时写精确的 `discover_place`/`discover_route` knowledge，最终 publish 再校验；
+  缺少授权、伪造其他目的地或企图重写拓扑均为零写入拒绝。默认仍无 route grant，不泄露隐藏地点。专项实际验证普通 brief
+  不含 hidden destination、无参数 import 拒绝且 revision 不变、有参数时才发现并移动；连同 provenance 追问与现有
+  capability 回归为 **`23 passed in 1.89s`**，正式完整 gate 为 **`1879 passed, 1 deselected in 20.64s`**，唯一 deselect
+  是既有 slow real embedding。
+
+  对实际 campaign 的只读核查确认 seq 39 `th_auto_aba5dff5` 仍是 `state=暗` 的 `quest_created`，没有后续
+  `quest_surfaced`/`quest_opened`/`quest_advanced`；明任务账只渲染 `state=明`，因此它尚未成为玩家任务或目标。
+  它仍保留在历史并可占用后台暗线容量，未被删改或误称清除。没有真实模型/embedding/网络、B1/profiling、push、PR、部署
+  或 Library 上传；待连接恢复后才处理持久化上传。

@@ -154,6 +154,38 @@ def _host_discovered_route(world: dict, origin: str, destination: str, trusted_k
                if neighbor == destination)
 
 
+def host_route_discovery_grant(world: dict, scene: dict, destination: str) -> dict[str, str]:
+    """Create one explicit host-side authorization for an existing hidden route.
+
+    This is deliberately not derived from author input.  A caller in the
+    trusted host position selects the destination, after which the returned
+    pair of discovery keys must still appear in the author's committed
+    ``knowledge`` records and pass both proposal and publish validation.  The
+    helper refuses public/nonexistent/non-adjacent targets, so it cannot be
+    used as a generic teleport or topology-creation API.
+    """
+    if not isinstance(destination, str) or not destination:
+        raise ValueError("host route authorization requires a destination id")
+    origin = scene.get("location")
+    graph = world.get("systems", {}).get("ontology")
+    if not isinstance(origin, str) or graph is None:
+        raise ValueError("host route authorization requires a current scene location")
+    target = graph.get_entity(destination)
+    if target is None or target.attrs.get("visibility") != "undiscovered":
+        raise ValueError("host route authorization requires an existing undiscovered destination")
+    day = scene.get("day") or world.get("meta", {}).get("day") or 1
+    if not any(attrs.get("visibility") == "undiscovered"
+               for neighbor, attrs in graph.relation_attrs_at(origin, "adjacent_to", day)
+               if neighbor == destination):
+        raise ValueError("host route authorization requires an existing undiscovered adjacent route")
+    return {
+        "from": origin,
+        "to": destination,
+        "place_discovery_key": place_discovery_key(destination),
+        "route_discovery_key": route_discovery_key(origin, destination),
+    }
+
+
 def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) -> list[ValidationError]:
     """Discovery is host authority, never an author-declared capability."""
     errors = []

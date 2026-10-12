@@ -6,6 +6,7 @@ wrapper remains readable only so retained review material does not rot.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -20,6 +21,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from app.engine import build_engine
 from app.play import _build_scene
+from context.capabilities import host_route_discovery_grant
 from context.native_authoring import NativeAuthoringPolicyError, native_authoring_policy_errors
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
@@ -59,12 +61,16 @@ class ImportedAuthor:
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = list(sys.argv[1:] if argv is None else argv)
-    if len(argv) != 3:
-        raise SystemExit("usage: import_native_turn.py CAMPAIGN_DIR PROPOSAL.json PLAYER_INPUT")
-    campaign = Path(argv[0])
-    proposal_path = Path(argv[1])
-    player_input = argv[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("campaign", type=Path)
+    parser.add_argument("proposal", type=Path)
+    parser.add_argument("player_input")
+    parser.add_argument("--host-authorize-route", action="append", default=[], metavar="DESTINATION",
+                        help="trusted host only: grant one existing undiscovered adjacent route for this import")
+    args = parser.parse_args(argv)
+    campaign = args.campaign
+    proposal_path = args.proposal
+    player_input = args.player_input
     payload = json.loads(proposal_path.read_text(encoding="utf-8"))
     commit = parse_native_commit(payload)
 
@@ -73,7 +79,16 @@ def main(argv: list[str] | None = None) -> int:
     engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
     try:
         scene = _build_scene(engine)
-        policy_errors = native_authoring_policy_errors(engine.world, scene, commit)
+        route_options = [host_route_discovery_grant(engine.world, scene, destination)
+                         for destination in args.host_authorize_route]
+        trusted_discovery_keys = frozenset(
+            key for option in route_options
+            for key in (option["place_discovery_key"], option["route_discovery_key"])
+        )
+        policy_errors = native_authoring_policy_errors(
+            engine.world, scene, commit,
+            trusted_discovery_keys=trusted_discovery_keys,
+        )
         if policy_errors:
             raise NativeAuthoringPolicyError(
                 "native authoring policy rejected proposal: " + "; ".join(policy_errors)
@@ -82,6 +97,7 @@ def main(argv: list[str] | None = None) -> int:
             engine.registry, engine.store, engine.world, scene, player_input,
             strategy=ImportedAuthor(commit), provider=engine.provider,
             required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
+            trusted_discovery_keys=trusted_discovery_keys,
         )
         print(json.dumps({"narration": result.narration, "revision": result.receipt["revision"]}, ensure_ascii=False))
     finally:
