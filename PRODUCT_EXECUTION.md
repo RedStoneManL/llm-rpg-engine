@@ -320,3 +320,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `build_engine` 改为仅**省略** embedder 才读取环境，故 `RPG_EMBEDDER=fastembed` 也不会构造 GUI embedder，同时保留普通
   app 的既有默认。POV 规则仍允许当前主角/地点、同场人、已发现实体和无限制 metadata 的 legacy 地点，并未把它表述为“所有地点
   都先发现”。专项与 engine 回归在本记录后续正式 gate 前均通过；无真实模型、网络、B1、profiling、push、PR 或部署。
+- 2026-10-12：复核继续关闭前端 pending 的两条边界。`api()` 不再把 HTTP 200 的 JSON 解析失败伪装成成功对象；action
+  只有拿到 `ok:true`、整数 revision 和 state 并成功 render 后才清除 sessionStorage envelope。损坏/缺字段的 200 保留原
+  action-id/input/revision，刷新后仍可恢复，实际 Chromium 证实 upstream 已提交时 revision `1→2→2`。相反，带合法 JSON
+  error 的 HTTP 400 被视为服务端已确认的未提交拒绝：清除 pending、允许修改和新 action；800 个中文字符的 UTF-8 过长反例在
+  刷新后不锁死并可正常提交。`app.__main__.main` 已逐行核对：它不传 `embedder` 给 `build_engine`，所以新的 sentinel
+  仅使 GUI 的显式 `None` 禁用 embedding；普通 CLI/省略调用仍按 `RPG_EMBEDDER` 选择。回归用替身证明普通省略构造会调用环境
+  resolver，而 GUI 在 `RPG_EMBEDDER=fastembed` 时仍为 None、零构造/零调用；没有运行真实 embedding 或模型。

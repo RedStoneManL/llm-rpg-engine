@@ -96,6 +96,11 @@ second click cannot retract another turn. Write routes require loopback Host,
 matching Origin when sent, and JSON bodies; ordinary cross-site forms are
 rejected before a controller runs.
 
+Malformed or incomplete `200` action responses are treated as unconfirmed and
+keep that envelope recoverable. A clearly validated server `400` rejection is
+different: no turn was accepted, so the page clears the pending envelope and
+lets the player edit and submit a new action after a refresh.
+
 The browser never selects a campaign path: `--campaign` is startup-only. The
 server binds only to `127.0.0.1`, serves no files, has no GM/editor route, and
 serializes a hand-shaped player DTO rather than a raw event store or canonical

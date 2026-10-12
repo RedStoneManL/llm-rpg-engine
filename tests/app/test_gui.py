@@ -198,9 +198,23 @@ def test_offline_demo_strategy_does_not_move_when_only_hidden_exit_exists(tmp_pa
     dashboard.engine.store.close()
 
 
-def test_gui_explicitly_disables_ambient_embedder(tmp_path, monkeypatch):
+def test_omitted_engine_embedder_keeps_ambient_default_while_gui_disables_it(tmp_path, monkeypatch):
     monkeypatch.setenv("RPG_EMBEDDER", "fastembed")
-    monkeypatch.setattr(engine_module, "get_embedder", lambda: (_ for _ in ()).throw(AssertionError("must not construct")))
+    marker = object()
+    calls = []
+
+    def ambient_embedder():
+        calls.append(True)
+        return marker
+
+    monkeypatch.setattr(engine_module, "get_embedder", ambient_embedder)
+    ordinary = build_engine(tmp_path / "ordinary", provider=FakeLLMProvider())
+    assert ordinary.embedder is marker
+    assert calls == [True]
+    ordinary.store.close()
+
+    calls.clear()
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
     assert dashboard.engine.embedder is None
+    assert calls == []
     dashboard.engine.store.close()
