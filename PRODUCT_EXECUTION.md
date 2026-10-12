@@ -464,3 +464,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   为 **`1872 passed, 1 deselected in 20.80s`**（唯一既有 slow real embedding）。原 checkpoint 完整 bundle 的
   全历史 782 blobs/567 paths 与源码归档 456 files 无实际 `.env`、私钥名、campaign DB/JSONL；只有两份 `.env`
   模板，唯一强模式是文档/示例占位。下一真实玩家行动仍未执行，也未预置第二回合。
+- 2026-10-12：同一首回合的实际 payload 还暴露 Fleet 暗线 backstop 的泛化误判：`heuristic_floor` 对未知 event
+  的默认分为 1，加任意 deltas 后达到 2；因此即便 `clock_advanced` 的 `advance=false` 也会成为唯一“substantive
+  player event”，自动创建无叙事依据的暗线。`d28cc98` 将 clock bookkeeping 从 backstop 候选集中整体排除，
+  不是针对本次对话/NPC 文本；`advance=false` 和真实推进 `advance=true/bands=1` 两种 clock-only 输入都不会造 quest，
+  既有角色发展触发暗线的回归保持。专项 `tests/loop/test_fleet.py tests/scripts/test_native_turn_tools.py -rA` 为
+  `18 passed`；正式完整 gate 为 **`1874 passed, 1 deselected in 19.23s`**（唯一既有 slow real embedding）。
+  这不会重写已导入 campaign 的既有历史；下一真实玩家行动仍等待安全作者材料和新的真实 proposal，未执行。
