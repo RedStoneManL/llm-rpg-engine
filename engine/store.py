@@ -41,6 +41,15 @@ class RevisionConflict(RuntimeError):
     """A proposal was based on a world that has since changed."""
 
 
+class ActionAlreadyCommitted(RevisionConflict):
+    """A caller retried an active action before any new generation began."""
+
+    def __init__(self, receipt, result_metadata):
+        super().__init__('action_id has already been committed')
+        self.receipt = receipt
+        self.result_metadata = result_metadata
+
+
 class EventStore:
     def __init__(self, db_path, jsonl_path, allowed_types=None):
         self.db_path = Path(db_path)
@@ -63,6 +72,26 @@ class EventStore:
 
     def next_turn(self) -> int:
         return self._conn.execute('SELECT COALESCE(MAX(turn),0)+1 FROM events WHERE retracted=0').fetchone()[0]
+
+    def get_action_receipt(self, action_id):
+        """Return a durable action receipt, if one was already committed."""
+        row = self._conn.execute(
+            'SELECT * FROM action_receipts WHERE action_id=?', (action_id,)
+        ).fetchone()
+        return dict(row) if row is not None else None
+
+    def get_action_result_metadata(self, action_id):
+        """Return the optional, versioned result sidecar for an action."""
+        row = self._conn.execute(
+            'SELECT metadata FROM action_result_metadata WHERE action_id=?', (action_id,)
+        ).fetchone()
+        return json.loads(row['metadata']) if row is not None else None
+
+    def action_receipt_is_retracted(self, receipt):
+        return self._conn.execute(
+            'SELECT 1 FROM events WHERE seq BETWEEN ? AND ? AND retracted=1 LIMIT 1',
+            (receipt['first_seq'], receipt['last_seq']),
+        ).fetchone() is not None
 
     def snapshot(self):
         """Read events and revision from one SQLite snapshot, then release it."""
@@ -98,15 +127,14 @@ class EventStore:
         self._conn.execute('BEGIN IMMEDIATE')
         try:
             if action_id:
-                prior = self._conn.execute('SELECT * FROM action_receipts WHERE action_id=?', (action_id,)).fetchone()
+                prior = self.get_action_receipt(action_id)
                 if prior:
                     if prior['fingerprint'] != fingerprint:
                         raise RevisionConflict('action_id already used for different events')
-                    if self._conn.execute('SELECT 1 FROM events WHERE seq BETWEEN ? AND ? AND retracted=1 LIMIT 1',
-                                          (prior['first_seq'], prior['last_seq'])).fetchone():
+                    if self.action_receipt_is_retracted(prior):
                         raise RevisionConflict('action was retracted; submit a new action_id')
                     self._conn.rollback()
-                    return {**dict(prior), 'duplicate': True, 'mirror_pending': bool(self.mirror_error)}
+                    return {**prior, 'duplicate': True, 'mirror_pending': bool(self.mirror_error)}
             revision = self.revision
             if expected_revision is not None and revision != expected_revision:
                 raise RevisionConflict('world changed while the action was being prepared')

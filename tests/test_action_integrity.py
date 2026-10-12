@@ -9,7 +9,7 @@ from app.engine import build_engine, rewind
 from app.play import _build_scene
 from context.assembler import assemble_context
 from engine import settings
-from engine.store import EventStore, EventBatch, RevisionConflict
+from engine.store import ActionAlreadyCommitted, EventStore, EventBatch, RevisionConflict
 from kernel.events import kernel_event
 from kernel.projection import project
 from kernel.turncommit import TurnCommit
@@ -238,6 +238,46 @@ def test_invalid_action_result_metadata_is_rejected_without_writes(engine, metad
     assert engine.store._conn.execute(
         'SELECT 1 FROM action_result_metadata WHERE action_id=?', ('invalid-metadata',)
     ).fetchone() is None
+
+
+def test_run_turn_duplicate_action_id_stops_before_strategy_or_provider(engine, monkeypatch):
+    quiet(monkeypatch)
+    first = run_turn(
+        engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='preflight-retry')
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            pytest.fail('strategy called for duplicate action')
+
+    with pytest.raises(ActionAlreadyCommitted) as exc:
+        run_turn(
+            engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+            strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[commit()]),
+            action_id='preflight-retry', expected_revision=0)
+
+    assert exc.value.receipt['action_id'] == first.receipt['action_id']
+    assert exc.value.result_metadata is None
+
+
+def test_run_turn_retracted_action_id_requires_new_id_before_strategy(engine, monkeypatch):
+    quiet(monkeypatch)
+    result = run_turn(
+        engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='retracted-preflight')
+    engine.store.retract_from_turn(result.events[0]['turn'])
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            pytest.fail('strategy called for retracted duplicate')
+
+    with pytest.raises(RevisionConflict, match='retracted; submit a new action_id'):
+        run_turn(
+            engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+            strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[commit()]),
+            action_id='retracted-preflight')
 
 
 def test_concurrent_snapshot_and_undo_cannot_accept_stale_proposals(engine):

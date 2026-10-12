@@ -29,7 +29,7 @@ from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
 
-from engine.store import EventBatch, RevisionConflict
+from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
 
 from kernel.registry import Registry
 from kernel.projection import project
@@ -557,6 +557,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
+    if action_id:
+        prior = store.get_action_receipt(action_id)
+        if prior is not None:
+            if store.action_receipt_is_retracted(prior):
+                raise RevisionConflict('action was retracted; submit a new action_id')
+            raise ActionAlreadyCommitted(prior, store.get_action_result_metadata(action_id))
     trusted_memory_role = scene.get('protagonist')
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
     version = expected_revision if expected_revision is not None else world.get('_revision')
