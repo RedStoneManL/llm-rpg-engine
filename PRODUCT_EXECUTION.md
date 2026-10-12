@@ -549,3 +549,13 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   receipt 内的 seq 46 `oracle_roll` 和 seq 47 `director_fired` 是既有后台 hook，均非作者 prose 或 quest；本次没有
   新 `quest_created`/surface/open/advance，旧 `th_auto_aba5dff5` 仍是暗态历史 line。安全回执只记录上述公共结构差异，
   不把路线陈述升级为世界权威。未生成第五候选、未改写/修复导入结果、未重跑测试、未上传。
+- 2026-10-12：对下一玩家意图“我按洛恩所说，在集市靠河的一头观察有没有对应的下坡路和木桩，确认眼前情况再决定是否继续，
+  暂不直接抵达渡口。”作宿主侧只读判定。当前 player POV 仍只见集市/客栈和一条公开边，唯一可移动出口是客栈；当前地点的
+  合格 `visibility=undiscovered` 直连 host-route 候选数为 **0**。已知 hidden 目标被
+  `host_route_discovery_grant` 拒绝（它不是 undiscovered），故不会因洛恩的方向陈述或本次观察尝试而授予目的地、路线、
+  `.discovered` knowledge 或移动。这是当前 canonical 资料不足的安全结论，不是“路线不存在”的世界断言。
+
+  因现有宿主规则已能 fail-closed，本阶段没有新增代码或路线数据：已导出第五作者的最小安全 brief，`host_authorized_routes=[]`，
+  带三条洛恩的既存来源陈述及真实玩家输入；goal 明确只允许原地观察，不得把 prose 转成地点/地图边/发现权限。brief 不含隐藏
+  地点 ID 或私有 sentinel。尚未生成第五候选或导入；若将来宿主先建立一个可公开、已存在且 undiscovered 的直连路线，才可由
+  export/import 两端同传显式 host authorization 走既有受验收通路。Library 仍未重试。
