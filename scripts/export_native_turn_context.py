@@ -20,6 +20,7 @@ from app.engine import build_engine
 from app.gui import build_player_state
 from app.play import _build_scene
 from context.access import pov_world
+from context.native_authoring import native_authoring_context
 from llm.provider import FakeLLMProvider
 
 
@@ -52,8 +53,8 @@ def _public_narrative(engine) -> list[str]:
     return lines[-8:]
 
 
-def build_native_turn_brief(engine, *, goal: str) -> dict:
-    """Return the narrow, actual-player-context brief without host authority."""
+def build_native_turn_brief(engine, *, goal: str, player_input: str | None = None) -> dict:
+    """Return public player state plus bounded author-only grounding."""
     scene = _build_scene(engine)
     player = build_player_state(engine)
     protagonist_facts = [
@@ -72,6 +73,7 @@ def build_native_turn_brief(engine, *, goal: str) -> dict:
             "available_exits": player["scene"]["exits"],
             "map": player["map"],
         },
+        "authoring_context": native_authoring_context(engine.world, scene, player_input=player_input),
         "free_action_goal": goal,
         "turncommit_schema": {
             "canonical": "TurnCommit.to_dict() (top-level narration plus system sections)",
@@ -94,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("campaign", type=Path, help="existing local campaign directory")
     parser.add_argument("--goal", required=True, help="one free player-action goal for the author")
+    parser.add_argument("--player-input", default=None,
+                        help="optional current player wording; recorded as unresolved intent, not fact")
     parser.add_argument("--output", type=Path, required=True, help="output JSON path")
     args = parser.parse_args(argv)
 
@@ -101,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     # variables name a real provider or embedder.
     engine = build_engine(args.campaign, provider=FakeLLMProvider(), embedder=None)
     try:
-        brief = build_native_turn_brief(engine, goal=args.goal)
+        brief = build_native_turn_brief(engine, goal=args.goal, player_input=args.player_input)
     finally:
         engine.store.close()
     args.output.write_text(json.dumps(brief, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

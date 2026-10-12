@@ -9,6 +9,8 @@ import sys
 
 from app.engine import build_engine
 from app.gui import _seed_demo_campaign
+from app.play import _build_scene
+from context.native_authoring import native_authoring_context
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
@@ -64,10 +66,52 @@ def test_exporter_creates_rich_safe_native_brief_from_real_campaign(tmp_path):
     assert context["known_items"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
     assert any("渡口今早延误" in line for line in context["known_events"])
     assert context["available_exits"] == [{"id": "stonebridge_market", "label": "石桥集市", "kind": "settlement"}]
+    authoring = brief["authoring_context"]
+    assert authoring["scene_time"] == {"day": 1, "band": "晨"}
+    assert authoring["stateful_inventory"] == [{"id": "old_brass_lantern", "canonical_holder": "protagonist"}]
+    assert authoring["present_people"] == [{
+        "id": "innkeeper_mara",
+        "observable": {"sketch": "客栈主人玛拉，熟悉河谷来往的旅人"},
+        "speakable_evidence": [],
+        "absence_meaning": "not_supplied_not_npc_unknown",
+    }]
     assert brief["turncommit_schema"]["canonical"].startswith("TurnCommit.to_dict")
     rendered = json.dumps(brief, ensure_ascii=False)
     assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
     assert "north_bank_old_tower" not in rendered
+
+
+def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path):
+    campaign = _native_campaign(tmp_path)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="公开渡口状态", deltas={
+                "subject": "ferry", "predicate": "status", "value": "因大雾延误", "secrecy": "public",
+            }),
+            kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉得知渡口状态", deltas={
+                "knower": "innkeeper_mara", "fact_key": "ferry.status", "value": "因大雾延误",
+            }),
+            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="秘密状态", deltas={
+                "subject": "ferry", "predicate": "secret", "value": "GUI_DEMO_PRIVATE_SENTINEL", "secrecy": "secret",
+            }),
+            kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉秘密知识", deltas={
+                "knower": "innkeeper_mara", "fact_key": "ferry.secret", "value": "GUI_DEMO_PRIVATE_SENTINEL",
+            }),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+
+        context = native_authoring_context(engine.world, _build_scene(engine), player_input="询问渡口")
+
+        mara = context["present_people"][0]
+        assert mara["speakable_evidence"] == [{
+            "fact_key": "ferry.status", "value": "因大雾延误",
+            "source": "present_npc_declared_knowledge", "confidence": "declared",
+        }]
+        assert context["current_player_intent"] == "询问渡口"
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(context)
+    finally:
+        engine.store.close()
 
 
 def test_importer_uses_canonical_schema_and_rejects_host_authority(tmp_path):
