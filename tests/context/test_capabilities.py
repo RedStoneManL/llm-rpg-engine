@@ -273,6 +273,27 @@ def test_final_validator_rejects_forged_discovery_grant_without_writes(tmp_path)
     engine.store.close()
 
 
+@pytest.mark.parametrize("event_type,deltas", [
+    ("knowledge_broadcast", {"fact_key": "north_bank_old_tower.discovered", "value": True,
+                               "audience": {"place": "stonebridge_inn"}}),
+    ("fact_asserted", {"subject": "protagonist", "predicate": "knows:north_bank_old_tower.discovered",
+                         "value": True}),
+])
+def test_final_validator_rejects_equivalent_discovery_writes(tmp_path, event_type, deltas):
+    engine = _demo_engine(tmp_path); scene = _build_scene(engine); before = engine.store.revision
+    batch = EventBatch(engine.store, preflight=lambda history: project(engine.registry, history))
+    def validate(events):
+        from context.capabilities import validate_protagonist_move_events
+        if validate_protagonist_move_events(events, engine.world, scene):
+            raise TurnRejected("final publish violates the player scene capability")
+    batch.add_publish_validator(validate)
+    batch.append(kernel_event(event_type, day=1, scene="s1", turn=batch.turn, summary="forged", deltas=deltas))
+    with pytest.raises(TurnRejected, match="scene capability"):
+        batch.publish(action_id=f"forged-{event_type}")
+    assert engine.store.revision == before
+    engine.store.close()
+
+
 def test_final_validator_ignores_retracted_discovery_route_and_writes_nothing(tmp_path):
     engine = _demo_engine(tmp_path)
     scene = _build_scene(engine)

@@ -140,9 +140,13 @@ def _new_place_route(commit, world: dict, origin: str, destination: str) -> bool
     return False
 
 
-def _host_discovered_route(world: dict, origin: str, destination: str, trusted_keys) -> bool:
+def _host_discovered_route(world: dict, origin: str, destination: str, trusted_keys, effective_keys=frozenset()) -> bool:
     graph = world.get("systems", {}).get("ontology")
-    if graph is None or place_discovery_key(destination) not in trusted_keys or route_discovery_key(origin, destination) not in trusted_keys:
+    place_key, route_key = place_discovery_key(destination), route_discovery_key(origin, destination)
+    target = graph.get_entity(destination) if graph else None
+    if (graph is None or target is None or target.attrs.get("visibility") != "undiscovered"
+            or place_key not in trusted_keys or route_key not in trusted_keys
+            or place_key not in effective_keys or route_key not in effective_keys):
         return False
     day = world.get("meta", {}).get("day") or 1
     return any(attrs.get("visibility") == "undiscovered"
@@ -202,8 +206,11 @@ def validate_protagonist_moves(
             continue
         if not isinstance(destination, str) or destination in allowed:
             continue
+        grants = {place_discovery_key(item.get("place")) if item.get("op") == "discover_place" else route_discovery_key(item.get("a"), item.get("b"))
+                  for item in (getattr(commit, "sections", {}).get("knowledge") or []) if isinstance(item, dict)
+                  and item.get("knower") == capability.actor and item.get("op") in {"discover_place", "discover_route"}}
         if (_new_place_route(commit, world, capability.location, destination)
-                or _host_discovered_route(world, capability.location, destination, trusted_keys)):
+                or _host_discovered_route(world, capability.location, destination, trusted_keys, grants)):
             continue
         errors.append(ValidationError(
             section="moves",
@@ -240,6 +247,14 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
     errors: list[ValidationError] = []
     for index, event in enumerate(events):
         delta = event.get("deltas") or {}
+        fact_key = delta.get("fact_key")
+        predicate = delta.get("predicate")
+        protected = ((isinstance(fact_key, str) and fact_key.endswith(".discovered"))
+                     or (isinstance(predicate, str) and predicate.startswith("knows:")
+                         and predicate.endswith(".discovered")))
+        if protected and event.get("type") != "knowledge_set":
+            errors.append(ValidationError("knowledge", f"event[{index}]", "protected_discovery_write",
+                                          "发现权限只能由受宿主授权的 knowledge_set 写入。"))
         if (event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor
                 and isinstance(delta.get("fact_key"), str) and delta["fact_key"].endswith(".discovered")
                 and delta["fact_key"] not in trusted_keys):
@@ -249,6 +264,10 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
     # events marked retracted are not allowed to create a discoverable place or
     # route for an otherwise invalid move.
     active_events = [event for event in events if not event.get("retracted")]
+    effective_grants = {delta.get("fact_key") for event in active_events
+                        for delta in [event.get("deltas") or {}]
+                        if event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor
+                        and delta.get("value") is True}
     canonical_graph = world.get("systems", {}).get("ontology")
     created = {
         (event.get("deltas") or {}).get("id")
@@ -276,7 +295,7 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
         discovered = (isinstance(destination, str) and destination in created
                       and frozenset((capability.location, destination)) in direct_links)
         host_discovered = (isinstance(destination, str)
-                           and _host_discovered_route(world, capability.location, destination, trusted_keys))
+                           and _host_discovered_route(world, capability.location, destination, trusted_keys, effective_grants))
         if not isinstance(destination, str) or destination in allowed or discovered or host_discovered:
             continue
         errors.append(ValidationError(
