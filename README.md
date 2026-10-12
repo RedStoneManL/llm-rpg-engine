@@ -47,6 +47,24 @@ model context. The flag is required on every process that should read the experi
 private slice; without it `/memory` stays unavailable and normal play behavior is
 unchanged. It has no automatic retry or concurrency behavior.
 
+### Offline CLI status tour
+
+Run the fixed, no-network walkthrough:
+
+```bash
+python scripts/demo_offline_cli_status.py
+```
+
+It uses a temporary campaign and fake providers, so it neither needs credentials nor
+changes an existing save.  The output demonstrates the default disabled `/memory`
+message, explicit private-memory activation, three `[已保存]` turn confirmations,
+one safe `[摘要] 暂未生成；本回合已保存。` recap failure, `/memory`, `/undo`, and a
+reopened session.  A pending recap is public narrative maintenance only: the player
+turn is already durable, and the engine may try that aged scene again during a later
+turn.  It is not a background job, a promise that a summary exists, or a retry of the
+player action.  Real play still requires a configured foreground provider; this tour
+does not exercise a real model, embedding, network, compare mode, or concurrent retry.
+
 ## Architecture
 
 ```text

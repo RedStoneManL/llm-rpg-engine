@@ -71,6 +71,18 @@ class TurnResult:
     repair_attempts: int
     dropped_sections: list[str] = field(default_factory=list)
     receipt: dict = field(default_factory=dict)
+    # A transient user-interface hint from this turn's recap maintenance.  It
+    # is persisted in result metadata for exact response-loss restoration but
+    # intentionally is not an event or projected world state.
+    recap_status: str = "not_due"
+
+
+_RECAP_STATUSES = frozenset({"not_due", "saved", "pending"})
+
+
+def _legacy_recap_status(events: list[dict]) -> str:
+    """Safely derive a compatible status for pre-status result sidecars."""
+    return "saved" if any(event.get("type") == "scene_summarized" for event in events) else "not_due"
 
 
 class TurnRejected(ValueError):
@@ -177,6 +189,13 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
     if (metadata['request_fingerprint'] != fingerprint
             or metadata['base_revision'] != expected_revision):
         raise RevisionConflict('action_id already belongs to a different request')
+    recap_status = result.get('recap_status')
+    if recap_status is None:
+        # Older v1 sidecars predate this presentation-only field.  Preserve
+        # their recovery compatibility without guessing a failed recap.
+        recap_status = _legacy_recap_status(events)
+    elif recap_status not in _RECAP_STATUSES:
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     from kernel.turncommit import TurnCommit
     world = project(registry, prior['history'])
     world['_revision'] = prior['revision']
@@ -185,7 +204,8 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
     return TurnResult(narration=commit_data['narration'], world=world,
                       commit=TurnCommit(commit_data['narration'], copy.deepcopy(commit_data['sections'])),
                       events=copy.deepcopy(events), repair_attempts=result['repair_attempts'],
-                      dropped_sections=list(result['dropped_sections']), receipt=receipt)
+                      dropped_sections=list(result['dropped_sections']), receipt=receipt,
+                      recap_status=recap_status)
 
 
 def _next_turn(store) -> int:
@@ -515,6 +535,7 @@ def _run_turn_staged(
         # Backstage digest (design §12): cheap heuristic importance + threshold-gated
         # LLM reflection; appends arc events. Invisible to the main LLM, never fatal.
         # P2: also feeds narration_text + recap_provider for recap maintenance.
+        recap_status = "not_due"
         try:
             with get_tracer().span("digest_fleet", turn=turn_num_before):
                 appended_events = _backstage_call(store, digest_fleet,
@@ -528,8 +549,14 @@ def _run_turn_staged(
             if appended_events:
                 new_world = project(registry, store.iter_events())  # fold arc/narr facts into world
                 log.debug("run_turn: digest appended %d event(s)", len(appended_events))
+            recap_status = getattr(appended_events, 'recap_status',
+                                   _legacy_recap_status(appended_events))
         except Exception:
-            log.exception("run_turn: digest_fleet failed (non-fatal, backstage)")
+            # Do not surface the exception body or retry the provider here.  A
+            # pending recap is enough for callers; the foreground action stays
+            # in the same batch and will still publish.
+            recap_status = "pending"
+            log.error("run_turn: digest_fleet failed (non-fatal, backstage)")
 
         # 暗骰 director (design §16 / Phase B): a hidden seeded roll may append an
         # oracle_roll + director_fired directive that the NEXT turn's narrator weaves
@@ -652,6 +679,7 @@ def _run_turn_staged(
             events=[ev for ev in store.iter_events() if ev.get('turn') == turn_num_before],
             repair_attempts=attempts,
             dropped_sections=dropped_sections,
+            recap_status=recap_status,
         )
 
 
@@ -730,6 +758,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     },
                     'repair_attempts': result.repair_attempts,
                     'dropped_sections': result.dropped_sections,
+                    'recap_status': result.recap_status,
                     # result.events is the caller-visible turn result.  Persist
                     # it rather than deriving it from the receipt range: later
                     # background work can share that range but was never part of

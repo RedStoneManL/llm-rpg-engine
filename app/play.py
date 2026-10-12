@@ -118,6 +118,20 @@ def _print_dm_narration(narration: str, out: Callable, *, _force_tty: bool | Non
         out("[DM]")
     out(narration)
 
+
+def _print_turn_status(result, out: Callable) -> None:
+    """Render durable action status without exposing backstage error details."""
+    receipt = getattr(result, "receipt", {}) or {}
+    events = getattr(result, "events", []) or []
+    turn = next((event.get("turn") for event in events if event.get("turn") is not None), "?")
+    revision = receipt.get("revision", "?")
+    out(f"[已保存] 第 {turn} 回合，版本 {revision}。")
+    recap_status = getattr(result, "recap_status", "not_due")
+    if recap_status == "saved":
+        out("[摘要] 已更新。")
+    elif recap_status == "pending":
+        out("[摘要] 暂未生成；本回合已保存。")
+
 # ---------------------------------------------------------------------------
 # Input sanitizer — strips terminal control/ANSI noise from raw stdin lines.
 # ---------------------------------------------------------------------------
@@ -514,6 +528,7 @@ def play_loop(
                     rec[label] = _candidate_record(commit, attempts, dropped)
                 rec["applied"] = "甲"
                 _write_transcript(transcript_path, rec)
+                _print_turn_status(applied, out)
             else:
                 spinner = _Spinner(out)
                 spinner.start()
@@ -551,9 +566,12 @@ def play_loop(
                     **_candidate_record(result.commit, result.repair_attempts,
                                         result.dropped_sections),
                 })
+                _print_turn_status(result, out)
 
         except Exception as exc:
-            log.exception("play_loop: turn error: %s", exc)
+            # Provider or extension exceptions may include untrusted/private
+            # content.  Keep normal CLI and stderr diagnostics body-free.
+            log.error("play_loop: turn failed")
             from loop.turn import TurnRejected
             from engine.store import RevisionConflict
             if isinstance(exc, TurnRejected):
@@ -566,6 +584,9 @@ def play_loop(
                     strategy.reset()
                 out('[世界状态已更新，请重新尝试这次行动。]')
             else:
-                out(f"[错误] {exc}")
+                # Both normal CLI output and its player-facing transcript avoid
+                # provider errors or private text that an exception happened
+                # to include.
+                out('[错误] 本回合未完成，世界保持原状。请稍后重试。')
             _write_transcript(transcript_path, {
-                "turn": turn_no, "input": player_input, "error": str(exc)})
+                "turn": turn_no, "input": player_input, "error": "turn_failed"})

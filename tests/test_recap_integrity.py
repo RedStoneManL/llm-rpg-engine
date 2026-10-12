@@ -9,6 +9,8 @@ from __future__ import annotations
 import copy
 import json
 
+import pytest
+
 from app.__main__ import _print_resume_recap
 from app.engine import build_engine
 from kernel.events import kernel_event
@@ -179,6 +181,7 @@ def test_summary_is_public_replayable_narrative_not_fact_authority(tmp_path, mon
         _play(engine, "s1", "PUBLIC_S1_FOR_SUMMARY", 11, FixedRecapProvider("unused"), "recap-ok-1")
         _play(engine, "s2", "PUBLIC_S2_FOR_SUMMARY", 12, FixedRecapProvider("unused"), "recap-ok-2")
         provider = FixedRecapProvider("SUMMARY_FALSE_CLAIM_COINS_999")
+        pre_action_world = engine.world
         result = _play(engine, "s3", "PUBLIC_S3_CURRENT", 13, provider, "recap-ok-3")
 
         summaries = [event for event in result.events if event["type"] == "scene_summarized"]
@@ -205,6 +208,19 @@ def test_summary_is_public_replayable_narrative_not_fact_authority(tmp_path, mon
         assert PRIVATE_SENTINEL not in rendered
         assert all(PRIVATE_SENTINEL not in str(event)
                    for event in public_event_history(engine.store.iter_events(include_retracted=True)))
+
+        class MustNotGenerate:
+            def produce(self, *args, **kwargs):
+                pytest.fail("completed action retried generation instead of restoring status")
+
+        recovered = run_turn(
+            engine.registry, engine.store, pre_action_world, _scene("s3"), "继续前进",
+            strategy=MustNotGenerate(), provider=FixedRecapProvider("must not run"),
+            required_sections=REQUIRED_SECTIONS, action_id="recap-ok-3",
+            memory_role="hero", memory_generator=OfflineInterpretationGenerator(PRIVATE_SENTINEL),
+        )
+        assert recovered.receipt["duplicate"]
+        assert recovered.recap_status == result.recap_status == "saved"
 
         engine.store.close()
         reopened = build_engine(tmp_path / "campaign", enable_interpretive_memory=True)

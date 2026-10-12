@@ -94,8 +94,11 @@ def complete_structured(
             from llm.provider import json_call
             raw = json_call(provider.complete_messages, messages)
         except Exception:
-            log.exception("complete_structured[%s]: complete_messages failed (attempt %d)",
-                          log_label, attempt)
+            # Provider exceptions can contain prompt fragments or private
+            # application data.  Keep the operator signal without writing the
+            # original exception body to a normal CLI stderr stream.
+            log.error("complete_structured[%s]: provider call failed (attempt %d)",
+                      log_label, attempt)
             record_failure(log_label, ['provider call failed'])
             return obj, errors
         obj = _parse_json_object(raw)
@@ -105,8 +108,8 @@ def complete_structured(
             try:
                 errors = validate(obj) or []
             except Exception:
-                log.exception("complete_structured[%s]: validate() crashed — treating as malformed",
-                              log_label)
+                log.error("complete_structured[%s]: validation crashed — treating as malformed",
+                          log_label)
                 errors = ["The response could not be validated; return a clean JSON object."]
         if not errors:
             return obj, []

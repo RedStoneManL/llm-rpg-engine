@@ -59,6 +59,19 @@ _SUMMARY_SCHEMA = {
 }
 
 
+class DigestEvents(list):
+    """Backstage events plus a transient, caller-facing recap outcome.
+
+    The list remains compatible with existing digest callers.  ``recap_status``
+    deliberately describes only this invocation; it is not another event and
+    therefore cannot change replay, receipt, or rewind semantics.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.recap_status = "not_due"  # not_due | saved | pending
+
+
 def _primary_subject(event: dict) -> str | None:
     """Extract the primary subject of an event.
 
@@ -117,7 +130,9 @@ def summarize_scene(provider, scene_id: str, raw_texts: list[str]) -> dict | Non
             deltas={"scene": scene_id, "summary": summary},
         )
     except Exception:
-        log.exception("summarize_scene: failed for scene=%s (non-fatal)", scene_id)
+        # Do not put provider exception text (which can include input bodies)
+        # on a normal player-facing stderr stream.
+        log.error("summarize_scene: failed for scene=%s (non-fatal)", scene_id)
         return None
 
 
@@ -212,7 +227,7 @@ def digest_fleet(
     # direct fleet entrypoint for every caller.
     from systems.interpretive_memory import public_event_history
     new_events = public_event_history(new_events)
-    appended_all: list[dict] = []
+    appended_all = DigestEvents()
 
     # ------------------------------------------------------------------
     # Phase 1: Arc reflection (unchanged from original)
@@ -297,6 +312,7 @@ def digest_fleet(
     # Phase 3: Summarize aged scene (gated — only when a scene ages out)
     # ------------------------------------------------------------------
     if recap_provider is not None:
+        aged = None
         try:
             # Re-project once to get post-narration state
             post = project(registry, store.iter_events())
@@ -310,6 +326,11 @@ def digest_fleet(
                     None,
                 )
                 if aged_bucket and aged_bucket.get("raw"):
+                    # The foreground action is already staged.  A recap is a
+                    # best-effort public derivative: retain this transient
+                    # pending status if its provider fails or returns malformed
+                    # output, so a CLI can be honest without exposing details.
+                    appended_all.recap_status = "pending"
                     summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"])
                     if summ_ev is not None:
                         next_turn = _next_turn_in_store(store)
@@ -318,6 +339,7 @@ def digest_fleet(
                         summ_ev["day"] = arc_day
                         store.append(summ_ev)
                         appended_all.append(summ_ev)
+                        appended_all.recap_status = "saved"
                         log.debug("digest_fleet: scene_summarized scene=%s", aged)
 
                         # Recompress check: if #summarized buckets > RECAP_SUMMARY_FANOUT
@@ -367,7 +389,9 @@ def digest_fleet(
                         except Exception:
                             log.exception("digest_fleet: recompress check failed (non-fatal)")
         except Exception:
-            log.exception("digest_fleet: scene summarization failed (non-fatal)")
+            if aged is not None:
+                appended_all.recap_status = "pending"
+            log.error("digest_fleet: scene summarization failed (non-fatal)")
 
     # ------------------------------------------------------------------
     # Phase 4: Storyline backstop (conservative 休眠 flag)
