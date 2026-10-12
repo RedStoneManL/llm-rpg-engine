@@ -61,12 +61,28 @@ def validate_commit(registry: Registry, commit: TurnCommit, world: dict, *,
     # move to a just-created place (etc.) resolves instead of bouncing forever as
     # dangling_ref. Stubs are removed in `finally` — the real world is untouched.
     pending: set[str] = set()
+    # A same-turn reference may legally target an id created by *one* section,
+    # but two owners claiming that identity leaves projection order to decide
+    # its type.  Detect that shared identity collision before installing the
+    # temporary validation stubs.  This protects every strategy, not only the
+    # native hand-off path.
+    creators: dict[str, str] = {}
     for section, decl in commit.sections.items():
         owner = registry.owner_of_section(section)
         if owner is not None and not _section_shape_errors(section, decl):
             try:
-                pending |= {pid for pid in owner.created_ids(section, decl)
-                            if isinstance(pid, str) and pid.strip()}
+                created = {pid for pid in owner.created_ids(section, decl)
+                           if isinstance(pid, str) and pid.strip()}
+                for pid in created:
+                    previous = creators.get(pid)
+                    if previous is not None and previous != section:
+                        errors.append(ValidationError(
+                            section, "", "duplicate_created_id",
+                            f"实体 id '{pid}' 同时由 '{previous}' 与 '{section}' 创建；每回合只能有一个创建 owner",
+                        ))
+                    else:
+                        creators[pid] = section
+                pending |= created
             except (TypeError, ValueError, AttributeError) as exc:
                 errors.append(ValidationError(section, '', 'bad_shape',
                     f'无法读取本段声明的实体 id：{exc}；id 必须是非空字符串'))

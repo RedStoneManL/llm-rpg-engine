@@ -96,6 +96,23 @@ def test_new_discovery_requires_same_turn_direct_route_and_replays_atomically(tm
     engine.store.close()
 
 
+def test_cross_section_created_identity_collision_is_rejected_before_projection(tmp_path):
+    """No strategy may let two creation owners race to define one identity."""
+    engine = _demo_engine(tmp_path)
+    collision = TurnCommit("同名对象不能同时是地点和人物。", {
+        "moves": [],
+        "places": [{"id": "shared_id", "level": 2, "kind": "venue", "seed": "地点"}],
+        "cast": [{"id": "shared_id", "op": "create", "sketch": "人物", "goal": "测试"}],
+        "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试"}],
+    })
+
+    errors = validate_commit(engine.registry, collision, engine.world, required_sections=REQUIRED_SECTIONS)
+
+    assert any(error.code == "duplicate_created_id" for error in errors)
+    engine.store.close()
+
+
 def test_existing_hidden_place_id_cannot_be_redeclared_as_new_discovery(tmp_path):
     engine = _demo_engine(tmp_path)
     scene = _build_scene(engine)

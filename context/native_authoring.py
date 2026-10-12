@@ -230,7 +230,9 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
     an older report, upgrade it into a world fact, or write for an absent
     person.  Hidden/restricted material, existing-person evolution, and
     topology edits between pre-existing places are denied rather than guessed
-    from prose.
+    from prose.  A genuinely new public place remains creative scope, but it
+    needs a fresh identity and a direct link from the action-start location;
+    that is world creation, not discovery of an existing hidden route.
     """
     graph = world.get("systems", {}).get("ontology")
     existing = set(graph.entities) if graph is not None else set()
@@ -240,6 +242,13 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
 
     if any(entity_id in existing for entity_id in new_ids):
         errors.append("native author may not recreate an existing canonical entity")
+    for left_name, left_ids, right_name, right_ids in (
+        ("cast", people, "places", places),
+        ("cast", people, "entities", entities),
+        ("places", places, "entities", entities),
+    ):
+        if left_ids & right_ids:
+            errors.append(f"native author may not create one id through both {left_name} and {right_name}")
 
     for item in commit.sections.get("cast", []):
         if not isinstance(item, dict):
@@ -255,11 +264,27 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
                 continue
             if item.get("visibility") in {"hidden", "secret", "undiscovered"}:
                 errors.append("native author may only create public scene topology")
+    origin = scene.get("location")
+    for item in commit.sections.get("places", []):
+        if not isinstance(item, dict):
+            continue
+        parent = item.get("parent")
+        if parent is not None and parent != origin:
+            errors.append("native author new places may only use the current location as an optional parent")
     for item in commit.sections.get("entities", []):
         if isinstance(item, dict):
             attrs = item.get("attrs")
-            if item.get("etype") == "Person" or (isinstance(attrs, dict) and attrs.get("visibility") in {"hidden", "secret", "undiscovered"}):
-                errors.append("native author may not create hidden/generic person authority; use public cast for a new speaker")
+            if item.get("etype") in {"Person", "Place"}:
+                errors.append("native author must create public people via cast and public places via places")
+            elif isinstance(attrs, dict) and attrs.get("visibility") in {"hidden", "secret", "undiscovered"}:
+                errors.append("native author may not create hidden/generic entity authority")
+    if commit.sections.get("materialize"):
+        errors.append("native author may not materialize an existing place")
+    for relation in commit.sections.get("relations", []):
+        if not isinstance(relation, dict):
+            continue
+        if relation.get("rel") == "adjacent_to" or ({relation.get("src"), relation.get("dst")} - entities):
+            errors.append("native author generic relations may only join same-turn new non-place entities")
 
     protagonist_destinations = {
         move.get("to") for move in commit.sections.get("moves", [])
@@ -276,9 +301,22 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
         elif who not in people or target not in allowed_locations:
             errors.append("native author may only place a same-turn new public person at the current or protagonist destination scene")
 
+    frontier_link_counts: dict[str, int] = {}
     for link in commit.sections.get("links", []):
-        if isinstance(link, dict) and not ({link.get("a"), link.get("b")} & places):
+        if not isinstance(link, dict):
+            continue
+        endpoints = {link.get("a"), link.get("b")}
+        new_endpoints = endpoints & places
+        if not new_endpoints:
             errors.append("native author may not alter topology between existing places")
+            continue
+        if origin is None or len(new_endpoints) != 1 or origin not in endpoints:
+            errors.append("native author new public topology must link exactly one new place directly to the current location")
+            continue
+        new_place = next(iter(new_endpoints))
+        frontier_link_counts[new_place] = frontier_link_counts.get(new_place, 0) + 1
+    if any(frontier_link_counts.get(place, 0) != 1 for place in places):
+        errors.append("each native-author new public place requires exactly one direct current-location link in the same turn")
 
     supplied = _native_speakable_sources(world, scene)
     visible_speakers = _native_visible_speakers(world, scene)

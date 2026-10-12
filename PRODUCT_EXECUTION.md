@@ -559,3 +559,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   带三条洛恩的既存来源陈述及真实玩家输入；goal 明确只允许原地观察，不得把 prose 转成地点/地图边/发现权限。brief 不含隐藏
   地点 ID 或私有 sentinel。尚未生成第五候选或导入；若将来宿主先建立一个可公开、已存在且 undiscovered 的直连路线，才可由
   export/import 两端同传显式 host authorization 走既有受验收通路。Library 仍未重试。
+- 2026-10-12：对“听到路线→可沿路核实”的架构根因复核确认，正常 `AuthorStrategy` 和 RCV11 capability 合约本来就
+  支持同回合**真实新 ID** 的公开 `places` 加从 action-start 当前位置的 direct `links`，并允许主角原子移动到该新地点；
+  它与宿主揭示既有 undiscovered 路线是两条不同路径。native policy 也并非完全禁止新地图，但原先只要求 link 一端为新
+  place，可能让 fresh public place 搭接 hidden/其他既存拓扑；共享 `validate_commit` 也没有显式报告跨 creation section
+  的同 ID owner 冲突。现修复为：所有策略先拒绝同一 ID 被多个 creation section 声称；native author 仍可创建 fresh、
+  public place，但每个新 place 必须以唯一 public link 直接连到当前地点（可同回合移动），不得复用既存/hidden ID、接触
+  其他既存地点、materialize 既存地点、用 generic `entities` 伪造 Place，或以 generic relation 改 adjacent topology。
+  这条路径是新世界创作，不写 `.discovered`、不把传闻升级为 host discovery，也不改变当前 hidden 目标。
+
+  新回归实际经 native importer 创建通用 `courtyard_steps` 并从当前客栈直连/移动成功；同一测试再尝试把 fresh marker
+  搭接 hidden 既存地点被 policy 拒绝。共享 cross-section collision 回归覆盖同 ID 同时作为 place/cast 的 fail-closed。
+  专项 `tests/scripts/test_native_turn_tools.py tests/context/test_capabilities.py tests/systems/test_place.py -rA` 为
+  **`90 passed in 2.16s`**；正式完整 gate 为 **`1881 passed, 1 deselected in 21.50s`**，唯一 deselect 是既有 slow
+  real embedding。没有为渡口或现有 hidden 目标写入路线，没有生成/导入第五候选，没有 B1、付费模型、push、部署或上传。

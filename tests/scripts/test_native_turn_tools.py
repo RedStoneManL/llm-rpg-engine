@@ -361,3 +361,57 @@ def test_native_host_route_authorization_is_explicit_and_separate_from_direction
         assert graph.value_at("protagonist", "knows:route:canal_landing|stonebridge_inn.discovered", 1) is True
     finally:
         reopened.store.close()
+
+
+def test_native_author_can_create_a_fresh_public_frontier_place_but_not_touch_hidden_topology(tmp_path):
+    """Fresh public creation remains possible without relabeling a hidden route."""
+    campaign = _native_campaign(tmp_path)
+    proposal = tmp_path / "fresh-frontier.json"
+    proposal.write_text(json.dumps({
+        "narration": "你离开客栈，走到新近发现的公开石阶平台；这里不是任何既有地点的别名。",
+        "moves": [{"who": "protagonist", "to": "courtyard_steps"}],
+        "places": [{
+            "id": "courtyard_steps", "level": 2, "kind": "venue",
+            "label": "石阶平台", "seed": "客栈外新开辟的一段公开石阶",
+        }],
+        "links": [{"a": "stonebridge_inn", "b": "courtyard_steps", "travel_cost": 1}],
+        "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程移动仍在晨间"}],
+    }, ensure_ascii=False), encoding="utf-8")
+
+    accepted = subprocess.run([
+        sys.executable, str(IMPORTER), str(campaign), str(proposal), "到门外的石阶平台看看",
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    assert json.loads(accepted.stdout)["revision"] > 0
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        graph = engine.world["systems"]["ontology"]
+        assert graph.neighbors("protagonist", "located_in", 1) == ["courtyard_steps"]
+        assert graph.get_entity("courtyard_steps").attrs.get("visibility") is None
+        assert "courtyard_steps" in graph.neighbors("stonebridge_inn", "adjacent_to", 1)
+
+        from kernel.turncommit import TurnCommit
+        hidden_touch = TurnCommit.from_dict({
+            "narration": "你给新地点接上一条未知旧路。", "moves": [],
+            "places": [{"id": "fresh_marker", "level": 2, "kind": "venue", "seed": "新标记"}],
+            "links": [
+                {"a": "courtyard_steps", "b": "fresh_marker"},
+                {"a": "fresh_marker", "b": "north_bank_old_tower"},
+            ],
+            "cast": [], "facts": [],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试"}],
+        })
+        assert native_authoring_policy_errors(engine.world, _build_scene(engine), hidden_touch)
+        duplicate_frontier = TurnCommit.from_dict({
+            "narration": "你重复登记同一条新路。", "moves": [],
+            "places": [{"id": "duplicate_marker", "level": 2, "kind": "venue", "seed": "重复标记"}],
+            "links": [
+                {"a": "courtyard_steps", "b": "duplicate_marker"},
+                {"a": "courtyard_steps", "b": "duplicate_marker"},
+            ],
+            "cast": [], "facts": [],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试"}],
+        })
+        assert native_authoring_policy_errors(engine.world, _build_scene(engine), duplicate_frontier)
+    finally:
+        engine.store.close()
