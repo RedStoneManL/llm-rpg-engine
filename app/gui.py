@@ -43,6 +43,10 @@ class GuiRequestError(ValueError):
     """A safe, player-facing request error (never contains provider/store text)."""
 
 
+class GuiRecoveryError(RuntimeError):
+    """A committed action cannot be safely reconstructed; never a confirmed rejection."""
+
+
 class OfflineDemoStrategy:
     """Deterministic, local narrator used by the GUI demo.
 
@@ -369,7 +373,7 @@ class PlayerDashboard:
                 raise ValueError
             return _RequestContext("", None, scene, prev_scene)
         except Exception:
-            raise GuiRequestError("此已保存请求缺少可安全恢复的上下文；请刷新并使用新的行动标识。")
+            raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
 
     def action(self, *, player_input: str, action_id: str, expected_revision: int | None) -> dict[str, Any]:
         if not isinstance(player_input, str) or not player_input.strip():
@@ -401,7 +405,8 @@ class PlayerDashboard:
                 host_envelope={"scene": context.scene, "prev_scene": context.prev_scene},
             )
             self.engine.world = result.world
-            self.previous_scene = context.scene
+            if not bool(getattr(result, "receipt", {}).get("duplicate")):
+                self.previous_scene = context.scene
             return {
                 "ok": True,
                 "duplicate": bool(getattr(result, "receipt", {}).get("duplicate")),
@@ -450,6 +455,7 @@ _INDEX = _INDEX.replace(
     '<button id="undo" type="button" class="subtle">撤销上一回合</button>',
     '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
 )
+_INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
 _JS = r"""(() => {
 let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-action.v1';
@@ -466,12 +472,15 @@ $('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||bus
 $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
 })();"""
-_JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,codexQuery='';")
+_JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,recoveryUnavailable=false,codexQuery='';")
 _JS = _JS.replace("s.codex.forEach(x=>{", "s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{")
 _JS = _JS.replace("if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{",
                   "const visibleCodex=s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery));if(!visibleCodex.length)$('codex').append(el('p',codexQuery?'没有匹配的公开设定。':'暂无公开设定条目。'));visibleCodex.forEach(x=>{")
 _JS = _JS.replace("$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});",
-                  "$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});$('codex-search').addEventListener('input',e=>{codexQuery=e.target.value.trim().toLowerCase();if(state)render(state)});")
+                  "$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});$('end-recovery').addEventListener('click',()=>{sessionStorage.removeItem(pendingKey);recoveryUnavailable=false;syncPending();setStatus('已结束恢复；当前显示的是已保存世界状态。')});$('codex-search').addEventListener('input',e=>{codexQuery=e.target.value.trim().toLowerCase();if(state)render(state)});")
+_JS = _JS.replace("function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}", "function syncPending(){const p=pending();$('resume-action').hidden=!p||recoveryUnavailable;$('end-recovery').hidden=!p||!recoveryUnavailable;if(p&&!busy&&!recoveryUnavailable)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}")
+_JS = _JS.replace("if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}", "if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.status=r.status;e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}")
+_JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally", "}else if(err.status===409){recoveryUnavailable=true;syncPending();setStatus('该行动已提交但无法安全恢复结果；请查看当前状态后明确结束恢复。',true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally")
 
 _GM_INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 本地 GM 世界总览</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow gm-mode\">LOCAL · GM READ-ONLY · CANONICAL WORLD</p><h1>世界总览</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p><p class=\"notice\">这是启动时通过 <code>--gm</code> 显式开启的本地只读模式。切换玩家/GM 视角需要重启服务；这里没有编辑、推进或玩家行动按钮。</p></header><section class=\"grid gm-grid\"><article class=\"panel map-panel\"><h2>全局地点连接图</h2><p class=\"hint\">节点和连线直接来自当前地点实体与 <code>adjacent_to</code> 关系。</p><div id=\"map\" class=\"map-graph\"></div></article><article class=\"panel\"><h2>地点系统</h2><div id=\"places\"></div></article><article class=\"panel\"><h2>角色系统</h2><div id=\"people\"></div></article><article class=\"panel\"><h2>物品与持有关系</h2><div id=\"objects\"></div></article><article class=\"panel\"><h2>摘要 / recap</h2><div id=\"recaps\"></div></article><article class=\"panel timeline\"><h2>世界事件时间线</h2><p class=\"hint\">标明客观事实、公开叙事、摘要以及已撤回历史。私有角色解释不会在此出现。</p><div id=\"timeline\"></div></article></section><footer>GM 全局可见不等于玩家可见，也不会写回玩家响应、模型上下文或私有解释记忆。</footer></main><script src=\"/app.js\"></script></body></html>"""
 _GM_INDEX = _GM_INDEX.replace('<article class="panel"><h2>摘要 / recap</h2>', '<article class="panel codex"><h2>世界设定典（只读）</h2><label for="codex-search">搜索标题、类别或正文</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div></article><article class="panel"><h2>摘要 / recap</h2>')
@@ -605,6 +614,8 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
             return _json_response(start_response, "400 Bad Request", {
                 "message": str(exc), "confirmed_rejection": True,
             })
+        except GuiRecoveryError:
+            return _json_response(start_response, "409 Conflict", {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"})
         except Exception:
             # The failure can occur after a turn committed.  Do not emit the
             # exception text/trace here: it may contain private input or an

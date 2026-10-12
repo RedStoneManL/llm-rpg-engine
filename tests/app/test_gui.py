@@ -412,8 +412,14 @@ def test_gui_old_duplicate_without_host_envelope_fails_closed(tmp_path):
     dashboard.engine.store._conn.execute("UPDATE action_result_metadata SET metadata='{}' WHERE action_id='legacy-gui'")
     dashboard.engine.store._conn.commit()
     dashboard.requests.clear()
-    with pytest.raises(GuiRequestError, match="缺少可安全恢复"):
+    with pytest.raises(gui.GuiRecoveryError, match="无法安全恢复"):
         dashboard.action(player_input="旧记录", action_id="legacy-gui", expected_revision=state["revision"])
+    dashboard.requests.clear()
+    status, payload = _post_wsgi(make_app(dashboard), "/api/action", {
+        "text": "旧记录", "action_id": "legacy-gui", "expected_revision": state["revision"],
+    })
+    assert status.startswith("409") and payload == {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"}
+    assert "confirmed_rejection" not in payload
     dashboard.engine.store.close()
 
 
