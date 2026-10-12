@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 import copy
 import asyncio
 import json
+import hashlib
 from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
@@ -89,6 +90,48 @@ def _read_preflight_metadata(metadata_raw):
     if metadata['version'] != 1:
         return None, 'unsupported_version'
     return metadata, 'available'
+
+
+def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role):
+    envelope = {'version': 1, 'scene': copy.deepcopy(scene),
+                'player_input': player_input, 'expected_revision': expected_revision,
+                # A private interpretation is part of the action result.  It must
+                # therefore be stable across a response-loss retry, without
+                # including provider/session/credential implementation details.
+                'memory_role': memory_role}
+    try:
+        encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
+                             separators=(',', ':'), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise TurnRejected('action request must be stable JSON') from exc
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision):
+    if (not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result'
+            or metadata.get('request_fingerprint') != fingerprint
+            or metadata.get('base_revision') != expected_revision):
+        raise RevisionConflict('action_id already belongs to a different request')
+    result = metadata.get('result') or {}
+    commit_data = result.get('commit')
+    events = result.get('events')
+    if (not isinstance(commit_data, dict)
+            or not isinstance(commit_data.get('narration'), str)
+            or not isinstance(commit_data.get('sections'), dict)
+            or type(result.get('repair_attempts')) is not int
+            or not isinstance(result.get('dropped_sections'), list)
+            or not all(isinstance(section, str) for section in result['dropped_sections'])
+            or not isinstance(events, list)
+            or not all(isinstance(event, dict) for event in events)):
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    from kernel.turncommit import TurnCommit
+    world = project(registry, prior['history'])
+    world['_revision'] = prior['revision']
+    receipt = {**prior['receipt'], 'duplicate': True, 'mirror_pending': False}
+    return TurnResult(narration=commit_data['narration'], world=world,
+                      commit=TurnCommit(commit_data['narration'], copy.deepcopy(commit_data['sections'])),
+                      events=copy.deepcopy(events), repair_attempts=result['repair_attempts'],
+                      dropped_sections=list(result['dropped_sections']), receipt=receipt)
 
 
 def _next_turn(store) -> int:
@@ -573,16 +616,19 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
+    version = expected_revision if expected_revision is not None else world.get('_revision')
+    fingerprint = _turn_request_fingerprint(scene, player_input, version, memory_role) if action_id else None
     if action_id:
         prior = store.read_committed_action(action_id)
         if prior is not None:
             if prior['retracted']:
                 raise RevisionConflict('action was retracted; submit a new action_id')
             metadata, status = _read_preflight_metadata(prior['metadata_raw'])
-            raise ActionAlreadyCommitted(prior['receipt'], metadata, metadata_status=status)
+            if status != 'available':
+                raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status=status)
+            return _restore_completed_turn(registry, prior, metadata, fingerprint, version)
     trusted_memory_role = scene.get('protagonist')
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
-    version = expected_revision if expected_revision is not None else world.get('_revision')
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
     cached_revision = getattr(strategy, '_committed_revision', None)
@@ -612,7 +658,28 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:
                 raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
-        receipt = batch.publish(action_id=action_id or str(uuid4()))
+        result_metadata = None
+        if action_id:
+            result_metadata = {
+                'version': 1,
+                'kind': 'turn_result',
+                'request_fingerprint': fingerprint,
+                'base_revision': version,
+                'result': {
+                    'commit': {
+                        'narration': result.commit.narration,
+                        'sections': result.commit.sections,
+                    },
+                    'repair_attempts': result.repair_attempts,
+                    'dropped_sections': result.dropped_sections,
+                    # result.events is the caller-visible turn result.  Persist
+                    # it rather than deriving it from the receipt range: later
+                    # background work can share that range but was never part of
+                    # the original response.
+                    'events': result.events,
+                },
+            }
+        receipt = batch.publish(action_id=action_id or str(uuid4()), result_metadata=result_metadata)
     except BaseException:
         if hasattr(strategy, '__dict__'):
             strategy.__dict__.clear()

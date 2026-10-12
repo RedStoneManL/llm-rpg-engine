@@ -108,13 +108,24 @@ class EventStore:
             if receipt is None:
                 self._conn.commit()
                 return None
+            # Receipt fingerprints are an internal duplicate-write guard, not a
+            # field normal EventBatch.publish callers receive.  Keep recovery
+            # responses shape-compatible with their original successful result.
+            receipt.pop('fingerprint', None)
             retracted = self.action_receipt_is_retracted(receipt)
             row = self._conn.execute(
                 'SELECT metadata FROM action_result_metadata WHERE action_id=?', (action_id,)
             ).fetchone()
+            revision = self.revision
+            history = [self._row_to_event(row) for row in self._conn.execute(
+                'SELECT * FROM events ORDER BY seq ASC')]
+            events = [self._row_to_event(row) for row in self._conn.execute(
+                'SELECT * FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq ASC',
+                (receipt['first_seq'], receipt['last_seq']))]
             self._conn.commit()
             return {'receipt': receipt, 'retracted': retracted,
-                    'metadata_raw': row['metadata'] if row is not None else None}
+                    'metadata_raw': row['metadata'] if row is not None else None,
+                    'revision': revision, 'history': history, 'events': events}
         except BaseException:
             self._conn.rollback()
             raise

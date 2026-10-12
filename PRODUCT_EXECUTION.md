@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-11 UTC。本文是当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-12 UTC。本文是当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。
 
 ## 可复现基线
@@ -43,6 +43,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | M4-03 | P1 | 已验收（savepoint 表示保真） | 失败 hook 不得把缺失的 `retracted` 字段规范化为 `False` | savepoint 精确恢复字段存在性与值；缺键 source 的既有 memory writer/validator 在失败 hook 后仍可发布 |
 | AID-01 | P1 | 已验收（仅持久化 sidecar） | 为未来 action-id preflight retry 保存可选、版本化的结果元数据 | `action_receipts` 保持五列与原 payload 指纹；sidecar 与 event/revision/receipt 同事务，写入失败全回滚，duplicate 不覆盖首份元数据；旧库打开、无 action ID 与非法 metadata 均有回归；仅保证 `append_many`/`publish` 路径，表本身无 FK；尚未实现 retry 入口 |
 | AID-02 | P1 | 已验收（完成态 preflight） | 显式 action ID 的重试必须在任何生成前发现已完成动作 | 单一短 SQLite snapshot 读取 receipt/撤回/sidecar；活跃 duplicate 抛出带状态化 metadata 的 `ActionAlreadyCommitted`，撤回后要求新 ID；不重建 `TurnResult`、不处理 in-flight/并发或自动重试 |
+| AID-03 | P1 | 已验收（显式 response-loss 恢复） | 同一显式 action ID、完全相同的原请求信封可在成功提交后恢复原 `TurnResult` | sidecar 保存版本化 request fingerprint、commit/repair/drop/首次 caller-visible events；duplicate 在 batch/provider 前恢复原结果并从当前完整 history 投影 world。input/scene/memory role/expected revision 任一变化、旧/损坏/未知 metadata、撤回 receipt 均 fail-closed；不处理 in-flight/并发、CLI 自动重试或非显式 action ID |
 
 ## 执行规则
 
@@ -196,3 +197,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   strategy/provider/memory generator/conversation commit 零调用，且 history/revision/receipt/JSONL 不变；
   两连接 WAL 受控交错证明单次读取自洽。专项 `58 passed`；正式完整 gate `1793 passed, 1 deselected`
   （18.63s）。仍不处理 in-flight、请求等价或 `TurnResult` 重建。
+- 2026-10-12：AID-03 在 `run_turn` 的完成态 preflight 上实现了受限的 response-loss 恢复：首次带
+  显式 `action_id` 的成功提交与同一 SQLite transaction 的 sidecar 保存稳定请求指纹（scene、player
+  input、expected revision、memory role；不含 provider、credentials、strategy/session state）以及原
+  commit/repair/drop/caller-visible events。相同信封重试在创建 batch、资源解析、strategy、provider、
+  offline memory generator、后台 hook 和 conversation thread commit 前返回首个结果；其 world 则从读取
+  snapshot 的当前完整 history 投影，故随后第二 action 不会被旧响应回退。实际离线端到端用例覆盖含
+  opt-in private memory 的“提交成功但调用方丢响应”、SQL events/receipt/metadata/revision 与 JSONL bytes
+  全不变、input/scene/memory role 的前置拒绝、第二 action 后的旧 response 恢复及关闭重开；专项
+  `tests/test_action_integrity.py` 为 `63 passed`。正式 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  `1798 passed, 1 deselected`（18.15s）；唯一 deselect 是既有 slow real embedding 测试，未调用真实模型。
+  这不增加 CLI stable action-id、in-flight/并发处理或自动 retry，也不改变私有记忆默认禁用状态。
