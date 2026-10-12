@@ -140,6 +140,16 @@ def _new_place_route(commit, world: dict, origin: str, destination: str) -> bool
     return False
 
 
+def _host_discovered_route(world: dict, origin: str, destination: str, trusted_keys) -> bool:
+    graph = world.get("systems", {}).get("ontology")
+    if graph is None or place_discovery_key(destination) not in trusted_keys or route_discovery_key(origin, destination) not in trusted_keys:
+        return False
+    day = world.get("meta", {}).get("day") or 1
+    return any(attrs.get("visibility") == "undiscovered"
+               for neighbor, attrs in graph.relation_attrs_at(origin, "adjacent_to", day)
+               if neighbor == destination)
+
+
 def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) -> list[ValidationError]:
     """Discovery is host authority, never an author-declared capability."""
     errors = []
@@ -162,6 +172,7 @@ def validate_protagonist_moves(
     scene: dict,
     *,
     narration_rewrite_from: str | None = None,
+    trusted_keys=frozenset(),
 ) -> list[ValidationError]:
     """Return repairable errors when the scene protagonist leaves its capability.
 
@@ -191,7 +202,8 @@ def validate_protagonist_moves(
             continue
         if not isinstance(destination, str) or destination in allowed:
             continue
-        if _new_place_route(commit, world, capability.location, destination):
+        if (_new_place_route(commit, world, capability.location, destination)
+                or _host_discovered_route(world, capability.location, destination, trusted_keys)):
             continue
         errors.append(ValidationError(
             section="moves",
@@ -263,7 +275,9 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
             continue
         discovered = (isinstance(destination, str) and destination in created
                       and frozenset((capability.location, destination)) in direct_links)
-        if not isinstance(destination, str) or destination in allowed or discovered:
+        host_discovered = (isinstance(destination, str)
+                           and _host_discovered_route(world, capability.location, destination, trusted_keys))
+        if not isinstance(destination, str) or destination in allowed or discovered or host_discovered:
             continue
         errors.append(ValidationError(
             section="moves", field=f"event[{index}].deltas.to", code="outside_scene_capability",

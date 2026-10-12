@@ -347,6 +347,7 @@ def produce_turn(
             travel_errors = validate_protagonist_moves(
                 commit, world, scene,
                 narration_rewrite_from=travel_narration_baseline,
+                trusted_keys=trusted_discovery_keys,
             )
             if (travel_narration_baseline is None
                     and any(error.code == "scene_capability_narration"
