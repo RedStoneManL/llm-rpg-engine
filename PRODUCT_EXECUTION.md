@@ -471,3 +471,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   既有角色发展触发暗线的回归保持。专项 `tests/loop/test_fleet.py tests/scripts/test_native_turn_tools.py -rA` 为
   `18 passed`；正式完整 gate 为 **`1874 passed, 1 deselected in 19.23s`**（唯一既有 slow real embedding）。
   这不会重写已导入 campaign 的既有历史；下一真实玩家行动仍等待安全作者材料和新的真实 proposal，未执行。
+- 2026-10-12：第二个原生作者候选（保留原文）尝试从客栈移动到集市、调查渡口消息来源，但 `clock: []`
+  被 importer 经三次空修复后 fail-closed 为 `TurnRejected: Action still contains invalid sections: clock`；独立
+  campaign 保持 revision 3、22 events、地点客栈、day 1/band 0，零写入。它不是路线/叙事质量通过，也没有被
+  人工补 clock。根因是 native brief 的 schema 比正常 `AuthorStrategy` 过度缩减：未给 `items/knowledge/quests/world`
+  的可选结构，也没有把 clock 的“恰好一个元素”或“route cost 不是时间换算”明确交给作者。`23b8016` 恢复这些
+  通用 schema 与 action adjudication 规则：新信息须以 fact+`knowledge.told` 持久化；物品 custody 变化才用
+  `items.transfer`；route cost 不自行换算 clock。它不提供市场证言、NPC 回答、隐藏事实或第二回合预置结果。
+  专项 `18 passed`，正式完整 gate **`1874 passed, 1 deselected in 20.12s`**；唯一既有 slow real embedding。
+  已为下一份真实 proposal 导出更新后的安全作者材料，尚未再次导入。
