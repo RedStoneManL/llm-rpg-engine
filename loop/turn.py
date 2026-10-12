@@ -170,7 +170,8 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
             or any(receipt_events.get(event['id']) != event for event in events)):
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     if (not isinstance(metadata.get('request_fingerprint'), str)
-            or (metadata.get('base_revision') is not None
+            or 'base_revision' not in metadata
+            or (metadata['base_revision'] is not None
                 and type(metadata['base_revision']) is not int)):
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     if (metadata['request_fingerprint'] != fingerprint

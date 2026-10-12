@@ -555,7 +555,8 @@ def test_committed_action_mirror_check_is_read_only_and_conservative(engine):
 
 
 @pytest.mark.parametrize('mutate', ('nonempty_container', 'old_turnless_structure',
-                                    'negative_repairs', 'missing_event_structure'))
+                                    'negative_repairs', 'missing_event_structure',
+                                    'missing_base_revision'))
 def test_response_loss_retry_rejects_corrupt_result_metadata_before_generation(
         engine, monkeypatch, mutate):
     quiet(monkeypatch)
@@ -575,6 +576,8 @@ def test_response_loss_retry_rejects_corrupt_result_metadata_before_generation(
         metadata = {'version': 1, 'outcome': 'legacy'}
     elif mutate == 'negative_repairs':
         metadata['result']['repair_attempts'] = -1
+    elif mutate == 'missing_base_revision':
+        metadata.pop('base_revision')
     else:
         metadata['result']['events'][0].pop('summary')
     engine.store._conn.execute(
