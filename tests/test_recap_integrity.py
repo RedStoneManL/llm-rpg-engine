@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 
 import pytest
 
@@ -51,7 +52,7 @@ class RaisingRecapProvider:
 
     def complete_messages(self, messages, **kwargs):
         self.calls.append(copy.deepcopy(messages))
-        raise RuntimeError("summary provider unavailable")
+        raise RuntimeError("PRIVATE_RECAP_EXCEPTION_BODY")
 
 
 class FixedRecapProvider:
@@ -118,14 +119,16 @@ def _public_resume(engine):
     return "\n".join(lines)
 
 
-def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp_path, monkeypatch):
+def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp_path, monkeypatch, caplog):
     _disable_unrelated_backstage(monkeypatch)
+    caplog.set_level(logging.ERROR)
     engine = _seed_engine(tmp_path)
     try:
         # Three distinct scenes age s1 out.  The first two actions establish a
         # nonempty fact state and real private records before the failing recap.
         _play(engine, "s1", "PUBLIC_S1_NARRATION", 11, RaisingRecapProvider(), "recap-fail-1")
         _play(engine, "s2", "PUBLIC_S2_NARRATION", 12, RaisingRecapProvider(), "recap-fail-2")
+        pre_action_world = engine.world
         before_events = list(engine.store.iter_events(include_retracted=True))
         before_revision = engine.store.revision
         failing = RaisingRecapProvider()
@@ -152,6 +155,21 @@ def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp
         assert "PUBLIC_S3_FOREGROUND_SURVIVES" in rendered
         assert PRIVATE_SENTINEL not in rendered
         assert all(PRIVATE_SENTINEL not in str(event) for event in public_event_history(history))
+        assert caplog.records
+        assert "PRIVATE_RECAP_EXCEPTION_BODY" not in caplog.text
+
+        class MustNotGenerate:
+            def produce(self, *args, **kwargs):
+                pytest.fail("completed pending recap action retried generation")
+
+        recovered = run_turn(
+            engine.registry, engine.store, pre_action_world, _scene("s3"), "继续前进",
+            strategy=MustNotGenerate(), provider=FixedRecapProvider("must not run"),
+            required_sections=REQUIRED_SECTIONS, action_id="recap-fail-3",
+            memory_role="hero", memory_generator=OfflineInterpretationGenerator(PRIVATE_SENTINEL),
+        )
+        assert recovered.receipt["duplicate"]
+        assert recovered.recap_status == result.recap_status == "pending"
 
         db_path, jsonl_path = engine.store.db_path, engine.store.jsonl_path
         engine.store.close()
@@ -170,6 +188,37 @@ def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp
         if engine.store._conn:
             engine.store.close()
         raise
+
+
+def test_reflection_failure_before_recap_does_not_claim_recap_pending(tmp_path, monkeypatch, caplog):
+    """Only digest's actual recap attempt may report ``pending``."""
+    _disable_unrelated_backstage(monkeypatch)
+    caplog.set_level(logging.ERROR)
+    engine = _seed_engine(tmp_path)
+    try:
+        # Seed an aged candidate without forcing reflection on its first two
+        # foreground actions.  The third action's reflection now fails before
+        # digest reaches Phase 3 recap maintenance.
+        _play(engine, "s1", "PUBLIC_S1", 11, FixedRecapProvider("unused"), "reflect-1")
+        _play(engine, "s2", "PUBLIC_S2", 12, FixedRecapProvider("unused"), "reflect-2")
+        monkeypatch.setattr("loop.fleet.importance_mod.score", lambda *args, **kwargs: 100)
+        reflection_calls = []
+
+        def broken_reflection(*args, **kwargs):
+            reflection_calls.append(1)
+            raise RuntimeError("PRIVATE_REFLECTION_EXCEPTION_BODY")
+
+        monkeypatch.setattr("loop.fleet.reflection_mod.reflect", broken_reflection)
+        recap = RaisingRecapProvider()
+        result = _play(engine, "s3", "PUBLIC_S3", 13, recap, "reflect-3")
+
+        assert reflection_calls
+        assert recap.calls == []
+        assert result.recap_status == "not_due"
+        assert not any(event["type"] == "scene_summarized" for event in result.events)
+        assert "PRIVATE_REFLECTION_EXCEPTION_BODY" not in caplog.text
+    finally:
+        engine.store.close()
 
 
 def test_summary_is_public_replayable_narrative_not_fact_authority(tmp_path, monkeypatch):

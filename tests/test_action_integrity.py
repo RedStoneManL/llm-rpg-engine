@@ -556,7 +556,9 @@ def test_committed_action_mirror_check_is_read_only_and_conservative(engine):
 
 @pytest.mark.parametrize('mutate', ('nonempty_container', 'old_turnless_structure',
                                     'negative_repairs', 'missing_event_structure',
-                                    'missing_base_revision'))
+                                    'missing_base_revision', 'null_recap_status',
+                                    'list_recap_status', 'dict_recap_status',
+                                    'invalid_recap_status'))
 def test_response_loss_retry_rejects_corrupt_result_metadata_before_generation(
         engine, monkeypatch, mutate):
     quiet(monkeypatch)
@@ -578,6 +580,14 @@ def test_response_loss_retry_rejects_corrupt_result_metadata_before_generation(
         metadata['result']['repair_attempts'] = -1
     elif mutate == 'missing_base_revision':
         metadata.pop('base_revision')
+    elif mutate == 'null_recap_status':
+        metadata['result']['recap_status'] = None
+    elif mutate == 'list_recap_status':
+        metadata['result']['recap_status'] = []
+    elif mutate == 'dict_recap_status':
+        metadata['result']['recap_status'] = {}
+    elif mutate == 'invalid_recap_status':
+        metadata['result']['recap_status'] = 'invented_status'
     else:
         metadata['result']['events'][0].pop('summary')
     engine.store._conn.execute(
@@ -721,6 +731,48 @@ def test_completed_action_preflight_stops_all_generation_paths(
     assert engine.store.jsonl_path.read_bytes() == before_mirror
 
 
+def test_response_loss_retry_recovers_legacy_missing_recap_status_without_writes(
+        engine, monkeypatch):
+    """Only an absent status is legacy-compatible; it must not regenerate."""
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    first = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='legacy-recap-status')
+    row = engine.store._conn.execute(
+        'SELECT metadata FROM action_result_metadata WHERE action_id=?',
+        ('legacy-recap-status',)).fetchone()
+    metadata = json.loads(row['metadata'])
+    metadata['result'].pop('recap_status')
+    engine.store._conn.execute(
+        'UPDATE action_result_metadata SET metadata=? WHERE action_id=?',
+        (json.dumps(metadata, sort_keys=True, ensure_ascii=False), 'legacy-recap-status'))
+    engine.store._conn.commit()
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes(), engine.store._conn.execute(
+                  'SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                  ('legacy-recap-status',)).fetchone()['metadata'])
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('legacy completed action reached generation')
+
+    recovered = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden),
+                                          'commit_to_thread': staticmethod(forbidden)})(),
+        provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
+        action_id='legacy-recap-status')
+
+    assert recovered.receipt['duplicate']
+    assert recovered.recap_status == 'not_due'
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes(), engine.store._conn.execute(
+                'SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                ('legacy-recap-status',)).fetchone()['metadata']) == before
+
+
 def test_retracted_action_preflight_stops_all_generation_paths(engine, monkeypatch):
     receipt = engine.store.append_many(
         [event(subject='hero', predicate='coins', value=7)], action_id='completed-retracted')
@@ -804,6 +856,21 @@ def test_backstage_failure_drops_only_its_partial_proposal_and_keeps_narration(e
     rewind(engine, 1)
     assert engine.world['systems']['ontology'].value_at('hero','coins',1) == 10
     assert not any(e['type']=='narration_recorded' for e in engine.store.iter_events())
+
+
+def test_digest_cancellation_is_not_reclassified_as_pending_or_published(engine, monkeypatch):
+    """Cancellation remains control flow; the enclosing turn batch must abort."""
+    quiet(monkeypatch)
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision)
+
+    def cancelled(*args, **kwargs):
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr('loop.turn.digest_fleet', cancelled)
+    with pytest.raises(asyncio.CancelledError):
+        run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
+                 strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]))
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision) == before
 
 
 def test_run_turn_memory_default_does_not_call_generator(engine, monkeypatch):

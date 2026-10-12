@@ -478,6 +478,10 @@ def play_loop(
         if echo_input:
             _echo_player(player_input, out)
 
+        # A turn becomes durable inside run_turn.  Keep this bit separate from
+        # presentation so a later stdout/transcript failure never tells the
+        # player that an already-published world was rolled back.
+        turn_published = False
         try:
             if compare_mode[0]:
                 from loop.variation import prepare_variation, variation_fragment
@@ -514,6 +518,7 @@ def play_loop(
                     cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
                     memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                     memory_generator=engine.interpretive_memory_generator)
+                turn_published = True
                 engine.world = applied.world
                 prev_scene = scene
                 if hasattr(strategy, 'reset'):
@@ -552,6 +557,7 @@ def play_loop(
                     )
                 finally:
                     spinner.stop()
+                turn_published = True
                 engine.world = result.world
                 prev_scene = scene  # update for next turn's enter-scope detection
                 # #5 — frame the DM narration under a clear marker
@@ -587,6 +593,11 @@ def play_loop(
                 # Both normal CLI output and its player-facing transcript avoid
                 # provider errors or private text that an exception happened
                 # to include.
-                out('[错误] 本回合未完成，世界保持原状。请稍后重试。')
+                if turn_published:
+                    out('[提示] 本回合已保存，但结果显示未完成；请检查当前世界状态。]')
+                else:
+                    out('[错误] 本回合处理遇到问题；请检查当前世界状态。]')
             _write_transcript(transcript_path, {
-                "turn": turn_no, "input": player_input, "error": "turn_failed"})
+                "turn": turn_no, "input": player_input,
+                "error": ("turn_output_failed_after_commit" if turn_published
+                          else "turn_failed")})

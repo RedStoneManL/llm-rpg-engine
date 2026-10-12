@@ -189,13 +189,17 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
     if (metadata['request_fingerprint'] != fingerprint
             or metadata['base_revision'] != expected_revision):
         raise RevisionConflict('action_id already belongs to a different request')
-    recap_status = result.get('recap_status')
-    if recap_status is None:
+    if 'recap_status' not in result:
         # Older v1 sidecars predate this presentation-only field.  Preserve
         # their recovery compatibility without guessing a failed recap.
         recap_status = _legacy_recap_status(events)
-    elif recap_status not in _RECAP_STATUSES:
-        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    else:
+        recap_status = result['recap_status']
+        # Check the type before set membership: JSON can carry containers,
+        # which are unhashable and must fail closed rather than escape as a
+        # TypeError from recovery.
+        if not isinstance(recap_status, str) or recap_status not in _RECAP_STATUSES:
+            raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     from kernel.turncommit import TurnCommit
     world = project(registry, prior['history'])
     world['_revision'] = prior['revision']
@@ -551,11 +555,17 @@ def _run_turn_staged(
                 log.debug("run_turn: digest appended %d event(s)", len(appended_events))
             recap_status = getattr(appended_events, 'recap_status',
                                    _legacy_recap_status(appended_events))
+        except asyncio.CancelledError:
+            # A cancellation is control flow, not a recoverable recap status.
+            # Let the enclosing batch abort instead of publishing a turn with
+            # an invented presentation result.
+            raise
         except Exception:
-            # Do not surface the exception body or retry the provider here.  A
-            # pending recap is enough for callers; the foreground action stays
-            # in the same batch and will still publish.
-            recap_status = "pending"
+            # Do not surface the exception body or retry the provider here.
+            # ``pending`` is meaningful only when digest_fleet itself reached
+            # a recap attempt and returned that explicit status.  An earlier
+            # reflection/backstage failure says nothing about recap work, so
+            # keep the neutral ``not_due`` presentation state.
             log.error("run_turn: digest_fleet failed (non-fatal, backstage)")
 
         # 暗骰 director (design §16 / Phase B): a hidden seeded roll may append an

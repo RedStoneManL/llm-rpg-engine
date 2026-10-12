@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gc
 import json
+import logging
 
 from app.__main__ import main
 from app.engine import build_engine, new_game
@@ -86,9 +87,11 @@ def test_offline_cli_reports_saved_turn_pending_recap_and_memory_lifecycle(tmp_p
     assert "[摘要] 暂未生成；本回合已保存。" not in reopened
 
 
-def test_cli_does_not_echo_untrusted_exception_text(tmp_path, monkeypatch):
+def test_cli_does_not_echo_untrusted_exception_text(tmp_path, monkeypatch, caplog):
     engine = build_engine(tmp_path / "error-campaign", provider=FakeLLMProvider())
     try:
+        caplog.set_level(logging.ERROR)
+
         def broken_turn(*args, **kwargs):
             raise RuntimeError("PRIVATE_EXCEPTION_BODY")
 
@@ -98,10 +101,42 @@ def test_cli_does_not_echo_untrusted_exception_text(tmp_path, monkeypatch):
         play_loop(engine, ["尝试行动", "/quit"], out=output.append,
                   transcript_path=transcript)
         rendered = "\n".join(output)
-        assert "[错误] 本回合未完成，世界保持原状。请稍后重试。" in rendered
+        assert "[错误] 本回合处理遇到问题；请检查当前世界状态。]" in rendered
         assert "PRIVATE_EXCEPTION_BODY" not in rendered
         record = json.loads(transcript.read_text(encoding="utf-8"))
         assert record["error"] == "turn_failed"
         assert "PRIVATE_EXCEPTION_BODY" not in transcript.read_text(encoding="utf-8")
+        assert caplog.records
+        assert "PRIVATE_EXCEPTION_BODY" not in caplog.text
+    finally:
+        engine.store.close()
+
+
+def test_cli_output_error_after_publish_never_claims_a_rollback(tmp_path):
+    engine = build_engine(tmp_path / "post-publish-output", provider=FakeLLMProvider())
+    try:
+        new_game(engine)
+        engine.provider = FakeLLMProvider(json_responses=[{
+            "moves": [], "places": [], "cast": [], "facts": [],
+            "narration": "PUBLIC_POST_PUBLISH_NARRATION",
+            "clock": [{"advance": False, "days": 0, "bands": 0,
+                       "reason": "片刻"}],
+        }])
+        before_revision = engine.store.revision
+        output = []
+
+        def fail_only_on_saved_status(line):
+            if line.startswith("[已保存]"):
+                raise RuntimeError("POST_PUBLISH_OUTPUT_EXCEPTION_BODY")
+            output.append(line)
+
+        play_loop(engine, ["尝试行动", "/quit"], out=fail_only_on_saved_status)
+
+        rendered = "\n".join(output)
+        assert engine.store.revision > before_revision
+        assert any(event["type"] == "narration_recorded" for event in engine.store.iter_events())
+        assert "[提示] 本回合已保存，但结果显示未完成；请检查当前世界状态。]" in rendered
+        assert "世界保持原状" not in rendered
+        assert "POST_PUBLISH_OUTPUT_EXCEPTION_BODY" not in rendered
     finally:
         engine.store.close()

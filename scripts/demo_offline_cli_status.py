@@ -17,6 +17,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# This standalone fixture fixes its own embedding choice, rather than relying
+# on a caller's RPG_EMBEDDER setting.  It does not alter production defaults.
+os.environ["RPG_EMBEDDER"] = "none"
+
 # The fixture intentionally makes a recap provider fail.  Keep its internal
 # diagnostic out of the human-facing walkthrough; the CLI status line is the
 # behavior being demonstrated.
