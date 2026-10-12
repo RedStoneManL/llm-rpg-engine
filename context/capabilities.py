@@ -167,6 +167,21 @@ def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) 
         if isinstance(key, str) and key.endswith(".discovered") and key not in trusted_keys:
             errors.append(ValidationError("knowledge", f"[{index}]", "untrusted_discovery",
                                           "地点或路线发现必须由可信宿主授权，不能由作者声明。"))
+        if item.get("op") == "broadcast" and isinstance(item.get("fact_key"), str) and item["fact_key"].endswith(".discovered"):
+            errors.append(ValidationError("knowledge", f"[{index}]", "protected_discovery_write",
+                                          "发现权限不能通过 broadcast 写入。"))
+        if item.get("op") == "endowment":
+            for grant_index, grant in enumerate(item.get("grants") or []):
+                key = grant.get("fact_key") if isinstance(grant, dict) else None
+                if isinstance(key, str) and key.endswith(".discovered"):
+                    errors.append(ValidationError("knowledge", f"[{index}].grants[{grant_index}]", "protected_discovery_write",
+                                                  "发现权限不能通过 endowment 写入。"))
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("facts") or []):
+        if (isinstance(item, dict) and item.get("subject") == actor
+                and isinstance(item.get("predicate"), str) and item["predicate"].startswith("knows:")
+                and item["predicate"].endswith(".discovered")):
+            errors.append(ValidationError("facts", f"[{index}]", "protected_discovery_write",
+                                          "发现权限不能通过 facts 写入。"))
     return errors
 
 

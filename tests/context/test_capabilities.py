@@ -161,6 +161,106 @@ def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_
     reopened.store.close()
 
 
+def _install_undiscovered_route(engine, destination="sealed_gate"):
+    """Add a canonical-only destination for real SQLite discovery-turn tests."""
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": destination, "level": 2, "kind": "venue", "seed": "封门",
+            "visibility": "undiscovered",
+        }),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": destination, "visibility": "undiscovered",
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+
+
+def _host_discovery_turn(destination, knowledge):
+    return TurnCommit("你沿着公开线索前往封门。", {
+        "moves": [{"who": "protagonist", "to": destination}],
+        "knowledge": knowledge,
+        "places": [], "links": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "test"}],
+    })
+
+
+def test_sqlite_discovery_true_then_false_blocks_move_without_writes(tmp_path):
+    """The final same-turn grant value, rather than any earlier True, controls travel."""
+    engine = _demo_engine(tmp_path)
+    _install_undiscovered_route(engine)
+    scene = _build_scene(engine)
+    place_key = place_discovery_key("sealed_gate")
+    route_key = route_discovery_key("stonebridge_inn", "sealed_gate")
+    commit = _host_discovery_turn("sealed_gate", [
+        {"op": "discover_place", "knower": "protagonist", "place": "sealed_gate"},
+        {"op": "discover_route", "knower": "protagonist", "a": "stonebridge_inn", "b": "sealed_gate"},
+        {"op": "told", "knower": "protagonist", "fact_key": place_key, "value": False},
+    ])
+    before_revision = engine.store.revision
+    before_events = [event["id"] for event in engine.store.iter_events(include_retracted=True)]
+
+    class Strategy:
+        def produce(self, *args, **kwargs):
+            return commit
+
+        def repair_sections(self, *args, **kwargs):
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    with pytest.raises(TurnRejected, match="scene capability"):
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "前往封门", strategy=Strategy(),
+            provider=engine.provider, action_id="grant-true-then-false",
+            required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
+            trusted_discovery_keys=frozenset({place_key, route_key}),
+        )
+    assert engine.store.revision == before_revision
+    assert [event["id"] for event in engine.store.iter_events(include_retracted=True)] == before_events
+    assert engine.store.get_action_receipt("grant-true-then-false") is None
+    engine.store.close()
+
+
+def test_sqlite_discovery_false_then_true_allows_move_with_final_grant(tmp_path):
+    """A later effective host discovery grant enables the same legal direct move."""
+    engine = _demo_engine(tmp_path)
+    _install_undiscovered_route(engine)
+    scene = _build_scene(engine)
+    place_key = place_discovery_key("sealed_gate")
+    route_key = route_discovery_key("stonebridge_inn", "sealed_gate")
+    commit = _host_discovery_turn("sealed_gate", [
+        {"op": "told", "knower": "protagonist", "fact_key": place_key, "value": False},
+        {"op": "told", "knower": "protagonist", "fact_key": route_key, "value": False},
+        {"op": "discover_place", "knower": "protagonist", "place": "sealed_gate"},
+        {"op": "discover_route", "knower": "protagonist", "a": "stonebridge_inn", "b": "sealed_gate"},
+    ])
+
+    class Strategy:
+        def produce(self, *args, **kwargs):
+            return commit
+
+        def repair_sections(self, *args, **kwargs):
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    result = run_turn(
+        engine.registry, engine.store, engine.world, scene, "前往封门", strategy=Strategy(),
+        provider=engine.provider, action_id="grant-false-then-true",
+        required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
+        trusted_discovery_keys=frozenset({place_key, route_key}),
+    )
+    graph = result.world["systems"]["ontology"]
+    day = result.world["meta"].get("day") or 1
+    assert graph.value_at("protagonist", f"knows:{place_key}", day) is True
+    assert graph.value_at("protagonist", f"knows:{route_key}", day) is True
+    assert graph.neighbors("protagonist", "located_in", day) == ["sealed_gate"]
+    assert engine.store.get_action_receipt("grant-false-then-true") is not None
+    engine.store.close()
+
+
 def test_run_turn_repairs_invalid_player_teleport_before_publish(tmp_path):
     engine = _demo_engine(tmp_path)
     scene = _build_scene(engine)
