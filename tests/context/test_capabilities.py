@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.engine import build_engine
+from app.engine import build_engine, rewind
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
 from context.capabilities import (native_player_dto, place_discovery_key,
@@ -122,16 +122,18 @@ def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_
     scene = _build_scene(engine)
     grants = frozenset({place_discovery_key("sealed_gate"),
                         route_discovery_key("stonebridge_inn", "sealed_gate")})
+    request_world = engine.world
     commit = TurnCommit("你循着线索抵达封门。", {"moves": [{"who": "protagonist", "to": "sealed_gate"}],
         "knowledge": [{"op": "discover_place", "knower": "protagonist", "place": "sealed_gate"},
                       {"op": "discover_route", "knower": "protagonist", "a": "stonebridge_inn", "b": "sealed_gate"}],
         "places": [], "links": [], "cast": [], "facts": [],
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "test"}]})
+    calls = []
     class Strategy:
-        def produce(self, *args, **kwargs): return commit
+        def produce(self, *args, **kwargs): calls.append("produce"); return commit
         def repair_sections(self, *args, **kwargs): return {}
         def commit_to_thread(self, narration): return None
-    result = run_turn(engine.registry, engine.store, engine.world, scene, "去封门", strategy=Strategy(),
+    result = run_turn(engine.registry, engine.store, request_world, scene, "去封门", strategy=Strategy(),
                       provider=engine.provider, action_id="grant-move", required_sections=REQUIRED_SECTIONS,
                       enforce_player_travel=True, trusted_discovery_keys=grants)
     assert result.receipt["action_id"] == "grant-move" and result.receipt["revision"] > 1
@@ -139,7 +141,24 @@ def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_
     dto = native_player_dto(result.world, {**scene, "location": "sealed_gate"})
     assert dto["location"] == "sealed_gate" and "sealed_gate" in {n["id"] for n in dto["map"]["nodes"]}
     assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(dto)
+    retry = run_turn(engine.registry, engine.store, request_world, scene, "去封门", strategy=Strategy(),
+                     provider=engine.provider, action_id="grant-move", required_sections=REQUIRED_SECTIONS,
+                     enforce_player_travel=True, trusted_discovery_keys=grants)
+    assert retry.receipt["duplicate"] is True and calls == ["produce"]
+    with pytest.raises(Exception):
+        run_turn(engine.registry, engine.store, request_world, scene, "去封门", strategy=Strategy(),
+                 provider=engine.provider, action_id="grant-move", required_sections=REQUIRED_SECTIONS,
+                 enforce_player_travel=True, trusted_discovery_keys=frozenset())
+    assert calls == ["produce"]
+    rewind(engine, result.events[0]["turn"])
+    reverted = native_player_dto(engine.world, scene)
+    assert "sealed_gate" not in {n["id"] for n in reverted["map"]["nodes"]}
     engine.store.close()
+    reopened = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    reopened_dto = native_player_dto(reopened.world, _build_scene(reopened))
+    assert reopened_dto == reverted
+    assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(reopened_dto)
+    reopened.store.close()
 
 
 def test_run_turn_repairs_invalid_player_teleport_before_publish(tmp_path):
