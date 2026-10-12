@@ -604,3 +604,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `tests/scripts/test_native_turn_tools.py tests/context/test_place_observations.py -rA` 为 **`13 passed in 1.99s`**；新回归
   同时验证隐藏目的地人物的 ID/私有 sentinel 不进 brief，匹配移动可使用公开来源、不移动则拒绝。没有改写或导入既有 campaign
   历史；未调用真实模型、网络、B1/profiling、push、PR 或部署。
+
+- 2026-10-12：`8712f58` 的正式独立全量 gate 为 **`1887 passed, 1 deselected in 20.71s`**（命令
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA`）；唯一 deselect 是既有 slow real
+  embedding，不能与 `a436b1b` 的结果混用。完整 bundle verify 通过，fresh clone 的专项为 `13 passed in 2.15s`。源归档与
+  tracked 源树均无 SQLite/DB/JSONL；全历史高置信凭据前缀扫描为零命中，仍非绝对保密担保。Library 读取恢复，但此 checkpoint
+  的一次有序写入在开始前再次因 hosted-tools network 失败；未拆分、未循环重试。
+
+  随后保存原样第七候选并以既有玩家输入经 importer **仅一次** 导入：revision `8 → 9`，主角抵达
+  `stonebridge_market`。导入前条件化名单正是苏芮与洛恩，policy 无错误，旧未标记第六观察仍为空结构化输出。实际
+  `world_change` 的宿主字段为 `source=author_world`、`day=1`、`turn=7`、`scene=s3`，其明确 public
+  `single_observation` 已在下一 native context 的 `public_place_observations` 出现；同回合无 quest event，未见自动暗线
+  误触发。候选叙事中的“没有替自己接着发问”作为质量观察保留，未悄悄改文。第七候选原文、只读安全回执和后续 proposal/import
+  证据均留在 `review_material/`；不重放、不修改既有历史。
