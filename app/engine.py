@@ -43,6 +43,7 @@ log = get_logger("app.engine")
 
 # Protagonist id — reused by loop.bootstrap.bootstrap_world
 _PROTAGONIST_ID = "protagonist"
+_DEFAULT_EMBEDDER = object()
 
 # This is deliberately a fixed, local-only experiment, rather than a model
 # prompt or a user-supplied instruction.  It exercises the private-record
@@ -82,7 +83,7 @@ def build_engine(
     campaign_dir,
     *,
     provider=None,
-    embedder=None,
+    embedder=_DEFAULT_EMBEDDER,
     enable_interpretive_memory: bool = False,
 ) -> Engine:
     """Wire all 6 systems + store + provider + embedder; project initial world.
@@ -91,7 +92,8 @@ def build_engine(
         campaign_dir: Path (or str) to the campaign directory.
         provider:     Optional LLMProvider. If None, attempts make_provider from
                       env (default fake); an explicitly configured provider failure raises.
-        embedder:     Optional embedder. If None, uses get_embedder() (checks env).
+        embedder:     An embedder, or explicit ``None`` to disable semantic
+                      embedding. When omitted, uses get_embedder() (checks env).
 
     Returns:
         Engine with registry, store, provider, embedder, world.
@@ -147,7 +149,7 @@ def build_engine(
             raise  # A configured real provider must never silently become a stub.
 
     # Resolve embedder
-    if embedder is None:
+    if embedder is _DEFAULT_EMBEDDER:
         embedder = get_embedder()
 
     # Resolve optional cheap cascade provider (env-driven, no CLI/run.sh change needed)

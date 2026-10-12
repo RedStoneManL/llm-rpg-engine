@@ -51,7 +51,11 @@ class OfflineDemoStrategy:
     """
 
     def produce(self, registry, world, scene, player_input, *, provider, embedder=None, repair=None):
-        graph = world.get("systems", {}).get("ontology")
+        # The demo has no special authority: its movement proposal must use
+        # the same known-exit view that is serialized to the player, never the
+        # backstage/canonical adjacency graph.
+        view = pov_world(world, scene, pov=scene.get("protagonist"), redact_facts=True)
+        graph = view.get("systems", {}).get("ontology")
         day = scene.get("day") or 1
         location = scene.get("location")
         exits = graph.neighbors(location, "adjacent_to", day) if graph and location else []
@@ -162,7 +166,11 @@ def build_player_state(engine) -> dict[str, Any]:
 
     narrations: list[str] = []
     for event in engine.public_history():
-        if event.get("type") == "narration_recorded":
+        # ``public_history`` is a privacy DTO, not an active-history DTO: it
+        # intentionally retains the retracted marker for callers that need an
+        # audit view.  The player transcript must instead follow the projected
+        # world and never resurrect a rewound line on refresh/reopen.
+        if not event.get("retracted") and event.get("type") == "narration_recorded":
             text = (event.get("deltas") or {}).get("text")
             if isinstance(text, str):
                 narrations.append(text)
@@ -237,8 +245,12 @@ class PlayerDashboard:
                 "state": build_player_state(self.engine),
             }
 
-    def undo(self) -> dict[str, Any]:
+    def undo(self, *, expected_revision: int | None) -> dict[str, Any]:
+        if type(expected_revision) is not int or expected_revision < 0:
+            raise GuiRequestError("撤销请求无效，请刷新后重试。")
         with self.lock:
+            if expected_revision != self.engine.store.revision:
+                raise GuiRequestError("世界已变化；请刷新后再决定是否撤销。")
             turn = last_turn(self.engine)
             if turn <= 0:
                 raise GuiRequestError("当前没有可撤销的玩家回合。")
@@ -253,6 +265,29 @@ _CSS = """*{box-sizing:border-box}body{margin:0;background:#10151d;color:#e9edf2
 
 _JS = """(() => {let state=null;const $=id=>document.getElementById(id);const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};function clear(n){n.replaceChildren()}function setStatus(t,err=false){const n=$('status');n.textContent=t;n.style.color=err?'#ffadb0':'#e9edf2'}function render(s){state=s;clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length){$('character').append(el('p','暂无可展示的角色状态。'))}s.character.facts.forEach(f=>{const dt=el('dt',f.name),dd=el('dd',f.value);$('character').append(dt,dd)});clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details'),sum=el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),p=el('p',x.body);d.append(sum,p);$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}async function api(url,options){const r=await fetch(url,options);const data=await r.json().catch(()=>({message:'响应格式错误，请刷新页面。'}));if(!r.ok)throw new Error(data.message||'请求未完成，请刷新后重试。');return data}async function load(){try{render(await api('/api/state'))}catch(e){setStatus(e.message,true)}}$('action-form').addEventListener('submit',async e=>{e.preventDefault();if(!state)return;const input=$('action-input'),button=$('submit-action'),text=input.value.trim();if(!text)return;button.disabled=true;$('undo').disabled=true;setStatus('正在保存行动…');const actionId=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`;try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,action_id:actionId,expected_revision:state.revision})});render(d.state);input.value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){setStatus(err.message,true)}finally{button.disabled=false;$('undo').disabled=false}});$('undo').addEventListener('click',async()=>{try{setStatus('正在撤销…');const d=await api('/api/undo',{method:'POST'});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}});load()})();"""
 
+# Static text is kept separate from all game data.  The replacement adds an
+# explicit recovery action without interpolating a player/world string into the
+# HTML document.
+_INDEX = _INDEX.replace(
+    '<button id="undo" type="button" class="subtle">撤销上一回合</button>',
+    '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
+)
+_JS = r"""(() => {
+let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-action.v1';
+const $=id=>document.getElementById(id); const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+function clear(n){n.replaceChildren()} function setStatus(t,err=false){const n=$('status');n.textContent=t;n.style.color=err?'#ffadb0':'#e9edf2'}
+function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(pendingKey);return null}}
+function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}
+function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}
+function render(s){state=s;clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
+async function api(url,options){const r=await fetch(url,options);const data=await r.json().catch(()=>({message:'响应格式错误，请刷新页面。'}));if(!r.ok)throw new Error(data.message||'请求未完成，请刷新后重试。');return data}
+async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});sessionStorage.removeItem(pendingKey);render(d.state);syncPending();$('action-input').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}finally{setBusy(false)}}
+async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}
+$('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const text=$('action-input').value.trim();if(!text)return;const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`;const envelope={text,action_id,expected_revision:state.revision};sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});
+$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
+$('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
+})();"""
+
 
 class _QuietHandler(WSGIRequestHandler):
     def log_message(self, format, *args):
@@ -264,6 +299,30 @@ def _json_response(start_response, status: str, payload: dict[str, Any]):
     start_response(status, [("Content-Type", "application/json; charset=utf-8"), ("Content-Length", str(len(raw))),
                             ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff")])
     return [raw]
+
+
+def _require_same_origin_json(environ) -> None:
+    """Reject cross-site/simple-form writes before they reach a controller.
+
+    Loopback binding prevents remote network peers, but browsers can still send
+    a cross-site form to localhost.  This single-player server has no accounts,
+    so strict expected Host + Origin + JSON is the appropriate narrow guard.
+    """
+    host = environ.get("HTTP_HOST")
+    # wsgiref's SERVER_PORT is not reliable when the listener is wrapped by
+    # the local execution sandbox, so validate the actual Host supplied by the
+    # browser rather than comparing it with that internal default.  It must be
+    # an explicit numeric 127.0.0.1 authority, and Origin (when supplied) must
+    # match it exactly.
+    valid_loopback_host = isinstance(host, str) and host.startswith("127.0.0.1:") and host[10:].isdigit()
+    expected_origin = f"http://{host}" if valid_loopback_host else None
+    content_type = (environ.get("CONTENT_TYPE") or "").split(";", 1)[0].strip().lower()
+    # Same-origin ``fetch`` is permitted to omit Origin by browsers.  A
+    # cross-site script sends it, while a cross-site form cannot manufacture
+    # application/json; Host remains exact in both cases.
+    origin = environ.get("HTTP_ORIGIN")
+    if not valid_loopback_host or origin not in (None, expected_origin) or content_type != "application/json":
+        raise GuiRequestError("此本地页面不能接受跨站或非 JSON 写入请求。")
 
 
 def make_app(dashboard: PlayerDashboard):
@@ -284,6 +343,7 @@ def make_app(dashboard: PlayerDashboard):
             if method == "GET" and path == "/api/state":
                 return _json_response(start_response, "200 OK", dashboard.state())
             if method == "POST" and path == "/api/action":
+                _require_same_origin_json(environ)
                 size = int(environ.get("CONTENT_LENGTH") or 0)
                 if size < 0 or size > _MAX_ACTION_BYTES + 512:
                     raise GuiRequestError("请求过大，请刷新后重试。")
@@ -294,7 +354,15 @@ def make_app(dashboard: PlayerDashboard):
                 return _json_response(start_response, "200 OK", dashboard.action(
                     player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision")))
             if method == "POST" and path == "/api/undo":
-                return _json_response(start_response, "200 OK", dashboard.undo())
+                _require_same_origin_json(environ)
+                size = int(environ.get("CONTENT_LENGTH") or 0)
+                if size < 2 or size > 256:
+                    raise GuiRequestError("撤销请求无效，请刷新后重试。")
+                data = json.loads(environ["wsgi.input"].read(size).decode("utf-8"))
+                if not isinstance(data, dict):
+                    raise GuiRequestError("撤销请求无效，请刷新后重试。")
+                return _json_response(start_response, "200 OK", dashboard.undo(
+                    expected_revision=data.get("expected_revision")))
             return _json_response(start_response, "404 Not Found", {"message": "找不到此页面。"})
         except GuiRequestError as exc:
             return _json_response(start_response, "400 Bad Request", {"message": str(exc)})
@@ -302,7 +370,7 @@ def make_app(dashboard: PlayerDashboard):
             return _json_response(start_response, "400 Bad Request", {"message": "请求格式无效，请刷新后重试。"})
         except Exception:
             log.exception("player gui request failed")
-            return _json_response(start_response, "500 Internal Server Error", {"message": "请求未完成；已保存内容没有被改动。请刷新后查看当前状态。"})
+            return _json_response(start_response, "500 Internal Server Error", {"message": "请求结果未能显示；请刷新查看当前状态。"})
     return app
 
 

@@ -87,6 +87,15 @@ entries, and undo the latest turn. Refreshing or restarting the local server
 reads the same saved campaign; action submission uses the existing explicit
 action-id/revision path rather than a second GUI transaction.
 
+If a browser loses an action response after the engine has published it, the
+page retains the original action-id, input, and revision in that browser's
+session storage. After a refresh, **恢复上次请求** retries that same envelope
+and receives the existing action result instead of making a new turn; only a
+confirmed success clears it. Undo is likewise revision-bound, so an accidental
+second click cannot retract another turn. Write routes require loopback Host,
+matching Origin when sent, and JSON bodies; ordinary cross-site forms are
+rejected before a controller runs.
+
 The browser never selects a campaign path: `--campaign` is startup-only. The
 server binds only to `127.0.0.1`, serves no files, has no GM/editor route, and
 serializes a hand-shaped player DTO rather than a raw event store or canonical
@@ -96,6 +105,12 @@ world prose and player input cannot become executable markup. Interpretive
 memory remains disabled for this GUI; private interpretations, raw store data,
 DM-ground-truth tools, and other-character private data are outside this
 first slice. It is an offline player demo, not a full web product or a GM UI.
+The dashboard explicitly disables embedding even if `RPG_EMBEDDER` is set;
+ordinary application construction still retains its environment-driven default.
+Visibility follows the existing POV rules: the protagonist/current location,
+co-present people, discovered entities, and legacy places without restrictive
+metadata can be visible. It does not claim every legacy place requires a
+discovery event.
 
 ## Architecture
 

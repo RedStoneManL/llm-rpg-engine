@@ -35,7 +35,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-03 | P1 | 已验收（离线 CLI 实验闭环） | 显式 opt-in 的角色解释性记忆入口 | `--offline-private-memory` 才注册模块与固定本地生成器（不覆盖前台 provider/embedder）；`/memory` 仅通过宿主 handle 读取当前主角；temp DB CLI 覆盖默认关闭、写入、重开、跨角色隐藏、同一 CLI 会话内 undo/rewind 与公开出口隔离。仍非通用 ACL 或生产记忆系统 |
 | RCV-04 | P1 | 已验收（离线 recap 边界） | 摘要/recap 与事实权威边界 | 真实 `run_turn → digest_fleet` 覆盖摘要异常的局部失败、成功摘要、冷重开 replay、receipt/revision/结果事件、私有记录不进入摘要提示或 resume；摘要保留为公共叙事文本，不能改写 ontology facts |
 | RCV-06 | P1 | 已验收（离线 CLI 状态闭环） | CLI 回合/摘要/私有实验状态可见性 | 成功回合显示 `[已保存]`；真实摘要失败显示无正文的 `暂未生成`；启动明确私有实验开关；固定无网络演示覆盖默认/显式、续玩、`/memory`/`undo`；状态不新增事件或重试玩家回合 |
-| RCV-08 | P1 | 已验收（离线玩家 GUI 首切片） | 仅 `127.0.0.1` 的玩家游玩/仪表盘 | 真实 Chromium/Playwright 覆盖公开 POV 的叙事、行动、角色/背包、位置/相邻地图、公开设定典、保存/刷新；Python 回归覆盖 action-id duplicate、撤销、冷重开与私有 sentinel；不包含 GM/editor、部署、真实模型或私有记忆启用 |
+| RCV-08 | P1 | 已验收（离线玩家 GUI 首切片，独立复核修正） | 仅 `127.0.0.1` 的玩家游玩/仪表盘 | Chromium 覆盖 response-loss→刷新→同 action-id 恢复零增量；Python 覆盖活动叙事、revision-bound undo、写入同源边界、POV 选路、显示失败后已提交状态与 ambient embedder 禁用；不包含 GM/editor、部署、真实模型或私有记忆启用 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -307,3 +307,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   `1830 passed, 1 deselected`（21.29s）；唯一 deselect 是既有 slow real embedding，未调用真实模型。
   `README.md` 与 `scripts/demo_offline_gui.py` 说明离线启动、范围及限制；没有 B1、profiling、push、PR 或部署。
+- 2026-10-12：RCV-08 独立复核发现并闭合六个本地 GUI 边界，均未增加新的持久化/部署系统：(1) `Engine.public_history()`
+  是审计 DTO，会保留 retracted 标记；玩家 narration DTO 现只取 active 行，撤销后同进程刷新与冷重开均不复活。(2)
+  undo 请求必须带当前精确 revision；服务端锁内再次校验，两个同 revision 的请求只有第一个能撤回，第二个零写入。(3)
+  `/api/action` 与 `/api/undo` 均要求明确 numeric `127.0.0.1:port` Host、匹配 Origin（浏览器省略 Origin 的同源
+  fetch 允许）和 `application/json`，cross-site Origin、错误 Host、普通 form 都在 controller 前拒绝。(4) 浏览器用
+  sessionStorage 留存尚未确认的原 action-id/input/revision；刷新后“恢复上次请求”重发相同 envelope，成功才清除，实际
+  Chromium response-loss→refresh→recover 证明 commit 发生后 revision 不再增加。(5) 若 action 已发布而 DTO/JSON 展示
+  失败，HTTP 500 只说“请刷新查看当前状态”，不含异常正文或未提交暗示；真实 WSGI 红例确认 receipt/revision 已存在。(6)
+  离线 demo strategy 的邻接选择改为同 protagonist/day 的 `pov_world`，不是 canonical graph；隐藏出口排在 canonical
+  第一位仍只走第二个公开出口，只有隐藏出口则不移动，叙事/API 均无 sentinel。GUI construction 明确传递 `embedder=None`；
+  `build_engine` 改为仅**省略** embedder 才读取环境，故 `RPG_EMBEDDER=fastembed` 也不会构造 GUI embedder，同时保留普通
+  app 的既有默认。POV 规则仍允许当前主角/地点、同场人、已发现实体和无限制 metadata 的 legacy 地点，并未把它表述为“所有地点
+  都先发现”。专项与 engine 回归在本记录后续正式 gate 前均通过；无真实模型、网络、B1、profiling、push、PR 或部署。
