@@ -65,6 +65,38 @@ turn.  It is not a background job, a promise that a summary exists, or a retry o
 player action.  Real play still requires a configured foreground provider; this tour
 does not exercise a real model, embedding, network, compare mode, or concurrent retry.
 
+### Local player dashboard (offline first slice)
+
+The repository also includes a deliberately small, loopback-only player GUI:
+
+```bash
+python -m app.gui --campaign ./campaigns/gui-demo --demo --port 8765
+# open http://127.0.0.1:8765 in this same machine's browser
+
+# or start a disposable temporary campaign (deleted on exit)
+python scripts/demo_offline_gui.py --port 8765
+```
+
+It uses a fixed local demo strategy plus `FakeLLMProvider`, not a configured
+provider, embedder, network service, or API key. On an empty campaign, `--demo`
+seeds a replayable Stonebridge town with a protagonist, a held item, two
+adjacent places, one public codex entry, and opening narration. The page can
+save an action, show its narration/status, show the current character,
+inventory, location and visible adjacent exits, browse public world-setting
+entries, and undo the latest turn. Refreshing or restarting the local server
+reads the same saved campaign; action submission uses the existing explicit
+action-id/revision path rather than a second GUI transaction.
+
+The browser never selects a campaign path: `--campaign` is startup-only. The
+server binds only to `127.0.0.1`, serves no files, has no GM/editor route, and
+serializes a hand-shaped player DTO rather than a raw event store or canonical
+world. Graph reads use the existing POV projection, codex entries are public
+by design, and page code writes all narration/settings with `textContent` so
+world prose and player input cannot become executable markup. Interpretive
+memory remains disabled for this GUI; private interpretations, raw store data,
+DM-ground-truth tools, and other-character private data are outside this
+first slice. It is an offline player demo, not a full web product or a GM UI.
+
 ## Architecture
 
 ```text
