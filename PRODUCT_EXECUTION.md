@@ -412,3 +412,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   proposal 和 final 两层均拒绝，NPC 豁免保持。反例覆盖“只删 moves 不改 narration”、唯一 route 被撤回的零写入、
   无起点的 proposal/final 零写入。专项为 `109 passed`，正式 gate 为 `1859 passed, 1 deselected in 18.93s`；
   没有重跑浏览器专项、没有真实模型。随后才继续 RCV-12 的 knowledge replay/route visibility 审计。
+- 2026-10-12：RCV-12 继续把 event-owned discovery 收敛到同一 fail-closed capability 契约。主角对
+  `visibility=undiscovered` 地点/路线的移动仅在 action-start POV 已可见，或同一 action 由受信 host
+  明确授予地点与路线两条 `knows:<id>.discovered` 后才允许；普通叙事/事实/broadcast/endowment 不可写
+  discovery namespace，最终 `EventBatch` payload 也再次校验。grant 采用事件顺序的**最终值**而非“曾经为真”
+  语义：同批 `true→false` 在任何 provider/generator/write 前拒绝，`false→true` 则可在 host 授权、直连
+  undiscovered 目标时真实发布并持久化。旧 receipt 的空 discovery grants 仅保留兼容；非空 legacy grant
+  sidecar 不回退解析。真实 SQLite 回归覆盖同回合 host discovery+move、duplicate/retry、undo、冷重开、
+  遗留 sidecar，以及本轮顺序覆盖；`tests/context/test_capabilities.py -q` 为 `15 passed`。正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1868 passed, 1 deselected in 19.20s`**；唯一 deselect 是既有 slow real embedding，未调用真实模型。
+  这证明机制、重放和边界回归，并不等同于原生模型剧情质量验收；受控原生输入与导入脚本仍是未验证 WIP，
+  本阶段未运行、未启用 B1/profiling、未 push/PR/部署。
