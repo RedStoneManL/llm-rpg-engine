@@ -25,10 +25,18 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     assert initial["scene"]["location"]["id"] == "stonebridge_inn"
     assert initial["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
     assert initial["codex"][0]["title"] == "石桥镇"
+    assert {node["id"] for node in initial["map"]["nodes"]} == {
+        "stonebridge_inn", "stonebridge_market",
+    }
+    assert initial["map"]["edges"] == [{
+        "from": "stonebridge_inn", "to": "stonebridge_market", "cost": "1",
+    }]
+    assert "north_bank_old_tower" not in json.dumps(initial, ensure_ascii=False)
 
     saved = dashboard.action(player_input="去集市看看", action_id="gui-1", expected_revision=initial["revision"])
     assert saved["duplicate"] is False
     assert saved["state"]["scene"]["location"]["id"] == "stonebridge_market"
+    assert saved["state"]["map"] == initial["map"]
     revision = saved["revision"]
 
     retry = dashboard.action(player_input="去集市看看", action_id="gui-1", expected_revision=initial["revision"])

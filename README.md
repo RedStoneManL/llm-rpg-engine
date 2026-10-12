@@ -90,7 +90,8 @@ provider, embedder, network service, or API key. On an empty campaign, `--demo`
 seeds a replayable Stonebridge town with a protagonist, a held item, two
 adjacent places, one public codex entry, and opening narration. The page can
 save an action, show its narration/status, show the current character,
-inventory, location and visible adjacent exits, browse public world-setting
+inventory, an interactive read-only map of the current POV-visible places and
+routes (with the current place highlighted), visible adjacent exits, browse public world-setting
 entries, and undo the latest turn. Refreshing or restarting the local server
 reads the same saved campaign; action submission uses the existing explicit
 action-id/revision path rather than a second GUI transaction.
@@ -121,6 +122,16 @@ not a raw event store or canonical world. Graph reads use the existing POV
 projection, codex entries are public by design, and page code writes all
 narration/settings with `textContent` so world prose and player input cannot
 become executable markup.
+
+The map, the author context, the demo strategy, and the GUI's pre-publication
+move gate share one `SceneCapabilities` projection. For a player action, the
+protagonist can only move along an action-start POV-visible adjacent route;
+an invalid proposal must repair both its `moves` and its narration or the whole
+action is rejected without publishing. The final event payload is checked again
+inside the existing atomic publish path. A newly introduced destination is only
+accepted when the same turn creates it and records a direct route from the
+current location. NPC simulation and low-level world/bootstrap operations are
+not governed by this player-UI policy.
 
 `--gm` is an explicit, separately started, read-only local world-overview
 mode—not a front-end tab or an authorization system. It exposes only
@@ -156,7 +167,8 @@ disable embedding even if `RPG_EMBEDDER` is set; normal GUI play retains the
 existing environment-driven embedding behavior. Visibility follows the existing POV rules: the
 protagonist/current location, co-present people, discovered entities, and
 legacy places without restrictive metadata can be visible. It does not claim
-every legacy place requires a discovery event.
+every legacy place requires a discovery event; event-owned gradual discovery
+of legacy public places remains a future system-level step.
 
 ## Architecture
 

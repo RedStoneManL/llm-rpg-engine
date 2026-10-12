@@ -33,6 +33,7 @@ from memory.recall import rank, embed_query
 from context.viewpoint import build_viewpoint
 from facts.graph import FactGraph
 from context.access import pov_world
+from context.capabilities import scene_capabilities
 from engine.log import get_logger
 import systems.narrative as nmod
 
@@ -64,6 +65,7 @@ def assemble_context(
     Returns:
         A single string with stable→scene→volatile cache layer ordering.
     """
+    capabilities = scene_capabilities(world, scene)
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -174,6 +176,11 @@ def assemble_context(
                 '回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。'
                 '发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。'
                 '未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。')
+
+    # This is a capability contract, not additional canonical context.  It
+    # makes the same action-start exits used by GUI and publish validation
+    # explicit to authors, avoiding a map that merely looks authoritative.
+    base += ("\n\n" if base else "") + capabilities.prompt_fragment()
 
     # ------------------------------------------------------------------
     # Step 4a: Recap stable-summary block (PUSH, spec §1 — query-independent)

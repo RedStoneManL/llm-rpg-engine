@@ -1,7 +1,20 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-12 UTC。本文是当前仓库恢复工作的唯一执行入口；历史
-Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。
+最后核对：2026-10-12 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
+“整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
+
+## 持续执行约定（用户确认）
+
+- 检查点（本地 commit、可独立恢复的完整 bundle/source/证据、Library 保存）完成后，自动选择并推进下一项
+  已授权的高价值工作；不能把“阶段完成”当作等待新授权的理由。仅在需要新权限、遇到真实技术阻塞或用户
+  明确暂停时停下并报告。
+- 修复必须面向共性根因与可复用边界，禁止为单一样例堆条件分支、删除合理失败测试或把离线替身当作产品
+  质量结论。每轮优先做一次跨模块审视，沉淀公共 DTO、事务/可见性边界或持久化协议，而不是散弹式补丁。
+- 离线/fake/Chromium 回归用于验证确定性边界和可恢复性；同时要安排受控剧情场景的原生 agent 可玩性、
+  一致性与信息可见性评估。该评估不新增外部付费模型调用、不修改凭据；结果要与模拟测试的结论分开记录。
+- 上下文按任务复杂度慷慨使用，并以 agentic 渐进披露（先读取相关模块/测试/证据，再扩展）保持可审计；
+  不以机械 token 阈值中断有效开发。
 
 ## 可复现基线
 
@@ -24,7 +37,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | 事实和投影 | Registry 为事件与 commit section 指定单一 owner；projection 忽略 retracted events；直接 `apply_turn` 现在先检查全部 section owner 并 fail-closed | 旧历史流中的无 owner event 仍为兼容性而由 projection 记录 debug 后忽略；须审计其迁移/读档边界，不能把它与新写入混同 |
 | 叙事与摘要 | narration、digest/recap 与 `working_memory` 已有旧实现 | 需验证摘要失败的局部性、回放一致性以及摘要不作为事实权威 |
 | 可见性和记忆 | 旧 POV/knowledge 过滤与 recall 模块存在；`--offline-private-memory` 在显式启用时注册私有解释 slice、固定本地生成器和当前主角 `/memory` 宿主读取 | 仍没有通用 event-level ACL、GUI/GM/raw-store 安全出口或真实模型验收；默认不启用私有记忆 |
-| 前端/运维 | CLI、trace viewer、portable handoff 存在；RCV-08 增加仅回环的离线玩家仪表盘首切片 | 没有 GM/editor UI、部署或生产 web runtime；网页仍不是通用 GUI/世界书编辑器 |
+| 前端/运维 | CLI、trace viewer、portable handoff 存在；`app.gui` 已有仅回环的玩家游玩页、显式启动的只读 GM 总览与公开 Codex 浏览 | 没有世界书/角色卡编辑器、GM 写入能力、账户/多人协作、部署或生产 web runtime；玩家图仍需从出口文本升级为严格 POV 的可视关系图 |
 
 ## 工作队列
 
@@ -36,6 +49,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-04 | P1 | 已验收（离线 recap 边界） | 摘要/recap 与事实权威边界 | 真实 `run_turn → digest_fleet` 覆盖摘要异常的局部失败、成功摘要、冷重开 replay、receipt/revision/结果事件、私有记录不进入摘要提示或 resume；摘要保留为公共叙事文本，不能改写 ontology facts |
 | RCV-06 | P1 | 已验收（离线 CLI 状态闭环） | CLI 回合/摘要/私有实验状态可见性 | 成功回合显示 `[已保存]`；真实摘要失败显示无正文的 `暂未生成`；启动明确私有实验开关；固定无网络演示覆盖默认/显式、续玩、`/memory`/`undo`；状态不新增事件或重试玩家回合 |
 | RCV-08 | P1 | 已验收（离线玩家 GUI 首切片，独立复核修正） | 仅 `127.0.0.1` 的玩家游玩/仪表盘 | Chromium 覆盖 response-loss→刷新→同 action-id 恢复零增量；Python 覆盖活动叙事、revision-bound undo、写入同源边界、POV 选路、显示失败后已提交状态与 ambient embedder 禁用；不包含 GM/editor、部署、真实模型或私有记忆启用 |
+| RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
+| RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
+| RCV-11 | P1 | 进行中 | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；真实浏览器验证桌面/手机、行动/撤销/重开刷新 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -362,3 +378,29 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   reopen、配置错误、Codex special-HTML 边界回归。实际 Chromium 在 demo 强制离线 server 验证桌面/手机搜索、无结果提示与 DOM 无
   HTML 注入；normal production 接线仅以 fake 注入验收，未声称真实模型生成质量。专项通过，正式 gate 为 `1847 passed, 1 deselected`
   （21.15s，唯一既有 slow real embedding）；已本地提交，完整 bundle/source/diff/evidence 已生成并将持久化到 Library。
+- 2026-10-12：RCV-10 retry-context 修复本地提交 `8858793`：GUI 将可信 host scene/prev_scene 写入既有 result sidecar，
+  冷 dashboard 重建后同 action-id 仍按原请求指纹恢复；旧 sidecar 缺字段 fail-closed，且 GUI 补传 CLI 同样的 catchup provider。
+  专项 25 passed、正式 1850 passed/1 deselected。Chromium 已验浏览器刷新恢复移动，但尚未把同 campaign 的 GUI server/engine
+  停止再重启后恢复称为完成；该差异保留在验证记录。
+- 2026-10-12：RCV-10 后续将旧 sidecar 缺 GUI envelope 的恢复改成明确 409，并在浏览器增加“查看状态后结束恢复”；
+  同一 campaign 的服务/engine 停止后重启、带原 sessionStorage envelope 的恢复已实际验证，旧 action 不会把较新的世界 cursor
+  回退。该检查点为 `3f03892`；正式 gate `1851 passed, 1 deselected`。这不是远端 push 或真实模型验收。
+- 2026-10-12：按用户要求进行跨模块架构回顾，并由一个只读原生 subagent 审阅受控玩家剧情路径（未调用外部模型或网络）。
+  共性根因不是 SVG 缺失，而是玩家 GUI 的 POV exits、作者上下文与持久化 move 校验原先各自推导：正常 `AuthorStrategy`
+  可提出存在但不可见/不相邻的地点，`PlaceSystem` 又刻意只做通用实体存在性校验。RCV-11 因此新增纯
+  `context.capabilities.SceneCapabilities`：它从 action-start `pov_world` 投影稳定的可见地点、路线、出口和允许移动集；
+  player DTO/地图、离线策略和作者上下文共同使用它。GUI 的 `run_turn` 显式启用 TravelPolicy：主角只能去 action-start
+  POV 的相邻出口，或在同一批次创建地点并声明从当前位置直连的 `links`；非法 proposal 必须同时修复 `moves` 与 narration，
+  否则整 action 在写入前失败，避免“世界没动但文案说到了”的部分降级。相同策略作为 `EventBatch` publish validator 对最终
+  payload 二次检查，防止后续 staging 绕过；NPC、genesis 与低层通用 `PlaceSystem` 不受此玩家 UI policy 影响。地点 event
+  现保留可选 `label`，演示图不再把 opaque id 当玩家名。渐进发现尚未被夸大：legacy public place 仍按现有 POV 兼容规则可见，
+  真正 event-owned discovery/route state 被列为下一优先项。
+  新增回归覆盖 hidden canonical teleport、非地图 move 的 repair、narration 连带重写、同批新地点+直连路线、final payload
+  mutation 的整批零写入，以及 player API/DTO 无秘密。专项
+  `tests/context/test_capabilities.py tests/app/test_gui.py tests/context/test_assembler.py tests/systems/test_place.py -rA`
+  为 `106 passed`（既有 fake backstage warning 属测试预期路径）；正式
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA`
+  为 **`1856 passed, 1 deselected in 19.41s`**，唯一 deselect 为既有 slow real embedding，未调用真实模型。
+  实际 Chromium/Playwright 在 loopback demo 验证桌面/手机 SVG 2 节点/1 边、选择详情、行动后当前位置高亮/公开叙事更新、
+  player DOM/API 无隐藏旧塔或私有 sentinel；截图作为本阶段交付证据。下一自动项：以现有 `knows:<place>.discovered`
+  为基础设计/实现 event-owned 的渐进地点与路线发现，先完成兼容/回放/撤回审计，再扩大默认 visibility policy。

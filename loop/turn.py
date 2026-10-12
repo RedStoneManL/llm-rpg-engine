@@ -30,6 +30,7 @@ from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
+from context.capabilities import validate_protagonist_move_events, validate_protagonist_moves
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
 
@@ -270,6 +271,7 @@ def produce_turn(
     embedder=None,
     max_repairs: int = 3,
     required_sections: frozenset = frozenset(),
+    enforce_player_travel: bool = False,
 ) -> tuple:
     """Produce a validated TurnCommit without writing to the store.
 
@@ -325,6 +327,8 @@ def produce_turn(
     _aug_day = (scene or {}).get("day", 0)
     augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
     errors = validate_commit(registry, commit, world, required_sections=required_sections)
+    if enforce_player_travel:
+        errors.extend(validate_protagonist_moves(commit, world, scene))
     errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
     errors.extend(validate_narration(commit, world))
 
@@ -356,6 +360,8 @@ def produce_turn(
                 )
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_commit(registry, commit, world, required_sections=required_sections)
+        if enforce_player_travel:
+            errors.extend(validate_protagonist_moves(commit, world, scene))
         errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
         errors.extend(validate_narration(commit, world))
         attempts += 1
@@ -365,6 +371,13 @@ def produce_turn(
     # --------------------------------------------------------------------------
     dropped_sections: list[str] = []
     if errors:
+        if enforce_player_travel and any(error.code in {
+            "outside_scene_capability", "scene_capability_narration",
+        } for error in errors):
+            # A partial fallback would risk committing prose that says the
+            # protagonist arrived somewhere the durable world rejects.  This
+            # particular policy is therefore all-or-nothing after repairs.
+            raise TurnRejected("player travel could not be reconciled with the scene capability")
         failing: set[str] = {e.section for e in errors}
         log.warning(
             "produce_turn: dropping %d still-invalid sections after %d repairs: %s",
@@ -455,6 +468,7 @@ def _run_turn_staged(
     memory_role=None,
     memory_generator=None,
     trusted_memory_role=None,
+    enforce_player_travel: bool = False,
 ) -> TurnResult:
     """Run one complete turn: produce → validate/repair → drop → events → append → project.
 
@@ -488,6 +502,7 @@ def _run_turn_staged(
             registry, world, scene, player_input,
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
+            enforce_player_travel=enforce_player_travel,
         )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
@@ -702,7 +717,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
              action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
-             host_envelope=None) -> TurnResult:
+             host_envelope=None, enforce_player_travel: bool = False) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
@@ -725,7 +740,15 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status=status)
             return _restore_completed_turn(registry, prior, metadata, fingerprint, version)
     trusted_memory_role = scene.get('protagonist')
+    travel_world = world
+    travel_scene = copy.deepcopy(scene)
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
+    if enforce_player_travel:
+        def validate_travel_payload(events):
+            errors = validate_protagonist_move_events(events, travel_world, travel_scene)
+            if errors:
+                raise TurnRejected("final publish violates the player scene capability")
+        batch.add_publish_validator(validate_travel_payload)
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
     cached_revision = getattr(strategy, '_committed_revision', None)
@@ -750,7 +773,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             max_repairs=max_repairs, required_sections=required_sections,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
             prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
-            trusted_memory_role=trusted_memory_role)
+            trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel)
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

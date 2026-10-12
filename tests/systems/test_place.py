@@ -29,7 +29,7 @@ def _ev(typ, day=1, scene="s1", **deltas):
 def test_place_created_entity_in_graph():
     r = _reg()
     evs = [_ev("place_created", id="王都", level=1, kind="settlement",
-               seed="繁华都城", tier="tracked", detail="partial")]
+               label="王都", seed="繁华都城", tier="tracked", detail="partial")]
     w = project(r, evs)
     g: FactGraph = w["systems"]["ontology"]
     e = g.get_entity("王都")
@@ -37,6 +37,7 @@ def test_place_created_entity_in_graph():
     assert e.etype == "Place"
     assert e.attrs["level"] == 1
     assert e.attrs["kind"] == "settlement"
+    assert e.attrs["label"] == "王都"
     assert e.attrs["seed"] == "繁华都城"
     assert e.attrs["detail"] == "partial"
 

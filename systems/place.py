@@ -121,7 +121,11 @@ class PlaceSystem(ContextSystem):
                 return
             tier = d.get("tier", "mentioned")
             attrs: dict[str, Any] = {}
-            for k in ("level", "kind", "seed", "detail", "density"):
+            # ``label`` is a compact authored display name.  Keep it in the
+            # canonical entity alongside the longer ``seed`` so every safe
+            # read model (CLI context, player map, GM map) can render the same
+            # human-facing identity without guessing from an opaque id.
+            for k in ("level", "kind", "seed", "label", "detail", "density"):
                 if k in d:
                     attrs[k] = d[k]
             g.add_entity(pid, "Place", tier=tier, **attrs)

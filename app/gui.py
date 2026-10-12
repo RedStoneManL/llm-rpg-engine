@@ -28,6 +28,7 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene
 from context.access import pov_world
+from context.capabilities import scene_capabilities
 from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
@@ -60,17 +61,13 @@ class OfflineDemoStrategy:
         # The demo has no special authority: its movement proposal must use
         # the same known-exit view that is serialized to the player, never the
         # backstage/canonical adjacency graph.
-        view = pov_world(world, scene, pov=scene.get("protagonist"), redact_facts=True)
-        graph = view.get("systems", {}).get("ontology")
-        day = scene.get("day") or 1
-        location = scene.get("location")
-        exits = graph.neighbors(location, "adjacent_to", day) if graph and location else []
+        capability = scene_capabilities(world, scene)
+        destination = capability.exits[0] if capability.exits else None
         moves: list[dict[str, str]] = []
-        destination = exits[0] if exits else None
         if destination and scene.get("protagonist"):
-            moves.append({"who": scene["protagonist"], "to": destination})
+            moves.append({"who": scene["protagonist"], "to": destination.id})
         if destination:
-            narration = f"离线演示已保存你的行动：{player_input}。你沿着已知道路来到 {destination}。"
+            narration = f"离线演示已保存你的行动：{player_input}。你沿着已知道路来到 {destination.label}。"
         else:
             narration = f"离线演示已保存你的行动：{player_input}。这里暂时没有已知出口。"
         return TurnCommit(narration=narration, sections={
@@ -100,10 +97,12 @@ def _seed_demo_campaign(engine) -> None:
                      }),
         kernel_event("place_created", day=1, scene="s1", turn=0,
                      summary="石桥客栈", deltas={"id": "stonebridge_inn", "level": 2,
-                                                   "kind": "venue", "seed": "石桥镇边的暖灯客栈", "tier": "tracked"}),
+                                                   "kind": "venue", "label": "石桥客栈",
+                                                   "seed": "石桥镇边的暖灯客栈", "tier": "tracked"}),
         kernel_event("place_created", day=1, scene="s1", turn=0,
                      summary="石桥集市", deltas={"id": "stonebridge_market", "level": 2,
-                                                   "kind": "settlement", "seed": "清晨刚开张的石桥集市", "tier": "tracked"}),
+                                                   "kind": "settlement", "label": "石桥集市",
+                                                   "seed": "清晨刚开张的石桥集市", "tier": "tracked"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0,
                      summary="客栈与集市相连", deltas={"a": "stonebridge_inn", "b": "stonebridge_market", "travel_cost": 1}),
         # The player POV deliberately cannot see this Place or its edge.  GM
@@ -179,6 +178,8 @@ def build_player_state(engine) -> dict[str, Any]:
     inventory: list[dict[str, str]] = []
     places: dict[str, dict[str, str]] = {}
     exits: list[dict[str, str]] = []
+    capability = scene_capabilities(engine.world, scene)
+    map_data = capability.map_dto()
     if graph is not None:
         for fact in graph.current_facts(protagonist):
             if fact.predicate != "hidden" and fact.secrecy != "secret":
@@ -186,13 +187,9 @@ def build_player_state(engine) -> dict[str, Any]:
         for entity_id, entity in graph.entities.items():
             if entity.etype == "Object" and protagonist in graph.neighbors(entity_id, "held_by", day):
                 inventory.append({"id": entity_id, "label": str(entity.attrs.get("label") or entity_id)})
-            if entity.etype == "Place":
-                places[entity_id] = {"id": entity_id, "label": str(entity.attrs.get("label") or entity_id),
-                                     "kind": str(entity.attrs.get("kind") or "地点")}
-        location = scene.get("location")
-        for destination in graph.neighbors(location, "adjacent_to", day) if location else []:
-            if destination in places:
-                exits.append(places[destination])
+        places = {node["id"]: node for node in map_data["nodes"]}
+        exits.extend({"id": place.id, "label": place.label, "kind": place.kind}
+                     for place in capability.exits)
 
     narrations: list[str] = []
     for event in engine.public_history():
@@ -209,6 +206,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "revision": int(engine.world.get("_revision") or engine.store.revision),
         "turn": last_turn(engine),
         "scene": {"day": day, "location": places.get(scene.get("location")), "exits": exits},
+        "map": map_data,
         "character": {"id": protagonist, "facts": character_facts},
         "inventory": inventory,
         "narration": narrations[-8:],
@@ -277,8 +275,9 @@ def build_gm_state(engine) -> dict[str, Any]:
     people: list[dict[str, Any]] = []
     objects: list[dict[str, Any]] = []
     places: list[dict[str, Any]] = []
-    nodes: list[dict[str, str]] = []
-    edges: list[dict[str, Any]] = []
+    # GM reads the canonical graph explicitly.  It reuses the same DTO shape
+    # as the player capability but never feeds it into a player controller.
+    map_data = scene_capabilities(engine.world, scene, canonical=True).map_dto()
     if graph is not None:
         for entity_id, entity in sorted(graph.entities.items()):
             base = {
@@ -294,18 +293,6 @@ def build_gm_state(engine) -> dict[str, Any]:
             elif entity.etype == "Place":
                 places.append({**base, "kind": str(entity.attrs.get("kind") or "地点"),
                                "visibility": str(entity.attrs.get("visibility") or "public")})
-                nodes.append({"id": entity_id, "label": _gm_entity_label(entity)})
-        seen_edges: set[tuple[str, str]] = set()
-        for node in nodes:
-            source = node["id"]
-            for destination, attrs in graph.relation_attrs_at(source, "adjacent_to", day):
-                if destination not in graph.entities or graph.entities[destination].etype != "Place":
-                    continue
-                pair = tuple(sorted((source, destination)))
-                if pair in seen_edges:
-                    continue
-                seen_edges.add(pair)
-                edges.append({"from": pair[0], "to": pair[1], "cost": _safe_value(attrs.get("travel_cost", 1))})
     # Reuse the existing public-history boundary rather than merely dropping
     # private rows ourselves.  In particular it fails closed when an otherwise
     # ordinary narration/summary row references a private-memory event through
@@ -328,7 +315,7 @@ def build_gm_state(engine) -> dict[str, Any]:
         "people": people,
         "objects": objects,
         "places": places,
-        "map": {"nodes": nodes, "edges": edges},
+        "map": map_data,
         "timeline": timeline[-160:],
         "recaps": recaps,
         "codex": _public_codex(engine.world),
@@ -403,6 +390,7 @@ class PlayerDashboard:
                 catchup_provider=self.engine.cascade_provider,
                 prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
                 host_envelope={"scene": context.scene, "prev_scene": context.prev_scene},
+                enforce_player_travel=True,
             )
             self.engine.world = result.world
             if not bool(getattr(result, "receipt", {}).get("duplicate")):
@@ -472,7 +460,7 @@ $('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||bus
 $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
 })();"""
-_JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,recoveryUnavailable=false,codexQuery='';")
+_JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,recoveryUnavailable=false,codexQuery='',selectedMapId=null;")
 _JS = _JS.replace("s.codex.forEach(x=>{", "s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{")
 _JS = _JS.replace("if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{",
                   "const visibleCodex=s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery));if(!visibleCodex.length)$('codex').append(el('p',codexQuery?'没有匹配的公开设定。':'暂无公开设定条目。'));visibleCodex.forEach(x=>{")
@@ -481,6 +469,22 @@ _JS = _JS.replace("$('resume-action').addEventListener('click',()=>{const p=pend
 _JS = _JS.replace("function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}", "function syncPending(){const p=pending();$('resume-action').hidden=!p||recoveryUnavailable;$('end-recovery').hidden=!p||!recoveryUnavailable;if(p&&!busy&&!recoveryUnavailable)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}")
 _JS = _JS.replace("if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}", "if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.status=r.status;e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}")
 _JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally", "}else if(err.status===409){recoveryUnavailable=true;syncPending();setStatus('该行动已提交但无法安全恢复结果；请查看当前状态后明确结束恢复。',true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally")
+
+# Player and GM deliberately receive different map DTOs, but the player graph
+# still deserves a first-class visual instead of a hand-written exit list.  All
+# labels come from the already-redacted DTO and are assigned through
+# ``textContent``; SVG nodes are read-only selectors, never navigation writes.
+_CSS += ".player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}}"
+_INDEX = _INDEX.replace('<div id="map"></div>', '<div id="map" class="player-map"></div>')
+_JS = _JS.replace(
+    "function render(s){state=s;",
+    r"""function renderMap(data,location){const host=$('map');clear(host);const nodes=data&&Array.isArray(data.nodes)?data.nodes:[],edges=data&&Array.isArray(data.edges)?data.edges:[];host.append(el('p',location?`当前位置：${location.label}`:'当前位置尚未确定。'));if(!nodes.length){host.append(el('p','尚无已知地点。'));return}const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),count=nodes.length,positions={};nodes.forEach((node,i)=>{const angle=(Math.PI*2*i/count)-Math.PI/2;positions[node.id]={x:220+Math.cos(angle)*Math.min(86,36*count),y:112+Math.sin(angle)*76}});edges.forEach(edge=>{const a=positions[edge.from],b=positions[edge.to];if(!a||!b)return;const line=document.createElementNS(ns,'line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('class','map-edge');svg.append(line)});nodes.forEach(node=>{const p=positions[node.id],g=document.createElementNS(ns,'g'),circle=document.createElementNS(ns,'circle'),label=document.createElementNS(ns,'text');g.setAttribute('role','button');g.setAttribute('tabindex','0');g.setAttribute('aria-label',`查看地点：${node.label}`);circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r','19');circle.setAttribute('class',`map-node${location&&node.id===location.id?' current':''}${selectedMapId===node.id?' selected':''}`);label.setAttribute('x',p.x);label.setAttribute('y',p.y+35);label.setAttribute('text-anchor','middle');label.setAttribute('class','map-label');label.textContent=node.label;const select=()=>{selectedMapId=node.id;renderMap(data,location)};g.addEventListener('click',select);g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();select()}});g.append(circle,label);svg.append(g)});host.append(svg);const selected=nodes.find(node=>node.id===selectedMapId);if(selected){const detail=el('p',`${selected.label} · ${selected.kind}`);detail.className='map-detail';host.append(detail)}const exits=el('ul');const visible=state&&state.scene&&Array.isArray(state.scene.exits)?state.scene.exits:[];if(!visible.length)exits.append(el('li','没有已知相邻地点。'));visible.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));host.append(exits)}
+function render(s){state=s;""",
+)
+_JS = _JS.replace(
+    "clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);",
+    "renderMap(s.map,s.scene.location);",
+)
 
 _GM_INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 本地 GM 世界总览</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow gm-mode\">LOCAL · GM READ-ONLY · CANONICAL WORLD</p><h1>世界总览</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p><p class=\"notice\">这是启动时通过 <code>--gm</code> 显式开启的本地只读模式。切换玩家/GM 视角需要重启服务；这里没有编辑、推进或玩家行动按钮。</p></header><section class=\"grid gm-grid\"><article class=\"panel map-panel\"><h2>全局地点连接图</h2><p class=\"hint\">节点和连线直接来自当前地点实体与 <code>adjacent_to</code> 关系。</p><div id=\"map\" class=\"map-graph\"></div></article><article class=\"panel\"><h2>地点系统</h2><div id=\"places\"></div></article><article class=\"panel\"><h2>角色系统</h2><div id=\"people\"></div></article><article class=\"panel\"><h2>物品与持有关系</h2><div id=\"objects\"></div></article><article class=\"panel\"><h2>摘要 / recap</h2><div id=\"recaps\"></div></article><article class=\"panel timeline\"><h2>世界事件时间线</h2><p class=\"hint\">标明客观事实、公开叙事、摘要以及已撤回历史。私有角色解释不会在此出现。</p><div id=\"timeline\"></div></article></section><footer>GM 全局可见不等于玩家可见，也不会写回玩家响应、模型上下文或私有解释记忆。</footer></main><script src=\"/app.js\"></script></body></html>"""
 _GM_INDEX = _GM_INDEX.replace('<article class="panel"><h2>摘要 / recap</h2>', '<article class="panel codex"><h2>世界设定典（只读）</h2><label for="codex-search">搜索标题、类别或正文</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div></article><article class="panel"><h2>摘要 / recap</h2>')
