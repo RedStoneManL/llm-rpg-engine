@@ -84,6 +84,8 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
                 "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "..."}],
             },
             "optional_sections": {
+                "entities": [{"id": "new public non-person entity id", "etype": "Object|Place|..."}],
+                "relations": [{"src": "new entity id", "rel": "relation", "dst": "existing or new entity id"}],
                 "items": [{"op": "transfer", "item": "existing item id", "to": "existing entity/place id"}],
                 "knowledge": [{"op": "told", "knower": "protagonist", "fact_key": "subject.predicate", "value": "learned value", "via": "source"}],
                 "quests": [{"op": "open|surface|advance|resolve", "id": "quest id", "summary": "..."}],
@@ -92,7 +94,7 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
             "action_adjudication": {
                 "clock": "required exactly once; use advance=false with days=0 and bands=0 for same-scene actions, never [].",
                 "travel": "available_exits are the only legal protagonist destinations; route cost is not a time conversion, so do not infer clock bands from it.",
-                "information": "new factual information requires a supported fact plus knowledge.told for the protagonist; absent evidence is not permission to invent it.",
+                "information": "Normal authors may create ordinary public scenes, people, and provenance-bearing statements. To persist a new statement, create its public speaker in cast (op=create), record facts [{subject:speaker_id,predicate:'reported:<topic>',value:'what that speaker reports',secrecy:'public'}], and knowledge.told the same fact/value to protagonist with via:speaker_id. It records ‘the speaker said this’, not an overwrite of unresolved existing-world truth. Existing entities may only repeat exact speakable_evidence supplied above; never write secret/restricted/hidden content or alter their canonical facts.",
                 "items": "only use items.transfer when canonical custody changes; temporary prose without an addressable destination leaves holder state unchanged.",
             },
             "forbidden_host_fields": ["trusted_discovery_keys", "host_envelope", "memory_role"],

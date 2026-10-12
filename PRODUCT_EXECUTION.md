@@ -480,3 +480,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `items.transfer`；route cost 不自行换算 clock。它不提供市场证言、NPC 回答、隐藏事实或第二回合预置结果。
   专项 `18 passed`，正式完整 gate **`1874 passed, 1 deselected in 20.12s`**；唯一既有 slow real embedding。
   已为下一份真实 proposal 导出更新后的安全作者材料，尚未再次导入。
+- 2026-10-12：真实作者按修复后的 schema 返回第二候选重试；原文另存并经 importer **只导入一次**，成功提交
+  revision 4。它只将主角移动到石桥集市、保留“正在打听”的公开叙事和 `advance=false` 的晨间 clock；没有代写市场
+  答案、NPC 证言、渡口原因或隐藏信息。导出的 post-commit 安全回执仅含玩家 POV、公开叙事、出口/地图和 schema。
+
+  对正常 `AuthorStrategy` 的逐项审查确认，上一版 native hand-off 的“未经材料支持不得写事实”错误地把**创作自由**
+  与**既存权威**混在一起。新的 native-only policy 保留普通公开场景/人物创作：可新建公开人物，并以
+  `speaker.reported:<topic>` 加同值 `knowledge.told(via=speaker_id)` 保存一条带来源陈述；它记录“该人物这样说”，
+  而不是把尚未裁定的内容覆写成世界真相。既存实体则只可逐字复述 brief 已给出的公开 `speakable_evidence`；既存事实
+  覆写、既存角色 evolve、隐秘/受限事实、hidden/past facet、以及全由既存地点组成的拓扑改写均在 publish 前拒绝。
+  该 policy 只包住离线 native importer，不收窄正常 `AuthorStrategy`。新增回归验证公开来源陈述可真实持久化且不产生
+  `stonebridge_market.status`，并验证既存事实覆写与缺少同值/来源 `knowledge.told` 的报告拒绝。下一 checkpoint 将做完整
+  历史与增量安全扫描、正式完整 gate、独立 clone 恢复和 Library 持久化；不调用真实模型/embedding、不启用 B1/profiling、
+  不 push/PR/部署。

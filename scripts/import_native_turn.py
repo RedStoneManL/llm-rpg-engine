@@ -20,6 +20,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from app.engine import build_engine
 from app.play import _build_scene
+from context.native_authoring import NativeAuthoringPolicyError, native_authoring_policy_errors
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
@@ -72,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
     engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
     try:
         scene = _build_scene(engine)
+        policy_errors = native_authoring_policy_errors(engine.world, scene, commit)
+        if policy_errors:
+            raise NativeAuthoringPolicyError(
+                "native authoring policy rejected proposal: " + "; ".join(policy_errors)
+            )
         result = run_turn(
             engine.registry, engine.store, engine.world, scene, player_input,
             strategy=ImportedAuthor(commit), provider=engine.provider,

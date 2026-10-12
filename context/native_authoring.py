@@ -104,7 +104,169 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         },
         "answering_policy": {
             "missing_evidence": "未提供材料不等于 NPC 不知；不要断言不知道、不要捏造答案，应保留为待调查或请求宿主裁定。",
-            "new_information": "若叙事让主角获得一条 speakable_evidence，应在 TurnCommit 的 knowledge 中记录其来源；不要把未经材料支持的结论写成事实。",
+            "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物用 reported:<topic> 事实记录，并以 knowledge.told（via 为该人物 id）交给主角；它表示‘此人这样说’，不是对既存世界真相的覆写。既存实体只可复述本 brief 的 speakable_evidence；不得改写其事实、引入 hidden/past 或 secret/restricted 内容。",
             "item_state": "若叙事改变物品持有人或持有地点，必须提交 items.transfer；临时动作若没有可寻址目的地，不得声称已改变 canonical 持有状态。",
         },
     }
+
+
+class NativeAuthoringPolicyError(ValueError):
+    """A native hand-off attempted to change authority it was not given.
+
+    The policy intentionally applies only to the offline/native importer.  The
+    ordinary AuthorStrategy remains the product's creative author: it can use
+    the complete validated TurnCommit schema.  A hand-off has a smaller trust
+    boundary because its brief is a deliberately redacted player/author view.
+    """
+
+
+def _native_new_ids(commit) -> tuple[set[str], set[str], set[str]]:
+    """Return newly declared people, places, and generic entities."""
+    sections = commit.sections
+    people = {
+        item["id"] for item in sections.get("cast", [])
+        if isinstance(item, dict) and item.get("op", "create") == "create"
+        and isinstance(item.get("id"), str) and item["id"]
+    }
+    places = {
+        item["id"] for item in sections.get("places", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"]
+    }
+    entities = {
+        item["id"] for item in sections.get("entities", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"]
+    }
+    return people, places, entities
+
+
+def _native_speakable_sources(world: dict, scene: dict) -> dict[str, tuple[Any, str]]:
+    """Map a supplied public fact key to its explicitly knowledgeable speaker."""
+    supplied: dict[str, tuple[Any, str]] = {}
+    for person in native_authoring_context(world, scene).get("present_people", []):
+        speaker = person.get("id")
+        if not isinstance(speaker, str):
+            continue
+        for evidence in person.get("speakable_evidence", []):
+            if isinstance(evidence, dict) and isinstance(evidence.get("fact_key"), str):
+                supplied[evidence["fact_key"]] = (evidence.get("value"), speaker)
+    return supplied
+
+
+def native_authoring_policy_errors(world: dict, scene: dict, commit) -> list[str]:
+    """Validate the native author's *authority*, not ordinary creative quality.
+
+    A native author may create public places/people and may preserve a new
+    first-hand or hearsay statement as a fact of a same-turn new speaker:
+    ``speaker.reported:<topic>``.  Matching ``knowledge.told`` records that
+    the protagonist heard that speaker.  This makes the provenance durable
+    without silently declaring the report to be the world truth.
+
+    Existing canonical facts remain host authority unless their exact public,
+    attributed evidence was placed in the brief.  Hidden/restricted material,
+    existing-person evolution, and topology edits between pre-existing places
+    are denied rather than guessed from prose.
+    """
+    graph = world.get("systems", {}).get("ontology")
+    existing = set(graph.entities) if graph is not None else set()
+    people, places, entities = _native_new_ids(commit)
+    new_ids = people | places | entities
+    errors: list[str] = []
+
+    if any(entity_id in existing for entity_id in new_ids):
+        errors.append("native author may not recreate an existing canonical entity")
+
+    for item in commit.sections.get("cast", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("op", "create") != "create":
+            errors.append("native author may create a new public person but may not evolve an existing person")
+        if "past" in item or "hidden" in item:
+            errors.append("native author may not attach past or hidden facets to a person")
+
+    for section in ("places", "links"):
+        for item in commit.sections.get(section, []):
+            if not isinstance(item, dict):
+                continue
+            if item.get("visibility") in {"hidden", "secret", "undiscovered"}:
+                errors.append("native author may only create public scene topology")
+    for item in commit.sections.get("entities", []):
+        if isinstance(item, dict):
+            attrs = item.get("attrs")
+            if item.get("etype") == "Person" or (isinstance(attrs, dict) and attrs.get("visibility") in {"hidden", "secret", "undiscovered"}):
+                errors.append("native author may not create hidden/generic person authority; use public cast for a new speaker")
+
+    protagonist_destinations = {
+        move.get("to") for move in commit.sections.get("moves", [])
+        if isinstance(move, dict) and move.get("who") == scene.get("protagonist")
+        and isinstance(move.get("to"), str)
+    }
+    allowed_locations = {scene.get("location")} | protagonist_destinations
+    for move in commit.sections.get("moves", []):
+        if not isinstance(move, dict):
+            continue
+        who, target = move.get("who"), move.get("to")
+        if who == scene.get("protagonist"):
+            continue
+        elif who not in people or target not in allowed_locations:
+            errors.append("native author may only place a same-turn new public person at the current or protagonist destination scene")
+
+    for link in commit.sections.get("links", []):
+        if isinstance(link, dict) and not ({link.get("a"), link.get("b")} & places):
+            errors.append("native author may not alter topology between existing places")
+
+    supplied = _native_speakable_sources(world, scene)
+    reports: dict[str, tuple[Any, str]] = {}
+    for fact in commit.sections.get("facts", []):
+        if not isinstance(fact, dict):
+            continue
+        subject, predicate = fact.get("subject"), fact.get("predicate")
+        fact_key = f"{subject}.{predicate}" if isinstance(subject, str) and isinstance(predicate, str) else ""
+        if fact.get("secrecy") in {"secret", "restricted"}:
+            errors.append("native author may not introduce secret or restricted facts")
+            continue
+        if subject in existing:
+            supplied_value = supplied.get(fact_key)
+            if supplied_value is None or fact.get("value") != supplied_value[0] or fact.get("secrecy") != "public":
+                errors.append("native author may change an existing fact only by exactly recording supplied public speakable evidence")
+            continue
+        if subject not in new_ids:
+            errors.append("native author facts must concern a same-turn new public entity or supplied evidence")
+            continue
+        if subject in people:
+            if not isinstance(predicate, str) or not predicate.startswith("reported:"):
+                errors.append("a new public speaker may persist information only as reported:<topic>, not as an unqualified world fact")
+                continue
+            if fact.get("secrecy") != "public":
+                errors.append("a reported statement must be explicitly public")
+                continue
+            reports[fact_key] = (fact.get("value"), subject)
+        elif fact.get("secrecy") not in {None, "public"}:
+            errors.append("new public scene facts may not be restricted")
+
+    told: dict[str, tuple[Any, str | None]] = {}
+    for item in commit.sections.get("knowledge", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("op", "told") != "told" or item.get("knower") != scene.get("protagonist"):
+            errors.append("native author knowledge may only be protagonist told records")
+            continue
+        key = item.get("fact_key")
+        if not isinstance(key, str):
+            errors.append("native author knowledge must name a supported fact_key")
+            continue
+        told[key] = (item.get("value"), item.get("via"))
+        if key in reports:
+            value, source = reports[key]
+            if item.get("value") != value or item.get("via") != source:
+                errors.append("a new report must be told with its exact value and source id in via")
+        elif key in supplied:
+            value, source = supplied[key]
+            if item.get("value") != value or item.get("via") != source:
+                errors.append("supplied evidence must retain its exact value and present-speaker source")
+        else:
+            errors.append("native author knowledge must come from this-turn report or supplied speakable evidence")
+
+    for key in reports:
+        if key not in told:
+            errors.append("a persisted new report must include matching protagonist knowledge.told provenance")
+    return errors
