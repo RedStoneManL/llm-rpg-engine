@@ -32,6 +32,7 @@ from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
+from loop.strategy import AuthorStrategy
 
 
 log = logging.getLogger(__name__)
@@ -149,6 +150,14 @@ def _safe_value(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)[:500]
 
 
+def _public_codex(world: dict[str, Any]) -> list[dict[str, str]]:
+    """Narrow public Codex DTO shared by player and GM read-only browsers."""
+    entries = (world.get("systems", {}).get("codex", {}) or {}).get("entries", [])
+    return [{"id": str(item.get("id", "")), "kind": str(item.get("kind", "")),
+             "title": str(item.get("title") or item.get("id", "")), "body": str(item.get("body", ""))}
+            for item in entries if isinstance(item, dict)]
+
+
 def build_player_state(engine) -> dict[str, Any]:
     """Build the narrow, player-safe JSON DTO used by the browser.
 
@@ -191,10 +200,7 @@ def build_player_state(engine) -> dict[str, Any]:
             text = (event.get("deltas") or {}).get("text")
             if isinstance(text, str):
                 narrations.append(text)
-    entries = (engine.world.get("systems", {}).get("codex", {}) or {}).get("entries", [])
-    codex = [{"id": str(item.get("id", "")), "kind": str(item.get("kind", "")),
-              "title": str(item.get("title") or item.get("id", "")), "body": str(item.get("body", ""))}
-             for item in entries if isinstance(item, dict)]
+    codex = _public_codex(engine.world)
     return {
         "revision": int(engine.world.get("_revision") or engine.store.revision),
         "turn": last_turn(engine),
@@ -321,6 +327,7 @@ def build_gm_state(engine) -> dict[str, Any]:
         "map": {"nodes": nodes, "edges": edges},
         "timeline": timeline[-160:],
         "recaps": recaps,
+        "codex": _public_codex(engine.world),
     }
 
 
@@ -335,9 +342,11 @@ class _RequestContext:
 class PlayerDashboard:
     """In-process player UI controller; all mutations stay in ``run_turn``."""
 
-    def __init__(self, engine):
+    def __init__(self, engine, *, strategy=None, max_repairs: int = 6, demo: bool = False):
         self.engine = engine
-        self.strategy = OfflineDemoStrategy()
+        self.strategy = strategy if strategy is not None else OfflineDemoStrategy()
+        self.max_repairs = max_repairs
+        self.demo = demo
         self.previous_scene: dict[str, Any] | None = None
         self.requests: dict[str, _RequestContext] = {}
         self.lock = threading.RLock()
@@ -366,7 +375,7 @@ class PlayerDashboard:
             result = run_turn(
                 self.engine.registry, self.engine.store, self.engine.world, context.scene, player_input,
                 strategy=self.strategy, provider=self.engine.provider, embedder=self.engine.embedder,
-                required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
+                max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
                 prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
             )
             self.engine.world = result.world
@@ -419,6 +428,7 @@ _INDEX = _INDEX.replace(
     '<button id="undo" type="button" class="subtle">撤销上一回合</button>',
     '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
 )
+_INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
 _JS = r"""(() => {
 let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-action.v1';
 const $=id=>document.getElementById(id); const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
@@ -434,8 +444,15 @@ $('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||bus
 $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
 })();"""
+_JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,codexQuery='';")
+_JS = _JS.replace("s.codex.forEach(x=>{", "s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{")
+_JS = _JS.replace("if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{",
+                  "const visibleCodex=s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery));if(!visibleCodex.length)$('codex').append(el('p',codexQuery?'没有匹配的公开设定。':'暂无公开设定条目。'));visibleCodex.forEach(x=>{")
+_JS = _JS.replace("$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});",
+                  "$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});$('codex-search').addEventListener('input',e=>{codexQuery=e.target.value.trim().toLowerCase();if(state)render(state)});")
 
 _GM_INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 本地 GM 世界总览</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow gm-mode\">LOCAL · GM READ-ONLY · CANONICAL WORLD</p><h1>世界总览</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p><p class=\"notice\">这是启动时通过 <code>--gm</code> 显式开启的本地只读模式。切换玩家/GM 视角需要重启服务；这里没有编辑、推进或玩家行动按钮。</p></header><section class=\"grid gm-grid\"><article class=\"panel map-panel\"><h2>全局地点连接图</h2><p class=\"hint\">节点和连线直接来自当前地点实体与 <code>adjacent_to</code> 关系。</p><div id=\"map\" class=\"map-graph\"></div></article><article class=\"panel\"><h2>地点系统</h2><div id=\"places\"></div></article><article class=\"panel\"><h2>角色系统</h2><div id=\"people\"></div></article><article class=\"panel\"><h2>物品与持有关系</h2><div id=\"objects\"></div></article><article class=\"panel\"><h2>摘要 / recap</h2><div id=\"recaps\"></div></article><article class=\"panel timeline\"><h2>世界事件时间线</h2><p class=\"hint\">标明客观事实、公开叙事、摘要以及已撤回历史。私有角色解释不会在此出现。</p><div id=\"timeline\"></div></article></section><footer>GM 全局可见不等于玩家可见，也不会写回玩家响应、模型上下文或私有解释记忆。</footer></main><script src=\"/app.js\"></script></body></html>"""
+_GM_INDEX = _GM_INDEX.replace('<article class="panel"><h2>摘要 / recap</h2>', '<article class="panel codex"><h2>世界设定典（只读）</h2><label for="codex-search">搜索标题、类别或正文</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div></article><article class="panel"><h2>摘要 / recap</h2>')
 
 _GM_CSS = _CSS + ".gm-mode{color:#ffcf74}.notice{border-left:3px solid #d79b3a;padding-left:12px;color:#d8c49d}.hint{color:#9eb1c5;font-size:.9rem}.gm-grid{align-items:start}.map-panel{grid-column:span 2}.map-graph{min-height:250px;overflow:auto}.map-graph svg{width:100%;min-width:520px;height:270px;background:#101820;border:1px solid #304052;border-radius:8px}.map-edge{stroke:#8094a8;stroke-width:2}.map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5}.map-label{fill:#e9edf2;font-size:13px}.row{border-top:1px solid #304052;padding:9px 0}.row:first-child{border-top:0}.meta{color:#9eb1c5;font-size:.85rem}.badge{display:inline-block;border-radius:999px;padding:1px 7px;margin-right:5px;font-size:.78rem;background:#33465a}.badge.objective{background:#4b5d78}.badge.public_narrative{background:#3f6b68}.badge.recap{background:#6a587e}.badge.retracted{background:#833d49;color:#fff2f2}.facts{margin:6px 0 0;padding-left:18px}.facts li{margin:2px 0}@media(max-width:700px){.map-panel{grid-column:auto}.map-graph svg{min-width:440px;height:310px}}"
 
@@ -447,7 +464,8 @@ function entityRows(id,items,kind){const out=$(id);clear(out);if(!items.length){
 function map(data){const host=$('map');clear(host);if(!data.nodes.length){host.append(el('p','暂无地点节点。'));return}const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),count=data.nodes.length,positions={};data.nodes.forEach((node,i)=>{const angle=(Math.PI*2*i/count)-Math.PI/2;positions[node.id]={x:260+Math.cos(angle)*Math.min(100,38*count),y:135+Math.sin(angle)*95}});data.edges.forEach(edge=>{const a=positions[edge.from],b=positions[edge.to];if(!a||!b)return;const line=document.createElementNS(ns,'line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('class','map-edge');svg.append(line)});data.nodes.forEach(node=>{const p=positions[node.id],g=document.createElementNS(ns,'g'),c=document.createElementNS(ns,'circle'),t=document.createElementNS(ns,'text');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','20');c.setAttribute('class','map-node');t.setAttribute('x',p.x);t.setAttribute('y',p.y+38);t.setAttribute('text-anchor','middle');t.setAttribute('class','map-label');t.textContent=node.label;g.append(c,t);svg.append(g)});host.append(svg);const list=el('ul');data.edges.forEach(e=>list.append(el('li',`${e.from} ↔ ${e.to}（移动成本 ${e.cost}）`)));host.append(list)}
 function timeline(items){const out=$('timeline');clear(out);items.slice().reverse().forEach(x=>{const tags=el('div');for(const name of [x.category,x.retracted?'retracted':null])if(name){const b=el('span',name==='objective'?'客观事实':name==='public_narrative'?'公开叙事':name==='recap'?'摘要':'已撤回');b.className=`badge ${name}`;tags.append(b)}const d=el('div',x.summary);out.append(row(`${x.type} · 第 ${x.day} 天 / 回合 ${x.turn}`,`${x.scene} · ${x.id}`,tags));out.lastChild.append(d)})}
 function recaps(items){const out=$('recaps');clear(out);if(!items.length){out.append(el('p','尚无已保存摘要。'));return}items.forEach(x=>out.append(row(x.scene,'已保存 recap',el('div',x.summary))));}
-async function load(){try{const r=await fetch('/api/gm/state');const state=await r.json();if(!r.ok)throw new Error(state.message||'读取失败');entityRows('places',state.places,'place');entityRows('people',state.people,'person');entityRows('objects',state.objects,'object');map(state.map);timeline(state.timeline);recaps(state.recaps);$('status').textContent=`GM 只读视图 · 第 ${state.day} 天 · 回合 ${state.turn} · 版本 ${state.revision}`;}catch(err){$('status').textContent='GM 世界总览暂时不可用；请检查本地服务。'}}load();
+function codex(items){const out=$('codex'),q=$('codex-search').value.trim().toLowerCase();clear(out);const found=items.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(q));if(!found.length){out.append(el('p','没有匹配的公开设定。'));return}found.forEach(x=>{const d=el('details'),s=el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`);d.append(s,el('p',x.body));out.append(d)})}
+async function load(){try{const r=await fetch('/api/gm/state');const state=await r.json();if(!r.ok)throw new Error(state.message||'读取失败');entityRows('places',state.places,'place');entityRows('people',state.people,'person');entityRows('objects',state.objects,'object');map(state.map);timeline(state.timeline);recaps(state.recaps);codex(state.codex);$('codex-search').addEventListener('input',()=>codex(state.codex));$('status').textContent=`GM 只读视图 · 第 ${state.day} 天 · 回合 ${state.turn} · 版本 ${state.revision}`;}catch(err){$('status').textContent='GM 世界总览暂时不可用；请检查本地服务。'}}load();
 })();"""
 
 
@@ -575,13 +593,26 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
     return app
 
 
-def build_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> PlayerDashboard:
-    """Create an offline-only dashboard. Interpretive memory remains disabled."""
-    engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
-                          enable_interpretive_memory=False)
+def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=None,
+                    strategy=None, max_repairs: int = 6) -> PlayerDashboard:
+    """Build either explicit offline demo or the normal CLI-compatible play path.
+
+    Normal mode never swaps an unavailable provider for the demo strategy.  The
+    caller must supply a resolved CLI provider, and an empty campaign must be
+    initialized through the existing ``python -m app`` genesis workflow.
+    """
     if demo:
+        engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
+                              enable_interpretive_memory=False)
         _seed_demo_campaign(engine)
-    return PlayerDashboard(engine)
+        return PlayerDashboard(engine, strategy=OfflineDemoStrategy(), max_repairs=max_repairs, demo=True)
+    if provider is None:
+        raise GuiRequestError("正常 GUI 模式需要已配置的 provider；请传 --provider，或显式使用 --demo。")
+    engine = build_engine(campaign_dir, provider=provider, enable_interpretive_memory=False)
+    if not any(engine.store.iter_events()):
+        engine.store.close()
+        raise GuiRequestError("当前 campaign 尚无世界；请先用 python -m app 初始化，或显式使用 --demo。")
+    return PlayerDashboard(engine, strategy=strategy or AuthorStrategy(), max_repairs=max_repairs, demo=False)
 
 
 def build_gm_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> GmDashboard:
@@ -598,13 +629,33 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--campaign", required=True, help="启动时选择的本地 campaign 目录")
     parser.add_argument("--demo", action="store_true", help="仅在空 campaign 中写入固定离线演示世界")
     parser.add_argument("--gm", action="store_true", help="显式启动本地只读 GM 世界总览（切换模式需重启）")
+    parser.add_argument("--provider", default="fake", choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
+                        help="正常玩家模式的 CLI provider；--demo 始终使用固定离线替身")
+    parser.add_argument("--model", default=None, help="正常玩家模式的模型名")
+    parser.add_argument("--base-url", default=None, dest="base_url", help="正常玩家模式 provider 的 base URL")
+    parser.add_argument("--max-tokens", default=None, type=int, dest="max_tokens", help="正常玩家模式的输出 token 上限")
+    parser.add_argument("--max-repairs", default=6, type=int, dest="max_repairs", help="每回合结构修复上限")
     parser.add_argument("--host", default="127.0.0.1", choices=["127.0.0.1"], help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help="本机端口（0 可让系统分配）")
     args = parser.parse_args(argv)
     if not (0 <= args.port <= 65535):
         parser.error("--port 必须在 0 到 65535 之间")
+    if args.max_repairs < 0:
+        parser.error("--max-repairs 必须为非负整数")
     mode = "gm" if args.gm else "player"
-    dashboard = build_gm_dashboard(args.campaign, demo=args.demo) if args.gm else build_dashboard(args.campaign, demo=args.demo)
+    if args.gm:
+        dashboard = build_gm_dashboard(args.campaign, demo=args.demo)
+    elif args.demo:
+        dashboard = build_dashboard(args.campaign, demo=True, max_repairs=args.max_repairs)
+    else:
+        try:
+            from llm.provider import make_provider
+            provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)
+            dashboard = build_dashboard(args.campaign, provider=provider, max_repairs=args.max_repairs)
+        except GuiRequestError as exc:
+            parser.error(str(exc))
+        except Exception:
+            parser.error("无法初始化所选 provider；请检查本机既有 provider 配置，或显式使用 --demo。")
     server = make_server("127.0.0.1", args.port, make_app(dashboard, mode=mode), handler_class=_QuietHandler)
     label = "GM 只读世界总览" if args.gm else "玩家仪表盘"
     print(f"{label}已在 http://127.0.0.1:{server.server_port} 启动（Ctrl-C 退出；切换模式需重启）。", flush=True)

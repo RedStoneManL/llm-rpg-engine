@@ -15,6 +15,7 @@ from app.gui import (GuiRequestError, PlayerDashboard, _seed_demo_campaign,
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
+from loop.strategy import AuthorStrategy
 
 
 def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
@@ -40,7 +41,7 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     assert saved["narration"] not in after_undo["narration"]
     dashboard.engine.store.close()
 
-    reopened = build_dashboard(campaign)
+    reopened = build_dashboard(campaign, demo=True)
     assert reopened.state()["scene"]["location"]["id"] == "stonebridge_inn"
     assert reopened.state()["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
     assert saved["narration"] not in reopened.state()["narration"]
@@ -342,3 +343,49 @@ def test_gm_fails_closed_when_ordinary_history_references_active_or_retracted_pr
                      "ORDINARY_ACTIVE_REFERENCE_BODY", "ORDINARY_RETRACTED_REFERENCE_BODY"):
         assert sentinel not in rendered
     engine.store.close()
+
+
+def _normal_gui_commit(narration="NORMAL_GUI_PROVIDER_STUB"):
+    return {"narration": narration, "moves": [], "places": [], "cast": [], "facts": [],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试正常 GUI 接线"}]}
+
+
+def test_normal_gui_uses_author_strategy_and_injected_provider_not_demo_script(tmp_path):
+    campaign = tmp_path / "campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    provider = FakeLLMProvider(json_responses=[_normal_gui_commit("普通模式响应：任意行动被现有策略理解")])
+    dashboard = build_dashboard(campaign, provider=provider)
+    assert isinstance(dashboard.strategy, AuthorStrategy)
+    before = dashboard.state()
+    result = dashboard.action(player_input="不沿演示路线，先观察钟楼", action_id="normal-author", expected_revision=before["revision"])
+    assert "普通模式响应" in result["narration"]
+    assert provider.calls
+    assert result["state"]["scene"]["location"]["id"] == "stonebridge_inn", "normal strategy output controls movement"
+    dashboard.engine.store.close()
+
+    reopened = build_dashboard(campaign, provider=FakeLLMProvider(json_responses=[]))
+    duplicate = reopened.action(player_input="不沿演示路线，先观察钟楼", action_id="normal-author", expected_revision=before["revision"])
+    assert duplicate["duplicate"] is True
+    assert "普通模式响应" in duplicate["narration"]
+    reopened.engine.store.close()
+
+
+def test_normal_gui_requires_existing_campaign_and_explicit_provider(tmp_path):
+    with pytest.raises(GuiRequestError, match="需要已配置的 provider"):
+        build_dashboard(tmp_path / "no-provider")
+    with pytest.raises(GuiRequestError, match="尚无世界"):
+        build_dashboard(tmp_path / "empty", provider=FakeLLMProvider())
+
+
+def test_public_codex_dto_is_searchable_read_only_and_html_safe(tmp_path):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    dashboard.engine.store.append(kernel_event("codex_entry_added", day=1, scene="s1", turn=0, summary="html codex",
+        deltas={"id": "special", "kind": "秘闻", "title": "<img src=x onerror=alert(1)>", "body": "旧塔词条 <b>HTML</b>"}))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    state = dashboard.state()
+    entry = next(item for item in state["codex"] if item["id"] == "special")
+    assert entry["kind"] == "秘闻" and "<img" in entry["title"] and "<b>" in entry["body"]
+    gm_state = GmDashboard(dashboard.engine).state()
+    assert entry in gm_state["codex"]
+    dashboard.engine.store.close()

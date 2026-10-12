@@ -77,6 +77,10 @@ python -m app.gui --campaign ./campaigns/gui-demo --demo --port 8765
 # Switching player/GM mode requires restarting with the other command.
 python -m app.gui --campaign ./campaigns/gui-demo --gm --port 8765
 
+# Normal existing campaign: reuse the same provider selection used by the CLI.
+# It does not create a demo world or send credentials through the browser.
+python -m app.gui --campaign ./campaigns/my-game --provider openai --model <existing-model> --port 8765
+
 # or start a disposable temporary campaign (deleted on exit)
 python scripts/demo_offline_gui.py --port 8765
 ```
@@ -130,6 +134,20 @@ places and world events may appear there by design, but never in the default
 player server. It also reuses the public-history reference boundary: if an
 ordinary narration or recap row references a private-memory event, the GM
 endpoint fails closed with a neutral result instead of returning either body.
+
+The player GUI's `--demo` is intentionally the only fixed offline action
+strategy. Without it, the GUI requires an already initialized campaign and
+uses `AuthorStrategy` with the same `--provider`, `--model`, `--base-url`,
+`--max-tokens`, and `--max-repairs` configuration shape as `python -m app`.
+Provider initialization errors are shown as local setup guidance; the server
+never silently falls back to the demo, and the browser never receives API keys
+or provider configuration. This repository validates that wiring with injected
+fake providers only; it does not claim live-model generation quality.
+
+Both player and GM views include a read-only public world-book browser. It
+searches existing Codex title/category/body text and renders details with
+`textContent`; it creates or edits no setting entries. Categories are shown
+only when the original Codex entry has one—there is no synthetic source label.
 
 Interpretive memory remains disabled for this GUI; raw-store download,
 DM-ground-truth tools, multi-user accounts, public deployment, and editing are

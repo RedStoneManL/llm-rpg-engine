@@ -354,3 +354,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   与 GM HTTP 输出。专项 `tests/app/test_gui.py -rA` 为 19 passed；正式 gate 为 `1844 passed, 1 deselected`（19.45s，唯一
   既有 slow real embedding）；全新 bundle clone clean、GUI 专项 19 passed 且 `--gm --demo` 可启动。该小修已本地提交和归档，
   但不能表述为独立复核通过。
+- 2026-10-12：RCV-10 开始把 player GUI 正常入口接向现有 CLI 语义：只有显式 `--demo` 使用固定
+  OfflineDemoStrategy/FakeLLMProvider；正常模式要求已有 campaign，并通过 CLI 同形的 `--provider/--model/--base-url/--max-tokens/
+  --max-repairs` 构造 provider 后交给 `AuthorStrategy` 与既有 `run_turn`，不再把任意行动硬编码成演示移动。provider 未就绪或
+  campaign 为空时启动前给本地配置/初始化提示，绝不降级 demo，浏览器不传任何凭据。公开 Codex DTO 统一供 player/GM 只读浏览，
+  加入标题/类别/正文搜索与 details；仍不创建编辑器、虚构来源或混入私有解释。已新增 fake 注入的非平凡 normal action、duplicate/
+  reopen、配置错误、Codex special-HTML 边界回归。实际 Chromium 在 demo 强制离线 server 验证桌面/手机搜索、无结果提示与 DOM 无
+  HTML 注入；normal production 接线仅以 fake 注入验收，未声称真实模型生成质量。专项通过，正式 gate 为 `1847 passed, 1 deselected`
+  （21.15s，唯一既有 slow real embedding）；已本地提交，完整 bundle/source/diff/evidence 已生成并将持久化到 Library。
