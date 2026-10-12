@@ -500,3 +500,22 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `6f56ac5..60195d3` 的本增量二进制 diff 做同一强模式检查为零命中，变更路径仅本台账、native author policy、导入/导出
   脚本和专项测试。扫描只记录路径/计数，不输出潜在秘密正文。随后生成完整历史 bundle、源码归档、增量 diff 与验证记录并
   做全新 clone 恢复后再保存到 Library；不调用真实模型/embedding、不启用 B1/profiling、不 push/PR/部署。
+- 2026-10-12：第三份原生作者候选原文另存后，使用新的真实玩家输入经 importer **只导入一次**到独立 campaign，
+  成功提交 revision 5（receipt `999486f9-236c-4bd6-876d-5bf0fe76a7c3`，seq `29..39`）。它让主角留在石桥集市，
+  新建公开、同场的两名消息来源，并将他们各自的限定陈述保存为
+  `market_witness_luoen.reported:ferry_observation` 与
+  `market_cloth_seller_surui.reported:ferry_message_source`，以及同值、同 source-id 的 protagonist `knowledge.told`；
+  没有写入 `stonebridge_market.status`、没有断言渡口原因/当前状态，clock 仍是 `advance=false/days=0/bands=0`。
+  这证明“来源陈述”可保存但不是世界权威。实际导入产生的 `quest_created`（seq 39）是当时 Fleet 对
+  `entity_moved` 的旧 generic importance fallback 自动生成的非作者暗线，未修改该已保存历史。
+
+  该真实回合还暴露两个可复用缺口，均已在后续新回合前收窄：(1) `_build_scene` 只跟踪 ordinary cast，导致刚创建、
+  同场但未 tracked 的公开消息来源没有进入下一份 native brief；现在仅在 player POV 中加入**同地点、公开、自己持有
+  `reported:*` 事实**的人，并只以 `present_npc_persisted_report`/`self_reported` 原样提供该人的 source-bound evidence。
+  这不是把所有 canonical 人物、隐私事实或世界真相暴露给作者。(2) Fleet backstop 现只接受明确的语义发展 event
+  （character/relationship/world/place/populace/lore），不再把 sourced report 的 `entity_moved`、创建、fact/knowledge
+  persistence 或 clock bookkeeping 误当剧情发展而凭空造 quest。新回归覆盖两名来源人的后续 brief 与整套报告持久化
+  bookkeeping 的零 backstop；专项 `tests/loop/test_fleet.py tests/scripts/test_native_turn_tools.py -rA` 为
+  **`21 passed in 0.85s`**，正式完整 gate 为 **`1877 passed, 1 deselected in 18.36s`**，唯一 deselect 为既有 slow
+  real embedding。没有调用真实模型/embedding/网络，没有新增原生剧情、没有 push/PR/部署；下一回合仍须先得到新的作者
+  proposal，不能由宿主补写。

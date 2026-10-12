@@ -58,6 +58,21 @@ _SUMMARY_SCHEMA = {
     "required": ["summary"],
 }
 
+# A dormant quest is a narrative safety-net, not a side effect of every stored
+# delta.  Creation, movement, fact/knowledge persistence, and clock accounting
+# are all necessary bookkeeping for a sourced conversation; treating their
+# generic importance bonus as a plot development manufactures unrelated lines.
+# Keep the backstop deliberately narrow and limited to systems whose event type
+# already represents an actual character/world development.
+_BACKSTOP_SUBSTANTIVE_TYPES = frozenset({
+    "character_evolved",
+    "relationship_changed",
+    "world_change",
+    "place_evolved",
+    "populace_shifted",
+    "lore_advanced",
+})
+
 
 class DigestEvents(list):
     """Backstage events plus a transient, caller-facing recap outcome.
@@ -148,11 +163,15 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     if any(ln.get("state") == "明" for ln in lines.values()):
         return None
 
-    # Clock records are bookkeeping for every authored turn, including an
-    # explicit no-advance conversation.  They are not player developments and
-    # must not become the sole reason to manufacture a dormant quest merely
-    # because the generic importance fallback sees non-empty deltas.
-    candidate_events = [event for event in new_events if event.get("type") != "clock_advanced"]
+    # Only semantic development events qualify.  This excludes clock records
+    # and also the generic persistence events used by a sourced report
+    # (entity_moved, character_created, fact_asserted, knowledge_set): their
+    # non-empty deltas receive a generic importance bonus but do not themselves
+    # establish a player quest.
+    candidate_events = [
+        event for event in new_events
+        if event.get("type") in _BACKSTOP_SUBSTANTIVE_TYPES
+    ]
 
     # Find the most-significant player/world development among the remaining
     # foreground events.

@@ -393,6 +393,29 @@ def test_backstop_ignores_clock_records_without_a_story_development(advance, day
         store.close()
 
 
+def test_backstop_ignores_sourced_report_persistence_bookkeeping():
+    """A public witness/report must not manufacture an unrelated dark quest."""
+    from loop.fleet import backstop_quests
+    reg = _reg_full()
+    store = _store(reg)
+    try:
+        report_events = [
+            kernel_event("entity_moved", day=1, scene="market", summary="witness arrives",
+                         deltas={"who": "witness", "to": "market"}, turn=1),
+            kernel_event("character_created", day=1, scene="market", summary="witness appears",
+                         deltas={"id": "witness", "sketch": "public witness", "goal": "sell goods"}, turn=1),
+            kernel_event("fact_asserted", day=1, scene="market", summary="witness.reported:ferry",
+                         deltas={"subject": "witness", "predicate": "reported:ferry", "value": "limited report", "secrecy": "public"}, turn=1),
+            kernel_event("knowledge_set", day=1, scene="market", summary="hero learns witness report",
+                         deltas={"knower": "hero", "fact_key": "witness.reported:ferry", "value": "limited report", "via": "witness"}, turn=1),
+            kernel_event("clock_advanced", day=1, scene="market", summary="clock",
+                         deltas={"advance": False, "days": 0, "bands": 0, "reason": "same scene"}, turn=1),
+        ]
+        assert backstop_quests(project(reg, store.iter_events()), report_events) is None
+    finally:
+        store.close()
+
+
 def test_backstop_silent_when_active_thread_exists():
     from loop.fleet import digest_fleet
     reg = _reg_full()

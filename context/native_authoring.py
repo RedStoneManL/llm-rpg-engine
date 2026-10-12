@@ -58,7 +58,28 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         for entity_id, entity in sorted(visible.entities.items()):
             if entity.etype == "Object" and actor in visible.neighbors(entity_id, "held_by", day):
                 inventory.append({"id": str(entity_id), "canonical_holder": str(actor)})
-        for person_id in scene.get("present") or []:
+        # ``_build_scene`` deliberately treats only tracked persons as its
+        # ordinary ``present`` cast.  A native author, however, may have just
+        # introduced a public, currently co-located source with a durable
+        # ``reported:*`` statement.  Losing that source on the next brief
+        # turns a provenance-preserving report into unusable history.  Include
+        # exactly those report-owning people (not every untracked canonical
+        # person) when their public projection says they share this scene.
+        present_ids = set(scene.get("present") or [])
+        location = scene.get("location")
+        if canonical is not None and location:
+            for person_id, entity in visible.entities.items():
+                if entity.etype != "Person" or person_id == actor:
+                    continue
+                if location not in visible.neighbors(person_id, "located_in", day):
+                    continue
+                has_public_report = any(
+                    fact.predicate.startswith("reported:") and fact.secrecy == "public"
+                    for fact in canonical.current_facts(person_id)
+                )
+                if has_public_report:
+                    present_ids.add(person_id)
+        for person_id in sorted(present_ids):
             entity = visible.get_entity(person_id)
             if entity is None or entity.etype != "Person":
                 continue
@@ -69,6 +90,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                     observable[predicate] = _safe_value(value)
             evidence = []
             if canonical is not None:
+                seen_evidence: set[str] = set()
                 for fact in canonical.current_facts(person_id):
                     if not fact.predicate.startswith("knows:"):
                         continue
@@ -86,6 +108,26 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                         "source": "present_npc_declared_knowledge",
                         "confidence": "declared",
                     })
+                    seen_evidence.add(fact_key)
+                # A ``reported:*`` fact is intentionally a fact *about this
+                # visible source's statement*, not proof of the reported
+                # proposition.  It can therefore be replayed as the exact
+                # source-bound evidence the next native author needs, without
+                # authorizing any new claim about the ferry/world itself.
+                for fact in canonical.current_facts(person_id):
+                    if (not fact.predicate.startswith("reported:")
+                            or fact.secrecy != "public"):
+                        continue
+                    fact_key = f"{person_id}.{fact.predicate}"
+                    if fact_key in seen_evidence:
+                        continue
+                    evidence.append({
+                        "fact_key": fact_key,
+                        "value": _safe_value(fact.value),
+                        "source": "present_npc_persisted_report",
+                        "confidence": "self_reported",
+                    })
+                    seen_evidence.add(fact_key)
             people.append({
                 "id": str(person_id),
                 "observable": observable,

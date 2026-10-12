@@ -188,6 +188,18 @@ def test_native_author_can_create_a_public_sourced_report_without_overwriting_wo
         assert graph.value_at("market_fishmonger_cenlan", "reported:ferry_morning", 1) == value
         # This is a report by a named source, not an asserted ferry-world status.
         assert graph.value_at("stonebridge_market", "status", 1) is None
+        # Character creation defaults to ``mentioned`` rather than tracked.
+        # The next native brief must nevertheless retain this co-located,
+        # public source and its statement as source-bound evidence.
+        follow_up = native_authoring_context(engine.world, _build_scene(engine))
+        reporter = next(person for person in follow_up["present_people"]
+                        if person["id"] == "market_fishmonger_cenlan")
+        assert reporter["speakable_evidence"] == [{
+            "fact_key": "market_fishmonger_cenlan.reported:ferry_morning",
+            "value": value,
+            "source": "present_npc_persisted_report",
+            "confidence": "self_reported",
+        }]
     finally:
         engine.store.close()
 
