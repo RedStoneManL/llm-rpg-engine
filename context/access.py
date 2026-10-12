@@ -8,7 +8,7 @@ authored hidden entities opt in with attrs.visibility='hidden'.
 import copy
 
 from facts.graph import FactGraph
-from systems.knowledge import knows
+from systems.knowledge import knows, place_discovery_key, route_discovery_key
 
 
 def entity_visible(graph, entity, scene, pov, day):
@@ -17,16 +17,18 @@ def entity_visible(graph, entity, scene, pov, day):
         return True
     if entity.etype == 'Person' and scene.get('location') in graph.neighbors(eid, 'located_in', day):
         return True
+    visibility = entity.attrs.get('visibility')
+    if visibility in {'hidden', 'secret'}:
+        return False
+    if visibility == 'undiscovered':
+        return knows(graph, pov, place_discovery_key(eid), day) is True
     if pov in (entity.attrs.get('discovered_by') or []):
         return True
-    if knows(graph, pov, f'{eid}.discovered', day):
+    if knows(graph, pov, place_discovery_key(eid), day):
         return True
     # Knowledge of a facet establishes that the person/place has been encountered.
     if any(f.predicate.startswith(f'knows:{eid}.') for f in graph.current_facts(pov)):
         return True
-    visibility = entity.attrs.get('visibility')
-    if visibility in {'hidden', 'secret', 'undiscovered'}:
-        return False
     if entity.etype == 'Person':
         return visibility == 'public'
     return True
@@ -78,6 +80,8 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
             view.facts.append(exposed)
     view.relations = [copy.deepcopy(r) for r in graph.relations
                       if r.src in view.entities and r.dst in view.entities
-                      and r.attrs.get('visibility') not in {'hidden', 'secret'}]
+                      and r.attrs.get('visibility') not in {'hidden', 'secret'}
+                      and (r.attrs.get('visibility') != 'undiscovered'
+                           or knows(graph, pov, route_discovery_key(r.src, r.dst), day) is True)]
     view.reindex_facts()
     return {**world, 'systems': {**world['systems'], 'ontology': view}}

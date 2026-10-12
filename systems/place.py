@@ -32,6 +32,7 @@ log = get_logger("systems.place")
 
 _VALID_LEVELS = {1, 2, 3}
 _VALID_KINDS = {"settlement", "wilderness", "dungeon", "venue", "region"}
+_VALID_VISIBILITY = {"public", "undiscovered", "hidden", "secret"}
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +126,7 @@ class PlaceSystem(ContextSystem):
             # canonical entity alongside the longer ``seed`` so every safe
             # read model (CLI context, player map, GM map) can render the same
             # human-facing identity without guessing from an opaque id.
-            for k in ("level", "kind", "seed", "label", "detail", "density"):
+            for k in ("level", "kind", "seed", "label", "detail", "density", "visibility"):
                 if k in d:
                     attrs[k] = d[k]
             g.add_entity(pid, "Place", tier=tier, **attrs)
@@ -161,6 +162,9 @@ class PlaceSystem(ContextSystem):
                             event.get("id"), a, b)
                 return
             cost = d.get("travel_cost", 1)
+            link_attrs = {"travel_cost": cost}
+            if "visibility" in d:
+                link_attrs["visibility"] = d["visibility"]
             # adjacent_to is multi-valued — use supersede=False so prior edges survive
             g.add_relation(
                 a, "adjacent_to", b,
@@ -168,7 +172,7 @@ class PlaceSystem(ContextSystem):
                 turn=event.get("turn") or 0,
                 source_event=event["id"],
                 supersede=False,
-                travel_cost=cost,
+                **link_attrs,
             )
             g.add_relation(
                 b, "adjacent_to", a,
@@ -176,7 +180,7 @@ class PlaceSystem(ContextSystem):
                 turn=event.get("turn") or 0,
                 source_event=event["id"],
                 supersede=False,
-                travel_cost=cost,
+                **link_attrs,
             )
             log.debug("place_linked a=%s b=%s cost=%s", a, b, cost)
 
@@ -262,6 +266,10 @@ class PlaceSystem(ContextSystem):
                         code="bad_enum",
                         hint=f"kind 必须为 {sorted(_VALID_KINDS)} 之一，当前值: {kind!r}",
                     ))
+                visibility = item.get("visibility")
+                if visibility is not None and visibility not in _VALID_VISIBILITY:
+                    errs.append(ValidationError(section, f"[{i}].visibility", "bad_enum",
+                                                "visibility 必须为 public/undiscovered/hidden/secret"))
                 parent = item.get("parent")
                 if parent and g and g.get_entity(parent) is None:
                     errs.append(ValidationError(
@@ -340,7 +348,11 @@ class PlaceSystem(ContextSystem):
                         code="missing",
                         hint="链接声明必须包含 'b'（终点地点 id）",
                     ))
-                elif g and g.get_entity(b) is None:
+                visibility = item.get("visibility")
+                if visibility is not None and visibility not in _VALID_VISIBILITY:
+                    errs.append(ValidationError(section, f"[{i}].visibility", "bad_enum",
+                                                "visibility 必须为 public/undiscovered/hidden/secret"))
+                if b and g and g.get_entity(b) is None:
                     errs.append(ValidationError(
                         section=section,
                         field=f"[{i}].b",
