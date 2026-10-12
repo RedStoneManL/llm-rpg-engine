@@ -280,7 +280,7 @@ function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'n
 function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}
 function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}
 function render(s){state=s;clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
-async function api(url,options){const r=await fetch(url,options);let data;try{data=await r.json()}catch(_){const e=new Error('响应格式错误，请刷新页面。');e.confirmedRejection=false;throw e}if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&typeof data.message==='string';throw e}return data}
+async function api(url,options){const r=await fetch(url,options);let data;try{data=await r.json()}catch(_){const e=new Error('响应格式错误，请刷新页面。');e.confirmedRejection=false;throw e}if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}return data}
 async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});if(!d||d.ok!==true||!d.state||!Number.isInteger(d.revision))throw new Error('响应未确认，请刷新页面后恢复上次请求。');render(d.state);sessionStorage.removeItem(pendingKey);syncPending();$('action-input').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){if(err.confirmedRejection){sessionStorage.removeItem(pendingKey);syncPending();setStatus(`请求已被服务器拒绝，未提交。请修改后再试。${err.message}`,true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally{setBusy(false)}}
 async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}
 $('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const text=$('action-input').value.trim();if(!text)return;const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`;const envelope={text,action_id,expected_revision:state.revision};sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});
@@ -325,6 +325,28 @@ def _require_same_origin_json(environ) -> None:
         raise GuiRequestError("此本地页面不能接受跨站或非 JSON 写入请求。")
 
 
+def _read_json_request(environ, *, minimum: int, maximum: int, error_message: str) -> dict[str, Any]:
+    """Parse only the request body, mapping syntax/size failures to an explicit 400.
+
+    Keep this boundary intentionally narrow.  A ``TypeError`` or ``ValueError``
+    raised later by turn publication, DTO construction, or response rendering is
+    an unknown publication outcome, not proof that no action committed.
+    """
+    try:
+        size = int(environ.get("CONTENT_LENGTH") or 0)
+    except (TypeError, ValueError) as exc:
+        raise GuiRequestError(error_message) from exc
+    if size < minimum or size > maximum:
+        raise GuiRequestError(error_message)
+    try:
+        data = json.loads(environ["wsgi.input"].read(size).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise GuiRequestError(error_message) from exc
+    if not isinstance(data, dict):
+        raise GuiRequestError(error_message)
+    return data
+
+
 def make_app(dashboard: PlayerDashboard):
     """Return a closed, no-file-serving WSGI app for exactly the player routes."""
     def app(environ, start_response):
@@ -344,32 +366,27 @@ def make_app(dashboard: PlayerDashboard):
                 return _json_response(start_response, "200 OK", dashboard.state())
             if method == "POST" and path == "/api/action":
                 _require_same_origin_json(environ)
-                size = int(environ.get("CONTENT_LENGTH") or 0)
-                if size < 0 or size > _MAX_ACTION_BYTES + 512:
-                    raise GuiRequestError("请求过大，请刷新后重试。")
-                raw = environ["wsgi.input"].read(size)
-                data = json.loads(raw.decode("utf-8"))
-                if not isinstance(data, dict):
-                    raise GuiRequestError("请求格式无效，请刷新后重试。")
+                data = _read_json_request(environ, minimum=0, maximum=_MAX_ACTION_BYTES + 512,
+                                          error_message="请求格式无效，请刷新后重试。")
                 return _json_response(start_response, "200 OK", dashboard.action(
                     player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision")))
             if method == "POST" and path == "/api/undo":
                 _require_same_origin_json(environ)
-                size = int(environ.get("CONTENT_LENGTH") or 0)
-                if size < 2 or size > 256:
-                    raise GuiRequestError("撤销请求无效，请刷新后重试。")
-                data = json.loads(environ["wsgi.input"].read(size).decode("utf-8"))
-                if not isinstance(data, dict):
-                    raise GuiRequestError("撤销请求无效，请刷新后重试。")
+                data = _read_json_request(environ, minimum=2, maximum=256,
+                                          error_message="撤销请求无效，请刷新后重试。")
                 return _json_response(start_response, "200 OK", dashboard.undo(
                     expected_revision=data.get("expected_revision")))
             return _json_response(start_response, "404 Not Found", {"message": "找不到此页面。"})
         except GuiRequestError as exc:
-            return _json_response(start_response, "400 Bad Request", {"message": str(exc)})
-        except (ValueError, TypeError, json.JSONDecodeError):
-            return _json_response(start_response, "400 Bad Request", {"message": "请求格式无效，请刷新后重试。"})
+            return _json_response(start_response, "400 Bad Request", {
+                "message": str(exc), "confirmed_rejection": True,
+            })
         except Exception:
-            log.exception("player gui request failed")
+            # The failure can occur after a turn committed.  Do not emit the
+            # exception text/trace here: it may contain private input or an
+            # implementation detail and the browser has no safe outcome to
+            # infer from it.
+            log.error("player gui request failed")
             return _json_response(start_response, "500 Internal Server Error", {"message": "请求结果未能显示；请刷新查看当前状态。"})
     return app
 

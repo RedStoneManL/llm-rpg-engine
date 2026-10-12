@@ -101,6 +101,11 @@ keep that envelope recoverable. A clearly validated server `400` rejection is
 different: no turn was accepted, so the page clears the pending envelope and
 lets the player edit and submit a new action after a refresh.
 
+The client does not infer that safety merely from an HTTP status or a text
+message. The server marks only its narrow, pre-publication validation responses
+with `confirmed_rejection: true`; an unmarked 400/500 remains an unknown result
+and keeps the original envelope recoverable.
+
 The browser never selects a campaign path: `--campaign` is startup-only. The
 server binds only to `127.0.0.1`, serves no files, has no GM/editor route, and
 serializes a hand-shaped player DTO rather than a raw event store or canonical

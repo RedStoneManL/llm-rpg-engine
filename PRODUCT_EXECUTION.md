@@ -327,3 +327,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   刷新后不锁死并可正常提交。`app.__main__.main` 已逐行核对：它不传 `embedder` 给 `build_engine`，所以新的 sentinel
   仅使 GUI 的显式 `None` 禁用 embedding；普通 CLI/省略调用仍按 `RPG_EMBEDDER` 选择。回归用替身证明普通省略构造会调用环境
   resolver，而 GUI 在 `RPG_EMBEDDER=fastembed` 时仍为 None、零构造/零调用；没有运行真实 embedding 或模型。
+- 2026-10-12：最后复核指出不能把“任意带 message 的 HTTP 400”当作未提交证据：`make_app` 之前把 controller/DTO/
+  JSON 展示阶段的任意 `ValueError`/`TypeError` 宽泛转为 400，可能在 receipt 已写入后错误清掉浏览器 envelope。现将
+  400 捕获收窄到 `_read_json_request` 的 request body 长度/解码/JSON shape 与显式 `GuiRequestError` 前置校验，且这些响应
+  才带机器可识别的 `confirmed_rejection:true`；客户端仅凭该字段清 pending。post-publish DTO 的 RuntimeError、TypeError、
+  ValueError 均返回中性未知结果、没有该标记且 receipt/revision 保留。真实 Chromium 将一次上游已提交 action 替换成**无该标记**
+  的 400，仍保留/刷新/恢复到相同 revision `1→2→2`；800 中文字符的真实带标记 400 则清 pending，刷新后恢复按钮隐藏。专项
+  覆盖三种 post-publish exception、同源/preflight 标记与此前 POV/undo/embedder 边界。此实现已自验；本记录不声称此 commit
+  之后又做了一次新的独立复核。

@@ -124,17 +124,19 @@ def test_write_routes_reject_cross_site_or_form_requests_without_writes(tmp_path
                                  origin=origin, content_type=content_type)
     assert status.startswith("400")
     assert "跨站" in payload["message"]
+    assert payload["confirmed_rejection"] is True
     assert dashboard.state()["revision"] == before
     dashboard.engine.store.close()
 
 
-def test_wsgi_action_display_failure_keeps_committed_turn_and_hides_exception(tmp_path, monkeypatch):
+@pytest.mark.parametrize("error_type", [RuntimeError, TypeError, ValueError])
+def test_wsgi_post_publish_display_failures_keep_committed_turn_and_hide_exception(tmp_path, monkeypatch, caplog, error_type):
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
     app = make_app(dashboard)
     before = dashboard.state()["revision"]
 
     def fail_display(_engine):
-        raise RuntimeError("PRIVATE_GUI_RESPONSE_EXCEPTION")
+        raise error_type("PRIVATE_GUI_RESPONSE_EXCEPTION")
 
     monkeypatch.setattr(gui, "build_player_state", fail_display)
     status, payload = _post_wsgi(app, "/api/action", {
@@ -143,6 +145,8 @@ def test_wsgi_action_display_failure_keeps_committed_turn_and_hides_exception(tm
     assert status.startswith("500")
     assert payload["message"] == "请求结果未能显示；请刷新查看当前状态。"
     assert "PRIVATE_GUI_RESPONSE_EXCEPTION" not in json.dumps(payload, ensure_ascii=False)
+    assert "confirmed_rejection" not in payload
+    assert "PRIVATE_GUI_RESPONSE_EXCEPTION" not in caplog.text
     assert dashboard.engine.store.revision == before + 1
     assert dashboard.engine.store.get_action_receipt("response-display-failure") is not None
     dashboard.engine.store.close()
