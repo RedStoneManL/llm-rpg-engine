@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from context.access import pov_world
+from context.capabilities import scene_capabilities
 from context.place_observations import public_place_observations
 from systems.time import band_name
 
@@ -141,6 +142,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         "scene_time": {"day": day, "band": band_name(band)},
         "stateful_inventory": inventory,
         "present_people": people,
+        "conditional_arrivals": _conditional_arrivals(world, scene),
         # Empty by default.  Only a host-side validator may put an existing,
         # undiscovered direct route here; proposal text never creates one.
         "host_authorized_routes": list(host_authorized_routes or []),
@@ -152,10 +154,103 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         },
         "answering_policy": {
             "missing_evidence": "未提供材料不等于 NPC 不知；不要断言不知道、不要捏造答案，应保留为待调查或请求宿主裁定。",
-            "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物，或本 brief 中当前可见的既存人物，使用一个此前不存在的 public reported:<topic> 事实记录，并以同值的 knowledge.told（via 为该人物 id）交给主角；它表示‘此人这样说’，不是对既存世界真相的覆写。既存人物旧事实只能逐字复述 speakable_evidence，不能覆盖旧 reported:*；不得引入 hidden/past 或 secret/restricted 内容。",
+            "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物，或本 brief 中当前可见的既存人物，使用一个此前不存在的 public reported:<topic> 事实记录，并以同值的 knowledge.told（via 为该人物 id）交给主角；conditional_arrivals 中的既存人物也仅在同一提交含其对应移动时可这样使用。它表示‘此人这样说’，不是对既存世界真相的覆写。既存人物旧事实只能逐字复述 speakable_evidence，不能覆盖旧 reported:*；不得引入 hidden/past 或 secret/restricted 内容。",
             "item_state": "若叙事改变物品持有人或持有地点，必须提交 items.transfer；临时动作若没有可寻址目的地，不得声称已改变 canonical 持有状态。",
         },
     }
+
+
+def _arrival_public_people(world: dict, scene: dict) -> list[dict[str, object]]:
+    """Project only public people observable after a legal same-turn arrival.
+
+    ``pov_world`` normally treats co-location as observable so ordinary scenes
+    can render their cast.  A conditional preview is stricter: a canonical
+    hidden/secret/undiscovered person must never become visible merely because
+    the host knows their current location.
+    """
+    actor = scene.get("protagonist")
+    location = scene.get("location")
+    day = int(scene.get("day") or world.get("meta", {}).get("day") or 1)
+    canonical = world.get("systems", {}).get("ontology")
+    visible = pov_world(world, scene, pov=actor, redact_facts=True).get("systems", {}).get("ontology")
+    if not isinstance(actor, str) or not isinstance(location, str) or canonical is None or visible is None:
+        return []
+
+    people: list[dict[str, object]] = []
+    for person_id, entity in sorted(visible.entities.items()):
+        if entity.etype != "Person" or person_id == actor:
+            continue
+        canonical_person = canonical.get_entity(person_id)
+        if canonical_person is None or canonical_person.attrs.get("visibility") in {
+            "hidden", "secret", "undiscovered",
+        }:
+            continue
+        if location not in visible.neighbors(person_id, "located_in", day):
+            continue
+        observable = {}
+        for predicate in ("sketch", "mood", "state"):
+            value = visible.value_at(person_id, predicate, day)
+            if value is not None:
+                observable[predicate] = _safe_value(value)
+        evidence = []
+        seen_evidence: set[str] = set()
+        for fact in canonical.current_facts(person_id):
+            if not fact.predicate.startswith("knows:"):
+                continue
+            fact_key = fact.predicate[len("knows:"):]
+            public_fact = _current_public_fact(canonical, fact_key, day)
+            subject = fact_key.split(".", 1)[0] if "." in fact_key else None
+            if public_fact is None or subject is None or visible.get_entity(subject) is None:
+                continue
+            evidence.append({
+                "fact_key": fact_key,
+                "value": _safe_value(public_fact.value),
+                "source": "arrival_npc_declared_knowledge",
+                "confidence": "declared",
+            })
+            seen_evidence.add(fact_key)
+        for fact in canonical.current_facts(person_id):
+            if not fact.predicate.startswith("reported:") or fact.secrecy != "public":
+                continue
+            fact_key = f"{person_id}.{fact.predicate}"
+            if fact_key in seen_evidence:
+                continue
+            evidence.append({
+                "fact_key": fact_key,
+                "value": _safe_value(fact.value),
+                "source": "arrival_npc_persisted_report",
+                "confidence": "self_reported",
+            })
+            seen_evidence.add(fact_key)
+        people.append({
+            "id": str(person_id),
+            "observable": observable,
+            "speakable_evidence": evidence,
+            "absence_meaning": "not_supplied_not_npc_unknown",
+        })
+    return people
+
+
+def _conditional_arrivals(world: dict, scene: dict) -> list[dict[str, object]]:
+    """Return arrival-only material for each already legal public exit.
+
+    This projection is shared by brief construction and native policy checks.
+    It is deliberately conditional rather than current player knowledge: an
+    author may use a row only while committing its exact protagonist move.
+    """
+    actor = scene.get("protagonist")
+    if not isinstance(actor, str) or not actor:
+        return []
+    arrivals = []
+    for destination in scene_capabilities(world, scene).exits:
+        arrival_scene = {**scene, "location": destination.id, "present": []}
+        arrivals.append({
+            "condition": "仅当本 TurnCommit 同时提交该主角的对应合法移动后，以下人物才是抵达时可呈现的场景材料；它不是行动开始时主角已知的事实。",
+            "move": {"who": actor, "to": destination.id},
+            "location": {"id": destination.id, "label": destination.label, "kind": destination.kind},
+            "present_people": _arrival_public_people(world, arrival_scene),
+        })
+    return arrivals
 
 
 class NativeAuthoringPolicyError(ValueError):
@@ -187,10 +282,17 @@ def _native_new_ids(commit) -> tuple[set[str], set[str], set[str]]:
     return people, places, entities
 
 
-def _native_speakable_sources(world: dict, scene: dict) -> dict[str, tuple[Any, str]]:
-    """Map a supplied public fact key to its explicitly knowledgeable speaker."""
+def _native_speakable_sources(world: dict, scene: dict, *,
+                              arrival_destinations: frozenset[str] = frozenset()) -> dict[str, tuple[Any, str]]:
+    """Map supplied public facts to speakers usable in this exact proposal."""
     supplied: dict[str, tuple[Any, str]] = {}
-    for person in native_authoring_context(world, scene).get("present_people", []):
+    context = native_authoring_context(world, scene)
+    people = list(context.get("present_people", []))
+    for arrival in context.get("conditional_arrivals", []):
+        move = arrival.get("move") if isinstance(arrival, dict) else None
+        if isinstance(move, dict) and move.get("to") in arrival_destinations:
+            people.extend(arrival.get("present_people", []))
+    for person in people:
         speaker = person.get("id")
         if not isinstance(speaker, str):
             continue
@@ -200,16 +302,23 @@ def _native_speakable_sources(world: dict, scene: dict) -> dict[str, tuple[Any, 
     return supplied
 
 
-def _native_visible_speakers(world: dict, scene: dict) -> set[str]:
+def _native_visible_speakers(world: dict, scene: dict, *,
+                             arrival_destinations: frozenset[str] = frozenset()) -> set[str]:
     """Return only the sources explicitly present in the redacted brief.
 
     Presence here is a capability, not a claim about every canonical person at
     the location.  Reusing ``native_authoring_context`` keeps policy and the
     material actually handed to the author on the same POV boundary.
     """
+    context = native_authoring_context(world, scene)
+    people = list(context.get("present_people", []))
+    for arrival in context.get("conditional_arrivals", []):
+        move = arrival.get("move") if isinstance(arrival, dict) else None
+        if isinstance(move, dict) and move.get("to") in arrival_destinations:
+            people.extend(arrival.get("present_people", []))
     return {
         person["id"]
-        for person in native_authoring_context(world, scene).get("present_people", [])
+        for person in people
         if isinstance(person, dict) and isinstance(person.get("id"), str)
     }
 
@@ -343,8 +452,15 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
         if item.get("level") != 1:
             errors.append("native public observations must use local level 1")
 
-    supplied = _native_speakable_sources(world, scene)
-    visible_speakers = _native_visible_speakers(world, scene)
+    committed_arrival_destinations = frozenset(
+        destination for destination in protagonist_destinations if isinstance(destination, str)
+    )
+    supplied = _native_speakable_sources(
+        world, scene, arrival_destinations=committed_arrival_destinations,
+    )
+    visible_speakers = _native_visible_speakers(
+        world, scene, arrival_destinations=committed_arrival_destinations,
+    )
     reports: dict[str, tuple[Any, str]] = {}
     for fact in commit.sections.get("facts", []):
         if not isinstance(fact, dict):

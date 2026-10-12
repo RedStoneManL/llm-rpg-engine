@@ -120,6 +120,59 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
         engine.store.close()
 
 
+def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_path):
+    """A one-turn public exit can have an arrival scene without leaking host cast."""
+    campaign = _native_campaign(tmp_path)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("character_created", day=1, scene="s1", turn=0, summary="洛恩在集市", deltas={
+                "id": "market_witness_luoen", "sketch": "集市边整理货绳的洛恩", "goal": "收好摊位", "tier": "mentioned",
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="洛恩在集市", deltas={
+                "who": "market_witness_luoen", "to": "stonebridge_market",
+            }),
+            kernel_event("entity_created", day=1, scene="s1", turn=0, summary="隐藏的人", deltas={
+                "id": "market_hidden_contact", "etype": "Person", "tier": "tracked",
+                "attrs": {"sketch": "ARRIVAL_PRIVATE_SENTINEL", "visibility": "hidden"},
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="隐藏的人在集市", deltas={
+                "who": "market_hidden_contact", "to": "stonebridge_market",
+            }),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        scene = _build_scene(engine)
+        context = native_authoring_context(engine.world, scene, player_input="去集市看看洛恩")
+        assert [person["id"] for person in context["present_people"]] == ["innkeeper_mara"]
+        arrival = context["conditional_arrivals"]
+        assert len(arrival) == 1
+        assert arrival[0]["move"] == {"who": "protagonist", "to": "stonebridge_market"}
+        assert arrival[0]["location"]["id"] == "stonebridge_market"
+        assert [person["id"] for person in arrival[0]["present_people"]] == ["market_witness_luoen"]
+        assert "ARRIVAL_PRIVATE_SENTINEL" not in repr(context)
+
+        from kernel.turncommit import TurnCommit
+        with_arrival = TurnCommit.from_dict({
+            "narration": "你抵达集市，洛恩正在整理货绳；他只说自己仍在这里。",
+            "moves": [{"who": "protagonist", "to": "stonebridge_market"}],
+            "places": [], "links": [], "cast": [],
+            "facts": [{"subject": "market_witness_luoen", "predicate": "reported:market_presence",
+                       "value": "我仍在集市边整理货绳。", "secrecy": "public"}],
+            "knowledge": [{"op": "told", "knower": "protagonist",
+                           "fact_key": "market_witness_luoen.reported:market_presence",
+                           "value": "我仍在集市边整理货绳。", "via": "market_witness_luoen"}],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程回到集市"}],
+        })
+        assert native_authoring_policy_errors(engine.world, scene, with_arrival) == []
+
+        without_move = TurnCommit.from_dict({
+            **with_arrival.to_dict(), "moves": [],
+        })
+        assert native_authoring_policy_errors(engine.world, scene, without_move)
+    finally:
+        engine.store.close()
+
+
 def test_importer_uses_canonical_schema_and_rejects_host_authority(tmp_path):
     campaign = _native_campaign(tmp_path)
     proposal = tmp_path / "proposal.json"

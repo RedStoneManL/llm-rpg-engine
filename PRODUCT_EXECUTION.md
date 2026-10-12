@@ -591,3 +591,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   world_change 均不泄漏、native 越权拒绝，以及不触发 cascade/quest。专项为 **`51 passed in 2.04s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1886 passed, 1 deselected in
   20.12s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络、未启用 B1/profiling、未 push/PR/部署。
+
+- 2026-10-12：对 revision 8 的下一次公开返回集市动作复核发现，native policy 已允许同回合移动到合法公开出口，却只把
+  action-start 场景的 `present_people` 给作者；这会把普通“一次行动抵达后观察/交谈”错误地退化成先尝试、下回合才可写。
+  现新增共享的 `conditional_arrivals` 投影：只枚举 `scene_capabilities` 已允许的公开出口，行内明确“仅当同一
+  TurnCommit 提交对应主角移动后才可呈现”，并以 hypothetical POV 场景二次排除 `hidden/secret/undiscovered` 人物及其事实。
+  它不改变行动开始时主角知识、不授予新路线/发现权限、也不预定输入以外的行动结果。native policy 仅在提交匹配移动时，才
+  接受该行既存人物的公开 `reported:*`/`knowledge.told` 来源陈述；没有该移动仍 fail-closed。
+
+  更新后的 revision 8 brief 因此为唯一公开出口 `stonebridge_market` 提供条件化到达材料：苏芮和洛恩；洛恩的三条既存
+  source-bound 公开陈述仍带范围/不确定性，不是世界真相，也不在空地提前成为主角事实。专项
+  `tests/scripts/test_native_turn_tools.py tests/context/test_place_observations.py -rA` 为 **`13 passed in 1.99s`**；新回归
+  同时验证隐藏目的地人物的 ID/私有 sentinel 不进 brief，匹配移动可使用公开来源、不移动则拒绝。没有改写或导入既有 campaign
+  历史；未调用真实模型、网络、B1/profiling、push、PR 或部署。
