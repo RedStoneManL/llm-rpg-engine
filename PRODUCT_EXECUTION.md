@@ -438,3 +438,20 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`1871 passed, 1 deselected in 19.60s`**，唯一 deselect 是既有 slow real embedding。对 `--all` 的全历史
   内容式 token/key 模式扫描（只计路径，不输出内容）为 16 个历史路径候选；本新增 diff 为 0，不能替代专用
   secret scanner。未调用真实模型/embedding/网络、未启用 B1/profiling、未 push/PR/部署。
+- 2026-10-12：原生作者首回合以未改写的 proposal 只导入一次到独立 campaign：receipt 覆盖 seq `19..22`
+  且 revision 为 3；公开 narration 原样持久化，主角仍在客栈、旧铜灯仍由主角持有、出口不变。实际 `clock_advanced`
+  payload 是 `advance=false/days=0/bands=0`，所以时间未推进；`quest_created` 是 fleet 依据该 substantive
+  clock event 自动建立的暗线 backstop，`lore_seeded` 是 Fake provider 生成零条 lore 后的地点 seed 标记，均不是
+  作者写入的世界事实。作者叙事“把灯放在桌上”没有 `items.transfer`，故只作为临时叙述，canonical `held_by` 未变；
+  不能把 event 名或 prose 当作状态效果。前后公开差异证据仅含时间、位置、可见人物/物品/出口和新增 narration，
+  排除 raw store、后台 quest/lore、私有和隐藏内容。
+
+  质量诊断表明原 brief 复用了 GUI 玩家 DTO，缺少结构化时钟；现有 world 也没有渡口原因/集市消息的带来源知识，
+  因而“没有输入”不能推出“玛拉不知道”。最小治本修复 `context.native_authoring.native_authoring_context` 将
+  player DTO 与作者补充上下文分离：作者仅得到公开 scene day/band、canonical 持有物、共场人物可观察字段，以及
+  **NPC 明确 knowledge + 被引用事实明确 `secrecy=public`** 时才给出的 `speakable_evidence`（含来源/可信度）。
+  空 evidence 明示为 `not_supplied_not_npc_unknown`；无可计算 deadline 时明示不推定日期；物品持有变化必须有
+  `items.transfer`。它不向作者传 GM 秘密、隐藏实体、raw events 或任意 NPC 信念，也不自动编造/写入 clue。
+  专项 `19 passed`，正式 gate 为 **`1872 passed, 1 deselected in 20.12s`**；唯一 deselect 为既有 slow real
+  embedding。该机制已为下一次“拿灯去集市、找亲历者核实来源”的真实玩家行动准备 authoring material，但没有
+  预置 NPC、结果或第二回合回应。
