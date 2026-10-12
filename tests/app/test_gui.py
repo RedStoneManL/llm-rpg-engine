@@ -389,3 +389,42 @@ def test_public_codex_dto_is_searchable_read_only_and_html_safe(tmp_path):
     gm_state = GmDashboard(dashboard.engine).state()
     assert entry in gm_state["codex"]
     dashboard.engine.store.close()
+
+
+def test_gui_cold_reopen_duplicate_uses_persisted_original_scene_after_move(tmp_path):
+    campaign = tmp_path / "campaign"
+    first = build_dashboard(campaign, demo=True)
+    initial = first.state()
+    saved = first.action(player_input="走向集市", action_id="cold-move", expected_revision=initial["revision"])
+    assert saved["state"]["scene"]["location"]["id"] == "stonebridge_market"
+    first.engine.store.close()
+    reopened = build_dashboard(campaign, demo=True)
+    duplicate = reopened.action(player_input="走向集市", action_id="cold-move", expected_revision=initial["revision"])
+    assert duplicate["duplicate"] is True
+    assert duplicate["state"]["scene"]["location"]["id"] == "stonebridge_market"
+    reopened.engine.store.close()
+
+
+def test_gui_old_duplicate_without_host_envelope_fails_closed(tmp_path):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    state = dashboard.state()
+    dashboard.action(player_input="旧记录", action_id="legacy-gui", expected_revision=state["revision"])
+    dashboard.engine.store._conn.execute("UPDATE action_result_metadata SET metadata='{}' WHERE action_id='legacy-gui'")
+    dashboard.engine.store._conn.commit()
+    dashboard.requests.clear()
+    with pytest.raises(GuiRequestError, match="缺少可安全恢复"):
+        dashboard.action(player_input="旧记录", action_id="legacy-gui", expected_revision=state["revision"])
+    dashboard.engine.store.close()
+
+
+def test_gui_passes_cli_catchup_provider(tmp_path, monkeypatch):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    marker = object(); dashboard.engine.cascade_provider = marker
+    observed = {}; original = gui.run_turn
+    def wrapped(*args, **kwargs):
+        observed["cascade"] = kwargs.get("cascade_provider"); observed["catchup"] = kwargs.get("catchup_provider")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(gui, "run_turn", wrapped)
+    dashboard.action(player_input="接线检查", action_id="catchup", expected_revision=dashboard.state()["revision"])
+    assert observed == {"cascade": marker, "catchup": marker}
+    dashboard.engine.store.close()

@@ -701,7 +701,8 @@ def _backstage_call(store, function, *args, **kwargs):
 def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
-             action_id=None, expected_revision=None, memory_role=None, memory_generator=None) -> TurnResult:
+             action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
+             host_envelope=None) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
@@ -756,11 +757,17 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 raise TurnRejected('a backstage effect conflicts with the resolved resource outcome')
         result_metadata = None
         if action_id:
+            if host_envelope is not None:
+                try:
+                    json.dumps(host_envelope, sort_keys=True, ensure_ascii=False, allow_nan=False)
+                except (TypeError, ValueError) as exc:
+                    raise TurnRejected('host action envelope must be stable JSON') from exc
             result_metadata = {
                 'version': 1,
                 'kind': 'turn_result',
                 'request_fingerprint': fingerprint,
                 'base_revision': version,
+                'host_envelope': copy.deepcopy(host_envelope),
                 'result': {
                     'commit': {
                         'narration': result.commit.narration,

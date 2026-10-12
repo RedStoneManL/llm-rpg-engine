@@ -355,6 +355,22 @@ class PlayerDashboard:
         with self.lock:
             return build_player_state(self.engine)
 
+    def _stored_context(self, action_id: str) -> _RequestContext | None:
+        """Recover only the host-written original GUI envelope; never trust client scene data."""
+        receipt = self.engine.store.get_action_receipt(action_id)
+        if receipt is None:
+            return None
+        try:
+            metadata = self.engine.store.get_action_result_metadata(action_id)
+            envelope = metadata.get("host_envelope") if isinstance(metadata, dict) else None
+            scene = envelope.get("scene") if isinstance(envelope, dict) else None
+            prev_scene = envelope.get("prev_scene") if isinstance(envelope, dict) else None
+            if not isinstance(scene, dict) or (prev_scene is not None and not isinstance(prev_scene, dict)):
+                raise ValueError
+            return _RequestContext("", None, scene, prev_scene)
+        except Exception:
+            raise GuiRequestError("此已保存请求缺少可安全恢复的上下文；请刷新并使用新的行动标识。")
+
     def action(self, *, player_input: str, action_id: str, expected_revision: int | None) -> dict[str, Any]:
         if not isinstance(player_input, str) or not player_input.strip():
             raise GuiRequestError("请输入一个行动。")
@@ -369,14 +385,20 @@ class PlayerDashboard:
             if existing is not None and existing.player_input == player_input and existing.expected_revision == expected_revision:
                 context = existing
             else:
-                context = _RequestContext(player_input, expected_revision, _build_scene(self.engine), self.previous_scene)
+                stored = self._stored_context(action_id)
+                if stored is not None:
+                    context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene)
+                else:
+                    context = _RequestContext(player_input, expected_revision, _build_scene(self.engine), self.previous_scene)
                 if existing is None:
                     self.requests[action_id] = context
             result = run_turn(
                 self.engine.registry, self.engine.store, self.engine.world, context.scene, player_input,
                 strategy=self.strategy, provider=self.engine.provider, embedder=self.engine.embedder,
                 max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
+                catchup_provider=self.engine.cascade_provider,
                 prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
+                host_envelope={"scene": context.scene, "prev_scene": context.prev_scene},
             )
             self.engine.world = result.world
             self.previous_scene = context.scene

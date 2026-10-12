@@ -151,9 +151,9 @@ only when the original Codex entry has one—there is no synthetic source label.
 
 Interpretive memory remains disabled for this GUI; raw-store download,
 DM-ground-truth tools, multi-user accounts, public deployment, and editing are
-outside this slice. The dashboard explicitly disables embedding even if
-`RPG_EMBEDDER` is set; ordinary application construction still retains its
-environment-driven default. Visibility follows the existing POV rules: the
+outside this slice. The explicit offline demo and GM read-only constructors
+disable embedding even if `RPG_EMBEDDER` is set; normal GUI play retains the
+existing environment-driven embedding behavior. Visibility follows the existing POV rules: the
 protagonist/current location, co-present people, discovered entities, and
 legacy places without restrictive metadata can be visible. It does not claim
 every legacy place requires a discovery event.
