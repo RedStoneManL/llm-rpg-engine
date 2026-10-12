@@ -158,15 +158,11 @@ def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) 
     """Discovery is host authority, never an author-declared capability."""
     errors = []
     for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("knowledge") or []):
-        if not isinstance(item, dict) or item.get("knower") != actor:
+        if not isinstance(item, dict):
             continue
-        op = item.get("op")
-        key = (place_discovery_key(item["place"]) if op == "discover_place" and isinstance(item.get("place"), str)
-               else route_discovery_key(item["a"], item["b"]) if op == "discover_route" and isinstance(item.get("a"), str) and isinstance(item.get("b"), str)
-               else item.get("fact_key"))
-        if isinstance(key, str) and key.endswith(".discovered") and key not in trusted_keys:
-            errors.append(ValidationError("knowledge", f"[{index}]", "untrusted_discovery",
-                                          "地点或路线发现必须由可信宿主授权，不能由作者声明。"))
+        # Broadcast and endowment do not necessarily name the current actor in
+        # ``knower``.  They are nevertheless forbidden discovery write paths,
+        # so check them before the actor-specific host-grant handling below.
         if item.get("op") == "broadcast" and isinstance(item.get("fact_key"), str) and item["fact_key"].endswith(".discovered"):
             errors.append(ValidationError("knowledge", f"[{index}]", "protected_discovery_write",
                                           "发现权限不能通过 broadcast 写入。"))
@@ -176,6 +172,15 @@ def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) 
                 if isinstance(key, str) and key.endswith(".discovered"):
                     errors.append(ValidationError("knowledge", f"[{index}].grants[{grant_index}]", "protected_discovery_write",
                                                   "发现权限不能通过 endowment 写入。"))
+        if item.get("knower") != actor:
+            continue
+        op = item.get("op")
+        key = (place_discovery_key(item["place"]) if op == "discover_place" and isinstance(item.get("place"), str)
+               else route_discovery_key(item["a"], item["b"]) if op == "discover_route" and isinstance(item.get("a"), str) and isinstance(item.get("b"), str)
+               else item.get("fact_key"))
+        if isinstance(key, str) and key.endswith(".discovered") and key not in trusted_keys:
+            errors.append(ValidationError("knowledge", f"[{index}]", "untrusted_discovery",
+                                          "地点或路线发现必须由可信宿主授权，不能由作者声明。"))
     for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("facts") or []):
         if (isinstance(item, dict) and item.get("subject") == actor
                 and isinstance(item.get("predicate"), str) and item["predicate"].startswith("knows:")

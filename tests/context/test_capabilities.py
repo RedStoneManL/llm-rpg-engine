@@ -6,7 +6,7 @@ import pytest
 from app.engine import build_engine, rewind
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
-from context.capabilities import (native_player_dto, place_discovery_key,
+from context.capabilities import (discovery_grant_errors, native_player_dto, place_discovery_key,
                                   route_discovery_key, scene_capabilities,
                                   validate_protagonist_moves)
 from engine.store import EventBatch
@@ -259,6 +259,24 @@ def test_sqlite_discovery_false_then_true_allows_move_with_final_grant(tmp_path)
     assert graph.neighbors("protagonist", "located_in", day) == ["sealed_gate"]
     assert engine.store.get_action_receipt("grant-false-then-true") is not None
     engine.store.close()
+
+
+def test_proposal_rejects_discovery_broadcast_without_knower_for_protagonist_audience():
+    """A broadcast has no knower field and must not skip the proposal guard."""
+    commit = TurnCommit("广播发现权限", {
+        "knowledge": [{
+            "op": "broadcast",
+            "fact_key": place_discovery_key("sealed_gate"),
+            "value": True,
+            "audience": {"kind": "members", "ids": ["protagonist"]},
+        }],
+    })
+
+    errors = discovery_grant_errors(commit, "protagonist")
+
+    assert [(error.section, error.field, error.code) for error in errors] == [
+        ("knowledge", "[0]", "protected_discovery_write"),
+    ]
 
 
 def test_run_turn_repairs_invalid_player_teleport_before_publish(tmp_path):
