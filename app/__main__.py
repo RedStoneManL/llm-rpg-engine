@@ -327,7 +327,8 @@ def main(
     parser.add_argument(
         "--offline-private-memory", action="store_true", dest="offline_private_memory",
         help="EXPERIMENTAL: enable fixed local private protagonist interpretations. "
-             "No network/model/embedding is used; /memory is the only read outlet.",
+             "Only private generation is local; foreground --provider is unchanged. "
+             "/memory is the only read outlet.",
     )
     args = parser.parse_args(argv)
     configure_logging()  # honor RPG_DEBUG / RPG_LOG_LEVEL so process logs appear

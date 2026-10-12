@@ -36,10 +36,11 @@ Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack,
 
 `python -m app --campaign ./campaigns/demo --provider fake --offline-private-memory`
 enables a deliberately narrow offline experiment. It registers an otherwise-disabled
-private interpretation system and uses one fixed local text generator; it does not
-call a model, embedder, or network service. `/memory` can then show only the current
-protagonist's own interpretations. The records persist across a restart made with the
-same flag and disappear with the whole turn after `/undo` or `/rewind`.
+private interpretation system and uses one fixed local text generator; that private
+generation does not call a model, embedder, or network service. It does not override
+the foreground `--provider` or embedder configuration. `/memory` can then show only
+the current protagonist's own interpretations. The records persist across a restart
+made with the same flag and disappear with the whole turn after `/undo` or `/rewind`.
 
 This is not world fact, permission, recall data, recap material, public history, or
 model context. The flag is required on every process that should read the experimental

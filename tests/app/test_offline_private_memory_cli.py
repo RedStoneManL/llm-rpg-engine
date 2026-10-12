@@ -78,10 +78,25 @@ def test_private_memory_experiment_is_explicit_and_replayable_without_public_lea
     finally:
         privileged.store.close()
 
-    reopened, _ = _run_main(campaign, ['--offline-private-memory'], ['/memory', '/quit'], _turn_provider())
+    # Now run a second real player turn after BOTH non-empty sentinels exist.
+    # This is the actual prompt-isolation boundary: the provider must receive
+    # fresh public input/context, but neither pre-existing private body.
+    second_provider = _turn_provider()
+    reopened, _ = _run_main(
+        campaign, ['--offline-private-memory'],
+        ['PUBLIC_SECOND_TURN_CONTROL：继续沿街观察', '/memory', '/quit'], second_provider,
+    )
     reopened_text = '\n'.join(reopened)
     assert OFFLINE_INTERPRETIVE_MEMORY_TEXT in reopened_text
     assert 'NPC_PRIVATE_BODY' not in reopened_text
+    assert second_provider.calls
+    second_prompt_text = '\n'.join(system + user for system, user in second_provider.calls)
+    assert 'PUBLIC_SECOND_TURN_CONTROL' in second_prompt_text
+    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in second_prompt_text
+    assert 'NPC_PRIVATE_BODY' not in second_prompt_text
+    # The second real turn added a second protagonist record, so the subsequent
+    # undo can prove that its complete turn (including memory) is retracted.
+    assert reopened_text.count('[memory] 第 ') == 2
 
     # A normal reopen still filters private rows from its recap/public DTO and
     # leaves /memory disabled.  This checks the process boundary, not merely an
@@ -99,9 +114,16 @@ def test_private_memory_experiment_is_explicit_and_replayable_without_public_lea
     assert 'NPC_PRIVATE_BODY' not in normal_text
     assert '未启用' in normal_text
 
-    # Undo is a whole-turn retraction: reopening with the experiment enabled
-    # afterwards must not revive the protagonist's retracted record.
+    # Undo retracts the second complete turn, leaving only the first record;
+    # rewinding turn 1 then retracts that remaining record too.  The count
+    # assertions make the identical fixed private text distinguishable.
     undone, _ = _run_main(campaign, ['--offline-private-memory'], ['/undo', '/memory', '/quit'], _turn_provider())
     undone_text = '\n'.join(undone)
-    assert '[memory] 无' in undone_text
-    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in undone_text
+    assert undone_text.count('[memory] 第 ') == 1
+    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT in undone_text
+
+    rewound, _ = _run_main(campaign, ['--offline-private-memory'], ['/rewind 1', '/memory', '/quit'], _turn_provider())
+    rewound_text = '\n'.join(rewound)
+    assert '[memory] 无' in rewound_text
+    assert rewound_text.count('[memory] 第 ') == 0
+    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in rewound_text
