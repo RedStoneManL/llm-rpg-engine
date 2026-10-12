@@ -1,9 +1,10 @@
-"""A small, loopback-only player dashboard for the offline RPG demo.
+"""Loopback-only player and explicitly opted-in GM dashboards for the offline RPG demo.
 
-This is intentionally a *player* surface, not a GM/editor console.  It never
-serializes the event store or canonical world.  Every game-facing graph read is
-made from ``context.access.pov_world`` and the only prose catalogue exposed is
-the public CodexSystem index.
+The default is intentionally a *player* surface, not a GM/editor console.  It
+never serializes the event store or canonical world.  Every game-facing graph
+read is made from ``context.access.pov_world`` and the only prose catalogue
+exposed is the public CodexSystem index.  ``--gm`` starts a separate, read-only
+server mode; the player server does not have GM routes or DTOs at all.
 
 Run it locally with::
 
@@ -31,6 +32,7 @@ from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
+from systems.interpretive_memory import PRIVATE_EVENT_TYPES
 
 
 log = logging.getLogger(__name__)
@@ -100,8 +102,21 @@ def _seed_demo_campaign(engine) -> None:
                                                    "kind": "settlement", "seed": "清晨刚开张的石桥集市", "tier": "tracked"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0,
                      summary="客栈与集市相连", deltas={"a": "stonebridge_inn", "b": "stonebridge_market", "travel_cost": 1}),
+        # The player POV deliberately cannot see this Place or its edge.  GM
+        # mode reads the canonical graph so a local referee can inspect the
+        # full map without feeding it back into player context or narration.
+        kernel_event("entity_created", day=1, scene="s1", turn=0,
+                     summary="北岸旧塔遗址（隐藏地点）", deltas={"id": "north_bank_old_tower", "etype": "Place", "tier": "tracked",
+                     "attrs": {"label": "北岸旧塔遗址", "kind": "ruin", "visibility": "hidden"}}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0,
+                     summary="集市通向北岸旧塔", deltas={"a": "stonebridge_market", "b": "north_bank_old_tower", "travel_cost": 2}),
         kernel_event("entity_moved", day=1, scene="s1", turn=0,
                      summary="主角在客栈", deltas={"who": "protagonist", "to": "stonebridge_inn"}),
+        kernel_event("character_created", day=1, scene="s1", turn=0,
+                     summary="旧塔守望者", deltas={"id": "tower_warden", "sketch": "守望北岸旧塔的沉默人影",
+                     "goal": "不让封印裂痕扩散", "past": "曾参与封印仪式", "tier": "tracked"}),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0,
+                     summary="守望者在旧塔", deltas={"who": "tower_warden", "to": "north_bank_old_tower"}),
         kernel_event("object_created", day=1, scene="s1", turn=0,
                      summary="旧铜灯", deltas={"id": "old_brass_lantern", "tier": "tracked", "label": "旧铜灯"}),
         kernel_event("item_transferred", day=1, scene="s1", turn=0,
@@ -111,6 +126,9 @@ def _seed_demo_campaign(engine) -> None:
         kernel_event("fact_asserted", day=1, scene="s1", turn=0,
                      summary="未公开的演示秘密", deltas={"subject": "protagonist", "predicate": "hidden",
                                                           "value": "GUI_DEMO_PRIVATE_SENTINEL", "secrecy": "secret"}),
+        kernel_event("world_change", day=1, scene="s1", turn=0,
+                     summary="北岸旧塔的封印出现裂痕", deltas={"place": "north_bank_old_tower", "level": 2,
+                                                         "summary": "北岸旧塔的封印出现裂痕"}),
         kernel_event("codex_entry_added", day=1, scene="s1", turn=0,
                      summary="石桥镇设定", deltas={"id": "stonebridge", "kind": "地理志",
                                                     "title": "石桥镇", "body": "河谷中的商旅小镇，旧塔耸立在北岸。"}),
@@ -189,6 +207,123 @@ def build_player_state(engine) -> dict[str, Any]:
     }
 
 
+def _gm_entity_label(entity) -> str:
+    """Prefer an authored label without serializing arbitrary entity attrs."""
+    return str(entity.attrs.get("label") or entity.attrs.get("name") or entity.id)
+
+
+def _gm_current_facts(graph, entity_id: str) -> list[dict[str, str | None]]:
+    return [
+        {
+            "predicate": str(fact.predicate),
+            "value": _safe_value(fact.value),
+            "secrecy": str(fact.secrecy) if fact.secrecy else None,
+        }
+        for fact in graph.current_facts(entity_id)
+    ]
+
+
+def _gm_timeline_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Return an intentionally narrow, memory-free GM timeline row.
+
+    The GM is allowed canonical *world* facts, including secrets, but a private
+    character interpretation remains an actor-scoped record rather than GM
+    observability.  We therefore expose only event metadata plus the one
+    reader-facing body for narration/recap events.
+    """
+    event_type = str(event.get("type") or "")
+    deltas = event.get("deltas") or {}
+    category = "objective"
+    detail = str(event.get("summary") or "")
+    if event_type == "narration_recorded":
+        category = "public_narrative"
+        detail = str(deltas.get("text") or detail)
+    elif event_type in {"scene_summarized", "recap_recompressed"}:
+        category = "recap"
+        detail = str(deltas.get("summary") or deltas.get("super_summary") or detail)
+    return {
+        "id": str(event.get("id") or ""),
+        "type": event_type,
+        "category": category,
+        "day": int(event.get("day") or 0),
+        "scene": str(event.get("scene") or ""),
+        "turn": int(event.get("turn") or 0),
+        "summary": detail,
+        "retracted": bool(event.get("retracted")),
+    }
+
+
+def build_gm_state(engine) -> dict[str, Any]:
+    """Build a read-only, canonical-world GM DTO.
+
+    This is deliberately a different DTO from ``build_player_state``.  It
+    reads the projected ontology and a sanitized event timeline, not the player
+    POV projection or raw EventStore documents.  Private interpretation rows
+    are always omitted, even when the host happened to open an experimental
+    memory-enabled campaign.
+    """
+    scene = _build_scene(engine)
+    day = scene.get("day") or 1
+    graph = engine.world.get("systems", {}).get("ontology")
+    people: list[dict[str, Any]] = []
+    objects: list[dict[str, Any]] = []
+    places: list[dict[str, Any]] = []
+    nodes: list[dict[str, str]] = []
+    edges: list[dict[str, Any]] = []
+    if graph is not None:
+        for entity_id, entity in sorted(graph.entities.items()):
+            base = {
+                "id": entity_id,
+                "label": _gm_entity_label(entity),
+                "tier": str(entity.tier),
+                "facts": _gm_current_facts(graph, entity_id),
+            }
+            if entity.etype == "Person":
+                people.append({**base, "location": next(iter(graph.neighbors(entity_id, "located_in", day)), None)})
+            elif entity.etype == "Object":
+                objects.append({**base, "holder": next(iter(graph.neighbors(entity_id, "held_by", day)), None)})
+            elif entity.etype == "Place":
+                places.append({**base, "kind": str(entity.attrs.get("kind") or "地点"),
+                               "visibility": str(entity.attrs.get("visibility") or "public")})
+                nodes.append({"id": entity_id, "label": _gm_entity_label(entity)})
+        seen_edges: set[tuple[str, str]] = set()
+        for node in nodes:
+            source = node["id"]
+            for destination, attrs in graph.relation_attrs_at(source, "adjacent_to", day):
+                if destination not in graph.entities or graph.entities[destination].etype != "Place":
+                    continue
+                pair = tuple(sorted((source, destination)))
+                if pair in seen_edges:
+                    continue
+                seen_edges.add(pair)
+                edges.append({"from": pair[0], "to": pair[1], "cost": _safe_value(attrs.get("travel_cost", 1))})
+    timeline = [
+        _gm_timeline_event(event)
+        for event in engine.store.iter_events(include_retracted=True)
+        if event.get("type") not in PRIVATE_EVENT_TYPES
+    ]
+    narrative = engine.world.get("systems", {}).get("narrative", {}) or {}
+    recaps = [
+        {"scene": str(bucket.get("scene") or ""), "summary": str(bucket["summary"])}
+        for bucket in narrative.get("scenes", [])
+        if isinstance(bucket, dict) and isinstance(bucket.get("summary"), str)
+    ]
+    if isinstance(narrative.get("super_summary"), str):
+        recaps.insert(0, {"scene": "总览", "summary": narrative["super_summary"]})
+    return {
+        "mode": "gm_read_only",
+        "revision": int(engine.world.get("_revision") or engine.store.revision),
+        "day": int(day),
+        "turn": last_turn(engine),
+        "people": people,
+        "objects": objects,
+        "places": places,
+        "map": {"nodes": nodes, "edges": edges},
+        "timeline": timeline[-160:],
+        "recaps": recaps,
+    }
+
+
 @dataclass
 class _RequestContext:
     player_input: str
@@ -259,6 +394,18 @@ class PlayerDashboard:
             return {"ok": True, "message": "已撤销最后一回合。", "state": build_player_state(self.engine)}
 
 
+class GmDashboard:
+    """Read-only controller for a separately started local GM server."""
+
+    def __init__(self, engine):
+        self.engine = engine
+        self.lock = threading.RLock()
+
+    def state(self) -> dict[str, Any]:
+        with self.lock:
+            return build_gm_state(self.engine)
+
+
 _INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 离线玩家仪表盘</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow\">LOCAL · PLAYER VIEW · OFFLINE DEMO</p><h1>石桥镇冒险</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p></header><section class=\"panel story\"><h2>叙事</h2><div id=\"narration\" class=\"narration\"></div><form id=\"action-form\"><label for=\"action-input\">你的行动</label><textarea id=\"action-input\" maxlength=\"2000\" placeholder=\"例如：走向集市，向路人打听旧塔。\" required></textarea><div class=\"actions\"><button id=\"submit-action\" type=\"submit\">保存行动</button><button id=\"undo\" type=\"button\" class=\"subtle\">撤销上一回合</button></div></form></section><section class=\"grid\"><article class=\"panel\"><h2>角色状态</h2><dl id=\"character\"></dl></article><article class=\"panel\"><h2>背包</h2><ul id=\"inventory\"></ul></article><article class=\"panel\"><h2>当前位置与地图</h2><div id=\"map\"></div></article><article class=\"panel codex\"><h2>公开世界设定典</h2><div id=\"codex\"></div></article></section><footer>这是离线玩家试用界面：不会显示 GM、原始事件、其他角色私有解释或编辑功能。</footer></main><script src=\"/app.js\"></script></body></html>"""
 
 _CSS = """*{box-sizing:border-box}body{margin:0;background:#10151d;color:#e9edf2;font:16px/1.55 system-ui,-apple-system,sans-serif}main{max-width:1120px;margin:auto;padding:26px 18px 42px}.eyebrow{color:#8ec5ff;letter-spacing:.08em;font-size:.78rem}h1{margin:.1rem 0}h2{font-size:1.08rem;margin-top:0}.panel{background:#19222e;border:1px solid #2d3c4e;border-radius:12px;padding:18px;box-shadow:0 4px 18px #0003}.story{margin:18px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.narration p{white-space:pre-wrap;border-left:3px solid #75b8ee;padding-left:12px}.actions{display:flex;gap:10px;margin-top:10px}textarea{width:100%;min-height:88px;margin-top:7px;padding:10px;background:#0d131b;border:1px solid #405469;border-radius:8px;color:inherit}button{border:0;border-radius:8px;background:#75b8ee;color:#09233a;padding:9px 13px;font-weight:700;cursor:pointer}.subtle{background:#33465a;color:#eef5fa}button:disabled{opacity:.55;cursor:wait}dt{color:#9eb1c5}dd{margin:0 0 10px}ul{padding-left:20px}.place{font-weight:700}.empty{color:#9eb1c5}details{border-top:1px solid #304052;padding:8px 0}summary{cursor:pointer;color:#b7dcfb}footer{margin-top:24px;color:#9eb1c5;font-size:.9rem}@media(max-width:700px){main{padding:16px 12px}.grid{grid-template-columns:1fr}.actions{flex-direction:column}button{width:100%}}"""
@@ -286,6 +433,21 @@ async function load(){try{render(await api('/api/state'));syncPending()}catch(e)
 $('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const text=$('action-input').value.trim();if(!text)return;const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`;const envelope={text,action_id,expected_revision:state.revision};sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});
 $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
+})();"""
+
+_GM_INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 本地 GM 世界总览</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow gm-mode\">LOCAL · GM READ-ONLY · CANONICAL WORLD</p><h1>世界总览</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p><p class=\"notice\">这是启动时通过 <code>--gm</code> 显式开启的本地只读模式。切换玩家/GM 视角需要重启服务；这里没有编辑、推进或玩家行动按钮。</p></header><section class=\"grid gm-grid\"><article class=\"panel map-panel\"><h2>全局地点连接图</h2><p class=\"hint\">节点和连线直接来自当前地点实体与 <code>adjacent_to</code> 关系。</p><div id=\"map\" class=\"map-graph\"></div></article><article class=\"panel\"><h2>地点系统</h2><div id=\"places\"></div></article><article class=\"panel\"><h2>角色系统</h2><div id=\"people\"></div></article><article class=\"panel\"><h2>物品与持有关系</h2><div id=\"objects\"></div></article><article class=\"panel\"><h2>摘要 / recap</h2><div id=\"recaps\"></div></article><article class=\"panel timeline\"><h2>世界事件时间线</h2><p class=\"hint\">标明客观事实、公开叙事、摘要以及已撤回历史。私有角色解释不会在此出现。</p><div id=\"timeline\"></div></article></section><footer>GM 全局可见不等于玩家可见，也不会写回玩家响应、模型上下文或私有解释记忆。</footer></main><script src=\"/app.js\"></script></body></html>"""
+
+_GM_CSS = _CSS + ".gm-mode{color:#ffcf74}.notice{border-left:3px solid #d79b3a;padding-left:12px;color:#d8c49d}.hint{color:#9eb1c5;font-size:.9rem}.gm-grid{align-items:start}.map-panel{grid-column:span 2}.map-graph{min-height:250px;overflow:auto}.map-graph svg{width:100%;min-width:520px;height:270px;background:#101820;border:1px solid #304052;border-radius:8px}.map-edge{stroke:#8094a8;stroke-width:2}.map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5}.map-label{fill:#e9edf2;font-size:13px}.row{border-top:1px solid #304052;padding:9px 0}.row:first-child{border-top:0}.meta{color:#9eb1c5;font-size:.85rem}.badge{display:inline-block;border-radius:999px;padding:1px 7px;margin-right:5px;font-size:.78rem;background:#33465a}.badge.objective{background:#4b5d78}.badge.public_narrative{background:#3f6b68}.badge.recap{background:#6a587e}.badge.retracted{background:#833d49;color:#fff2f2}.facts{margin:6px 0 0;padding-left:18px}.facts li{margin:2px 0}@media(max-width:700px){.map-panel{grid-column:auto}.map-graph svg{min-width:440px;height:310px}}"
+
+_GM_JS = r"""(() => {
+const $=id=>document.getElementById(id),el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+function clear(n){n.replaceChildren()} function row(title,meta,details){const n=el('div');n.className='row';n.append(el('strong',title),el('div',meta));n.lastChild.className='meta';if(details)n.append(details);return n}
+function facts(items){if(!items.length)return null;const list=el('ul');list.className='facts';items.forEach(f=>{const text=`${f.predicate}: ${f.value}${f.secrecy?`（${f.secrecy}）`:''}`;list.append(el('li',text))});return list}
+function entityRows(id,items,kind){const out=$(id);clear(out);if(!items.length){out.append(el('p','暂无记录。'));return}items.forEach(x=>{let meta=`${x.id} · ${x.tier}`;if(kind==='place')meta+=` · ${x.kind} · ${x.visibility}`;if(kind==='person'&&x.location)meta+=` · 位于 ${x.location}`;if(kind==='object'&&x.holder)meta+=` · 持有者 ${x.holder}`;out.append(row(x.label,meta,facts(x.facts)))})}
+function map(data){const host=$('map');clear(host);if(!data.nodes.length){host.append(el('p','暂无地点节点。'));return}const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),count=data.nodes.length,positions={};data.nodes.forEach((node,i)=>{const angle=(Math.PI*2*i/count)-Math.PI/2;positions[node.id]={x:260+Math.cos(angle)*Math.min(100,38*count),y:135+Math.sin(angle)*95}});data.edges.forEach(edge=>{const a=positions[edge.from],b=positions[edge.to];if(!a||!b)return;const line=document.createElementNS(ns,'line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('class','map-edge');svg.append(line)});data.nodes.forEach(node=>{const p=positions[node.id],g=document.createElementNS(ns,'g'),c=document.createElementNS(ns,'circle'),t=document.createElementNS(ns,'text');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','20');c.setAttribute('class','map-node');t.setAttribute('x',p.x);t.setAttribute('y',p.y+38);t.setAttribute('text-anchor','middle');t.setAttribute('class','map-label');t.textContent=node.label;g.append(c,t);svg.append(g)});host.append(svg);const list=el('ul');data.edges.forEach(e=>list.append(el('li',`${e.from} ↔ ${e.to}（移动成本 ${e.cost}）`)));host.append(list)}
+function timeline(items){const out=$('timeline');clear(out);items.slice().reverse().forEach(x=>{const tags=el('div');for(const name of [x.category,x.retracted?'retracted':null])if(name){const b=el('span',name==='objective'?'客观事实':name==='public_narrative'?'公开叙事':name==='recap'?'摘要':'已撤回');b.className=`badge ${name}`;tags.append(b)}const d=el('div',x.summary);out.append(row(`${x.type} · 第 ${x.day} 天 / 回合 ${x.turn}`,`${x.scene} · ${x.id}`,tags));out.lastChild.append(d)})}
+function recaps(items){const out=$('recaps');clear(out);if(!items.length){out.append(el('p','尚无已保存摘要。'));return}items.forEach(x=>out.append(row(x.scene,'已保存 recap',el('div',x.summary))));}
+async function load(){try{const r=await fetch('/api/gm/state');const state=await r.json();if(!r.ok)throw new Error(state.message||'读取失败');entityRows('places',state.places,'place');entityRows('people',state.people,'person');entityRows('objects',state.objects,'object');map(state.map);timeline(state.timeline);recaps(state.recaps);$('status').textContent=`GM 只读视图 · 第 ${state.day} 天 · 回合 ${state.turn} · 版本 ${state.revision}`;}catch(err){$('status').textContent='GM 世界总览暂时不可用；请检查本地服务。'}}load();
 })();"""
 
 
@@ -347,11 +509,33 @@ def _read_json_request(environ, *, minimum: int, maximum: int, error_message: st
     return data
 
 
-def make_app(dashboard: PlayerDashboard):
-    """Return a closed, no-file-serving WSGI app for exactly the player routes."""
+def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
+    """Return a closed WSGI app for one startup-selected presentation mode.
+
+    Mode selection happens before the server is made.  It is not a browser
+    toggle: the player app has no GM endpoint and the GM app has no mutation
+    routes, so hidden world data cannot be obtained by changing front-end code.
+    """
+    if mode not in {"player", "gm"}:
+        raise ValueError("mode must be player or gm")
+
     def app(environ, start_response):
         path, method = environ.get("PATH_INFO", ""), environ.get("REQUEST_METHOD", "GET")
         try:
+            if mode == "gm":
+                if method == "GET" and path == "/":
+                    body = _GM_INDEX.encode("utf-8")
+                    start_response("200 OK", [("Content-Type", "text/html; charset=utf-8"), ("Content-Length", str(len(body))),
+                                                ("Cache-Control", "no-store"), ("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"),
+                                                ("X-Content-Type-Options", "nosniff")])
+                    return [body]
+                if method == "GET" and path == "/app.css":
+                    body = _GM_CSS.encode("utf-8"); start_response("200 OK", [("Content-Type", "text/css; charset=utf-8"), ("Content-Length", str(len(body))), ("Cache-Control", "no-store")]); return [body]
+                if method == "GET" and path == "/app.js":
+                    body = _GM_JS.encode("utf-8"); start_response("200 OK", [("Content-Type", "application/javascript; charset=utf-8"), ("Content-Length", str(len(body))), ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff")]); return [body]
+                if method == "GET" and path == "/api/gm/state":
+                    return _json_response(start_response, "200 OK", dashboard.state())
+                return _json_response(start_response, "404 Not Found", {"message": "找不到此页面。"})
             if method == "GET" and path == "/":
                 body = _INDEX.encode("utf-8")
                 start_response("200 OK", [("Content-Type", "text/html; charset=utf-8"), ("Content-Length", str(len(body))),
@@ -400,18 +584,30 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> PlayerDa
     return PlayerDashboard(engine)
 
 
+def build_gm_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> GmDashboard:
+    """Open the same local campaign for a canonical-world, read-only GM view."""
+    engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
+                          enable_interpretive_memory=False)
+    if demo:
+        _seed_demo_campaign(engine)
+    return GmDashboard(engine)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="本地离线玩家仪表盘（首个 GUI 切片，非 GM/编辑器）")
+    parser = argparse.ArgumentParser(description="本地离线 RPG 仪表盘（玩家默认；GM 需显式只读启用）")
     parser.add_argument("--campaign", required=True, help="启动时选择的本地 campaign 目录")
     parser.add_argument("--demo", action="store_true", help="仅在空 campaign 中写入固定离线演示世界")
+    parser.add_argument("--gm", action="store_true", help="显式启动本地只读 GM 世界总览（切换模式需重启）")
     parser.add_argument("--host", default="127.0.0.1", choices=["127.0.0.1"], help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help="本机端口（0 可让系统分配）")
     args = parser.parse_args(argv)
     if not (0 <= args.port <= 65535):
         parser.error("--port 必须在 0 到 65535 之间")
-    dashboard = build_dashboard(args.campaign, demo=args.demo)
-    server = make_server("127.0.0.1", args.port, make_app(dashboard), handler_class=_QuietHandler)
-    print(f"玩家仪表盘已在 http://127.0.0.1:{server.server_port} 启动（Ctrl-C 退出）。", flush=True)
+    mode = "gm" if args.gm else "player"
+    dashboard = build_gm_dashboard(args.campaign, demo=args.demo) if args.gm else build_dashboard(args.campaign, demo=args.demo)
+    server = make_server("127.0.0.1", args.port, make_app(dashboard, mode=mode), handler_class=_QuietHandler)
+    label = "GM 只读世界总览" if args.gm else "玩家仪表盘"
+    print(f"{label}已在 http://127.0.0.1:{server.server_port} 启动（Ctrl-C 退出；切换模式需重启）。", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

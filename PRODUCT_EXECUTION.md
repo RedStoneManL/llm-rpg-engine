@@ -335,3 +335,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   的 400，仍保留/刷新/恢复到相同 revision `1→2→2`；800 中文字符的真实带标记 400 则清 pending，刷新后恢复按钮隐藏。专项
   覆盖三种 post-publish exception、同源/preflight 标记与此前 POV/undo/embedder 边界。此实现已自验；本记录不声称此 commit
   之后又做了一次新的独立复核。
+- 2026-10-12：RCV-09 在同一 `127.0.0.1` GUI 模块加入**启动时显式**的 `--gm` 只读世界总览，而不是在玩家页前端隐藏一个
+  tab。默认 player server 仍只有 `/api/state`、`/api/action`、`/api/undo`；`/api/gm/state` 在该模式是 404，HTML/API/错误都
+  不含隐藏地点或秘密 sentinel。GM server 则只拥有 GET `/api/gm/state`，player state/action/undo 路由均不存在，切换模式要求
+  重启。GM DTO 从 canonical projected ontology 读取人物、物品、地点、当前事实和真实 `adjacent_to` 边；时间线按客观事件、公开
+  narration、recap、retracted 标记分类，保留撤回审计。它特意过滤 `character_interpretation_recorded`，不把私有解释记录自动
+  交给 GM，更不会回流玩家 DTO、前台生成或上下文。`--demo` 增加 canonical-only 北岸旧塔、守望者和 world_change，以离线验收
+  GM 可见隐藏地点/世界事件、玩家不可见；地图 SVG 节点和边由该 DTO 的真实地点关系动态绘制，非手写静态地图。GM 没有任何编辑、
+  删除、推进或行动按钮；不引入账户/认证/公网部署。专项 GUI/引擎/AID 测试通过；实际 Chromium 访问独立 GM server 验证桌面/手机
+  布局、3 个真实节点/2 条边、零写入按钮和无私有解释，另一个 player server 真实保存行动且 GM endpoint 仍为 404。正式 gate 为
+  `1843 passed, 1 deselected`（20.66s，唯一既有 slow real embedding）；全新目录从完整 bundle clone 后可 `--gm --demo`
+  启动并返回 `gm_read_only`、3 nodes/2 edges，GUI 专项 18 passed。该实现已自验，尚未声称独立复核通过。

@@ -73,6 +73,10 @@ The repository also includes a deliberately small, loopback-only player GUI:
 python -m app.gui --campaign ./campaigns/gui-demo --demo --port 8765
 # open http://127.0.0.1:8765 in this same machine's browser
 
+# Explicit, separate read-only GM server for the same local campaign.
+# Switching player/GM mode requires restarting with the other command.
+python -m app.gui --campaign ./campaigns/gui-demo --gm --port 8765
+
 # or start a disposable temporary campaign (deleted on exit)
 python scripts/demo_offline_gui.py --port 8765
 ```
@@ -107,20 +111,32 @@ with `confirmed_rejection: true`; an unmarked 400/500 remains an unknown result
 and keeps the original envelope recoverable.
 
 The browser never selects a campaign path: `--campaign` is startup-only. The
-server binds only to `127.0.0.1`, serves no files, has no GM/editor route, and
-serializes a hand-shaped player DTO rather than a raw event store or canonical
-world. Graph reads use the existing POV projection, codex entries are public
-by design, and page code writes all narration/settings with `textContent` so
-world prose and player input cannot become executable markup. Interpretive
-memory remains disabled for this GUI; private interpretations, raw store data,
-DM-ground-truth tools, and other-character private data are outside this
-first slice. It is an offline player demo, not a full web product or a GM UI.
-The dashboard explicitly disables embedding even if `RPG_EMBEDDER` is set;
-ordinary application construction still retains its environment-driven default.
-Visibility follows the existing POV rules: the protagonist/current location,
-co-present people, discovered entities, and legacy places without restrictive
-metadata can be visible. It does not claim every legacy place requires a
-discovery event.
+server binds only to `127.0.0.1` and serves no files. In its default player
+mode it has **no GM route or DTO** and serializes a hand-shaped POV projection,
+not a raw event store or canonical world. Graph reads use the existing POV
+projection, codex entries are public by design, and page code writes all
+narration/settings with `textContent` so world prose and player input cannot
+become executable markup.
+
+`--gm` is an explicit, separately started, read-only local world-overview
+mode—not a front-end tab or an authorization system. It exposes only
+`/api/gm/state`; player state/action/undo routes are absent. The GM DTO reads
+canonical projected ontology data to show the global place graph, people,
+objects, facts, recap rows, and a timeline marked as objective facts, public
+narration, recap, or retracted history. It never exposes private
+`character_interpretation_recorded` rows, does not add them to player or model
+context, and has no edit, delete, advance, or player-action controls. Hidden
+places and world events may appear there by design, but never in the default
+player server.
+
+Interpretive memory remains disabled for this GUI; raw-store download,
+DM-ground-truth tools, multi-user accounts, public deployment, and editing are
+outside this slice. The dashboard explicitly disables embedding even if
+`RPG_EMBEDDER` is set; ordinary application construction still retains its
+environment-driven default. Visibility follows the existing POV rules: the
+protagonist/current location, co-present people, discovered entities, and
+legacy places without restrictive metadata can be visible. It does not claim
+every legacy place requires a discovery event.
 
 ## Architecture
 

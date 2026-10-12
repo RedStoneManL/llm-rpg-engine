@@ -10,7 +10,8 @@ import app.engine as engine_module
 import app.gui as gui
 from app.engine import build_engine
 from app.gui import (GuiRequestError, PlayerDashboard, _seed_demo_campaign,
-                     build_dashboard, build_player_state, make_app)
+                     GmDashboard, build_dashboard, build_gm_state,
+                     build_player_state, make_app)
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
@@ -109,6 +110,15 @@ def _post_wsgi(app, path, payload, *, host="127.0.0.1:8765", origin="http://127.
     }
     response = b"".join(app(environ, lambda status, headers: captured.append((status, headers))))
     return captured[0][0], json.loads(response.decode("utf-8"))
+
+
+def _get_wsgi(app, path):
+    captured = []
+    response = b"".join(app({
+        "REQUEST_METHOD": "GET", "PATH_INFO": path, "SERVER_NAME": "127.0.0.1", "SERVER_PORT": "8765",
+        "HTTP_HOST": "127.0.0.1:8765", "wsgi.input": io.BytesIO(),
+    }, lambda status, headers: captured.append((status, headers))))
+    return captured[0][0], response
 
 
 @pytest.mark.parametrize("host,origin,content_type", [
@@ -221,4 +231,72 @@ def test_omitted_engine_embedder_keeps_ambient_default_while_gui_disables_it(tmp
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
     assert dashboard.engine.embedder is None
     assert calls == []
+    dashboard.engine.store.close()
+
+
+def test_default_player_app_has_no_gm_endpoint_or_hidden_world_data(tmp_path):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    app = make_app(dashboard)
+    status, raw = _get_wsgi(app, "/api/gm/state")
+    assert status.startswith("404")
+    assert b"north_bank_old_tower" not in raw
+    status, raw = _get_wsgi(app, "/api/state")
+    assert status.startswith("200")
+    assert b"north_bank_old_tower" not in raw
+    assert b"GUI_DEMO_PRIVATE_SENTINEL" not in raw
+    status, raw = _get_wsgi(app, "/")
+    assert status.startswith("200")
+    assert b"north_bank_old_tower" not in raw
+    dashboard.engine.store.close()
+
+
+def test_gm_state_is_read_only_canonical_map_but_omits_private_interpretations(tmp_path):
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+                          enable_interpretive_memory=True)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([kernel_event(
+        "character_interpretation_recorded", day=1, scene="s1", turn=0, summary="private memory",
+        deltas={"actor": "protagonist", "text": "GM_PRIVATE_MEMORY_SENTINEL", "memory_id": "gm-private"},
+    )])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    player_payload = json.dumps(build_player_state(engine), ensure_ascii=False)
+    gm = GmDashboard(engine)
+    gm_state = gm.state()
+    gm_payload = json.dumps(gm_state, ensure_ascii=False)
+
+    assert "north_bank_old_tower" not in player_payload
+    assert "GUI_DEMO_PRIVATE_SENTINEL" not in player_payload
+    assert "north_bank_old_tower" in gm_payload
+    assert "GUI_DEMO_PRIVATE_SENTINEL" in gm_payload
+    assert "北岸旧塔的封印出现裂痕" in gm_payload
+    assert "GM_PRIVATE_MEMORY_SENTINEL" not in gm_payload
+    assert "interpretive_memory" not in gm_payload
+    assert {node["id"] for node in gm_state["map"]["nodes"]} >= {"stonebridge_market", "north_bank_old_tower"}
+    assert {edge["from"] + ":" + edge["to"] for edge in gm_state["map"]["edges"]} >= {
+        "north_bank_old_tower:stonebridge_market",
+    }
+
+    gm_app = make_app(gm, mode="gm")
+    status, raw = _get_wsgi(gm_app, "/api/gm/state")
+    assert status.startswith("200") and b"north_bank_old_tower" in raw
+    status, raw = _get_wsgi(gm_app, "/api/state")
+    assert status.startswith("404")
+    status, raw = _get_wsgi(gm_app, "/")
+    assert status.startswith("200") and b"GM_PRIVATE_MEMORY_SENTINEL" not in raw
+    status, raw = _post_wsgi(gm_app, "/api/action", {"text": "must not write", "action_id": "nope", "expected_revision": 1})
+    assert status.startswith("404")
+    engine.store.close()
+
+
+def test_gm_timeline_marks_retracted_history_without_leaking_private_memory(tmp_path):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    before = dashboard.state()
+    saved = dashboard.action(player_input="写入后撤回", action_id="gm-retracted", expected_revision=before["revision"])
+    dashboard.undo(expected_revision=saved["revision"])
+    gm_state = GmDashboard(dashboard.engine).state()
+    retracted = [event for event in gm_state["timeline"] if event["retracted"]]
+    assert retracted
+    assert any(event["type"] == "narration_recorded" and event["category"] == "public_narrative" for event in retracted)
+    assert "character_interpretation_recorded" not in {event["type"] for event in gm_state["timeline"]}
     dashboard.engine.store.close()
