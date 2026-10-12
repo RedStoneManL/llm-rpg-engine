@@ -6,7 +6,9 @@ import pytest
 from app.engine import build_engine
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
-from context.capabilities import scene_capabilities, validate_protagonist_moves
+from context.capabilities import (native_player_dto, place_discovery_key,
+                                  route_discovery_key, scene_capabilities,
+                                  validate_protagonist_moves)
 from engine.store import EventBatch
 from kernel.events import kernel_event
 from kernel.projection import project
@@ -105,6 +107,38 @@ def test_existing_hidden_place_id_cannot_be_redeclared_as_new_discovery(tmp_path
                                             required_sections=REQUIRED_SECTIONS))
     assert any(error.code == "outside_scene_capability"
                for error in validate_protagonist_moves(disguised, engine.world, scene))
+    engine.store.close()
+
+
+def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_path):
+    engine = _demo_engine(tmp_path)
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    scene = _build_scene(engine)
+    grants = frozenset({place_discovery_key("sealed_gate"),
+                        route_discovery_key("stonebridge_inn", "sealed_gate")})
+    commit = TurnCommit("你循着线索抵达封门。", {"moves": [{"who": "protagonist", "to": "sealed_gate"}],
+        "knowledge": [{"op": "discover_place", "knower": "protagonist", "place": "sealed_gate"},
+                      {"op": "discover_route", "knower": "protagonist", "a": "stonebridge_inn", "b": "sealed_gate"}],
+        "places": [], "links": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "test"}]})
+    class Strategy:
+        def produce(self, *args, **kwargs): return commit
+        def repair_sections(self, *args, **kwargs): return {}
+        def commit_to_thread(self, narration): return None
+    result = run_turn(engine.registry, engine.store, engine.world, scene, "去封门", strategy=Strategy(),
+                      provider=engine.provider, action_id="grant-move", required_sections=REQUIRED_SECTIONS,
+                      enforce_player_travel=True, trusted_discovery_keys=grants)
+    assert result.receipt["action_id"] == "grant-move" and result.receipt["revision"] > 1
+    assert engine.store.get_action_receipt("grant-move") is not None
+    dto = native_player_dto(result.world, {**scene, "location": "sealed_gate"})
+    assert dto["location"] == "sealed_gate" and "sealed_gate" in {n["id"] for n in dto["map"]["nodes"]}
+    assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(dto)
     engine.store.close()
 
 
