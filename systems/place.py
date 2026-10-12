@@ -215,6 +215,7 @@ class PlaceSystem(ContextSystem):
         errs: list[ValidationError] = []
 
         if section == "places":
+            declared_ids: set[str] = set()
             for i, item in enumerate(decl or []):
                 pid = item.get("id")
                 if not pid:
@@ -224,6 +225,27 @@ class PlaceSystem(ContextSystem):
                         code="missing",
                         hint="地点声明必须包含 'id' 字段",
                     ))
+                elif pid in declared_ids:
+                    errs.append(ValidationError(
+                        section=section,
+                        field=f"[{i}].id",
+                        code="duplicate",
+                        hint=f"地点 '{pid}' 在同一 places 段重复创建",
+                    ))
+                else:
+                    declared_ids.add(pid)
+                    existing = g.get_entity(pid) if g else None
+                    # kernel.validation creates a transient ``_pending`` stub
+                    # for a same-commit new id so cross-section references can
+                    # validate.  It is not canonical state and must not be
+                    # mistaken for an overwrite attempt.
+                    if existing is not None and existing.etype != "_pending":
+                        errs.append(ValidationError(
+                            section=section,
+                            field=f"[{i}].id",
+                            code="already_exists",
+                            hint=f"地点 '{pid}' 已存在；不能用 places 重建或覆盖它",
+                        ))
                 level = item.get("level")
                 if level is not None and level not in _VALID_LEVELS:
                     errs.append(ValidationError(

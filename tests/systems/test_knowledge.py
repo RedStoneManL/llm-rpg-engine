@@ -10,7 +10,8 @@ from systems.ontology import OntologySystem
 from systems.character import CharacterSystem
 from systems.place import PlaceSystem
 from systems.faction import FactionSystem
-from systems.knowledge import KnowledgeSystem, knows, knowers_of
+from systems.knowledge import (KnowledgeSystem, knows, knowers_of,
+                               place_discovery_key, route_discovery_key)
 from facts.graph import FactGraph
 
 
@@ -217,6 +218,26 @@ def test_to_events_endowment_n_events():
 
     fact_keys = {ev["deltas"]["fact_key"] for ev in evs}
     assert fact_keys == {"桥.status", "反派身份"}
+
+
+def test_discovery_ops_compile_to_canonical_knowledge_set_events():
+    ks = KnowledgeSystem()
+    decl = [
+        {"op": "discover_place", "knower": "艾拉", "place": "旧塔", "via": "传闻"},
+        {"op": "discover_route", "knower": "艾拉", "a": "客栈", "b": "旧塔"},
+    ]
+    events = ks.to_events("knowledge", decl, turn=3, day=2, scene="s1")
+    assert [event["type"] for event in events] == ["knowledge_set", "knowledge_set"]
+    assert [event["deltas"]["fact_key"] for event in events] == [
+        place_discovery_key("旧塔"), route_discovery_key("客栈", "旧塔"),
+    ]
+    assert all(event["deltas"]["value"] is True for event in events)
+
+    graph = _graph_with_persons("艾拉")
+    graph.add_entity("客栈", "Place")
+    graph.add_entity("旧塔", "Place")
+    world = {"systems": {"ontology": graph, "knowledge": {}}}
+    assert ks.validate("knowledge", decl, world) == []
 
 
 def test_to_events_unknown_section_empty():

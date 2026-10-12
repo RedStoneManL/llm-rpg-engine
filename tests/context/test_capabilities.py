@@ -11,6 +11,7 @@ from engine.store import EventBatch
 from kernel.events import kernel_event
 from kernel.projection import project
 from kernel.turncommit import TurnCommit
+from kernel.validation import validate_commit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, TurnRejected, run_turn
 
@@ -90,6 +91,20 @@ def test_new_discovery_requires_same_turn_direct_route_and_replays_atomically(tm
                       required_sections=REQUIRED_SECTIONS, enforce_player_travel=True)
     engine.world = result.world
     assert engine.world["systems"]["ontology"].neighbors("protagonist", "located_in", 1) == ["river_gate"]
+    engine.store.close()
+
+
+def test_existing_hidden_place_id_cannot_be_redeclared_as_new_discovery(tmp_path):
+    engine = _demo_engine(tmp_path)
+    scene = _build_scene(engine)
+    disguised = _commit(destination="north_bank_old_tower", places=[{
+        "id": "north_bank_old_tower", "level": 2, "kind": "venue", "seed": "伪装入口",
+    }], links=[{"a": "stonebridge_inn", "b": "north_bank_old_tower", "travel_cost": 1}])
+    assert any(error.code == "already_exists"
+               for error in validate_commit(engine.registry, disguised, engine.world,
+                                            required_sections=REQUIRED_SECTIONS))
+    assert any(error.code == "outside_scene_capability"
+               for error in validate_protagonist_moves(disguised, engine.world, scene))
     engine.store.close()
 
 

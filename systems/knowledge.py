@@ -61,6 +61,17 @@ def knowers_of(graph: FactGraph, fact_key: str, day: int) -> list[str]:
     return result
 
 
+def place_discovery_key(place_id: str) -> str:
+    """Canonical fact key for one actor discovering a place."""
+    return f"{place_id}.discovered"
+
+
+def route_discovery_key(a: str, b: str) -> str:
+    """Canonical, direction-independent fact key for discovering a route."""
+    first, second = sorted((a, b))
+    return f"route:{first}|{second}.discovered"
+
+
 # ---------------------------------------------------------------------------
 # KnowledgeSystem
 # ---------------------------------------------------------------------------
@@ -209,7 +220,24 @@ class KnowledgeSystem(ContextSystem):
         for i, item in enumerate(decl or []):
             op = item.get("op", "told")
 
-            if op == "told":
+            if op in {"discover_place", "discover_route"}:
+                knower = item.get("knower")
+                fields = ("place",) if op == "discover_place" else ("a", "b")
+                if not isinstance(knower, str) or not knower:
+                    errs.append(ValidationError(section, f"[{i}].knower", "missing",
+                                                f"{op} 必须提供 knower"))
+                for field in fields:
+                    if not isinstance(item.get(field), str) or not item.get(field):
+                        errs.append(ValidationError(section, f"[{i}].{field}", "missing",
+                                                    f"{op} 必须提供 {field}"))
+                    elif g and g.get_entity(item[field]) is None:
+                        errs.append(ValidationError(section, f"[{i}].{field}", "dangling_ref",
+                                                    f"地点 '{item[field]}' 不存在于图中"))
+                if knower and g and g.get_entity(knower) is None:
+                    errs.append(ValidationError(section, f"[{i}].knower", "dangling_ref",
+                                                f"赋知目标 '{knower}' 不存在于图中"))
+
+            elif op == "told":
                 # --- required field checks ---
                 if not isinstance(item.get("knower"), str) or not item.get("knower"):
                     errs.append(ValidationError(
@@ -320,7 +348,29 @@ class KnowledgeSystem(ContextSystem):
         for item in decl:
             op = item.get("op", "told")
 
-            if op == "told":
+            if op == "discover_place":
+                knower, place = item.get("knower"), item.get("place")
+                if not knower or not place:
+                    continue
+                out.append(kernel_event(
+                    "knowledge_set", day=day, scene=scene,
+                    summary=f"{knower} 发现地点 {place}",
+                    deltas={"knower": knower, "fact_key": place_discovery_key(place),
+                            "value": True, "via": item.get("via")}, turn=turn,
+                ))
+
+            elif op == "discover_route":
+                knower, a, b = item.get("knower"), item.get("a"), item.get("b")
+                if not knower or not a or not b:
+                    continue
+                out.append(kernel_event(
+                    "knowledge_set", day=day, scene=scene,
+                    summary=f"{knower} 发现路线 {a} ↔ {b}",
+                    deltas={"knower": knower, "fact_key": route_discovery_key(a, b),
+                            "value": True, "via": item.get("via")}, turn=turn,
+                ))
+
+            elif op == "told":
                 knower = item.get("knower")
                 fact_key = item.get("fact_key")
                 if not knower or not fact_key or "value" not in item:

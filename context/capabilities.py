@@ -112,8 +112,14 @@ def scene_capabilities(world: dict, scene: dict, *, actor: str | None = None,
     return SceneCapabilities(actor, location, places, tuple(routes), exits)
 
 
-def _new_place_route(commit, origin: str, destination: str) -> bool:
+def _new_place_route(commit, world: dict, origin: str, destination: str) -> bool:
     """Allow an atomically declared discovery, never a silent player teleport."""
+    graph = world.get("systems", {}).get("ontology")
+    # A declaration is a creation only when the canonical graph did not already
+    # own this id at action start.  Re-declaring a hidden canonical id must not
+    # relabel it as newly discovered or replace its visibility metadata.
+    if graph is not None and graph.get_entity(destination) is not None:
+        return False
     sections = getattr(commit, "sections", {}) or {}
     places = sections.get("places") or []
     if destination not in {item.get("id") for item in places if isinstance(item, dict)}:
@@ -161,7 +167,7 @@ def validate_protagonist_moves(
             continue
         if not isinstance(destination, str) or destination in allowed:
             continue
-        if _new_place_route(commit, capability.location, destination):
+        if _new_place_route(commit, world, capability.location, destination):
             continue
         errors.append(ValidationError(
             section="moves",
@@ -199,9 +205,12 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
     # events marked retracted are not allowed to create a discoverable place or
     # route for an otherwise invalid move.
     active_events = [event for event in events if not event.get("retracted")]
+    canonical_graph = world.get("systems", {}).get("ontology")
     created = {
         (event.get("deltas") or {}).get("id")
         for event in active_events if event.get("type") == "place_created"
+        and (canonical_graph is None
+             or canonical_graph.get_entity((event.get("deltas") or {}).get("id")) is None)
     }
     direct_links = {
         frozenset({(event.get("deltas") or {}).get("a"), (event.get("deltas") or {}).get("b")})
