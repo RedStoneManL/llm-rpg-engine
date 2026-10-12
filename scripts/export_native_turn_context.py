@@ -83,6 +83,18 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
                 "places": [], "links": [], "cast": [], "facts": [],
                 "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "..."}],
             },
+            "optional_sections": {
+                "items": [{"op": "transfer", "item": "existing item id", "to": "existing entity/place id"}],
+                "knowledge": [{"op": "told", "knower": "protagonist", "fact_key": "subject.predicate", "value": "learned value", "via": "source"}],
+                "quests": [{"op": "open|surface|advance|resolve", "id": "quest id", "summary": "..."}],
+                "world": [{"areas": ["existing place id"], "level": 1, "summary": "..."}],
+            },
+            "action_adjudication": {
+                "clock": "required exactly once; use advance=false with days=0 and bands=0 for same-scene actions, never [].",
+                "travel": "available_exits are the only legal protagonist destinations; route cost is not a time conversion, so do not infer clock bands from it.",
+                "information": "new factual information requires a supported fact plus knowledge.told for the protagonist; absent evidence is not permission to invent it.",
+                "items": "only use items.transfer when canonical custody changes; temporary prose without an addressable destination leaves holder state unchanged.",
+            },
             "forbidden_host_fields": ["trusted_discovery_keys", "host_envelope", "memory_role"],
         },
         "import": {

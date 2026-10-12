@@ -76,6 +76,10 @@ def test_exporter_creates_rich_safe_native_brief_from_real_campaign(tmp_path):
         "absence_meaning": "not_supplied_not_npc_unknown",
     }]
     assert brief["turncommit_schema"]["canonical"].startswith("TurnCommit.to_dict")
+    schema = brief["turncommit_schema"]
+    assert set(schema["optional_sections"]) == {"items", "knowledge", "quests", "world"}
+    assert "required exactly once" in schema["action_adjudication"]["clock"]
+    assert "not a time conversion" in schema["action_adjudication"]["travel"]
     rendered = json.dumps(brief, ensure_ascii=False)
     assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
     assert "north_bank_old_tower" not in rendered
