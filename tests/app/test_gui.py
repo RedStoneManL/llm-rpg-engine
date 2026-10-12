@@ -434,3 +434,28 @@ def test_gui_passes_cli_catchup_provider(tmp_path, monkeypatch):
     dashboard.action(player_input="接线检查", action_id="catchup", expected_revision=dashboard.state()["revision"])
     assert observed == {"cascade": marker, "catchup": marker}
     dashboard.engine.store.close()
+
+
+def test_old_duplicate_does_not_rewind_previous_scene_before_third_action(tmp_path, monkeypatch):
+    class CountingOffline(gui.OfflineDemoStrategy):
+        def __init__(self): self.calls = 0
+        def produce(self, *args, **kwargs): self.calls += 1; return super().produce(*args, **kwargs)
+
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    strategy = CountingOffline(); dashboard.strategy = strategy
+    first_state = dashboard.state()
+    one = dashboard.action(player_input="动作一移动", action_id="cursor-one", expected_revision=first_state["revision"])
+    two = dashboard.action(player_input="动作二继续移动", action_id="cursor-two", expected_revision=one["revision"])
+    latest_previous = dashboard.previous_scene.copy()
+    latest_world_revision = two["revision"]
+    calls_before = strategy.calls
+    duplicate = dashboard.action(player_input="动作一移动", action_id="cursor-one", expected_revision=first_state["revision"])
+    assert duplicate["duplicate"] is True and strategy.calls == calls_before
+    assert dashboard.engine.store.revision == latest_world_revision
+    assert dashboard.previous_scene == latest_previous
+    observed = {}; original = gui.run_turn
+    def wrapped(*args, **kwargs): observed["prev_scene"] = kwargs.get("prev_scene"); return original(*args, **kwargs)
+    monkeypatch.setattr(gui, "run_turn", wrapped)
+    dashboard.action(player_input="动作三", action_id="cursor-three", expected_revision=latest_world_revision)
+    assert observed["prev_scene"] == latest_previous
+    dashboard.engine.store.close()
