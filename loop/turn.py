@@ -122,7 +122,8 @@ def _memory_request_config(memory_role, memory_generator):
 
 
 def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
-                              prev_scene, required_sections, max_repairs, memory_generator):
+                              prev_scene, required_sections, max_repairs, memory_generator,
+                              trusted_discovery_keys=frozenset()):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -143,6 +144,7 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         # therefore be stable across a response-loss retry, without including
         # provider/session/credential implementation details.
         'memory': _memory_request_config(memory_role, memory_generator),
+        'trusted_discovery_keys': sorted(trusted_discovery_keys),
     }
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
@@ -755,7 +757,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     fingerprint = (_turn_request_fingerprint(
         scene, player_input, version, memory_role, prev_scene=prev_scene,
         required_sections=required_sections, max_repairs=max_repairs,
-        memory_generator=memory_generator)
+        memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys)
         if action_id else None)
     if action_id:
         prior = store.read_committed_action(action_id)

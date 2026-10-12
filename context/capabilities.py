@@ -67,6 +67,13 @@ class SceneCapabilities:
                 "不要把主角直接移动到未列出的地点；若本回合发现新地点，须创建地点并声明从当前位置直连的 links。")
 
 
+def native_player_dto(world: dict, scene: dict) -> dict:
+    """Safe native-evaluation observation: POV only, never host grants/raw truth."""
+    capability = scene_capabilities(world, scene)
+    return {"location": capability.location, "map": capability.map_dto(),
+            "exits": [place.id for place in capability.exits]}
+
+
 def _display_cost(value: Any) -> str:
     return str(value) if isinstance(value, (str, int, float)) and not isinstance(value, bool) else "1"
 
