@@ -206,9 +206,15 @@ def validate_protagonist_moves(
             continue
         if not isinstance(destination, str) or destination in allowed:
             continue
-        grants = {place_discovery_key(item.get("place")) if item.get("op") == "discover_place" else route_discovery_key(item.get("a"), item.get("b"))
-                  for item in (getattr(commit, "sections", {}).get("knowledge") or []) if isinstance(item, dict)
-                  and item.get("knower") == capability.actor and item.get("op") in {"discover_place", "discover_route"}}
+        values = {}
+        for item in (getattr(commit, "sections", {}).get("knowledge") or []):
+            if not isinstance(item, dict) or item.get("knower") != capability.actor:
+                continue
+            key = (place_discovery_key(item.get("place")) if item.get("op") == "discover_place"
+                   else route_discovery_key(item.get("a"), item.get("b")) if item.get("op") == "discover_route" else item.get("fact_key"))
+            if isinstance(key, str) and key.endswith(".discovered"):
+                values[key] = item.get("value", True)
+        grants = {key for key, value in values.items() if value is True}
         if (_new_place_route(commit, world, capability.location, destination)
                 or _host_discovered_route(world, capability.location, destination, trusted_keys, grants)):
             continue
@@ -264,10 +270,14 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
     # events marked retracted are not allowed to create a discoverable place or
     # route for an otherwise invalid move.
     active_events = [event for event in events if not event.get("retracted")]
-    effective_grants = {delta.get("fact_key") for event in active_events
-                        for delta in [event.get("deltas") or {}]
-                        if event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor
-                        and delta.get("value") is True}
+    grant_values = {}
+    for event in active_events:
+        delta = event.get("deltas") or {}
+        if event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor:
+            key = delta.get("fact_key")
+            if isinstance(key, str) and key.endswith(".discovered"):
+                grant_values[key] = delta.get("value")
+    effective_grants = {key for key, value in grant_values.items() if value is True}
     canonical_graph = world.get("systems", {}).get("ontology")
     created = {
         (event.get("deltas") or {}).get("id")
