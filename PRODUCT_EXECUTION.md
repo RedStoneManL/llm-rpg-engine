@@ -424,3 +424,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`1868 passed, 1 deselected in 19.20s`**；唯一 deselect 是既有 slow real embedding，未调用真实模型。
   这证明机制、重放和边界回归，并不等同于原生模型剧情质量验收；受控原生输入与导入脚本仍是未验证 WIP，
   本阶段未运行、未启用 B1/profiling、未 push/PR/部署。
+- 2026-10-12：RCV-12 的首个原生试玩 hand-off 现只准备**真实玩家输入**，不伪造原生作者结果。新
+  `scripts/export_native_turn_context.py` 用显式 `FakeLLMProvider` 和 `embedder=None` 从既有 campaign
+  导出窄 player-POV brief：当前位置、主角公开背景、当前可见人物、随身物品、公开叙事/事件、可用出口和地图，
+  再附一个由宿主提供的自由行动目标；它不导出 canonical graph、原始事件、私有解释、隐藏地点或发现 grant。
+  独立 campaign 的实际导出含客栈主人玛拉、旧铜灯、两条公开叙事和到石桥集市的出口，隐藏旧塔 ID 与私有
+  sentinel 均不在输出。`scripts/import_native_turn.py` 可直接执行，canonical 输入改为真实
+  `TurnCommit.to_dict()` 的 top-level schema（旧 `sections` wrapper 仅兼容读取），显式拒绝 host-only
+  `trusted_discovery_keys`/`host_envelope`/`memory_role`，并固定 Fake provider、禁用 embedder、不开 discovery
+  grants、以 `enforce_player_travel=True` 调用既有 `run_turn`。这仍不是原生模型调用或剧情质量结论：下一步只能由
+  原生作者依据该 brief 生成 proposal 后再导入。集中复核同时修复了无 `knower` 的 `broadcast` 会跳过 proposal
+  discovery namespace 检查的问题；新回归和导入/导出离线执行回归共 `18 passed`。正式完整离线 gate 为
+  **`1871 passed, 1 deselected in 19.60s`**，唯一 deselect 是既有 slow real embedding。对 `--all` 的全历史
+  内容式 token/key 模式扫描（只计路径，不输出内容）为 16 个历史路径候选；本新增 diff 为 0，不能替代专用
+  secret scanner。未调用真实模型/embedding/网络、未启用 B1/profiling、未 push/PR/部署。
