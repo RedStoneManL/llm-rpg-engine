@@ -538,3 +538,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `quest_surfaced`/`quest_opened`/`quest_advanced`；明任务账只渲染 `state=明`，因此它尚未成为玩家任务或目标。
   它仍保留在历史并可占用后台暗线容量，未被删改或误称清除。没有真实模型/embedding/网络、B1/profiling、push、PR、部署
   或 Library 上传；待连接恢复后才处理持久化上传。
+- 2026-10-12：在完成上述 schema/权限闭环后，既有真实作者的第四候选按原文另存，并以真实玩家输入
+  “询问洛恩候船位置、离开时点及从集市如何前往，先听后决定。”经 importer **只导入一次**。成功 receipt
+  `6d0ee443-bf74-49c0-9d7e-d9903d9ec537` 覆盖 seq `40..47`、foreground revision `6`、turn 4；主角仍在
+  石桥集市，day 1/band 0，clock 仍为不推进。它为既存、可见的洛恩新增两条 public `reported:*`：候船位置/时点与
+  步行方向；每条均有同值 protagonist `knowledge.told` 且 `via=market_witness_luoen`，旧
+  `reported:ferry_observation` 未变。路线仍是洛恩自述，未新建 place/link、未移动主角、没有 `.discovered` knowledge，
+  玩家 POV 地图仍只有客栈/集市和一条公开边；`stonebridge_market.status` 仍为 null。
+
+  receipt 内的 seq 46 `oracle_roll` 和 seq 47 `director_fired` 是既有后台 hook，均非作者 prose 或 quest；本次没有
+  新 `quest_created`/surface/open/advance，旧 `th_auto_aba5dff5` 仍是暗态历史 line。安全回执只记录上述公共结构差异，
+  不把路线陈述升级为世界权威。未生成第五候选、未改写/修复导入结果、未重跑测试、未上传。
