@@ -87,16 +87,16 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
     try:
         engine.store.append_many([
             kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="公开渡口状态", deltas={
-                "subject": "ferry", "predicate": "status", "value": "因大雾延误", "secrecy": "public",
+                "subject": "stonebridge_market", "predicate": "status", "value": "因大雾延误", "secrecy": "public",
             }),
             kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉得知渡口状态", deltas={
-                "knower": "innkeeper_mara", "fact_key": "ferry.status", "value": "因大雾延误",
+                "knower": "innkeeper_mara", "fact_key": "stonebridge_market.status", "value": "因大雾延误",
             }),
-            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="秘密状态", deltas={
-                "subject": "ferry", "predicate": "secret", "value": "GUI_DEMO_PRIVATE_SENTINEL", "secrecy": "secret",
+            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="隐藏地点公开属性", deltas={
+                "subject": "north_bank_old_tower", "predicate": "status", "value": "GUI_DEMO_PRIVATE_SENTINEL", "secrecy": "public",
             }),
             kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉秘密知识", deltas={
-                "knower": "innkeeper_mara", "fact_key": "ferry.secret", "value": "GUI_DEMO_PRIVATE_SENTINEL",
+                "knower": "innkeeper_mara", "fact_key": "north_bank_old_tower.status", "value": "GUI_DEMO_PRIVATE_SENTINEL",
             }),
         ], preflight=lambda history: project(engine.registry, history))
         engine.world = project(engine.registry, engine.store.iter_events())
@@ -105,7 +105,7 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
 
         mara = context["present_people"][0]
         assert mara["speakable_evidence"] == [{
-            "fact_key": "ferry.status", "value": "因大雾延误",
+            "fact_key": "stonebridge_market.status", "value": "因大雾延误",
             "source": "present_npc_declared_knowledge", "confidence": "declared",
         }]
         assert context["current_player_intent"] == "询问渡口"

@@ -21,7 +21,11 @@ def _safe_value(value: Any) -> str:
 
 
 def _current_public_fact(graph, fact_key: str, day: int):
-    """Return the fact only when its own visibility is explicitly public."""
+    """Return a fact only when both the fact and its subject are visible.
+
+    A public attribute on a hidden, secret, or undiscovered entity is not safe
+    author material: exposing its fact key alone would leak the entity id.
+    """
     if "." not in fact_key:
         return None
     subject, predicate = fact_key.split(".", 1)
@@ -70,7 +74,11 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                         continue
                     fact_key = fact.predicate[len("knows:"):]
                     public_fact = _current_public_fact(canonical, fact_key, day)
-                    if public_fact is None:
+                    subject = fact_key.split(".", 1)[0] if "." in fact_key else None
+                    # Reuse the same POV projection as player state.  A fact
+                    # must not reveal a canonical subject absent from that
+                    # projection, even if the fact itself says public.
+                    if public_fact is None or subject is None or visible.get_entity(subject) is None:
                         continue
                     evidence.append({
                         "fact_key": fact_key,
