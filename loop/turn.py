@@ -325,12 +325,38 @@ def produce_turn(
     _aug_scene = ((scene or {}).get("scene") or (scene or {}).get("id")
                   or (scene or {}).get("location") or "")
     _aug_day = (scene or {}).get("day", 0)
+    travel_narration_baseline: str | None = None
+
+    def validate_candidate():
+        """Validate the current proposal and retain travel prose obligations.
+
+        A bad protagonist move makes the original narration conditionally
+        unsafe.  Repairs are section-granular, so deleting the move must not
+        silently erase the requirement to replace that narration on a later
+        pass.
+        """
+        nonlocal travel_narration_baseline
+        candidate_errors = validate_commit(
+            registry, commit, world, required_sections=required_sections,
+        )
+        if enforce_player_travel:
+            travel_errors = validate_protagonist_moves(
+                commit, world, scene,
+                narration_rewrite_from=travel_narration_baseline,
+            )
+            if (travel_narration_baseline is None
+                    and any(error.code == "scene_capability_narration"
+                            for error in travel_errors)):
+                travel_narration_baseline = commit.narration
+            candidate_errors.extend(travel_errors)
+        candidate_errors.extend(validate_resources(
+            commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world,
+        ))
+        candidate_errors.extend(validate_narration(commit, world))
+        return candidate_errors
+
     augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
-    errors = validate_commit(registry, commit, world, required_sections=required_sections)
-    if enforce_player_travel:
-        errors.extend(validate_protagonist_moves(commit, world, scene))
-    errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
-    errors.extend(validate_narration(commit, world))
+    errors = validate_candidate()
 
     while errors and attempts < max_repairs:
         failing = {e.section for e in errors}
@@ -359,11 +385,7 @@ def produce_turn(
                     repair=repair_text,
                 )
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
-        errors = validate_commit(registry, commit, world, required_sections=required_sections)
-        if enforce_player_travel:
-            errors.extend(validate_protagonist_moves(commit, world, scene))
-        errors.extend(validate_resources(commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world))
-        errors.extend(validate_narration(commit, world))
+        errors = validate_candidate()
         attempts += 1
 
     # --------------------------------------------------------------------------

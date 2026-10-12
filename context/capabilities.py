@@ -126,7 +126,13 @@ def _new_place_route(commit, origin: str, destination: str) -> bool:
     return False
 
 
-def validate_protagonist_moves(commit, world: dict, scene: dict) -> list[ValidationError]:
+def validate_protagonist_moves(
+    commit,
+    world: dict,
+    scene: dict,
+    *,
+    narration_rewrite_from: str | None = None,
+) -> list[ValidationError]:
     """Return repairable errors when the scene protagonist leaves its capability.
 
     NPC simulation and generic direct ``PlaceSystem`` operations remain outside
@@ -135,14 +141,24 @@ def validate_protagonist_moves(commit, world: dict, scene: dict) -> list[Validat
     location, so discovery/replay stays atomic and visible to later readers.
     """
     capability = scene_capabilities(world, scene)
-    if not capability.actor or not capability.location:
+    if not capability.actor:
         return []
     allowed = capability.allowed_move_ids | {capability.location}
     errors: list[ValidationError] = []
+    requires_narration_rewrite = narration_rewrite_from is not None
     for index, move in enumerate((getattr(commit, "sections", {}) or {}).get("moves") or []):
         if not isinstance(move, dict) or move.get("who") != capability.actor:
             continue
         destination = move.get("to")
+        if capability.location is None:
+            errors.append(ValidationError(
+                section="moves",
+                field=f"[{index}].to",
+                code="missing_scene_location",
+                hint="主角当前位置未确定；本回合不能声明主角移动。",
+            ))
+            requires_narration_rewrite = True
+            continue
         if not isinstance(destination, str) or destination in allowed:
             continue
         if _new_place_route(commit, capability.location, destination):
@@ -154,9 +170,16 @@ def validate_protagonist_moves(commit, world: dict, scene: dict) -> list[Validat
             hint=(f"主角本回合只能从 '{capability.location}' 移动到已知相邻地点；"
                   "目标不在行动能力内。若发现新地点，须同时在 places 创建它并在 links 声明直连路线。"),
         ))
-        # A repair that only removes ``moves`` would still leave player prose
-        # claiming an arrival.  Make narration part of the same atomic repair
-        # obligation; the turn loop fails closed if it cannot repair both.
+        requires_narration_rewrite = True
+
+    # This obligation is intentionally stateful across repair attempts.  A
+    # later ``moves=[]`` does not make the original arrival prose safe: the
+    # repaired narration must explicitly differ from the proposal that caused
+    # the travel violation.  The loop records that proposal and supplies it on
+    # every subsequent validation pass.
+    if (requires_narration_rewrite
+            and (narration_rewrite_from is None
+                 or getattr(commit, "narration", None) == narration_rewrite_from)):
         errors.append(ValidationError(
             section="narration",
             field="",
@@ -169,16 +192,20 @@ def validate_protagonist_moves(commit, world: dict, scene: dict) -> list[Validat
 def validate_protagonist_move_events(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
     """Recheck final publish payloads so later staging cannot bypass the contract."""
     capability = scene_capabilities(world, scene)
-    if not capability.actor or not capability.location:
+    if not capability.actor:
         return []
     allowed = capability.allowed_move_ids | {capability.location}
+    # Final payloads use the same effective-event semantics as projection:
+    # events marked retracted are not allowed to create a discoverable place or
+    # route for an otherwise invalid move.
+    active_events = [event for event in events if not event.get("retracted")]
     created = {
         (event.get("deltas") or {}).get("id")
-        for event in events if event.get("type") == "place_created"
+        for event in active_events if event.get("type") == "place_created"
     }
     direct_links = {
         frozenset({(event.get("deltas") or {}).get("a"), (event.get("deltas") or {}).get("b")})
-        for event in events if event.get("type") == "place_linked"
+        for event in active_events if event.get("type") == "place_linked"
     }
     errors: list[ValidationError] = []
     for index, event in enumerate(events):
@@ -188,6 +215,12 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
         if deltas.get("who") != capability.actor:
             continue
         destination = deltas.get("to")
+        if capability.location is None:
+            errors.append(ValidationError(
+                section="moves", field=f"event[{index}].deltas.to", code="missing_scene_location",
+                hint="最终发布的主角移动没有可验证的 action-start 当前位置。",
+            ))
+            continue
         discovered = (isinstance(destination, str) and destination in created
                       and frozenset((capability.location, destination)) in direct_links)
         if not isinstance(destination, str) or destination in allowed or discovered:
