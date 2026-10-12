@@ -455,3 +455,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   专项 `19 passed`，正式 gate 为 **`1872 passed, 1 deselected in 20.12s`**；唯一 deselect 为既有 slow real
   embedding。该机制已为下一次“拿灯去集市、找亲历者核实来源”的真实玩家行动准备 authoring material，但没有
   预置 NPC、结果或第二回合回应。
+- 2026-10-12：对 `e555377` 的增量隐私审查发现 `speakable_evidence` 仅要求被引用 fact 为 `secrecy=public`，
+  仍可能由在场 NPC 的 knowledge 把 hidden/secret/undiscovered subject 的 ID 泄漏给作者。该 checkpoint 已在
+  验证记录标为 WIP、不可作为 privacy acceptance。修复 `4c5a251` 将共享 `pov_world` 的 subject 可见性作为
+  **额外必要条件**：只有引用 fact 为 public 且其 subject 出现在同一玩家 POV projection 时才进入 authoring
+  evidence。回归让可见 NPC 同时知道可见地点的公开事实与隐藏地点的“公开”属性；前者保留带来源/可信度材料，
+  后者的 ID 与 sentinel 均不输出。专项 `tests/scripts/test_native_turn_tools.py -rA` 为 `3 passed`；正式完整 gate
+  为 **`1872 passed, 1 deselected in 20.80s`**（唯一既有 slow real embedding）。原 checkpoint 完整 bundle 的
+  全历史 782 blobs/567 paths 与源码归档 456 files 无实际 `.env`、私钥名、campaign DB/JSONL；只有两份 `.env`
+  模板，唯一强模式是文档/示例占位。下一真实玩家行动仍未执行，也未预置第二回合。
