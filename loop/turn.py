@@ -123,7 +123,7 @@ def _memory_request_config(memory_role, memory_generator):
 
 def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
                               prev_scene, required_sections, max_repairs, memory_generator,
-                              trusted_discovery_keys=frozenset()):
+                              trusted_discovery_keys=frozenset(), legacy=False):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -144,8 +144,9 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         # therefore be stable across a response-loss retry, without including
         # provider/session/credential implementation details.
         'memory': _memory_request_config(memory_role, memory_generator),
-        'trusted_discovery_keys': sorted(trusted_discovery_keys),
     }
+    if not legacy:
+        envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
@@ -154,7 +155,7 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
-def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision):
+def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision, legacy_fingerprint=None):
     if not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result':
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     result = metadata.get('result')
@@ -189,7 +190,7 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
             or (metadata['base_revision'] is not None
                 and type(metadata['base_revision']) is not int)):
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
-    if (metadata['request_fingerprint'] != fingerprint
+    if (metadata['request_fingerprint'] not in {fingerprint, legacy_fingerprint}
             or metadata['base_revision'] != expected_revision):
         raise RevisionConflict('action_id already belongs to a different request')
     if 'recap_status' not in result:
@@ -768,7 +769,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             metadata, status = _read_preflight_metadata(prior['metadata_raw'])
             if status != 'available':
                 raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status=status)
-            return _restore_completed_turn(registry, prior, metadata, fingerprint, version)
+            legacy = (_turn_request_fingerprint(scene, player_input, version, memory_role,
+                      prev_scene=prev_scene, required_sections=required_sections,
+                      max_repairs=max_repairs, memory_generator=memory_generator,
+                      trusted_discovery_keys=trusted_discovery_keys, legacy=True)
+                      if not trusted_discovery_keys else None)
+            return _restore_completed_turn(registry, prior, metadata, fingerprint, version, legacy)
     trusted_memory_role = scene.get('protagonist')
     travel_world = world
     travel_scene = copy.deepcopy(scene)
