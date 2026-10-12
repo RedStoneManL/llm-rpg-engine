@@ -28,6 +28,14 @@ class OfflineInterpretationGenerator:
     def generate(self, source: dict) -> str:
         return self._text
 
+    def action_request_config(self) -> dict:
+        """Return the stable, non-plaintext identity used by action retries."""
+        return {
+            "kind": "offline_interpretation",
+            "version": 1,
+            "text_sha256": hashlib.sha256(self._text.encode()).hexdigest(),
+        }
+
 
 @dataclass(frozen=True)
 class HostNarrationBinding:

@@ -92,13 +92,45 @@ def _read_preflight_metadata(metadata_raw):
     return metadata, 'available'
 
 
-def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role):
-    envelope = {'version': 1, 'scene': copy.deepcopy(scene),
-                'player_input': player_input, 'expected_revision': expected_revision,
-                # A private interpretation is part of the action result.  It must
-                # therefore be stable across a response-loss retry, without
-                # including provider/session/credential implementation details.
-                'memory_role': memory_role}
+def _memory_request_config(memory_role, memory_generator):
+    """Return the stable memory portion of an explicit action request.
+
+    Action-id retries only support the host-owned, fixed offline generator.  We
+    fingerprint its non-plaintext configuration, never an arbitrary object,
+    provider credential, or mutable session state.
+    """
+    if memory_generator is None:
+        return {'enabled': False, 'role': memory_role}
+    from systems.interpretive_memory import OfflineInterpretationGenerator
+    if not isinstance(memory_generator, OfflineInterpretationGenerator):
+        raise TurnRejected('action request requires a fixed offline memory generator')
+    return {'enabled': True, 'role': memory_role,
+            'generator': memory_generator.action_request_config()}
+
+
+def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
+                              prev_scene, required_sections, max_repairs, memory_generator):
+    try:
+        normalized_sections = sorted(set(required_sections))
+    except TypeError as exc:
+        raise TurnRejected('required_sections must be stable strings') from exc
+    if not all(isinstance(section, str) for section in normalized_sections):
+        raise TurnRejected('required_sections must be stable strings')
+    if type(max_repairs) is not int or max_repairs < 0:
+        raise TurnRejected('max_repairs must be a non-negative integer')
+    envelope = {
+        'version': 2,
+        'scene': copy.deepcopy(scene),
+        'player_input': player_input,
+        'expected_revision': expected_revision,
+        'prev_scene': copy.deepcopy(prev_scene),
+        'required_sections': normalized_sections,
+        'max_repairs': max_repairs,
+        # A private interpretation is part of the action result.  It must
+        # therefore be stable across a response-loss retry, without including
+        # provider/session/credential implementation details.
+        'memory': _memory_request_config(memory_role, memory_generator),
+    }
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
@@ -108,26 +140,47 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
 
 
 def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision):
-    if (not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result'
-            or metadata.get('request_fingerprint') != fingerprint
-            or metadata.get('base_revision') != expected_revision):
-        raise RevisionConflict('action_id already belongs to a different request')
-    result = metadata.get('result') or {}
+    if not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result':
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    result = metadata.get('result')
+    if not isinstance(result, dict):
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     commit_data = result.get('commit')
     events = result.get('events')
     if (not isinstance(commit_data, dict)
             or not isinstance(commit_data.get('narration'), str)
             or not isinstance(commit_data.get('sections'), dict)
             or type(result.get('repair_attempts')) is not int
+            or result['repair_attempts'] < 0
             or not isinstance(result.get('dropped_sections'), list)
             or not all(isinstance(section, str) for section in result['dropped_sections'])
             or not isinstance(events, list)
-            or not all(isinstance(event, dict) for event in events)):
+            or not all(isinstance(event, dict)
+                       and isinstance(event.get('id'), str) and event['id']
+                       and isinstance(event.get('type'), str) and event['type']
+                       and type(event.get('seq')) is int and event['seq'] > 0
+                       and type(event.get('day')) is int
+                       and isinstance(event.get('scene'), str)
+                       and isinstance(event.get('summary'), str)
+                       and type(event.get('turn')) is int
+                       for event in events)):
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    receipt_events = {event['id']: event for event in prior['events']}
+    if (len(receipt_events) != len(prior['events'])
+            or any(receipt_events.get(event['id']) != event for event in events)):
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    if (not isinstance(metadata.get('request_fingerprint'), str)
+            or (metadata.get('base_revision') is not None
+                and type(metadata['base_revision']) is not int)):
+        raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
+    if (metadata['request_fingerprint'] != fingerprint
+            or metadata['base_revision'] != expected_revision):
+        raise RevisionConflict('action_id already belongs to a different request')
     from kernel.turncommit import TurnCommit
     world = project(registry, prior['history'])
     world['_revision'] = prior['revision']
-    receipt = {**prior['receipt'], 'duplicate': True, 'mirror_pending': False}
+    receipt = {**prior['receipt'], 'duplicate': True,
+               'mirror_pending': prior['mirror_pending']}
     return TurnResult(narration=commit_data['narration'], world=world,
                       commit=TurnCommit(commit_data['narration'], copy.deepcopy(commit_data['sections'])),
                       events=copy.deepcopy(events), repair_attempts=result['repair_attempts'],
@@ -617,7 +670,11 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     narrator's committed conversation. Callers may supply an action identity.
     """
     version = expected_revision if expected_revision is not None else world.get('_revision')
-    fingerprint = _turn_request_fingerprint(scene, player_input, version, memory_role) if action_id else None
+    fingerprint = (_turn_request_fingerprint(
+        scene, player_input, version, memory_role, prev_scene=prev_scene,
+        required_sections=required_sections, max_repairs=max_repairs,
+        memory_generator=memory_generator)
+        if action_id else None)
     if action_id:
         prior = store.read_committed_action(action_id)
         if prior is not None:

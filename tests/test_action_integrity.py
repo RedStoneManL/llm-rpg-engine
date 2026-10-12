@@ -269,11 +269,12 @@ def test_response_loss_retry_restores_offline_turn_without_any_generation(engine
     engine.store.allowed_types = engine.registry.event_types()
     old_world = engine.world
     original_scene = copy.deepcopy(_build_scene(engine))
+    generator = OfflineInterpretationGenerator('private recollection')
     first = run_turn(
         engine.registry, engine.store, old_world, original_scene, '买酒',
         strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
         action_id='response-lost', memory_role='hero',
-        memory_generator=OfflineInterpretationGenerator('private recollection'))
+        memory_generator=generator)
     assert first.narration == commit()['narration']
     assert any(event['type'] == 'character_interpretation_recorded' for event in first.events)
 
@@ -311,21 +312,19 @@ def test_response_loss_retry_restores_offline_turn_without_any_generation(engine
         produce = staticmethod(forbidden('strategy'))
         commit_to_thread = staticmethod(forbidden('thread'))
 
-    class MustNotGenerate:
-        generate = staticmethod(forbidden('generator'))
-
     monkeypatch.setattr('loop.turn.EventBatch', forbidden('batch'))
     monkeypatch.setattr('loop.turn.prepare_resources', forbidden('resources'))
     monkeypatch.setattr('loop.turn._run_turn_staged', forbidden('staged'))
     for name in ('digest_fleet', 'run_director', 'run_cascade', 'run_catchup', 'run_lore',
                  'run_density', '_run_demote_on_leave'):
         monkeypatch.setattr(f'loop.turn.{name}', forbidden('backstage'))
+    monkeypatch.setattr(generator, 'generate', forbidden('generator'))
     provider = type('MustNotProvide', (), {'complete_json': staticmethod(forbidden('provider'))})()
 
     retry = run_turn(
         engine.registry, engine.store, old_world, copy.deepcopy(original_scene), '买酒',
         strategy=MustNotRun(), provider=provider, action_id='response-lost', memory_role='hero',
-        memory_generator=MustNotGenerate())
+        memory_generator=generator)
 
     assert calls == {name: 0 for name in calls}
     assert retry.receipt == {**first.receipt, 'duplicate': True, 'mirror_pending': False}
@@ -351,11 +350,12 @@ def test_response_loss_retry_rejects_changed_request_before_generation(engine, m
     engine.store.allowed_types = engine.registry.event_types()
     old_world = engine.world
     scene = _build_scene(engine)
+    generator = OfflineInterpretationGenerator('private recollection')
     run_turn(
         engine.registry, engine.store, old_world, scene, '买酒',
         strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
         action_id='request-changed', memory_role='hero',
-        memory_generator=OfflineInterpretationGenerator('private recollection'))
+        memory_generator=generator)
     before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
               engine.store.jsonl_path.read_bytes())
     calls = []
@@ -377,6 +377,7 @@ def test_response_loss_retry_rejects_changed_request_before_generation(engine, m
     monkeypatch.setattr('loop.turn.EventBatch', forbidden)
     monkeypatch.setattr('loop.turn.prepare_resources', forbidden)
     monkeypatch.setattr('loop.turn._run_turn_staged', forbidden)
+    monkeypatch.setattr(generator, 'generate', forbidden)
     with pytest.raises(RevisionConflict, match='different request'):
         run_turn(
             engine.registry, engine.store, old_world, retry_scene, retry_input,
@@ -384,11 +385,228 @@ def test_response_loss_retry_rejects_changed_request_before_generation(engine, m
                                               'commit_to_thread': staticmethod(forbidden)})(),
             provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
             action_id='request-changed', memory_role=retry_role,
-            memory_generator=type('MustNotGenerate', (), {'generate': staticmethod(forbidden)})())
+            memory_generator=generator)
 
     assert calls == []
     assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
             engine.store.jsonl_path.read_bytes()) == before
+
+
+@pytest.mark.parametrize('changed', ('prev_scene', 'max_repairs', 'required_sections',
+                                     'memory_enabled', 'offline_generator_config'))
+def test_response_loss_retry_rejects_changed_semantic_options_before_generation(
+        engine, monkeypatch, changed):
+    quiet(monkeypatch)
+    engine.registry.register(InterpretiveMemorySystem())
+    engine.store.allowed_types = engine.registry.event_types()
+    old_world = engine.world
+    scene = _build_scene(engine)
+    generator = OfflineInterpretationGenerator('first private recollection')
+    base = {
+        'prev_scene': {'id': 'previous-scene', 'present': ['innkeeper']},
+        'required_sections': frozenset({'clock', 'facts'}),
+        'max_repairs': 2,
+        'memory_role': 'hero',
+        'memory_generator': generator,
+    }
+    run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='semantic-options', **base)
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes())
+    retry = dict(base)
+    if changed == 'prev_scene':
+        retry['prev_scene'] = {'id': 'different-previous-scene'}
+    elif changed == 'max_repairs':
+        retry['max_repairs'] = 1
+    elif changed == 'required_sections':
+        retry['required_sections'] = frozenset({'facts'})
+    elif changed == 'memory_enabled':
+        retry['memory_generator'] = None
+    else:
+        retry['memory_generator'] = OfflineInterpretationGenerator('other private recollection')
+    calls = []
+
+    def forbidden(*args, **kwargs):
+        calls.append(1)
+        raise AssertionError('changed semantic option reached generation')
+
+    monkeypatch.setattr('loop.turn.EventBatch', forbidden)
+    monkeypatch.setattr('loop.turn.prepare_resources', forbidden)
+    monkeypatch.setattr('loop.turn._run_turn_staged', forbidden)
+    monkeypatch.setattr(generator, 'generate', forbidden)
+    if retry['memory_generator'] is not None and retry['memory_generator'] is not generator:
+        monkeypatch.setattr(retry['memory_generator'], 'generate', forbidden)
+    with pytest.raises(RevisionConflict, match='different request'):
+        run_turn(
+            engine.registry, engine.store, old_world, copy.deepcopy(scene), '买酒',
+            strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden),
+                                              'commit_to_thread': staticmethod(forbidden)})(),
+            provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
+            action_id='semantic-options', **retry)
+
+    assert calls == []
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes()) == before
+
+
+def test_response_loss_retry_normalizes_required_section_order(engine, monkeypatch):
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    first = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='normalized-required-sections',
+        required_sections=frozenset({'clock', 'facts'}))
+    calls = []
+
+    def forbidden(*args, **kwargs):
+        calls.append(1)
+        raise AssertionError('equivalent required_sections reached generation')
+
+    retry = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden)})(),
+        provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
+        action_id='normalized-required-sections', required_sections=('facts', 'clock'))
+    assert calls == []
+    assert retry.receipt['duplicate'] and retry.events == first.events
+
+
+def test_response_loss_retry_preserves_nonzero_repair_result(engine, monkeypatch):
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    invalid = commit()
+    invalid['facts'] = [{'subject': 'missing', 'predicate': 'mood', 'value': 'worried'}]
+    first = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(
+            json_responses=[invalid, {'facts': []}]),
+        action_id='repaired-response', max_repairs=1)
+    assert first.repair_attempts == 1 and first.dropped_sections == []
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            pytest.fail('recovery re-ran repaired action')
+
+    retry = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[]),
+        action_id='repaired-response', max_repairs=1)
+    assert retry.repair_attempts == first.repair_attempts
+    assert retry.dropped_sections == first.dropped_sections
+    assert retry.commit == first.commit and retry.events == first.events
+
+
+def test_response_loss_retry_reports_pending_mirror_until_explicit_sync(engine, monkeypatch):
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    original_rewrite = engine.store._rewrite_jsonl
+    monkeypatch.setattr(engine.store, '_rewrite_jsonl',
+                        lambda: (_ for _ in ()).throw(OSError('mirror unavailable')))
+    first = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='mirror-response')
+    assert first.receipt['mirror_pending'] is True
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes())
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            pytest.fail('mirror-status recovery generated a turn')
+
+    retry = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[]), action_id='mirror-response')
+    assert retry.receipt['duplicate'] and retry.receipt['mirror_pending'] is True
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes()) == before
+
+    monkeypatch.setattr(engine.store, '_rewrite_jsonl', original_rewrite)
+    engine.store.sync_jsonl()
+    synced = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes())
+    retry_after_sync = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=MustNotRun(), provider=FakeLLMProvider(json_responses=[]), action_id='mirror-response')
+    assert retry_after_sync.receipt['duplicate']
+    assert retry_after_sync.receipt['mirror_pending'] is False
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes()) == synced
+
+
+def test_committed_action_mirror_check_is_read_only_and_conservative(engine):
+    history = list(engine.store.iter_events(include_retracted=True))
+    engine.store.jsonl_path.unlink()
+    assert engine.store.mirror_pending_for_history(history) is True
+    engine.store.jsonl_path.write_text('{not json}\n', encoding='utf-8')
+    assert engine.store.mirror_pending_for_history(history) is True
+    engine.store.jsonl_path.write_text(
+        ''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in history), encoding='utf-8')
+    assert engine.store.mirror_pending_for_history(history) is False
+    engine.store.jsonl_path.write_text(json.dumps({**history[0], 'summary': 'different'}, ensure_ascii=False) + '\n',
+                                       encoding='utf-8')
+    assert engine.store.mirror_pending_for_history(history) is True
+
+
+@pytest.mark.parametrize('mutate', ('nonempty_container', 'old_turnless_structure',
+                                    'negative_repairs', 'missing_event_structure'))
+def test_response_loss_retry_rejects_corrupt_result_metadata_before_generation(
+        engine, monkeypatch, mutate):
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='corrupt-result')
+    row = engine.store._conn.execute(
+        'SELECT metadata FROM action_result_metadata WHERE action_id=?', ('corrupt-result',)
+    ).fetchone()
+    metadata = json.loads(row['metadata'])
+    if mutate == 'nonempty_container':
+        metadata['result'] = ['not', 'an', 'object']
+    elif mutate == 'old_turnless_structure':
+        metadata = {'version': 1, 'outcome': 'legacy'}
+    elif mutate == 'negative_repairs':
+        metadata['result']['repair_attempts'] = -1
+    else:
+        metadata['result']['events'][0].pop('summary')
+    engine.store._conn.execute(
+        'UPDATE action_result_metadata SET metadata=? WHERE action_id=?',
+        (json.dumps(metadata, sort_keys=True, ensure_ascii=False), 'corrupt-result'))
+    engine.store._conn.commit()
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes(), engine.store._conn.execute(
+                  'SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                  ('corrupt-result',)).fetchone()['metadata'])
+    calls = []
+
+    def forbidden(*args, **kwargs):
+        calls.append(1)
+        raise AssertionError('corrupt completed result reached generation')
+
+    monkeypatch.setattr('loop.turn.EventBatch', forbidden)
+    monkeypatch.setattr('loop.turn.prepare_resources', forbidden)
+    monkeypatch.setattr('loop.turn._run_turn_staged', forbidden)
+    with pytest.raises(ActionAlreadyCommitted) as exc:
+        run_turn(
+            engine.registry, engine.store, old_world, scene, '买酒',
+            strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden),
+                                              'commit_to_thread': staticmethod(forbidden)})(),
+            provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
+            action_id='corrupt-result')
+    assert exc.value.metadata_status == 'corrupt'
+    assert calls == []
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes(), engine.store._conn.execute(
+                'SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                ('corrupt-result',)).fetchone()['metadata']) == before
 
 
 def test_response_loss_retry_keeps_current_world_after_second_action_and_reopen(engine, monkeypatch):
@@ -480,25 +698,19 @@ def test_completed_action_preflight_stops_all_generation_paths(
         produce = staticmethod(forbidden('strategy'))
         commit_to_thread = staticmethod(forbidden('thread'))
 
-    class MustNotGenerate:
-        generate = staticmethod(forbidden('generator'))
-
     monkeypatch.setattr('loop.turn.EventBatch', forbidden('batch'))
     monkeypatch.setattr('loop.turn.prepare_resources', forbidden('resources'))
     provider = type('MustNotProvide', (), {'complete_json': staticmethod(forbidden('provider'))})()
 
-    expected_exception = RevisionConflict if expected_status == 'available' else ActionAlreadyCommitted
-    with pytest.raises(expected_exception) as exc:
+    with pytest.raises(ActionAlreadyCommitted) as exc:
         run_turn(engine.registry, engine.store, engine.world, _build_scene(engine), '买酒',
                  strategy=MustNotRun(), provider=provider, action_id=action_id,
-                 memory_role='hero', memory_generator=MustNotGenerate())
+                 memory_role='hero')
 
-    if expected_status == 'available':
-        assert 'different request' in str(exc.value)
-    else:
-        assert exc.value.receipt['action_id'] == action_id
-        assert exc.value.metadata_status == expected_status
-        assert exc.value.result_metadata is None
+    expected_metadata_status = 'corrupt' if expected_status == 'available' else expected_status
+    assert exc.value.receipt['action_id'] == action_id
+    assert exc.value.metadata_status == expected_metadata_status
+    assert exc.value.result_metadata is None
     assert calls == {name: 0 for name in calls}
     assert list(engine.store.iter_events(include_retracted=True)) == before_events
     assert engine.store.revision == before_revision
@@ -527,8 +739,7 @@ def test_retracted_action_preflight_stops_all_generation_paths(engine, monkeypat
                  strategy=type('MustNotRun', (), {'produce': staticmethod(forbidden),
                                                    'commit_to_thread': staticmethod(forbidden)})(),
                  provider=type('MustNotProvide', (), {'complete_json': staticmethod(forbidden)})(),
-                 action_id='completed-retracted', memory_role='hero',
-                 memory_generator=type('MustNotGenerate', (), {'generate': staticmethod(forbidden)})())
+                 action_id='completed-retracted', memory_role='hero')
 
     assert calls == []
     assert list(engine.store.iter_events(include_retracted=True)) == before_events

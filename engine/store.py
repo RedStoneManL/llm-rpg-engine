@@ -94,6 +94,21 @@ class EventStore:
             (receipt['first_seq'], receipt['last_seq']),
         ).fetchone() is not None
 
+    def mirror_pending_for_history(self, history):
+        """Return whether the JSONL mirror differs from a SQLite snapshot.
+
+        This is deliberately read-only: a response-loss retry must not silently
+        repair a failed mirror.  Any unreadable, malformed, or non-identical
+        mirror is conservatively reported as pending without logging event
+        bodies.
+        """
+        try:
+            with self.jsonl_path.open('r', encoding='utf-8') as handle:
+                mirror = [json.loads(line) for line in handle]
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return True
+        return mirror != history
+
     def read_committed_action(self, action_id):
         """Read one completed action from a consistent, short SQLite snapshot.
 
@@ -122,10 +137,12 @@ class EventStore:
             events = [self._row_to_event(row) for row in self._conn.execute(
                 'SELECT * FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq ASC',
                 (receipt['first_seq'], receipt['last_seq']))]
+            mirror_pending = self.mirror_pending_for_history(history)
             self._conn.commit()
             return {'receipt': receipt, 'retracted': retracted,
                     'metadata_raw': row['metadata'] if row is not None else None,
-                    'revision': revision, 'history': history, 'events': events}
+                    'revision': revision, 'history': history, 'events': events,
+                    'mirror_pending': mirror_pending}
         except BaseException:
             self._conn.rollback()
             raise
