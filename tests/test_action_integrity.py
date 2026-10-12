@@ -18,7 +18,7 @@ from kernel.validation import validate_commit
 from llm.provider import FakeLLMProvider, DeepSeekProvider, _openai_parse, _openai_append_result
 from llm.tools import build_tool_registry
 from loop.strategy import AuthorStrategy
-from loop.turn import run_turn, apply_turn, TurnRejected, REQUIRED_SECTIONS
+from loop.turn import run_turn, apply_turn, TurnRejected, REQUIRED_SECTIONS, _turn_request_fingerprint
 from systems.interpretive_memory import HostNarrationBinding, InterpretiveMemorySystem, OfflineInterpretationGenerator, stage_offline_interpretation
 
 
@@ -57,6 +57,32 @@ def quiet(monkeypatch):
     import loop.turn as turns
     for name in ['digest_fleet','run_director','run_cascade','run_catchup','run_lore','run_density','_run_demote_on_leave']:
         monkeypatch.setattr(turns, name, lambda *a, **kw: [])
+
+
+def test_legacy_empty_discovery_fingerprint_recovers_but_nonempty_does_not(engine, monkeypatch):
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    first = run_turn(engine.registry, engine.store, old_world, scene, '买酒',
+                     strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+                     action_id='legacy-discovery', required_sections=REQUIRED_SECTIONS)
+    legacy = _turn_request_fingerprint(scene, '买酒', None, None, prev_scene=None,
+        required_sections=REQUIRED_SECTIONS, max_repairs=3, memory_generator=None, legacy=True)
+    row = engine.store._conn.execute('SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                                    ('legacy-discovery',)).fetchone()
+    metadata = json.loads(row['metadata']); metadata['request_fingerprint'] = legacy
+    engine.store._conn.execute('UPDATE action_result_metadata SET metadata=? WHERE action_id=?',
+        (json.dumps(metadata, sort_keys=True, ensure_ascii=False), 'legacy-discovery'))
+    engine.store._conn.commit()
+    class MustNotRun:
+        def produce(self, *args, **kwargs): raise AssertionError('strategy called')
+    recovered = run_turn(engine.registry, engine.store, old_world, scene, '买酒', strategy=MustNotRun(),
+        provider=FakeLLMProvider(), action_id='legacy-discovery', required_sections=REQUIRED_SECTIONS)
+    assert recovered.receipt['duplicate'] is True and recovered.events == first.events
+    with pytest.raises(RevisionConflict):
+        run_turn(engine.registry, engine.store, old_world, scene, '买酒', strategy=MustNotRun(),
+            provider=FakeLLMProvider(), action_id='legacy-discovery', required_sections=REQUIRED_SECTIONS,
+            trusted_discovery_keys=frozenset({'x.discovered'}))
 
 
 def test_second_insert_failure_rolls_back_whole_action_and_conversation(engine, monkeypatch):
