@@ -490,6 +490,13 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   而不是把尚未裁定的内容覆写成世界真相。既存实体则只可逐字复述 brief 已给出的公开 `speakable_evidence`；既存事实
   覆写、既存角色 evolve、隐秘/受限事实、hidden/past facet、以及全由既存地点组成的拓扑改写均在 publish 前拒绝。
   该 policy 只包住离线 native importer，不收窄正常 `AuthorStrategy`。新增回归验证公开来源陈述可真实持久化且不产生
-  `stonebridge_market.status`，并验证既存事实覆写与缺少同值/来源 `knowledge.told` 的报告拒绝。下一 checkpoint 将做完整
-  历史与增量安全扫描、正式完整 gate、独立 clone 恢复和 Library 持久化；不调用真实模型/embedding、不启用 B1/profiling、
-  不 push/PR/部署。
+  `stonebridge_market.status`，并验证既存事实覆写与缺少同值/来源 `knowledge.told` 的报告拒绝。专项
+  `tests/scripts/test_native_turn_tools.py -rA` 为 **`5 passed in 0.98s`**；正式完整 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1876 passed, 1 deselected in 21.02s`**，唯一 deselect 为既有 slow real embedding，未调用真实模型。
+
+  完整可达 Git 历史安全扫描覆盖 1,218 个 path-addressed blobs（1,310 object rows）：没有私钥、AWS/GitHub/Slack
+  token 命中；两类宽泛模式仅落在既有 `.env` 示例、provider 配置/测试和历史文档占位中，逐项检查未见实际凭据。以
+  `6f56ac5..60195d3` 的本增量二进制 diff 做同一强模式检查为零命中，变更路径仅本台账、native author policy、导入/导出
+  脚本和专项测试。扫描只记录路径/计数，不输出潜在秘密正文。随后生成完整历史 bundle、源码归档、增量 diff 与验证记录并
+  做全新 clone 恢复后再保存到 Library；不调用真实模型/embedding、不启用 B1/profiling、不 push/PR/部署。
