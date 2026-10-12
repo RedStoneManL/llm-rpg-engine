@@ -44,6 +44,14 @@ log = get_logger("app.engine")
 # Protagonist id — reused by loop.bootstrap.bootstrap_world
 _PROTAGONIST_ID = "protagonist"
 
+# This is deliberately a fixed, local-only experiment, rather than a model
+# prompt or a user-supplied instruction.  It exercises the private-record
+# lifecycle without granting the narrator, tools, recall, or recap a new
+# source of context.
+OFFLINE_INTERPRETIVE_MEMORY_TEXT = (
+    "离线实验解释：这只是主角的私有感受，不是世界事实，也不改变任何权限。"
+)
+
 
 @dataclass
 class Engine:
@@ -55,6 +63,8 @@ class Engine:
     world: dict = field(default_factory=dict)
     campaign_seed: int = 0
     cascade_provider: Any = None  # Optional cheap LLMProvider for cascade node calls
+    interpretive_memory_enabled: bool = False
+    interpretive_memory_generator: Any = None
 
     def public_history(self) -> list[dict]:
         """Public DTO history; raw EventStore access remains host-internal."""
@@ -73,6 +83,7 @@ def build_engine(
     *,
     provider=None,
     embedder=None,
+    enable_interpretive_memory: bool = False,
 ) -> Engine:
     """Wire all 6 systems + store + provider + embedder; project initial world.
 
@@ -104,6 +115,16 @@ def build_engine(
     registry.register(LoreSystem())
     registry.register(CodexSystem())
     registry.register(ResourceSystem())
+    memory_generator = None
+    if enable_interpretive_memory:
+        # Opt-in must happen before opening/projecting the store, so a reopened
+        # experimental campaign can replay its private slice.  Normal app
+        # construction deliberately never registers this system.
+        from systems.interpretive_memory import (
+            InterpretiveMemorySystem, OfflineInterpretationGenerator,
+        )
+        registry.register(InterpretiveMemorySystem())
+        memory_generator = OfflineInterpretationGenerator(OFFLINE_INTERPRETIVE_MEMORY_TEXT)
 
     log.debug("build_engine: registered %d systems", len(registry.systems))
 
@@ -163,6 +184,8 @@ def build_engine(
         world=world,
         campaign_seed=campaign_seed,
         cascade_provider=cascade_provider,
+        interpretive_memory_enabled=enable_interpretive_memory,
+        interpretive_memory_generator=memory_generator,
     )
 
 

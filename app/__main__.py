@@ -324,6 +324,11 @@ def main(
         help="Max POV tool-call rounds per turn (default 12 / env RPG_MAX_TOOL_ROUNDS). "
              "Lower it (e.g. 4-6) to cut API calls per turn and ease 429 rate-limits.",
     )
+    parser.add_argument(
+        "--offline-private-memory", action="store_true", dest="offline_private_memory",
+        help="EXPERIMENTAL: enable fixed local private protagonist interpretations. "
+             "No network/model/embedding is used; /memory is the only read outlet.",
+    )
     args = parser.parse_args(argv)
     configure_logging()  # honor RPG_DEBUG / RPG_LOG_LEVEL so process logs appear
 
@@ -366,7 +371,13 @@ def main(
 
     log.debug("main: campaign=%s provider=%s", campaign_dir, type(provider).__name__)
 
-    engine = build_engine(campaign_dir, provider=provider)
+    engine = build_engine(
+        campaign_dir, provider=provider,
+        enable_interpretive_memory=args.offline_private_memory,
+    )
+    if args.offline_private_memory:
+        out("[离线私有记忆实验已启用] 使用固定本地解释；/memory 仅显示当前主角。"
+            "它不是世界事实，不会进入 /recall、续玩摘要、公开历史或模型上下文。")
 
     # Track whether we are in interactive (real stdin) or scripted (injected) mode.
     # This determines whether we prompt the user for a pitch string.

@@ -8,6 +8,7 @@ play_loop(engine, inputs, *, out=print, strategy=None)
 OOC commands:
     /quit          — stop the loop
     /recall <q>    — fan-out recall and print hits (no turn)
+    /memory        — show this protagonist's opt-in offline private interpretations
     /compare on    — switch to run_compare mode
     /compare off   — switch back to run_turn mode
     /help          — print command list
@@ -165,6 +166,7 @@ _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
   /quit                — 退出游戏
   /recall <关键词>       — 在记忆中搜索
+  /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
   /compare on|off      — 开/关 甲丙策略对比模式
   /rewind <N>          — 回退到第 N 回合之前（撤回 N 及之后的所有事件）
   /undo                — 撤销最后一回合（别名：/oops, //veto）
@@ -280,6 +282,30 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool
                 out(f"[recall] {h.text}")
         else:
             out("[recall] 无")
+        return False
+
+    elif verb == "memory":
+        # This is intentionally a host-only, current-protagonist view.  There
+        # is no role argument and no fallback to raw store rows, so a player
+        # cannot select another character or obtain private text through the
+        # normal recall/public-history paths.
+        if not getattr(engine, 'interpretive_memory_enabled', False):
+            out("[memory] 离线私有记忆实验未启用；启动时传入 --offline-private-memory。")
+            return False
+        from systems.interpretive_memory import open_memory_read_session
+        role = _build_scene(engine)["protagonist"]
+        session = open_memory_read_session(engine.world, engine.store, role)
+        try:
+            handle = session.issue_handle()
+            records = session.read(handle, engine.world, engine.store)
+        finally:
+            session.close()
+        out("[memory] 离线实验：仅当前主角的私有解释；不是世界事实。")
+        if not records:
+            out("[memory] 无")
+        else:
+            for record in records:
+                out(f"[memory] 第 {record.get('turn', '?')} 回合：{record['text']}")
         return False
 
     elif verb == "compare":
@@ -471,7 +497,9 @@ def play_loop(
                 applied = run_turn(engine.registry, engine.store, engine.world,
                     scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
                     embedder=engine.embedder, required_sections=required_sections,
-                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene)
+                    cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
+                    memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
+                    memory_generator=engine.interpretive_memory_generator)
                 engine.world = applied.world
                 prev_scene = scene
                 if hasattr(strategy, 'reset'):
@@ -504,6 +532,8 @@ def play_loop(
                         cascade_provider=engine.cascade_provider,
                         catchup_provider=engine.cascade_provider,
                         prev_scene=prev_scene,
+                        memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
+                        memory_generator=engine.interpretive_memory_generator,
                     )
                 finally:
                     spinner.stop()

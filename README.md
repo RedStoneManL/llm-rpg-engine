@@ -32,6 +32,20 @@ An empty campaign directory starts a new world; an existing one resumes it. The 
 
 Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). In play, `/help` lists commands, including `/undo`, `/recall`, and `/quit`.
 
+### Offline private-memory experiment
+
+`python -m app --campaign ./campaigns/demo --provider fake --offline-private-memory`
+enables a deliberately narrow offline experiment. It registers an otherwise-disabled
+private interpretation system and uses one fixed local text generator; it does not
+call a model, embedder, or network service. `/memory` can then show only the current
+protagonist's own interpretations. The records persist across a restart made with the
+same flag and disappear with the whole turn after `/undo` or `/rewind`.
+
+This is not world fact, permission, recall data, recap material, public history, or
+model context. The flag is required on every process that should read the experimental
+private slice; without it `/memory` stays unavailable and normal play behavior is
+unchanged. It has no automatic retry or concurrency behavior.
+
 ## Architecture
 
 ```text
