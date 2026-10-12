@@ -314,6 +314,7 @@ def cascade_trigger(new_events: list[dict], world: dict) -> list[str]:
         # world_change carries NEITHER key, so it still triggers.
         if t == "world_change" and (
             d.get("deferred") or d.get("deferred_consume_through") is not None
+            or d.get("public_observation") is True
         ):
             continue
 

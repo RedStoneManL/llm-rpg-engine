@@ -192,6 +192,10 @@ fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商�
 
 【世界事件·world（可选段）】当本回合发生区域级或世界级的大事——灾难、战争、瘟疫、政权更替、重大变故——用 world 段点名所有受影响的地点，引擎据此向下波及这些地点的子地点。你有完整剧情视野，可点名任意位置的地点（不限当前场景的邻居）：
 - world: [{"areas":[受影响地点id, ...], "level":1|2|3, "summary":"一句话事件"}]
+
+若只是主角在已知地点作出公开、局部的观察（而非区域事件），可显式标记为可复用的地点观察：
+``public_observation:true, visibility:"public", observation_kind:"stable_layout"|"single_observation", observation_range:"实际可见范围"``。
+这类记录只描述该地点和该范围内所见；它不是地图发现、路线结论、全局真相，也不会触发世界级级联。
 areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最轻、3 最重）；summary 一句话描述这件事。寻常的个人回合（赶路、对话、独自行动）不必给本段，省略即可（无需写 reason）。
 
 【任务系统·quests（可选段）】本回合若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]

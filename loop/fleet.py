@@ -170,7 +170,9 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     # establish a player quest.
     candidate_events = [
         event for event in new_events
-        if event.get("type") in _BACKSTOP_SUBSTANTIVE_TYPES
+        if (event.get("type") in _BACKSTOP_SUBSTANTIVE_TYPES
+            and not (event.get("type") == "world_change"
+                     and (event.get("deltas") or {}).get("public_observation") is True))
     ]
 
     # Find the most-significant player/world development among the remaining

@@ -246,6 +246,19 @@ def test_to_events_world_multiple_items_flattened():
     assert by_place["b"]["summary"] == "瘟疫" and by_place["c"]["level"] == 2
 
 
+def test_to_events_preserves_explicit_public_observation_provenance():
+    event = CascadeSystem().to_events("world", [{
+        "areas": ["capital"], "level": 1, "summary": "城门口的旗帜仍在。",
+        "public_observation": True, "visibility": "public",
+        "observation_kind": "stable_layout", "observation_range": "城门口近处",
+    }], turn=2, day=1, scene="s1")[0]
+    assert event["deltas"] == {
+        "place": "capital", "level": 1, "summary": "城门口的旗帜仍在。",
+        "source": "author_world", "visibility": "public", "public_observation": True,
+        "observation_kind": "stable_layout", "observation_range": "城门口近处",
+    }
+
+
 def test_to_events_non_world_section_empty():
     cs = CascadeSystem()
     assert cs.to_events("knowledge", [{"op": "told"}], turn=1, day=1, scene="s1") == []

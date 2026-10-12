@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from context.access import pov_world
+from context.place_observations import public_place_observations
 from systems.time import band_name
 
 
@@ -143,6 +144,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         # Empty by default.  Only a host-side validator may put an existing,
         # undiscovered direct route here; proposal text never creates one.
         "host_authorized_routes": list(host_authorized_routes or []),
+        "public_place_observations": public_place_observations(world, scene),
         "current_player_intent": player_input or None,
         "deadline": {
             "status": "not_scheduled",
@@ -317,6 +319,29 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
         frontier_link_counts[new_place] = frontier_link_counts.get(new_place, 0) + 1
     if any(frontier_link_counts.get(place, 0) != 1 for place in places):
         errors.append("each native-author new public place requires exactly one direct current-location link in the same turn")
+
+    # ``world`` normally means a regional/global cascade declaration.  Native
+    # authors do not receive that authority.  Their one narrow use is an
+    # explicitly public observation of the action-start place, with durable
+    # range and stability metadata for future player-safe context.
+    for item in commit.sections.get("world", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("public_observation") is not True:
+            errors.append("native author world entries must be explicit public observations, not generic world changes")
+            continue
+        if item.get("visibility") != "public":
+            errors.append("native public observations must explicitly use visibility='public'")
+        if item.get("observation_kind") not in {"stable_layout", "single_observation"}:
+            errors.append("native public observations need observation_kind stable_layout or single_observation")
+        observation_range = item.get("observation_range")
+        if not isinstance(observation_range, str) or not observation_range.strip():
+            errors.append("native public observations need a non-empty observation_range")
+        if (not isinstance(item.get("areas"), list) or len(item["areas"]) != 1
+                or item["areas"][0] not in allowed_locations):
+            errors.append("native public observations may only describe the action-start or same-turn protagonist destination location")
+        if item.get("level") != 1:
+            errors.append("native public observations must use local level 1")
 
     supplied = _native_speakable_sources(world, scene)
     visible_speakers = _native_visible_speakers(world, scene)

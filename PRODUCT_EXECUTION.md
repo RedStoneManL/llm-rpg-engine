@@ -573,3 +573,21 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   专项 `tests/scripts/test_native_turn_tools.py tests/context/test_capabilities.py tests/systems/test_place.py -rA` 为
   **`90 passed in 2.16s`**；正式完整 gate 为 **`1881 passed, 1 deselected in 21.50s`**，唯一 deselect 是既有 slow
   real embedding。没有为渡口或现有 hidden 目标写入路线，没有生成/导入第五候选，没有 B1、付费模型、push、部署或上传。
+
+- 2026-10-12：真实第五候选只在集市边创建公开 `market_canvas_edge_clearing` 与到集市的单一公开直连，主角未移动；第六候选
+  原文随后只导入一次，主角持旧铜灯移动到该空地并以 `world` 写入局部观察。它实际形成 `world_change`，但旧实现只把该内容
+  留在 cascade audit/地点事实和完整 narration，下一 native brief 没有结构化地点观察；而且该类局部记录会被当作全局 cascade
+  触发，产生非作者的暗线 hook。保留两份原候选和安全回执，未重放、修改或迁移真实 campaign。
+
+  根因修复新增事件溯源的 `public_place_observations` DTO：只有 `world` 明确标记
+  `public_observation=true`、`visibility=public`、`observation_kind=stable_layout|single_observation` 和
+  `observation_range`，且地点同时处于玩家 POV 的当前地点或当前合法公开出口，才进入 normal `assemble_context` 和
+  native `authoring_context`。DTO 保存 source event、地点、day、turn、scene、范围和摘要；稳定布局按地点/范围收敛，
+  一次观察每地点有小窗口，不依赖重复整段历史。未标记 legacy `world_change`（含真实第六回合）安全地不提升为结构化观察，
+  原公开 narration 仍保留；不以猜测回填可见性。native policy 只允许其 `world` 写入本回合起点或主角同回合目的地的 level-1
+  明确公开观察，普通 world/global 变更仍走既有路径。显式公开观察不再触发 cascade 或 Fleet 暗线 backstop。
+
+  新回归覆盖裁剪后仍可读取、重访相邻地点、stable/one-time 区分、source/location/time/range、隐私 sentinel 和未标记
+  world_change 均不泄漏、native 越权拒绝，以及不触发 cascade/quest。专项为 **`51 passed in 2.04s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1886 passed, 1 deselected in
+  20.12s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络、未启用 B1/profiling、未 push/PR/部署。

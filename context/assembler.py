@@ -34,6 +34,7 @@ from context.viewpoint import build_viewpoint
 from facts.graph import FactGraph
 from context.access import pov_world
 from context.capabilities import scene_capabilities
+from context.place_observations import public_place_observations
 from engine.log import get_logger
 import systems.narrative as nmod
 
@@ -66,6 +67,7 @@ def assemble_context(
         A single string with stable→scene→volatile cache layer ordering.
     """
     capabilities = scene_capabilities(world, scene)
+    observations = public_place_observations(world, scene)
     world = pov_world(world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
@@ -181,6 +183,16 @@ def assemble_context(
     # makes the same action-start exits used by GUI and publish validation
     # explicit to authors, avoiding a map that merely looks authoritative.
     base += ("\n\n" if base else "") + capabilities.prompt_fragment()
+
+    if observations:
+        observation_lines = ["【公开地点观察·仅限已知当前/可达地点】"]
+        for item in observations:
+            stability = "稳定布局" if item["kind"] == "stable_layout" else "一次观察"
+            observation_lines.append(
+                f"- {item['place']}｜{stability}｜范围：{item['range']}｜"
+                f"第{item['day']}天/turn {item['turn']}：{item['summary']}"
+            )
+        base += "\n" + "\n".join(observation_lines)
 
     # ------------------------------------------------------------------
     # Step 4a: Recap stable-summary block (PUSH, spec §1 — query-independent)

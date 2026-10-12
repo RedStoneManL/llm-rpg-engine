@@ -123,6 +123,14 @@ class CascadeSystem(ContextSystem):
                     "summary": event.get("summary"),
                     "valence": d.get("valence"),
                     "turn": turn,
+                    "event_id": ev_id,
+                    "day": day,
+                    "scene": event.get("scene"),
+                    "source": d.get("source"),
+                    "visibility": d.get("visibility"),
+                    "public_observation": d.get("public_observation") is True,
+                    "observation_kind": d.get("observation_kind"),
+                    "observation_range": d.get("observation_range"),
                 }
                 slice_["changes"].append(entry)
                 entity = g.get_entity(place)
@@ -210,6 +218,25 @@ class CascadeSystem(ContextSystem):
                 errs.append(ValidationError(
                     section="world", field=f"[{i}].summary", code="missing",
                     hint="world 段每项必须给出 summary（一句话事件描述）"))
+            public_observation = item.get("public_observation", False)
+            if not isinstance(public_observation, bool):
+                errs.append(ValidationError(
+                    section="world", field=f"[{i}].public_observation", code="bad_type",
+                    hint="public_observation 必须是布尔值"))
+            elif public_observation:
+                if item.get("visibility") != "public":
+                    errs.append(ValidationError(
+                        section="world", field=f"[{i}].visibility", code="bad_enum",
+                        hint="公开地点观察必须显式 visibility='public'"))
+                if item.get("observation_kind") not in {"stable_layout", "single_observation"}:
+                    errs.append(ValidationError(
+                        section="world", field=f"[{i}].observation_kind", code="bad_enum",
+                        hint="公开地点观察的 observation_kind 必须为 stable_layout 或 single_observation"))
+                observation_range = item.get("observation_range")
+                if not isinstance(observation_range, str) or not observation_range.strip():
+                    errs.append(ValidationError(
+                        section="world", field=f"[{i}].observation_range", code="missing",
+                        hint="公开地点观察必须说明其可观察范围"))
         return errs
 
     def to_events(self, section: str, decl, *, turn: int, day: int, scene: str) -> list:
@@ -225,9 +252,18 @@ class CascadeSystem(ContextSystem):
             summary = item.get("summary", "")
             level = item.get("level", 1)
             for area in item.get("areas") or []:
+                deltas = {"place": area, "level": level, "summary": summary}
+                if item.get("public_observation") is True:
+                    deltas.update({
+                        "source": "author_world",
+                        "visibility": "public",
+                        "public_observation": True,
+                        "observation_kind": item.get("observation_kind"),
+                        "observation_range": item.get("observation_range"),
+                    })
                 out.append(kernel_event(
                     "world_change", day=day, scene=scene, summary=summary,
-                    deltas={"place": area, "level": level, "summary": summary},
+                    deltas=deltas,
                     turn=turn,
                 ))
         return out
