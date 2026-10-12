@@ -1,6 +1,7 @@
 """Persistence, rewind and visibility guarantees at the real engine boundary."""
 import json
 import asyncio
+import sqlite3
 from dataclasses import asdict
 import pytest
 
@@ -178,6 +179,65 @@ def test_duplicate_action_does_not_overwrite_original_result_metadata(engine):
     ).fetchone()
     assert receipt['duplicate']
     assert json.loads(stored['metadata']) == original
+
+
+def test_action_result_metadata_sidecar_is_created_for_legacy_database(tmp_path):
+    db_path = tmp_path / 'legacy.db'
+    with sqlite3.connect(db_path) as legacy:
+        legacy.execute('''CREATE TABLE action_receipts (
+            action_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
+            first_seq INTEGER NOT NULL, last_seq INTEGER NOT NULL, revision INTEGER NOT NULL
+        )''')
+
+    with EventStore(db_path, tmp_path / 'legacy.jsonl') as store:
+        store.append_many(
+            [event('world_fact', subject='hero', predicate='coins', value=7)], action_id='legacy-sidecar',
+            result_metadata={'version': 1, 'outcome': 'saved'})
+        row = store._conn.execute(
+            'SELECT metadata FROM action_result_metadata WHERE action_id=?', ('legacy-sidecar',)
+        ).fetchone()
+
+    assert json.loads(row['metadata']) == {'version': 1, 'outcome': 'saved'}
+
+
+def test_action_result_metadata_requires_action_id_before_transaction(engine):
+    before = list(engine.store.iter_events(include_retracted=True))
+    revision = engine.store.revision
+
+    with pytest.raises(ValueError, match='requires action_id'):
+        engine.store.append_many(
+            [event(subject='hero', predicate='coins', value=7)],
+            result_metadata={'version': 1, 'outcome': 'orphan'})
+
+    assert list(engine.store.iter_events(include_retracted=True)) == before
+    assert engine.store.revision == revision
+    assert engine.store._conn.execute('SELECT COUNT(*) FROM action_result_metadata').fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('metadata', [
+    [],
+    {},
+    {'version': True},
+    {'version': 1, 'outcome': object()},
+    {'version': 1, 'score': float('nan')},
+])
+def test_invalid_action_result_metadata_is_rejected_without_writes(engine, metadata):
+    before = list(engine.store.iter_events(include_retracted=True))
+    revision = engine.store.revision
+
+    with pytest.raises(ValueError):
+        engine.store.append_many(
+            [event(subject='hero', predicate='coins', value=7)], action_id='invalid-metadata',
+            result_metadata=metadata)
+
+    assert list(engine.store.iter_events(include_retracted=True)) == before
+    assert engine.store.revision == revision
+    assert engine.store._conn.execute(
+        'SELECT 1 FROM action_receipts WHERE action_id=?', ('invalid-metadata',)
+    ).fetchone() is None
+    assert engine.store._conn.execute(
+        'SELECT 1 FROM action_result_metadata WHERE action_id=?', ('invalid-metadata',)
+    ).fetchone() is None
 
 
 def test_concurrent_snapshot_and_undo_cannot_accept_stale_proposals(engine):
