@@ -378,6 +378,21 @@ def test_backstop_flags_dormant_when_no_active_thread():
         store.close()
 
 
+@pytest.mark.parametrize("advance,days,bands", [(False, 0, 0), (True, 0, 1)])
+def test_backstop_ignores_clock_records_without_a_story_development(advance, days, bands):
+    """Clock bookkeeping must not manufacture a dormant quest by itself."""
+    from loop.fleet import backstop_quests
+    reg = _reg_full()
+    store = _store(reg)
+    try:
+        clock = kernel_event("clock_advanced", day=1, scene="s1", summary="clock", deltas={
+            "advance": advance, "days": days, "bands": bands, "reason": "test clock",
+        }, turn=1)
+        assert backstop_quests(project(reg, store.iter_events()), [clock]) is None
+    finally:
+        store.close()
+
+
 def test_backstop_silent_when_active_thread_exists():
     from loop.fleet import digest_fleet
     reg = _reg_full()

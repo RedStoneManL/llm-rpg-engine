@@ -148,10 +148,17 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     if any(ln.get("state") == "明" for ln in lines.values()):
         return None
 
-    # Find the most-significant new event
+    # Clock records are bookkeeping for every authored turn, including an
+    # explicit no-advance conversation.  They are not player developments and
+    # must not become the sole reason to manufacture a dormant quest merely
+    # because the generic importance fallback sees non-empty deltas.
+    candidate_events = [event for event in new_events if event.get("type") != "clock_advanced"]
+
+    # Find the most-significant player/world development among the remaining
+    # foreground events.
     best_ev = None
     best_floor = 0
-    for ev in new_events:
+    for ev in candidate_events:
         floor = importance_mod.heuristic_floor(ev)
         if floor > best_floor:
             best_floor = floor
