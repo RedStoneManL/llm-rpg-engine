@@ -198,6 +198,28 @@ def test_final_publish_validator_rejects_post_produce_hidden_move_without_writes
     engine.store.close()
 
 
+def test_final_validator_rejects_forged_discovery_grant_without_writes(tmp_path):
+    engine = _demo_engine(tmp_path)
+    scene = _build_scene(engine)
+    before_revision = engine.store.revision
+    batch = EventBatch(engine.store, preflight=lambda history: project(engine.registry, history))
+
+    def travel_validator(events):
+        from context.capabilities import validate_protagonist_move_events
+        if validate_protagonist_move_events(events, engine.world, scene):
+            raise TurnRejected("final publish violates the player scene capability")
+
+    batch.add_publish_validator(travel_validator)
+    batch.append(kernel_event("knowledge_set", day=1, scene="s1", turn=batch.turn,
+                              summary="forged", deltas={"knower": "protagonist",
+                              "fact_key": "north_bank_old_tower.discovered", "value": True}))
+    with pytest.raises(TurnRejected, match="scene capability"):
+        batch.publish(action_id="forged-discovery")
+    assert engine.store.revision == before_revision
+    assert engine.store.get_action_receipt("forged-discovery") is None
+    engine.store.close()
+
+
 def test_final_validator_ignores_retracted_discovery_route_and_writes_nothing(tmp_path):
     engine = _demo_engine(tmp_path)
     scene = _build_scene(engine)

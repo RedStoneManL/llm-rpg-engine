@@ -30,7 +30,7 @@ from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
-from context.capabilities import validate_protagonist_move_events, validate_protagonist_moves
+from context.capabilities import discovery_grant_errors, validate_protagonist_move_events, validate_protagonist_moves
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
 
@@ -272,6 +272,7 @@ def produce_turn(
     max_repairs: int = 3,
     required_sections: frozenset = frozenset(),
     enforce_player_travel: bool = False,
+    trusted_discovery_keys=frozenset(),
 ) -> tuple:
     """Produce a validated TurnCommit without writing to the store.
 
@@ -340,6 +341,7 @@ def produce_turn(
             registry, commit, world, required_sections=required_sections,
         )
         if enforce_player_travel:
+            candidate_errors.extend(discovery_grant_errors(commit, scene.get("protagonist"), trusted_discovery_keys))
             travel_errors = validate_protagonist_moves(
                 commit, world, scene,
                 narration_rewrite_from=travel_narration_baseline,
@@ -491,6 +493,7 @@ def _run_turn_staged(
     memory_generator=None,
     trusted_memory_role=None,
     enforce_player_travel: bool = False,
+    trusted_discovery_keys=frozenset(),
 ) -> TurnResult:
     """Run one complete turn: produce → validate/repair → drop → events → append → project.
 
@@ -525,6 +528,7 @@ def _run_turn_staged(
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
             enforce_player_travel=enforce_player_travel,
+            trusted_discovery_keys=trusted_discovery_keys,
         )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
@@ -739,7 +743,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              embedder=None, max_repairs=3, required_sections=frozenset(),
              cascade_provider=None, catchup_provider=None, prev_scene=None,
              action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
-             host_envelope=None, enforce_player_travel: bool = False) -> TurnResult:
+             host_envelope=None, enforce_player_travel: bool = False,
+             trusted_discovery_keys=frozenset()) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
@@ -767,7 +772,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
     if enforce_player_travel:
         def validate_travel_payload(events):
-            errors = validate_protagonist_move_events(events, travel_world, travel_scene)
+            errors = validate_protagonist_move_events(events, travel_world, travel_scene,
+                                                       trusted_keys=trusted_discovery_keys)
             if errors:
                 raise TurnRejected("final publish violates the player scene capability")
         batch.add_publish_validator(validate_travel_payload)
@@ -795,7 +801,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             max_repairs=max_repairs, required_sections=required_sections,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
             prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
-            trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel)
+            trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel,
+            trusted_discovery_keys=trusted_discovery_keys)
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

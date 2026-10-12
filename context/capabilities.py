@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from context.access import pov_world
+from systems.knowledge import place_discovery_key, route_discovery_key
 from kernel.contextsystem import ValidationError
 
 
@@ -132,6 +133,22 @@ def _new_place_route(commit, world: dict, origin: str, destination: str) -> bool
     return False
 
 
+def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) -> list[ValidationError]:
+    """Discovery is host authority, never an author-declared capability."""
+    errors = []
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("knowledge") or []):
+        if not isinstance(item, dict) or item.get("knower") != actor:
+            continue
+        op = item.get("op")
+        key = (place_discovery_key(item["place"]) if op == "discover_place" and isinstance(item.get("place"), str)
+               else route_discovery_key(item["a"], item["b"]) if op == "discover_route" and isinstance(item.get("a"), str) and isinstance(item.get("b"), str)
+               else item.get("fact_key"))
+        if isinstance(key, str) and key.endswith(".discovered") and key not in trusted_keys:
+            errors.append(ValidationError("knowledge", f"[{index}]", "untrusted_discovery",
+                                          "地点或路线发现必须由可信宿主授权，不能由作者声明。"))
+    return errors
+
+
 def validate_protagonist_moves(
     commit,
     world: dict,
@@ -195,12 +212,20 @@ def validate_protagonist_moves(
     return errors
 
 
-def validate_protagonist_move_events(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+def validate_protagonist_move_events(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
     """Recheck final publish payloads so later staging cannot bypass the contract."""
     capability = scene_capabilities(world, scene)
     if not capability.actor:
         return []
     allowed = capability.allowed_move_ids | {capability.location}
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        delta = event.get("deltas") or {}
+        if (event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor
+                and isinstance(delta.get("fact_key"), str) and delta["fact_key"].endswith(".discovered")
+                and delta["fact_key"] not in trusted_keys):
+            errors.append(ValidationError("knowledge", f"event[{index}]", "untrusted_discovery",
+                                          "最终 payload 含未经宿主授权的发现权限。"))
     # Final payloads use the same effective-event semantics as projection:
     # events marked retracted are not allowed to create a discoverable place or
     # route for an otherwise invalid move.
@@ -216,7 +241,6 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
         frozenset({(event.get("deltas") or {}).get("a"), (event.get("deltas") or {}).get("b")})
         for event in active_events if event.get("type") == "place_linked"
     }
-    errors: list[ValidationError] = []
     for index, event in enumerate(events):
         if event.get("type") != "entity_moved":
             continue
