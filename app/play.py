@@ -488,6 +488,18 @@ def play_loop(
                 variation = prepare_variation(engine.registry, engine.world, scene, engine.store.next_turn())
                 if variation:
                     scene = {**scene, '_variation_prompt':variation_fragment(variation)}
+                # ``run_compare`` produces candidates before ``run_turn``
+                # creates its EventBatch.  Give both candidates the same
+                # pre-rendered redacted projection that normal AuthorStrategy
+                # receives later; no raw EventStore row enters a scene.
+                from context.assembler import safe_authoring_handoff
+                scene = {
+                    **scene,
+                    '_safe_authoring_handoff': safe_authoring_handoff(
+                        engine.world, scene,
+                        trusted_events=tuple(engine.store.iter_events(include_retracted=True)),
+                    ),
+                }
                 spinner = _Spinner(out)
                 spinner.start()
                 try:

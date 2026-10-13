@@ -52,7 +52,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
-| RCV-13 | P0 | 已验收（a715e09 WIP 已由后续 commit 替代） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
+| RCV-13 | P0 | 已验收（普通作者安全材料闭环） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界，并复用条件化公开到达/可信原话投影 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -733,3 +733,22 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `tests/scripts/test_native_turn_tools.py tests/test_action_integrity.py -rA` 为 **`97 passed in 2.77s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1894 passed, 1 deselected in 22.07s`**。
   唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络，未启用 B1/profiling、未 push/PR/部署或导入新真实作者候选。
+
+- 2026-10-13：RCV-13 的普通作者上下文补齐不复制 native policy，也不把 GM/原始 event store 交给模型。普通 CLI
+  `AuthorStrategy`、正常 `PlayerDashboard`，以及 compare 的 Author/Hybrid 候选现在复用
+  `native_authoring_context` 的同一安全来源：仅公开、可见人物的可归因材料，和仅由 `scene_capabilities` 枚举的条件化公开到达资料。
+  每个 `run_turn` 在策略调用前立即把活动事件快照投影为 `_safe_authoring_handoff` 这一段受限文本；raw events 不进入策略 scene、
+  provider tool closure、GUI host envelope、action fingerprint 或 result sidecar。compare 在候选生成前走同样的预渲染投影。
+
+  条件行明确不是行动开始时主角知识；它只列出既有合法公开出口，最终实际移动仍通过既有
+  `enforce_player_travel` 发布校验。实现不从自由叙事做不可靠的“声称已抵达”自然语言解析；因此本项保证的是结构化移动与资料来源边界，
+  不是对任意模型散文的通用事实判定器。可信 NPC 原话只在可信 active `knowledge_set` event 精确回验后进入投影；普通玩家输入仍不
+  自动生成 receipt，模型伪造 `heard_player` 会在共同发布边界整 turn 拒绝。旧 context 直接调用保留无回执的兼容投影。
+
+  新真实入口回归覆盖 CLI 合法抵达、普通 GUI action、compare 双候选的同一安全材料，隐藏人物 ID/私有 sentinel 不入 prompt/sidecar，
+  以及自然语言输入不能签发 `heard_player`。专项
+  `tests/app/test_normal_authoring_safe_context.py tests/app/test_play.py tests/app/test_gui.py tests/context/test_assembler.py tests/scripts/test_native_turn_tools.py tests/loop/test_compare.py -rA`
+  为 **`78 passed in 2.76s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1898 passed, 1 deselected in 26.12s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络，未启用
+  B1/profiling、未 push/PR/部署或导入新的真实作者候选。

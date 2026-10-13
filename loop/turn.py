@@ -862,6 +862,20 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         if variation:
             batch.append(variation)
             scene = {**scene, '_variation_prompt': variation_fragment(variation)}
+        # Normal CLI/GUI authors may reuse only the same redacted conditional
+        # arrival and recipient-recall projection used by native hand-off.
+        # Project the active EventStore snapshot immediately to bounded text:
+        # raw rows never enter a strategy scene, provider tool closure, GUI
+        # host envelope, fingerprint, or result sidecar.  This also cannot
+        # mint a player-statement receipt from natural-language input.
+        from context.assembler import safe_authoring_handoff
+        scene = {
+            **scene,
+            '_safe_authoring_handoff': safe_authoring_handoff(
+                world, scene,
+                trusted_events=tuple(copy.deepcopy(event) for event in batch.iter_events(include_retracted=True)),
+            ),
+        }
         result = _run_turn_staged(registry, batch, world, scene, player_input,
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,

@@ -35,12 +35,83 @@ from facts.graph import FactGraph
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from context.place_observations import public_place_observations
+from context.native_authoring import native_authoring_context
 from engine.log import get_logger
 import systems.narrative as nmod
 
 log = get_logger("context.assembler")
 
 _GUARDRAIL_TAG = "⚠️只约束·勿泄露"
+
+
+def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=()) -> str:
+    """Render the normal author's narrow share of native-safe scene material.
+
+    A store-owning host may supply a private, in-memory active-event snapshot.
+    This function immediately projects it through ``native_authoring_context``;
+    its return value is safe text, never a snapshot.  It neither grants a
+    communication receipt nor reads canonical destination state directly.
+    Direct assembler callers simply get the same public-arrival material
+    without the optional verified-word recall.
+    """
+    if not isinstance(trusted_events, (tuple, list)):
+        trusted_events = ()
+    safe = native_authoring_context(world, scene, trusted_events=trusted_events)
+    current_people = safe.get("present_people", [])
+    arrivals = safe.get("conditional_arrivals", [])
+    lines: list[str] = []
+
+    def evidence_lines(people, *, prefix: str) -> list[str]:
+        rendered: list[str] = []
+        for person in people:
+            if not isinstance(person, dict) or not isinstance(person.get("id"), str):
+                continue
+            for evidence in person.get("speakable_evidence", []):
+                if not isinstance(evidence, dict):
+                    continue
+                key, value, source = evidence.get("fact_key"), evidence.get("value"), evidence.get("source")
+                if not all(isinstance(item, str) and item for item in (key, value, source)):
+                    continue
+                if source == "recipient_heard_player_statement":
+                    rendered.append(
+                        f"- {prefix}{person['id']} 已被可信事件验证为听过主角原话：{value}"
+                        "（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。"
+                    )
+                else:
+                    rendered.append(f"- {prefix}{person['id']} 的公开可归因材料：{key} = {value}（{source}）。")
+        return rendered
+
+    current_evidence = evidence_lines(current_people, prefix="当前同场人物 ")
+    if current_evidence:
+        lines.append("【安全交谈材料·当前场景】")
+        lines.extend(current_evidence)
+
+    arrival_lines: list[str] = []
+    actor = scene.get("protagonist")
+    for arrival in arrivals:
+        if not isinstance(arrival, dict):
+            continue
+        move, location, people = arrival.get("move"), arrival.get("location"), arrival.get("present_people")
+        if not (isinstance(move, dict) and isinstance(location, dict) and isinstance(people, list)):
+            continue
+        destination = move.get("to")
+        if not isinstance(destination, str) or move.get("who") != actor:
+            continue
+        person_ids = [person["id"] for person in people
+                      if isinstance(person, dict) and isinstance(person.get("id"), str)]
+        if not person_ids:
+            continue
+        label = location.get("label") if isinstance(location.get("label"), str) else destination
+        arrival_lines.append(
+            f"- 若本回合 moves 同时使 {actor} 合法抵达 {destination}（{label}），抵达后可出现："
+            + "、".join(person_ids) + "。"
+        )
+        arrival_lines.extend(evidence_lines(people, prefix=f"仅抵达 {destination} 后，人物 "))
+    if arrival_lines:
+        lines.append("【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。")
+        lines.extend(arrival_lines)
+
+    return "\n".join(lines)
 
 
 def assemble_context(
@@ -66,9 +137,10 @@ def assemble_context(
     Returns:
         A single string with stable→scene→volatile cache layer ordering.
     """
-    capabilities = scene_capabilities(world, scene)
-    observations = public_place_observations(world, scene)
-    world = pov_world(world, scene)
+    source_world = world
+    capabilities = scene_capabilities(source_world, scene)
+    observations = public_place_observations(source_world, scene)
+    world = pov_world(source_world, scene)
     # ------------------------------------------------------------------
     # Step 1: per-system inject fragments (already layer-sorted)
     # ------------------------------------------------------------------
@@ -193,6 +265,15 @@ def assemble_context(
                 f"第{item['day']}天/turn {item['turn']}：{item['summary']}"
             )
         base += "\n" + "\n".join(observation_lines)
+
+    # Store-owning entry points pre-render a bounded, redacted supplement.
+    # This deliberately keeps raw EventStore rows out of the ordinary scene,
+    # provider tool closures, action fingerprints, and persistence metadata.
+    authoring_handoff = scene.get("_safe_authoring_handoff")
+    if not isinstance(authoring_handoff, str):
+        authoring_handoff = safe_authoring_handoff(source_world, scene)
+    if authoring_handoff:
+        base += ("\n\n" if base else "") + authoring_handoff
 
     # ------------------------------------------------------------------
     # Step 4a: Recap stable-summary block (PUSH, spec §1 — query-independent)
