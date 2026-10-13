@@ -8,7 +8,7 @@ import pytest
 
 import app.engine as engine_module
 import app.gui as gui
-from app.engine import build_engine
+from app.engine import build_engine, rewind
 from app.gui import (GuiRequestError, PlayerDashboard, _seed_demo_campaign,
                      GmDashboard, build_dashboard, build_gm_state,
                      build_player_state, make_app)
@@ -76,6 +76,70 @@ def test_dashboard_does_not_serialize_secret_or_private_memory(tmp_path):
     assert "PRIVATE_GUI_MEMORY_SENTINEL" not in payload
     assert "interpretive_memory" not in payload
     engine.store.close()
+
+
+def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp_path):
+    """The player DTO is a read model, not a second task-writing path."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    engine = dashboard.engine
+    engine.store.append_many([
+        kernel_event("fact_asserted", day=1, scene="s1", turn=1, summary="新的长期目标",
+                     deltas={"subject": "protagonist", "predicate": "目标",
+                             "value": "在集市确认渡口的消息来源", "secrecy": "public"}),
+        kernel_event("quest_opened", day=1, scene="s1", turn=1, summary="公开任务",
+                     deltas={"id": "verify_ferry_report", "summary": "向可信目击者核实渡口消息",
+                             "secret": "GUI_OBJECTIVE_PRIVATE_SENTINEL"}),
+        kernel_event("lore_created", day=1, scene="s1", turn=1, summary="暗线",
+                     deltas={"id": "hidden_tower_thread", "about": "GUI_OBJECTIVE_DARK_SENTINEL",
+                             "secret": "GUI_OBJECTIVE_PRIVATE_SENTINEL", "state": "暗"}),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+
+    opened = dashboard.state()
+    assert opened["objectives"] == {
+        "long_term_goal": "在集市确认渡口的消息来源",
+        "active_quests": [{"id": "verify_ferry_report", "summary": "向可信目击者核实渡口消息"}],
+    }
+    assert "GUI_OBJECTIVE_PRIVATE_SENTINEL" not in json.dumps(opened, ensure_ascii=False)
+    assert "GUI_OBJECTIVE_DARK_SENTINEL" not in json.dumps(opened, ensure_ascii=False)
+    status, refreshed = _get_wsgi(make_app(dashboard), "/api/state")
+    assert status.startswith("200")
+    assert json.loads(refreshed.decode("utf-8"))["objectives"] == opened["objectives"]
+
+    engine.store.append_many([
+        kernel_event("quest_advanced", day=1, scene="s1", turn=2, summary="推进任务",
+                     deltas={"id": "verify_ferry_report", "summary": "已找到可核实的目击者"}),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    assert dashboard.state()["objectives"]["active_quests"] == [
+        {"id": "verify_ferry_report", "summary": "已找到可核实的目击者"},
+    ]
+
+    engine.store.append_many([
+        kernel_event("quest_resolved", day=1, scene="s1", turn=3, summary="任务完成",
+                     deltas={"id": "verify_ferry_report", "by": "player"}),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    assert dashboard.state()["objectives"]["active_quests"] == []
+
+    rewind(engine, 3)
+    assert dashboard.state()["objectives"]["active_quests"] == [
+        {"id": "verify_ferry_report", "summary": "已找到可核实的目击者"},
+    ]
+    rewind(engine, 2)
+    assert dashboard.state()["objectives"]["active_quests"] == [
+        {"id": "verify_ferry_report", "summary": "向可信目击者核实渡口消息"},
+    ]
+    engine.store.close()
+
+    reopened = build_dashboard(campaign, demo=True)
+    assert reopened.state()["objectives"] == opened["objectives"]
+    assert "目标与任务" in gui._INDEX
+    reopened.engine.store.close()
 
 
 @pytest.mark.parametrize("kwargs", [

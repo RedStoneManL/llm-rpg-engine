@@ -162,6 +162,40 @@ def _public_codex(world: dict[str, Any]) -> list[dict[str, str]]:
             for item in entries if isinstance(item, dict)]
 
 
+def _player_goal_and_quests(view: dict[str, Any], protagonist: str | None) -> dict[str, Any]:
+    """Return the small, player-facing long-horizon slice for the dashboard.
+
+    ``view`` is already the protagonist's POV projection.  The goal is read
+    from that projected protagonist only; tasks deliberately expose just the
+    LoreSystem's already-public 明-state one-line ledger, never a lore line's
+    hidden fields, stages, or raw event provenance.
+    """
+    systems = view.get("systems")
+    systems = systems if isinstance(systems, dict) else {}
+    graph = systems.get("ontology")
+    goal: str | None = None
+    if graph is not None and isinstance(protagonist, str):
+        entity = graph.get_entity(protagonist)
+        if entity is not None and isinstance(entity.attrs.get("goal"), str):
+            goal = entity.attrs["goal"]
+        for fact in graph.current_facts(protagonist):
+            if fact.predicate in {"目标", "goal"} and isinstance(fact.value, str):
+                goal = fact.value
+
+    lore = systems.get("lore")
+    lore = lore if isinstance(lore, dict) else {}
+    lines = lore.get("lines", {})
+    quests: list[dict[str, str]] = []
+    if isinstance(lines, dict):
+        for quest_id, line in sorted(lines.items()):
+            if not isinstance(quest_id, str) or not isinstance(line, dict):
+                continue
+            if line.get("state") != "明" or not isinstance(line.get("summary"), str):
+                continue
+            quests.append({"id": quest_id, "summary": line["summary"]})
+    return {"long_term_goal": goal, "active_quests": quests}
+
+
 def build_player_state(engine) -> dict[str, Any]:
     """Build the narrow, player-safe JSON DTO used by the browser.
 
@@ -203,6 +237,7 @@ def build_player_state(engine) -> dict[str, Any]:
             if isinstance(text, str):
                 narrations.append(text)
     codex = _public_codex(engine.world)
+    objectives = _player_goal_and_quests(view, protagonist)
     # This is deliberately the same redacted current-scene projection used to
     # decide whether a host may issue a ``heard_player`` receipt.  It exposes
     # no arbitrary NPC beliefs and never includes arrival-only recipients.
@@ -220,6 +255,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "scene": {"day": day, "location": places.get(scene.get("location")), "exits": exits},
         "map": map_data,
         "character": {"id": protagonist, "facts": character_facts},
+        "objectives": objectives,
         "inventory": inventory,
         "narration": narrations[-8:],
         "codex": codex,
@@ -506,6 +542,7 @@ _INDEX = _INDEX.replace(
 )
 _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
+_INDEX = _INDEX.replace('<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article>', '<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article><article class="panel"><h2>目标与任务</h2><p id="long-term-goal"></p><ul id="active-quests"></ul></article>')
 _INDEX = _INDEX.replace(
     '</textarea><div class="actions">',
     '</textarea><fieldset class="speech"><legend>明确说出原话（可选）</legend><label for="speech-recipient">当前公开同场收件人</label><select id="speech-recipient"><option value="">不记录对话</option></select><label for="speech-statement">逐字原话</label><textarea id="speech-statement" maxlength="2000" placeholder="只填写愿意让所选角色准确记住的一句话。"></textarea><p class="hint">只有同时明确选择收件人和原话时，宿主才会签发本回合的单一通信收据；普通行动文字不会自动变成对话。</p></fieldset><div class="actions">',
@@ -518,7 +555,7 @@ function renderSpeechRecipients(items){const select=$('speech-recipient'),old=se
 function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(pendingKey);return null}}
 function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}
 function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}
-function render(s){state=s;renderSpeechRecipients(s.speech_recipients);clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
+function render(s){state=s;renderSpeechRecipients(s.speech_recipients);clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));const objectives=s.objectives||{},goal=$('long-term-goal'),quests=$('active-quests');goal.textContent=objectives.long_term_goal?`长期目标：${objectives.long_term_goal}`:'长期目标尚未记录。';clear(quests);const active=Array.isArray(objectives.active_quests)?objectives.active_quests:[];if(!active.length)quests.append(el('li','当前没有公开进行中的任务。'));active.forEach(x=>quests.append(el('li',`${x.summary}（${x.id}）`)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
 async function api(url,options){const r=await fetch(url,options);let data;try{data=await r.json()}catch(_){const e=new Error('响应格式错误，请刷新页面。');e.confirmedRejection=false;throw e}if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}return data}
 async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});if(!d||d.ok!==true||!d.state||!Number.isInteger(d.revision))throw new Error('响应未确认，请刷新页面后恢复上次请求。');render(d.state);sessionStorage.removeItem(pendingKey);syncPending();$('action-input').value='';$('speech-statement').value='';$('speech-recipient').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){if(err.confirmedRejection){sessionStorage.removeItem(pendingKey);syncPending();setStatus(`请求已被服务器拒绝，未提交。请修改后再试。${err.message}`,true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally{setBusy(false)}}
 async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}
