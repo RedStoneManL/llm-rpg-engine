@@ -311,6 +311,158 @@ def player_turn_knowledge_event_errors(
     return errors
 
 
+def _declared_discovery_keys(commit, actor: str | None) -> frozenset[str]:
+    """Return truthy discovery keys declared for this exact candidate.
+
+    The host still owns authorization; this helper only lets the world-observation
+    boundary use the same same-turn route semantics as move validation.
+    """
+    values = {}
+    for item in (getattr(commit, "sections", {}) or {}).get("knowledge") or []:
+        if not isinstance(item, dict) or item.get("knower") != actor:
+            continue
+        key = (place_discovery_key(item.get("place")) if item.get("op") == "discover_place"
+               else route_discovery_key(item.get("a"), item.get("b"))
+               if item.get("op") == "discover_route" else item.get("fact_key"))
+        if isinstance(key, str) and key.endswith(".discovered"):
+            values[key] = item.get("value", True)
+    return frozenset(key for key, value in values.items() if value is True)
+
+
+def _candidate_observation_places(commit, world: dict, scene: dict, *, trusted_keys=frozenset()) -> frozenset[str]:
+    """Return locations an ordinary player candidate may observe this turn.
+
+    This intentionally uses the player POV capability rather than the canonical
+    graph.  A fresh directly-linked place and a host-authorized discovered route
+    remain valid only when the candidate also moves the protagonist there.
+    """
+    capability = scene_capabilities(world, scene)
+    if not capability.actor or not capability.location:
+        return frozenset()
+    visible = {place.id for place in capability.places}
+    allowed = ({capability.location} if capability.location in visible else set())
+    effective_keys = _declared_discovery_keys(commit, capability.actor)
+    for move in (getattr(commit, "sections", {}) or {}).get("moves") or []:
+        if not isinstance(move, dict) or move.get("who") != capability.actor:
+            continue
+        destination = move.get("to")
+        if not isinstance(destination, str):
+            continue
+        if (destination in capability.allowed_move_ids
+                or _new_place_route(commit, world, capability.location, destination)
+                or _host_discovered_route(world, capability.location, destination,
+                                          trusted_keys, effective_keys)):
+            allowed.add(destination)
+    return frozenset(allowed)
+
+
+def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
+    """Constrain ordinary-player world writes to local public observations.
+
+    A normal player author receives a redacted, action-start POV, not director
+    access to the canonical world.  It may record a bounded observation at the
+    current place or a legal same-turn destination, but may not turn prose into
+    a remote/hidden world change or trigger a global cascade.  Trusted native
+    import and host/director paths opt in separately and do not use this guard.
+    """
+    allowed_places = _candidate_observation_places(commit, world, scene,
+                                                    trusted_keys=trusted_keys)
+    errors: list[ValidationError] = []
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("world") or []):
+        if not isinstance(item, dict):
+            errors.append(ValidationError("world", f"[{index}]", "player_world_observation_boundary",
+                                          "普通玩家回合的 world 段只能是本地公开观察。"))
+            continue
+        areas = item.get("areas")
+        if (not isinstance(areas, list) or len(areas) != 1
+                or not isinstance(areas[0], str) or areas[0] not in allowed_places):
+            errors.append(ValidationError("world", f"[{index}].areas", "player_world_observation_boundary",
+                                          "普通玩家回合只能观察 action-start 或合法同回合到达的公开地点。"))
+        if item.get("public_observation") is not True or item.get("visibility") != "public":
+            errors.append(ValidationError("world", f"[{index}]", "player_world_observation_boundary",
+                                          "普通玩家的 world 段必须显式标为公开观察。"))
+        if item.get("observation_kind") not in {"stable_layout", "single_observation"}:
+            errors.append(ValidationError("world", f"[{index}].observation_kind", "player_world_observation_boundary",
+                                          "普通玩家的公开观察需要稳定布局或单次观察类型。"))
+        if not isinstance(item.get("observation_range"), str) or not item["observation_range"].strip():
+            errors.append(ValidationError("world", f"[{index}].observation_range", "player_world_observation_boundary",
+                                          "普通玩家的公开观察需要说明可见范围。"))
+        if type(item.get("level")) is not int or item["level"] != 1:
+            errors.append(ValidationError("world", f"[{index}].level", "player_world_observation_boundary",
+                                          "普通玩家的公开观察只能使用 level=1，不能触发全局级联。"))
+    return errors
+
+
+def _event_observation_places(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> frozenset[str]:
+    """Final-payload equivalent of :func:`_candidate_observation_places`."""
+    capability = scene_capabilities(world, scene)
+    if not capability.actor or not capability.location:
+        return frozenset()
+    visible = {place.id for place in capability.places}
+    allowed = ({capability.location} if capability.location in visible else set())
+    active = [event for event in events if isinstance(event, dict) and not event.get("retracted")]
+    grant_values = {}
+    for event in active:
+        delta = event.get("deltas") or {}
+        if event.get("type") == "knowledge_set" and delta.get("knower") == capability.actor:
+            key = delta.get("fact_key")
+            if isinstance(key, str) and key.endswith(".discovered"):
+                grant_values[key] = delta.get("value")
+    effective_keys = frozenset(key for key, value in grant_values.items() if value is True)
+    canonical = world.get("systems", {}).get("ontology")
+    created = {
+        (event.get("deltas") or {}).get("id")
+        for event in active if event.get("type") == "place_created"
+        and (canonical is None or canonical.get_entity((event.get("deltas") or {}).get("id")) is None)
+    }
+    direct_links = {
+        frozenset({(event.get("deltas") or {}).get("a"), (event.get("deltas") or {}).get("b")})
+        for event in active if event.get("type") == "place_linked"
+    }
+    for event in active:
+        if event.get("type") != "entity_moved":
+            continue
+        delta = event.get("deltas") or {}
+        if delta.get("who") != capability.actor:
+            continue
+        destination = delta.get("to")
+        if not isinstance(destination, str):
+            continue
+        if (destination in capability.allowed_move_ids
+                or (destination in created
+                    and frozenset((capability.location, destination)) in direct_links)
+                or _host_discovered_route(world, capability.location, destination,
+                                          trusted_keys, effective_keys)):
+            allowed.add(destination)
+    return frozenset(allowed)
+
+
+def player_turn_world_event_errors(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
+    """Final-payload guard for ordinary-player public place observations."""
+    allowed_places = _event_observation_places(events, world, scene, trusted_keys=trusted_keys)
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted") or event.get("type") != "world_change":
+            continue
+        delta = event.get("deltas")
+        if not isinstance(delta, dict):
+            errors.append(ValidationError("world", f"event[{index}]", "player_world_observation_boundary",
+                                          "普通玩家回合的最终 world 事件必须是本地公开观察。"))
+            continue
+        if (delta.get("place") not in allowed_places
+                or delta.get("source") != "author_world"
+                or delta.get("visibility") != "public"
+                or delta.get("public_observation") is not True
+                or delta.get("observation_kind") not in {"stable_layout", "single_observation"}
+                or not isinstance(delta.get("observation_range"), str)
+                or not delta["observation_range"].strip()
+                or type(delta.get("level")) is not int or delta["level"] != 1
+                or not isinstance(delta.get("summary"), str) or not delta["summary"].strip()):
+            errors.append(ValidationError("world", f"event[{index}]", "player_world_observation_boundary",
+                                          "普通玩家回合的最终 world 事件越过了本地公开观察边界。"))
+    return errors
+
+
 def validate_protagonist_moves(
     commit,
     world: dict,

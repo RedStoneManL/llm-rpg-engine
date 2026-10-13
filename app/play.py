@@ -544,6 +544,7 @@ def play_loop(
                         required_sections=required_sections,
                         enforce_player_travel=True,
                         enforce_player_knowledge_authority=True,
+                        enforce_player_world_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
@@ -565,6 +566,7 @@ def play_loop(
                     memory_generator=engine.interpretive_memory_generator,
                     enforce_player_travel=True,
                     enforce_player_knowledge_authority=True,
+                    enforce_player_world_authority=True,
                     trusted_player_statement_receipts=trusted_player_statement_receipts)
                 turn_published = True
                 engine.world = applied.world
@@ -604,6 +606,7 @@ def play_loop(
                         memory_generator=engine.interpretive_memory_generator,
                         enforce_player_travel=True,
                         enforce_player_knowledge_authority=True,
+                        enforce_player_world_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:

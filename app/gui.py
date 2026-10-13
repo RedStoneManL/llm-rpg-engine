@@ -505,6 +505,7 @@ class PlayerDashboard:
                 },
                 enforce_player_travel=True,
                 enforce_player_knowledge_authority=True,
+                enforce_player_world_authority=True,
                 trusted_player_statement_receipts=context.trusted_player_statement_receipts,
             )
             self.engine.world = result.world

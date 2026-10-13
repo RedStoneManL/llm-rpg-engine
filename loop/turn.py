@@ -32,6 +32,7 @@ from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
 from context.capabilities import (discovery_grant_errors, player_turn_knowledge_errors,
                                   player_turn_knowledge_event_errors,
+                                  player_turn_world_errors, player_turn_world_event_errors,
                                   validate_protagonist_move_events, validate_protagonist_moves)
 from context.native_authoring import (player_statement_receipt_errors,
                                       player_statement_receipt_event_errors)
@@ -130,7 +131,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
                               trusted_discovery_keys=frozenset(),
                               trusted_player_statement_receipts=(), legacy=False,
                               include_player_statement_receipts=True,
-                              enforce_player_knowledge_authority: bool = False):
+                              enforce_player_knowledge_authority: bool = False,
+                              enforce_player_world_authority: bool = False):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -157,6 +159,10 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         # in the old compatibility envelope so an old, less-constrained
         # sidecar cannot be restored through the ordinary player boundary.
         envelope['ordinary_player_knowledge_authority'] = True
+    if enforce_player_world_authority:
+        # This authorization boundary must participate in action-id recovery:
+        # a response issued before local-observation checks is not equivalent.
+        envelope['ordinary_player_world_authority'] = True
     if not legacy:
         envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
         if include_player_statement_receipts:
@@ -301,6 +307,7 @@ def produce_turn(
     required_sections: frozenset = frozenset(),
     enforce_player_travel: bool = False,
     enforce_player_knowledge_authority: bool = False,
+    enforce_player_world_authority: bool = False,
     trusted_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> tuple:
@@ -375,6 +382,10 @@ def produce_turn(
         ))
         if enforce_player_knowledge_authority:
             candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
+        if enforce_player_world_authority:
+            candidate_errors.extend(player_turn_world_errors(
+                commit, world, scene, trusted_keys=trusted_discovery_keys,
+            ))
         if enforce_player_travel:
             candidate_errors.extend(discovery_grant_errors(commit, scene.get("protagonist"), trusted_discovery_keys))
             travel_errors = validate_protagonist_moves(
@@ -407,7 +418,14 @@ def produce_turn(
             # retaining narration that says an NPC heard private player words.
             raise TurnRejected("player-to-NPC knowledge lacks a valid host communication receipt")
 
+    def reject_player_world_authority_errors(candidate_errors):
+        if any(error.code == "player_world_observation_boundary" for error in candidate_errors):
+            # Dropping only ``world`` could leave narration asserting a remote
+            # or hidden observation.  Reject before a partial write instead.
+            raise TurnRejected("player world observation lies outside the scene capability")
+
     reject_player_statement_authority_errors(errors)
+    reject_player_world_authority_errors(errors)
 
     while errors and attempts < max_repairs:
         failing = {e.section for e in errors}
@@ -438,6 +456,7 @@ def produce_turn(
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_candidate()
         reject_player_statement_authority_errors(errors)
+        reject_player_world_authority_errors(errors)
         attempts += 1
 
     # --------------------------------------------------------------------------
@@ -544,6 +563,7 @@ def _run_turn_staged(
     trusted_memory_role=None,
     enforce_player_travel: bool = False,
     enforce_player_knowledge_authority: bool = False,
+    enforce_player_world_authority: bool = False,
     trusted_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> TurnResult:
@@ -581,6 +601,7 @@ def _run_turn_staged(
             max_repairs=max_repairs, required_sections=required_sections,
             enforce_player_travel=enforce_player_travel,
             enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+            enforce_player_world_authority=enforce_player_world_authority,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts,
         )
@@ -799,6 +820,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
              host_envelope=None, enforce_player_travel: bool = False,
              enforce_player_knowledge_authority: bool = False,
+             enforce_player_world_authority: bool = False,
              trusted_discovery_keys=frozenset(),
              trusted_player_statement_receipts=()) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
@@ -814,7 +836,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         required_sections=required_sections, max_repairs=max_repairs,
         memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys,
         trusted_player_statement_receipts=trusted_player_statement_receipts,
-        enforce_player_knowledge_authority=enforce_player_knowledge_authority)
+        enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+        enforce_player_world_authority=enforce_player_world_authority)
         if action_id else None)
     if action_id:
         prior = store.read_committed_action(action_id)
@@ -831,7 +854,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                            trusted_discovery_keys=trusted_discovery_keys,
                            trusted_player_statement_receipts=(),
                       include_player_statement_receipts=False,
-                      enforce_player_knowledge_authority=enforce_player_knowledge_authority)
+                      enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+                      enforce_player_world_authority=enforce_player_world_authority)
                            if not trusted_player_statement_receipts else None)
             legacy = (_turn_request_fingerprint(scene, player_input, version, memory_role,
                       prev_scene=prev_scene, required_sections=required_sections,
@@ -839,14 +863,15 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       trusted_discovery_keys=trusted_discovery_keys,
                       trusted_player_statement_receipts=trusted_player_statement_receipts,
                       legacy=True,
-                      enforce_player_knowledge_authority=enforce_player_knowledge_authority)
+                      enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+                      enforce_player_world_authority=enforce_player_world_authority)
                       if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
             # Sidecars written before ordinary-player knowledge authority had
             # no mode marker.  Offer a deliberately narrow, read-only bridge
             # only for an otherwise unprivileged envelope; any host discovery
             # or communication grant remains a current-mode-only contract.
             old_ordinary_mode = None
-            if (enforce_player_knowledge_authority
+            if (enforce_player_knowledge_authority and not enforce_player_world_authority
                     and not trusted_discovery_keys
                     and not trusted_player_statement_receipts):
                 old_ordinary_mode = _turn_request_fingerprint(
@@ -854,6 +879,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     prev_scene=prev_scene, required_sections=required_sections,
                     max_repairs=max_repairs, memory_generator=memory_generator,
                     enforce_player_knowledge_authority=False,
+                    enforce_player_world_authority=False,
                 )
 
             def validate_old_ordinary_mode(events, stored_metadata):
@@ -903,6 +929,14 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if errors:
                 raise TurnRejected("final publish violates the player knowledge authority boundary")
         batch.add_publish_validator(validate_player_knowledge_payload)
+    if enforce_player_world_authority:
+        def validate_player_world_payload(events):
+            errors = player_turn_world_event_errors(
+                events, travel_world, travel_scene, trusted_keys=trusted_discovery_keys,
+            )
+            if errors:
+                raise TurnRejected("final publish violates the player world observation boundary")
+        batch.add_publish_validator(validate_player_world_payload)
     def validate_player_statement_payload(events):
         errors = player_statement_receipt_event_errors(
             travel_world, travel_scene, events,
@@ -953,6 +987,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
             trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel,
             enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+            enforce_player_world_authority=enforce_player_world_authority,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts)
         authorized_player_statement_receipt_ids = tuple(
@@ -982,6 +1017,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 # that predated the authorization feature.
                 'authority_modes': {
                     'ordinary_player_knowledge_authority': bool(enforce_player_knowledge_authority),
+                    'ordinary_player_world_authority': bool(enforce_player_world_authority),
                 },
                 'host_envelope': copy.deepcopy(host_envelope),
                 'result': {

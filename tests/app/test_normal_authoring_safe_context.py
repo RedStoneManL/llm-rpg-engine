@@ -8,7 +8,7 @@ import pytest
 
 from app.engine import build_engine
 from app.gui import PlayerDashboard, _seed_demo_campaign
-from app.play import play_loop
+from app.play import _build_scene, play_loop
 from engine.store import RevisionConflict
 from kernel.events import kernel_event
 from kernel.projection import project
@@ -164,6 +164,178 @@ def _npc_knowledge_bypass(op: str) -> dict:
             "value": "玩家自由文本", "secrecy": "public",
         }]
     return proposal
+
+
+def _public_observation_candidate(place: str, summary: str) -> dict:
+    """A normal-author candidate for a bounded, non-moving field check."""
+    return {
+        "narration": "你停在原地，只确认眼前可见的近处标记，不把它当作远方路线结论。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "world": [{
+            "areas": [place], "level": 1, "summary": summary,
+            "public_observation": True, "visibility": "public",
+            "observation_kind": "single_observation", "observation_range": "主角脚边两步内",
+        }],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地有界观察"}],
+    }
+
+
+def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
+    provider = FakeLLMProvider(json_responses=[candidate])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    return PlayerDashboard(engine, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+
+
+def test_normal_gui_rejects_remote_hidden_world_observation_without_writes(tmp_path):
+    """The redacted prompt alone must not be the only remote-world boundary."""
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path,
+        _public_observation_candidate("north_bank_old_tower", "REMOTE_WORLD_OBSERVATION_SENTINEL"),
+    )
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="world observation lies outside"):
+            dashboard.action(player_input="原地观察", action_id="remote-world-observation",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-world-observation") is None
+        assert len(dashboard.engine.provider.calls) == 1
+        assert "REMOTE_WORLD_OBSERVATION_SENTINEL" not in json.dumps(
+            list(dashboard.engine.store.iter_events()), ensure_ascii=False,
+        )
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_add_remote_world_observation(tmp_path, monkeypatch):
+    """A materializer cannot bypass the candidate-level local-observation rule."""
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path,
+        _public_observation_candidate("stonebridge_inn", "脚边石阶有浅浅湿痕。"),
+    )
+    owner = dashboard.engine.registry.owner_of_section("world")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("world_change", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_WORLD_SENTINEL", deltas={
+                "place": "north_bank_old_tower", "level": 1,
+                "summary": "REMOTE_FINAL_WORLD_SENTINEL", "source": "author_world",
+                "visibility": "public", "public_observation": True,
+                "observation_kind": "single_observation", "observation_range": "远处不可见地点",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player world observation boundary"):
+            dashboard.action(player_input="原地观察", action_id="remote-final-world-observation",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-world-observation") is None
+        assert "REMOTE_FINAL_WORLD_SENTINEL" not in json.dumps(
+            list(dashboard.engine.store.iter_events()), ensure_ascii=False,
+        )
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tmp_path):
+    campaign = tmp_path / "campaign"
+    candidate = _public_observation_candidate("stonebridge_inn", "脚边石阶有浅浅湿痕。")
+    dashboard = _ordinary_demo_dashboard(tmp_path, candidate)
+    initial = dashboard.state()
+    try:
+        first = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
+                                 expected_revision=initial["revision"])
+        assert first["duplicate"] is False
+        events = [event for event in dashboard.engine.store.iter_events()
+                  if event.get("type") == "world_change" and event.get("turn") == first["state"]["turn"]]
+        assert len(events) == 1
+        assert events[0]["deltas"] == {
+            "place": "stonebridge_inn", "level": 1, "summary": "脚边石阶有浅浅湿痕。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "主角脚边两步内",
+        }
+        metadata = dashboard.engine.store.get_action_result_metadata("local-world-observation")
+        assert metadata["authority_modes"] == {
+            "ordinary_player_knowledge_authority": True,
+            "ordinary_player_world_authority": True,
+        }
+        calls_after_first = len(dashboard.engine.provider.calls)
+        duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
+                                     expected_revision=initial["revision"])
+        assert duplicate["duplicate"] is True
+        assert len(dashboard.engine.provider.calls) == calls_after_first
+    finally:
+        dashboard.engine.store.close()
+
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        observations = [event for event in reopened.store.iter_events()
+                        if event.get("type") == "world_change" and event.get("deltas", {}).get("summary") == "脚边石阶有浅浅湿痕。"]
+        assert len(observations) == 1
+    finally:
+        reopened.store.close()
+
+
+def test_world_observation_authority_does_not_depend_on_travel_mode(tmp_path):
+    """Shared callers cannot turn off the local-observation boundary with travel=False."""
+    provider = FakeLLMProvider(json_responses=[
+        _public_observation_candidate("north_bank_old_tower", "REMOTE_TRAVEL_FALSE_SENTINEL"),
+    ])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    before = engine.store.revision
+    try:
+        with pytest.raises(TurnRejected, match="world observation lies outside"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "原地观察",
+                strategy=AuthorStrategy(), provider=provider, action_id="world-without-travel",
+                expected_revision=before, enforce_player_travel=False,
+                enforce_player_knowledge_authority=False,
+                enforce_player_world_authority=True,
+            )
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
+def test_action_recovery_cannot_cross_into_world_observation_authority_mode(tmp_path):
+    candidate = _public_observation_candidate("stonebridge_inn", "旧模式的本地观察。")
+    provider = FakeLLMProvider(json_responses=[candidate])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("world-authority mode conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "原地观察",
+            strategy=AuthorStrategy(), provider=provider, action_id="world-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=True,
+            enforce_player_knowledge_authority=True,
+            enforce_player_world_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "原地观察",
+                strategy=MustNotRun(), provider=provider, action_id="world-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=True,
+                enforce_player_knowledge_authority=True,
+                enforce_player_world_authority=True,
+            )
+        assert len(provider.calls) >= 1
+    finally:
+        engine.store.close()
 
 
 @pytest.mark.parametrize("op", ["told", "endowment", "broadcast", "knows_fact"])

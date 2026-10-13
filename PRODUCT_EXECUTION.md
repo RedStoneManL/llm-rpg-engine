@@ -63,6 +63,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-19 | P1 | 已验收（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | DTO 仅从 protagonist POV 和 LoreSystem 明态/此前明态后已结的公开一行摘要生成；真实 state/WSGI 刷新覆盖目标、任务 open/advance/resolve、撤回/重开，暗线/secret/private sentinel 不泄漏；不新增写入口、作者权限或自动剧情 |
 | RCV-20 | P1 | 已验收（出口行动建议） | 玩家地图列出了严格 POV 的可达出口，却不能把它变成可编辑的行动起点 | 每个现有 `scene.exits` 只生成浏览器本地的“填入行动”建议；空框填入、已有输入追加而不覆盖，点击不提交/不移动/不建 action-id，仍由既有回合验证决定移动是否合法 |
 | RCV-21 | P1 | 已验收（出口成本提示） | 玩家可选择已知出口，但无法看见同一 POV 路由已有的移动成本 | DTO 仅把 `SceneCapabilities.routes` 中当前地点的公开 cost 写入 GUI 专用平行 `exit_costs`，保持 native `available_exits` 形状不变；浏览器只读显示，不改移动、路线、发现、提交或权限 |
+| RCV-23 | P0 | 已验收（普通玩家本地世界观察边界） | 普通 CLI/GUI/compare 作者拿到的是 POV 安全材料，却仍可用 `world` 段改写任意 canonical 地点 | 候选与 final `EventBatch` 双校验仅允许 action-start 或合法同回合到达地点的 `level=1`、显式 public、有范围的观察；world 模式写入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 继续由独立 native policy 管理 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -973,3 +974,30 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   官方 Drive raw fetch 已成功创建三份认证下载引用并再次报告相同文件大小；但该执行环境随后对这三个短期下载引用作本地
   materialize 时均返回 HTTP 403，未能取得可供 `sha256sum` 的云端字节。因此本次**只完成 metadata/size 回读，未完成
   云端内容 SHA-256 比对**；没有因此重传、覆盖、分享或发送邮件。待支持的下载引用可 materialize 后，仍应再做字节哈希回读。
+
+- 2026-10-13：RCV-23 关闭普通玩家作者的一条 canonical world 越权路径。审查首先在一次性 demo campaign 中复现：正常
+  `PlayerDashboard → run_turn → AuthorStrategy` 的 provider 候选虽未移动主角，却将 `world.areas` 指向玩家 POV 外、隐藏的
+  `north_bank_old_tower`；旧代码接受并发布了该 `world_change`（revision `1→2`）。这不是 prompt 文案能可靠防止的边界，
+  因为 final owner/materializer 也可在候选之后替换 payload。
+
+  现为普通 CLI、GUI 和 compare 路径显式启用 `enforce_player_world_authority`。候选校验只接受 action-start 或本回合已合法
+  到达地点的一项观察，且必须 `public_observation=true`、`visibility=public`、`observation_kind` 为 `stable_layout` 或
+  `single_observation`、有 `observation_range` 且 `level=1`；这阻止 remote/hidden 写入和借高 level 触发全局 cascade。publish 前
+  对 materialized `world_change` 再以相同 action-start POV 终检，故 owner hook 追加的远端 tagged event 同样整批拒绝、零 revision/
+  receipt 写入。该新授权模式进入 request fingerprint 和 sidecar；旧 world-mode=false action 在当前 true 下不会恢复。native
+  importer 未被普通入口开关误伤，仍由其独立 native policy 审查。
+
+  新回归覆盖远端隐藏 candidate 的一次 provider 调用后整 turn 拒绝、final payload 篡改拒绝、本地公开观察的提交/duplicate 和关闭
+  重开、`travel=False + world-authority=True` 的独立强制，以及 action-id 跨 world-mode 的生成前冲突。定向
+  `tests/app/test_normal_authoring_safe_context.py tests/context/test_capabilities.py tests/app/test_play.py tests/app/test_gui.py
+  tests/test_action_integrity.py -rA` 为 **`177 passed in 1.43s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1924 passed, 1 deselected in 21.16s`**。唯一 deselect 仍是既有 slow real embedding；未调用真实模型、embedding 或网络。
+
+  同时以 revision 15 历史 campaign 的新鲜 disposable copy 做一次实际普通入口 field-check：先导出 action-start 的安全 brief，
+  发现主角已经在 `market_riverward_stone_lip_6e84c2f9`，故纠正旧“前往坡口”措辞为原地核验；安全 brief 只给出旧铜灯、回集市出口、
+  既有近处观察，且没有 host route/communication grant。固定本地候选经普通 GUI→AuthorStrategy 提交一条仅限坡口脚边裂缝/湿泥
+  的公开 level-1 observation，明确停止、未移动、未写 knowledge、未把它升级成渡口路线；receipt `rcv23-local-field-check`
+  为 seq `111..116`、revision `15→16`。同 action ID 关闭重开后恢复 `duplicate=true`、provider 零调用。固定 recap 替身未能生成
+  摘要，结果诚实为 `recap_status=pending`，不影响已保存的前台回合；该证据只是本地确定性候选的产品链路/边界验收，不代表外部模型
+  或长局剧情质量。原 campaign DB/JSONL 哈希保持不变，未导入或改写原存档。
