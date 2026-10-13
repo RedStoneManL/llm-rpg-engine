@@ -1,6 +1,8 @@
 """Tests for app.play: play_loop + OOC commands."""
 from __future__ import annotations
 
+import copy
+
 import pytest
 from pathlib import Path
 from llm.provider import FakeLLMProvider
@@ -18,6 +20,27 @@ def _make_canned_provider():
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "本回合时间未推进"}],
         }
     ])
+
+
+def _capturing_author_provider():
+    """Record ordinary AuthorStrategy calls while remaining fully offline."""
+    class CapturingProvider(FakeLLMProvider):
+        def __init__(self):
+            super().__init__(json_responses=[{
+                "narration": "你在客栈门前确认了眼前的路。",
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处确认"}],
+            }])
+            self.author_messages = []
+
+        def complete_messages(self, messages, **kwargs):
+            snapshot = copy.deepcopy(messages)
+            if any(message.get("role") == "system" and "你是主持人（DM）" in message.get("content", "")
+                   for message in snapshot):
+                self.author_messages.append(snapshot)
+            return super().complete_messages(messages, **kwargs)
+
+    return CapturingProvider()
 
 
 def _build_engine_with_game(tmp_path, provider=None):
@@ -191,6 +214,78 @@ def test_play_loop_cannot_publish_hidden_destination_proposed_by_author(tmp_path
     assert engine.world["systems"]["ontology"].neighbors("protagonist", "located_in", 1) == ["stonebridge_inn"]
     assert "世界保持原状" in "\n".join(output)
     engine.store.close()
+
+
+def test_cli_author_prompt_binds_goal_scope_and_public_observation(tmp_path):
+    """The normal CLI path passes the authored scope, not just a helper DTO."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    provider = _capturing_author_provider()
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append(
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门外石阶潮湿。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门外石阶潮湿。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+        })
+    )
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+
+    try:
+        play_loop(engine, inputs=["确认门前的路", "/quit"], out=lambda _: None, max_repairs=0)
+        assert len(provider.author_messages) == 1
+        messages = provider.author_messages[0]
+        system = next(message["content"] for message in messages if message["role"] == "system")
+        user = "\n".join(message["content"] for message in messages if message["role"] == "user")
+        assert 'protagonist.goal = "在黎明前找到旧塔的线索"' in user
+        assert "【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。" in user
+        assert "门外石阶潮湿。" in user
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in user
+        assert "普通玩家回合不拥有完整世界视野" in system
+        assert "未提供的远方、隐藏或未发现地点" in system
+    finally:
+        engine.store.close()
+
+
+def test_dashboard_author_strategy_uses_the_same_scoped_context(tmp_path):
+    """The normal GUI controller reaches the same AuthorStrategy contract."""
+    from app.engine import build_engine
+    from app.gui import PlayerDashboard, _seed_demo_campaign
+    from kernel.events import kernel_event
+    from kernel.projection import project
+    from loop.strategy import AuthorStrategy
+
+    provider = _capturing_author_provider()
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append(kernel_event("world_change", day=1, scene="s1", turn=0,
+                        summary="GUI 门前石阶潮湿。", deltas={
+                            "place": "stonebridge_inn", "level": 1, "summary": "GUI 门前石阶潮湿。",
+                            "source": "author_world", "visibility": "public", "public_observation": True,
+                            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+                        }))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    dashboard = PlayerDashboard(engine, strategy=AuthorStrategy())
+    try:
+        initial = dashboard.state()
+        dashboard.action(player_input="确认门前的路", action_id="prompt-contract",
+                         expected_revision=initial["revision"])
+        assert len(provider.author_messages) == 1
+        user = "\n".join(message["content"] for message in provider.author_messages[0]
+                         if message["role"] == "user")
+        assert 'protagonist.goal = "在黎明前找到旧塔的线索"' in user
+        assert "【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。" in user
+        assert "GUI 门前石阶潮湿。" in user
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in user
+    finally:
+        engine.store.close()
 
 
 # ---------------------------------------------------------------------------

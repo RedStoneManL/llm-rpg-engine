@@ -53,6 +53,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
 | RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界，并复用条件化公开到达/可信原话投影 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
+| RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -789,3 +790,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   原 pending 信封的可见恢复控件实际得到第二个 200、显示 `已恢复此前保存的行动。`，revision 保持 3。只改逐字原话后再次
   点击恢复，实际得到 409，页面保留 pending 并显示需要查看状态后结束恢复，revision 仍为 3。临时 DB、浏览器 profile 和
   请求运行数据均已删除，未放入 bundle/source/diff；这关闭“仅控件渲染”的产品证据缺口，但不扩展为真实作者质量或长局验收。
+
+- 2026-10-13：复核普通 CLI 与 GUI 的真实 `AuthorStrategy` 调用链，而非只检查 native helper。`run_turn` 在策略调用前写入受限
+  `_safe_authoring_handoff`；`assemble_context` 同时把主角当前 facts（包含长期目标）、`scene_capabilities` 的 action-start
+  出口，以及当前/可达地点的持久公开观察拼入 provider user message。离线捕获式真实入口回归分别经 `play_loop` 和
+  `PlayerDashboard.action` 验证三者均抵达 AuthorStrategy，私有 sentinel 未进入 prompt。没有发现“每次视线变化必须停下”的
+  指令；系统提示本来要求推进局面并给出可回应钩子。唯一确诊矛盾是 world 段仍错误声称普通作者拥有完整世界视野、可点名任意地点，
+  与上述 POV 行动契约相冲突；现改为仅当前/相邻公开地点或同回合新建直连公开地点，越界的世界推进留给宿主/导演系统。
+
+  定向 `tests/app/test_play.py::test_cli_author_prompt_binds_goal_scope_and_public_observation`
+  `tests/app/test_play.py::test_dashboard_author_strategy_uses_the_same_scoped_context`
+  `tests/context/test_place_observations.py tests/context/test_capabilities.py -rA` 为 **`23 passed in 0.37s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1902 passed, 1 deselected in 21.61s`**。
+  唯一 deselect 为既有 slow real embedding；未调用真实模型、embedding 或网络，B1/profiling 保持 HOLD，未 push/PR/部署，也未生成新的玩家回合。
