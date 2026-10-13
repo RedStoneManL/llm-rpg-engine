@@ -129,7 +129,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
                               prev_scene, required_sections, max_repairs, memory_generator,
                               trusted_discovery_keys=frozenset(),
                               trusted_player_statement_receipts=(), legacy=False,
-                              include_player_statement_receipts=True):
+                              include_player_statement_receipts=True,
+                              enforce_player_knowledge_authority: bool = False):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -156,6 +157,11 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         if include_player_statement_receipts:
             envelope['trusted_player_statement_receipts'] = copy.deepcopy(
                 list(trusted_player_statement_receipts))
+        # This does not describe prose; it is an authorization mode.  A
+        # response-loss retry must not use a sidecar minted by a less
+        # constrained caller to bypass the ordinary player entry boundary.
+        if enforce_player_knowledge_authority:
+            envelope['ordinary_player_knowledge_authority'] = True
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
@@ -799,7 +805,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         scene, player_input, version, memory_role, prev_scene=prev_scene,
         required_sections=required_sections, max_repairs=max_repairs,
         memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys,
-        trusted_player_statement_receipts=trusted_player_statement_receipts)
+        trusted_player_statement_receipts=trusted_player_statement_receipts,
+        enforce_player_knowledge_authority=enforce_player_knowledge_authority)
         if action_id else None)
     if action_id:
         prior = store.read_committed_action(action_id)
@@ -815,14 +822,16 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                            max_repairs=max_repairs, memory_generator=memory_generator,
                            trusted_discovery_keys=trusted_discovery_keys,
                            trusted_player_statement_receipts=(),
-                           include_player_statement_receipts=False)
+                      include_player_statement_receipts=False,
+                      enforce_player_knowledge_authority=enforce_player_knowledge_authority)
                            if not trusted_player_statement_receipts else None)
             legacy = (_turn_request_fingerprint(scene, player_input, version, memory_role,
                       prev_scene=prev_scene, required_sections=required_sections,
                       max_repairs=max_repairs, memory_generator=memory_generator,
                       trusted_discovery_keys=trusted_discovery_keys,
                       trusted_player_statement_receipts=trusted_player_statement_receipts,
-                      legacy=True)
+                      legacy=True,
+                      enforce_player_knowledge_authority=enforce_player_knowledge_authority)
                       if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
             return _restore_completed_turn(
                 registry, prior, metadata, fingerprint, version,

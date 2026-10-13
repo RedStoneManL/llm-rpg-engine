@@ -8,6 +8,7 @@ import pytest
 from app.engine import build_engine
 from app.gui import PlayerDashboard, _seed_demo_campaign
 from app.play import play_loop
+from engine.store import RevisionConflict
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
@@ -263,5 +264,40 @@ def test_normal_author_keeps_protagonist_told_and_action_recovery_compatible(tmp
         # not ask the author/provider to generate the same action again.
         assert calls_after_first >= 1
         assert len(provider.calls) == calls_after_first
+    finally:
+        engine.store.close()
+
+
+def test_action_recovery_cannot_cross_into_ordinary_knowledge_authority_mode(tmp_path):
+    proposal = _move_proposal()
+    proposal["knowledge"] = [{
+        "op": "told", "knower": "protagonist", "fact_key": "market.notice",
+        "value": "主角从公开告示得知集市仍开放", "via": "公开告示",
+    }]
+    provider = FakeLLMProvider(json_responses=[proposal])
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    scene = {"protagonist": "protagonist", "present": [], "day": 1,
+             "location": "stonebridge_inn", "id": "s1"}
+    before = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("mismatched authorization mode must fail before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "查看告示",
+            strategy=AuthorStrategy(), provider=provider, action_id="mode-bound-action",
+            expected_revision=before, enforce_player_travel=True,
+            enforce_player_knowledge_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "查看告示",
+                strategy=MustNotRun(), provider=provider, action_id="mode-bound-action",
+                expected_revision=before, enforce_player_travel=True,
+                enforce_player_knowledge_authority=True,
+            )
+        assert len(provider.calls) >= 1
     finally:
         engine.store.close()
