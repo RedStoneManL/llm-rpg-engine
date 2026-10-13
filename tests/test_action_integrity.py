@@ -85,6 +85,59 @@ def test_legacy_empty_discovery_fingerprint_recovers_but_nonempty_does_not(engin
             trusted_discovery_keys=frozenset({'x.discovered'}))
 
 
+def test_receiptless_discovery_fingerprint_recovers_only_without_new_receipt_authority(engine, monkeypatch):
+    """RCV-12 sidecars kept discovery grants but predated receipt authority."""
+    quiet(monkeypatch)
+    old_world = engine.world
+    scene = _build_scene(engine)
+    discovery = frozenset({'x.discovered'})
+    first = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[commit()]),
+        action_id='receiptless-discovery', required_sections=REQUIRED_SECTIONS,
+        trusted_discovery_keys=discovery,
+    )
+    old_fingerprint = _turn_request_fingerprint(
+        scene, '买酒', None, None, prev_scene=None,
+        required_sections=REQUIRED_SECTIONS, max_repairs=3, memory_generator=None,
+        trusted_discovery_keys=discovery,
+        include_player_statement_receipts=False,
+    )
+    row = engine.store._conn.execute('SELECT metadata FROM action_result_metadata WHERE action_id=?',
+                                    ('receiptless-discovery',)).fetchone()
+    metadata = json.loads(row['metadata']); metadata['request_fingerprint'] = old_fingerprint
+    engine.store._conn.execute('UPDATE action_result_metadata SET metadata=? WHERE action_id=?',
+        (json.dumps(metadata, sort_keys=True, ensure_ascii=False), 'receiptless-discovery'))
+    engine.store._conn.commit()
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError('strategy called')
+
+    recovered = run_turn(
+        engine.registry, engine.store, old_world, scene, '买酒',
+        strategy=MustNotRun(), provider=FakeLLMProvider(),
+        action_id='receiptless-discovery', required_sections=REQUIRED_SECTIONS,
+        trusted_discovery_keys=discovery,
+    )
+    assert recovered.receipt['duplicate'] is True and recovered.events == first.events
+    with pytest.raises(RevisionConflict):
+        run_turn(
+            engine.registry, engine.store, old_world, scene, '买酒',
+            strategy=MustNotRun(), provider=FakeLLMProvider(),
+            action_id='receiptless-discovery', required_sections=REQUIRED_SECTIONS,
+            trusted_discovery_keys=frozenset({'changed.discovered'}),
+        )
+    with pytest.raises(RevisionConflict):
+        run_turn(
+            engine.registry, engine.store, old_world, scene, '买酒',
+            strategy=MustNotRun(), provider=FakeLLMProvider(),
+            action_id='receiptless-discovery', required_sections=REQUIRED_SECTIONS,
+            trusted_discovery_keys=discovery,
+            trusted_player_statement_receipts=[{}],
+        )
+
+
 def test_second_insert_failure_rolls_back_whole_action_and_conversation(engine, monkeypatch):
     quiet(monkeypatch)
     settings.set_conversation_mode('multiturn')

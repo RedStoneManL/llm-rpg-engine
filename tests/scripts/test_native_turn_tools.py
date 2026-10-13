@@ -249,7 +249,7 @@ def test_native_context_recalls_verified_player_statement_only_on_matching_arriv
         engine.store.close()
 
 
-def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_path):
+def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_path, monkeypatch):
     campaign = _native_campaign(tmp_path)
     # A real command can mix a physical action, an unspoken thought, and a
     # directed utterance.  Only the trusted host-selected utterance may become
@@ -323,7 +323,48 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
             run_turn(
                 engine.registry, engine.store, engine.world, scene, player_input,
                 strategy=ProposalStrategy(), provider=engine.provider,
-                max_repairs=0,
+                max_repairs=1,
+            )
+        assert engine.store.revision == revision
+
+        # This is authority, not a repairable optional section: a strategy
+        # cannot preserve narration saying that Mara heard private words by
+        # returning ``knowledge=[]`` on its repair callback.
+        class ErasingRepairStrategy(ProposalStrategy):
+            repaired = False
+
+            def repair_sections(self, *args, **kwargs):
+                self.repaired = True
+                return {"knowledge": []}
+
+        repair_strategy = ErasingRepairStrategy()
+        with pytest.raises(TurnRejected, match="host communication receipt"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, player_input,
+                strategy=repair_strategy, provider=engine.provider,
+                max_repairs=1,
+            )
+        assert repair_strategy.repaired is False and engine.store.revision == revision
+
+        # Final EventBatch validation sees the materialized event payload too;
+        # a post-declaration mutation cannot turn a valid host receipt into a
+        # different player-statement record.
+        knowledge = engine.registry.owner_of_section("knowledge")
+        original_to_events = knowledge.to_events
+
+        def tampered_to_events(section, decl, *, turn, day, scene):
+            events = original_to_events(section, decl, turn=turn, day=day, scene=scene)
+            for event in events:
+                if event.get("deltas", {}).get("source_kind") == "player_statement":
+                    event["deltas"]["value"] = "POST_MATERIALIZATION_FORGED_WORDS"
+            return events
+
+        monkeypatch.setattr(knowledge, "to_events", tampered_to_events)
+        with pytest.raises(TurnRejected, match="final publish violates the player-statement"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, player_input,
+                strategy=ProposalStrategy(), provider=engine.provider,
+                trusted_player_statement_receipts=[receipt], max_repairs=0,
             )
         assert engine.store.revision == revision
     finally:

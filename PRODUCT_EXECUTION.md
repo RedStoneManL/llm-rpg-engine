@@ -52,7 +52,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
-| RCV-13 | P0 | 已验收（产品入口边界收敛） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；不把 native 条件到达/recall 扩大为普通作者的未验证上下文 |
+| RCV-13 | P0 | 已验收（a715e09 WIP 已由后续 commit 替代） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -705,3 +705,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`1893 passed, 1 deselected in 21.34s`**。唯一 deselect 仍为既有 slow real embedding；没有真实模型、B1/profiling、push、PR、部署，
   也没有生成或导入新的真实作者候选。该覆盖是产品入口与该具体 capability 的回归，不把此前的 native recall 验收夸大为长局、跨场景或
   所有普通作者材料的完整验收。
+
+- 2026-10-13：在 RCV-13 初始 checkpoint `a715e09` 的独立复核中发现两项阻断：其新 request fingerprint 无条件加入空
+  receipt 字段，却没有保留 RCV-12 已写入的“含 `trusted_discovery_keys`、无 receipt 字段”中间信封恢复路径；并且
+  `heard_player` 错误作为 `knowledge` section 进入 modular repair 后，策略可删掉 section 而保留“NPC 已听到私下话”的 narration。
+  因此 `a715e09` 标为 WIP，不能作为发布/交付验收点。
+
+  后续修复仅当本次请求的 receipt 集为空时，接受精确保留旧 discovery 字段和值的 receiptless RCV-12 hash；任何非空新 receipt
+  或改变 discovery authorization 都仍在生成前 `RevisionConflict`。通信授权错误现在在首次 candidate validation 即整 turn 拒绝，
+  不进入 section-only repair；final `EventBatch` publish 还逐一核对所有 `source_kind=player_statement` 的 materialized event
+  是否与当前公开 POV 重算后的 receipt deltas 相等，条件到达还要求同一 final payload 的主角移动。新 SQLite sidecar 回归证明旧
+  receiptless discovery 请求零生成恢复、改 discovery/新增 receipt 均冲突；另验证 repair 删除 knowledge 不会掩盖 narration、
+  materialization 后篡改 event 零写入拒绝。专项 `tests/test_action_integrity.py tests/scripts/test_native_turn_tools.py
+  tests/app/test_gui.py tests/app/test_play.py -rA` 为 **`144 passed in 3.21s`**；正式完整 gate 为
+  **`1894 passed, 1 deselected in 21.19s`**。唯一 deselect 仍为既有 slow real embedding，无真实模型、B1/profiling、push、PR、部署或
+  新真实作者候选。

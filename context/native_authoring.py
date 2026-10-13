@@ -533,6 +533,84 @@ def player_statement_receipt_errors(world: dict, scene: dict, commit, *,
     return errors
 
 
+def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iterable[dict[str, object]], *,
+                                          receipts: Iterable[dict[str, object]] = ()) -> list[str]:
+    """Fail closed if final payload events invent a player-statement record.
+
+    ``produce_turn`` validates the declaration. This companion runs in the
+    final EventBatch validator so a hook or materialization change cannot
+    mutate or append a ``source_kind=player_statement`` knowledge event after
+    that declaration check.
+    """
+    events = tuple(events)
+    expected: list[dict[str, object]] = []
+    seen_receipts: set[str] = set()
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            continue
+        recipient = receipt.get("recipient")
+        statement = receipt.get("statement")
+        when = receipt.get("when")
+        if not isinstance(recipient, str) or not recipient or not isinstance(statement, str) or not statement:
+            continue
+        if when == {"kind": "current_scene"}:
+            destination = None
+        elif (isinstance(when, dict) and when.get("kind") == "matching_move"
+              and isinstance(when.get("to"), str) and when["to"]):
+            destination = when["to"]
+        else:
+            continue
+        try:
+            canonical = host_player_statement_receipt(
+                world, scene, recipient=recipient, statement=statement,
+                arrival_destination=destination,
+            )
+        except ValueError:
+            continue
+        if any(receipt.get(field) != canonical[field]
+               for field in ("id", "op", "speaker", "recipient", "statement", "when")):
+            continue
+        receipt_id = canonical["id"]
+        if receipt_id in seen_receipts:
+            continue
+        seen_receipts.add(receipt_id)
+        expected.append({
+            "deltas": {
+                "knower": canonical["recipient"],
+                "fact_key": player_statement_fact_key(canonical["speaker"], canonical["statement"]),
+                "value": canonical["statement"],
+                "via": canonical["speaker"],
+                "source_kind": "player_statement",
+            },
+            "destination": destination,
+        })
+
+    errors: list[str] = []
+    matched: set[int] = set()
+    for event in events:
+        if not isinstance(event, dict) or event.get("type") != "knowledge_set":
+            continue
+        deltas = event.get("deltas")
+        if not isinstance(deltas, dict) or deltas.get("source_kind") != "player_statement":
+            continue
+        match = next((index for index, allowed in enumerate(expected)
+                      if allowed["deltas"] == deltas and index not in matched), None)
+        if match is None:
+            errors.append("final payload contains an untrusted player-statement knowledge event")
+        else:
+            matched.add(match)
+    for index in matched:
+        destination = expected[index]["destination"]
+        if destination is not None and not any(
+                isinstance(event, dict) and event.get("type") == "entity_moved"
+                and isinstance(event.get("deltas"), dict)
+                and event["deltas"].get("who") == scene.get("protagonist")
+                and event["deltas"].get("to") == destination
+                for event in events):
+            errors.append("final payload omits the move required by a player-statement receipt")
+    return errors
+
+
 class NativeAuthoringPolicyError(ValueError):
     """A native hand-off attempted to change authority it was not given.
 

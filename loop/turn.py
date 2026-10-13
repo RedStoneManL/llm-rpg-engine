@@ -31,7 +31,8 @@ from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
 from context.capabilities import discovery_grant_errors, validate_protagonist_move_events, validate_protagonist_moves
-from context.native_authoring import player_statement_receipt_errors
+from context.native_authoring import (player_statement_receipt_errors,
+                                      player_statement_receipt_event_errors)
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
 
@@ -125,7 +126,8 @@ def _memory_request_config(memory_role, memory_generator):
 def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
                               prev_scene, required_sections, max_repairs, memory_generator,
                               trusted_discovery_keys=frozenset(),
-                              trusted_player_statement_receipts=(), legacy=False):
+                              trusted_player_statement_receipts=(), legacy=False,
+                              include_player_statement_receipts=True):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -149,8 +151,9 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
     }
     if not legacy:
         envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
-        envelope['trusted_player_statement_receipts'] = copy.deepcopy(
-            list(trusted_player_statement_receipts))
+        if include_player_statement_receipts:
+            envelope['trusted_player_statement_receipts'] = copy.deepcopy(
+                list(trusted_player_statement_receipts))
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
@@ -159,7 +162,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
-def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision, legacy_fingerprint=None):
+def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision,
+                            legacy_fingerprints=()):
     if not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result':
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     result = metadata.get('result')
@@ -194,7 +198,8 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
             or (metadata['base_revision'] is not None
                 and type(metadata['base_revision']) is not int)):
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
-    if (metadata['request_fingerprint'] not in {fingerprint, legacy_fingerprint}
+    accepted_fingerprints = {fingerprint, *legacy_fingerprints}
+    if (metadata['request_fingerprint'] not in accepted_fingerprints
             or metadata['base_revision'] != expected_revision):
         raise RevisionConflict('action_id already belongs to a different request')
     if 'recap_status' not in result:
@@ -372,6 +377,18 @@ def produce_turn(
     augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
     errors = validate_candidate()
 
+    def reject_player_statement_authority_errors(candidate_errors):
+        if any(error.code in {
+            "missing_host_receipt", "invalid_host_receipt",
+            "duplicate_host_receipt", "existing_player_statement",
+        } for error in candidate_errors):
+            # This is an authority error, not a malformed optional section.
+            # Do not let a section-only repair erase the durable claim while
+            # retaining narration that says an NPC heard private player words.
+            raise TurnRejected("player-to-NPC statement lacks a valid host communication receipt")
+
+    reject_player_statement_authority_errors(errors)
+
     while errors and attempts < max_repairs:
         failing = {e.section for e in errors}
         log.debug("produce_turn: repair attempt=%d errors=%d failing=%s",
@@ -400,6 +417,7 @@ def produce_turn(
                 )
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_candidate()
+        reject_player_statement_authority_errors(errors)
         attempts += 1
 
     # --------------------------------------------------------------------------
@@ -407,16 +425,6 @@ def produce_turn(
     # --------------------------------------------------------------------------
     dropped_sections: list[str] = []
     if errors:
-        if any(error.code in {
-            "missing_host_receipt", "invalid_host_receipt",
-            "duplicate_host_receipt", "existing_player_statement",
-        } for error in errors):
-            # Dropping only ``knowledge`` would leave narration claiming that
-            # an NPC heard the player while durable NPC memory says otherwise.
-            # A host-authority failure is therefore all-or-nothing once the
-            # repair budget is exhausted, just like an unreconciled travel
-            # declaration.
-            raise TurnRejected("player-to-NPC statement lacks a valid host communication receipt")
         if enforce_player_travel and any(error.code in {
             "outside_scene_capability", "scene_capability_narration",
         } for error in errors):
@@ -792,6 +800,14 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             metadata, status = _read_preflight_metadata(prior['metadata_raw'])
             if status != 'available':
                 raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status=status)
+            receiptless = (_turn_request_fingerprint(
+                           scene, player_input, version, memory_role,
+                           prev_scene=prev_scene, required_sections=required_sections,
+                           max_repairs=max_repairs, memory_generator=memory_generator,
+                           trusted_discovery_keys=trusted_discovery_keys,
+                           trusted_player_statement_receipts=(),
+                           include_player_statement_receipts=False)
+                           if not trusted_player_statement_receipts else None)
             legacy = (_turn_request_fingerprint(scene, player_input, version, memory_role,
                       prev_scene=prev_scene, required_sections=required_sections,
                       max_repairs=max_repairs, memory_generator=memory_generator,
@@ -799,7 +815,10 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       trusted_player_statement_receipts=trusted_player_statement_receipts,
                       legacy=True)
                       if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
-            return _restore_completed_turn(registry, prior, metadata, fingerprint, version, legacy)
+            return _restore_completed_turn(
+                registry, prior, metadata, fingerprint, version,
+                tuple(value for value in (receiptless, legacy) if value is not None),
+            )
     trusted_memory_role = scene.get('protagonist')
     travel_world = world
     travel_scene = copy.deepcopy(scene)
@@ -811,6 +830,14 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if errors:
                 raise TurnRejected("final publish violates the player scene capability")
         batch.add_publish_validator(validate_travel_payload)
+    def validate_player_statement_payload(events):
+        errors = player_statement_receipt_event_errors(
+            travel_world, travel_scene, events,
+            receipts=trusted_player_statement_receipts,
+        )
+        if errors:
+            raise TurnRejected("final publish violates the player-statement receipt boundary")
+    batch.add_publish_validator(validate_player_statement_payload)
     if version is not None and version != batch.revision:
         raise RevisionConflict('refresh the world before preparing another action')
     cached_revision = getattr(strategy, '_committed_revision', None)
