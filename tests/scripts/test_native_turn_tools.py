@@ -107,6 +107,24 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
             kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉秘密知识", deltas={
                 "knower": "innkeeper_mara", "fact_key": "north_bank_old_tower.status", "value": "GUI_DEMO_PRIVATE_SENTINEL",
             }),
+            # ``pov_world`` can retain a co-located Person for scene
+            # rendering.  Its canonical visibility still controls whether a
+            # present NPC's knowledge may name that person in an author brief.
+            kernel_event("entity_created", day=1, scene="s1", turn=0, summary="隐藏同场人", deltas={
+                "id": "hidden_current_person", "etype": "Person", "tier": "tracked",
+                "attrs": {"visibility": "hidden"},
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="隐藏同场人位于客栈", deltas={
+                "who": "hidden_current_person", "to": "stonebridge_inn",
+            }),
+            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="隐藏同场人的公开属性", deltas={
+                "subject": "hidden_current_person", "predicate": "status",
+                "value": "CURRENT_HIDDEN_SUBJECT_SENTINEL", "secrecy": "public",
+            }),
+            kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="玛拉知道隐藏同场人", deltas={
+                "knower": "innkeeper_mara", "fact_key": "hidden_current_person.status",
+                "value": "CURRENT_HIDDEN_SUBJECT_SENTINEL",
+            }),
         ], preflight=lambda history: project(engine.registry, history))
         engine.world = project(engine.registry, engine.store.iter_events())
 
@@ -119,6 +137,8 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
         }]
         assert context["current_player_intent"] == "询问渡口"
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(context)
+        assert "hidden_current_person" not in repr(context)
+        assert "CURRENT_HIDDEN_SUBJECT_SENTINEL" not in repr(context)
     finally:
         engine.store.close()
 
@@ -228,6 +248,14 @@ def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_
             kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="隐藏的人在集市", deltas={
                 "who": "market_hidden_contact", "to": "stonebridge_market",
             }),
+            kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="隐藏集市人的公开属性", deltas={
+                "subject": "market_hidden_contact", "predicate": "status",
+                "value": "ARRIVAL_HIDDEN_SUBJECT_SENTINEL", "secrecy": "public",
+            }),
+            kernel_event("knowledge_set", day=1, scene="s1", turn=0, summary="洛恩知道隐藏集市人", deltas={
+                "knower": "market_witness_luoen", "fact_key": "market_hidden_contact.status",
+                "value": "ARRIVAL_HIDDEN_SUBJECT_SENTINEL",
+            }),
         ], preflight=lambda history: project(engine.registry, history))
         engine.world = project(engine.registry, engine.store.iter_events())
         scene = _build_scene(engine)
@@ -239,6 +267,8 @@ def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_
         assert arrival[0]["location"]["id"] == "stonebridge_market"
         assert [person["id"] for person in arrival[0]["present_people"]] == ["market_witness_luoen"]
         assert "ARRIVAL_PRIVATE_SENTINEL" not in repr(context)
+        assert "market_hidden_contact" not in repr(context)
+        assert "ARRIVAL_HIDDEN_SUBJECT_SENTINEL" not in repr(context)
 
         from kernel.turncommit import TurnCommit
         with_arrival = TurnCommit.from_dict({

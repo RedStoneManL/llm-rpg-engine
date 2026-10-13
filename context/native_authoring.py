@@ -38,6 +38,24 @@ def _current_public_fact(graph, fact_key: str, day: int):
     return None
 
 
+def _is_public_subject_in_view(canonical, visible, subject: str) -> bool:
+    """Return whether a referenced subject is safe author-facing material.
+
+    ``pov_world`` deliberately keeps co-located people so ordinary scene
+    renderers can describe them.  That is not enough for a native hand-off:
+    an explicitly hidden/secret/undiscovered canonical person remains hidden
+    even when its co-location relation survives the POV projection.  Both
+    current-scene and conditional-arrival evidence must use this same stricter
+    judgment before exposing a fact key or its value.
+    """
+    if visible.get_entity(subject) is None:
+        return False
+    canonical_subject = canonical.get_entity(subject)
+    return canonical_subject is not None and canonical_subject.attrs.get("visibility") not in {
+        "hidden", "secret", "undiscovered",
+    }
+
+
 def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
                              host_authorized_routes: list[dict[str, str]] | None = None,
                              player_statement_receipts: list[dict[str, object]] | None = None) -> dict:
@@ -110,7 +128,8 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                     # Reuse the same POV projection as player state.  A fact
                     # must not reveal a canonical subject absent from that
                     # projection, even if the fact itself says public.
-                    if public_fact is None or subject is None or visible.get_entity(subject) is None:
+                    if (public_fact is None or subject is None
+                            or not _is_public_subject_in_view(canonical, visible, subject)):
                         continue
                     evidence.append({
                         "fact_key": fact_key,
@@ -212,7 +231,8 @@ def _arrival_public_people(world: dict, scene: dict) -> list[dict[str, object]]:
             fact_key = fact.predicate[len("knows:"):]
             public_fact = _current_public_fact(canonical, fact_key, day)
             subject = fact_key.split(".", 1)[0] if "." in fact_key else None
-            if public_fact is None or subject is None or visible.get_entity(subject) is None:
+            if (public_fact is None or subject is None
+                    or not _is_public_subject_in_view(canonical, visible, subject)):
                 continue
             evidence.append({
                 "fact_key": fact_key,

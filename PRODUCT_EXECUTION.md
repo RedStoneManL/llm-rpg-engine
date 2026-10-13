@@ -646,3 +646,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   tests/context/test_place_observations.py -rA` 为 **`55 passed in 2.23s`**；正式完整离线 gate 为
   **`1889 passed, 1 deselected in 20.84s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、B1/profiling、
   push、PR、部署或 Library 上传；下一步仅在用户授权下继续新的候选回合。
+
+- 2026-10-13：上述 `919abcc` 的交流回执边界经独立复核后仍有一个 **WIP 隐私缺口**：`pov_world` 可因同场关系保留一个
+  canonical `hidden/secret/undiscovered` Person，而当前/条件到达的 `speakable_evidence` 仅检查该 subject 是否出现在 POV，可能让
+  公开 NPC 的 `knows:hidden_person.public_fact` 泄露隐藏 ID/值。此状态没有用于导入候选；不得把 `919abcc` 单独称为完整隐私验收。
+
+- 2026-10-13：`2a26b39` 把当前与条件到达两条 evidence 路径统一为 canonical visibility + POV subject 判定；两种非空反例均为
+  “公开 NPC 知道隐藏同场 Person 的 public 属性”，现在不输出 hidden ID 或 sentinel。专项
+  `tests/scripts/test_native_turn_tools.py tests/context/test_place_observations.py -rA` 为 **`14 passed in 2.53s`**；正式离线 gate 为
+  **`1889 passed, 1 deselected in 21.11s`**。该判定只保护 native hand-off material；`heard_player` receipt 也只在 native importer
+  路径有界校验，通用 `KnowledgeSystem` 不自行验证 receipt。`public_place_observations` 的公开性仍依赖上游正确显式标记、POV 与地点范围
+  检查，未在本次审计中发现确定漏洞。
+
+  修复后才保存第九作者候选原文，并在真实 campaign revision `10` 上以唯一的洛恩回执一次导入至 revision `11`。实际只写
+  `market_witness_luoen` 对精确主角片段的 digest-key `knowledge_set`（`source_kind=player_statement`）；苏芮无该 key、集市没有对应
+  world fact，未补写历史。候选没有替换叙事。无真实模型、push、部署或重跑候选。
