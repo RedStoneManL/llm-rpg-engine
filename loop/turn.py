@@ -31,6 +31,7 @@ from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
 from context.capabilities import discovery_grant_errors, validate_protagonist_move_events, validate_protagonist_moves
+from context.native_authoring import player_statement_receipt_errors
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
 
@@ -123,7 +124,8 @@ def _memory_request_config(memory_role, memory_generator):
 
 def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
                               prev_scene, required_sections, max_repairs, memory_generator,
-                              trusted_discovery_keys=frozenset(), legacy=False):
+                              trusted_discovery_keys=frozenset(),
+                              trusted_player_statement_receipts=(), legacy=False):
     try:
         normalized_sections = sorted(set(required_sections))
     except TypeError as exc:
@@ -147,6 +149,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
     }
     if not legacy:
         envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
+        envelope['trusted_player_statement_receipts'] = copy.deepcopy(
+            list(trusted_player_statement_receipts))
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
@@ -276,6 +280,7 @@ def produce_turn(
     required_sections: frozenset = frozenset(),
     enforce_player_travel: bool = False,
     trusted_discovery_keys=frozenset(),
+    trusted_player_statement_receipts=(),
 ) -> tuple:
     """Produce a validated TurnCommit without writing to the store.
 
@@ -343,6 +348,9 @@ def produce_turn(
         candidate_errors = validate_commit(
             registry, commit, world, required_sections=required_sections,
         )
+        candidate_errors.extend(player_statement_receipt_errors(
+            world, scene, commit, receipts=trusted_player_statement_receipts,
+        ))
         if enforce_player_travel:
             candidate_errors.extend(discovery_grant_errors(commit, scene.get("protagonist"), trusted_discovery_keys))
             travel_errors = validate_protagonist_moves(
@@ -399,6 +407,16 @@ def produce_turn(
     # --------------------------------------------------------------------------
     dropped_sections: list[str] = []
     if errors:
+        if any(error.code in {
+            "missing_host_receipt", "invalid_host_receipt",
+            "duplicate_host_receipt", "existing_player_statement",
+        } for error in errors):
+            # Dropping only ``knowledge`` would leave narration claiming that
+            # an NPC heard the player while durable NPC memory says otherwise.
+            # A host-authority failure is therefore all-or-nothing once the
+            # repair budget is exhausted, just like an unreconciled travel
+            # declaration.
+            raise TurnRejected("player-to-NPC statement lacks a valid host communication receipt")
         if enforce_player_travel and any(error.code in {
             "outside_scene_capability", "scene_capability_narration",
         } for error in errors):
@@ -498,6 +516,7 @@ def _run_turn_staged(
     trusted_memory_role=None,
     enforce_player_travel: bool = False,
     trusted_discovery_keys=frozenset(),
+    trusted_player_statement_receipts=(),
 ) -> TurnResult:
     """Run one complete turn: produce → validate/repair → drop → events → append → project.
 
@@ -533,6 +552,7 @@ def _run_turn_staged(
             max_repairs=max_repairs, required_sections=required_sections,
             enforce_player_travel=enforce_player_travel,
             trusted_discovery_keys=trusted_discovery_keys,
+            trusted_player_statement_receipts=trusted_player_statement_receipts,
         )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
@@ -748,18 +768,21 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              cascade_provider=None, catchup_provider=None, prev_scene=None,
              action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
              host_envelope=None, enforce_player_travel: bool = False,
-             trusted_discovery_keys=frozenset()) -> TurnResult:
+             trusted_discovery_keys=frozenset(),
+             trusted_player_statement_receipts=()) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
     Foreground effects, narration and backstage consequences share one turn.
     A stale proposal or failed write changes neither the database nor the
     narrator's committed conversation. Callers may supply an action identity.
     """
+    trusted_player_statement_receipts = tuple(trusted_player_statement_receipts)
     version = expected_revision if expected_revision is not None else world.get('_revision')
     fingerprint = (_turn_request_fingerprint(
         scene, player_input, version, memory_role, prev_scene=prev_scene,
         required_sections=required_sections, max_repairs=max_repairs,
-        memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys)
+        memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys,
+        trusted_player_statement_receipts=trusted_player_statement_receipts)
         if action_id else None)
     if action_id:
         prior = store.read_committed_action(action_id)
@@ -772,8 +795,10 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             legacy = (_turn_request_fingerprint(scene, player_input, version, memory_role,
                       prev_scene=prev_scene, required_sections=required_sections,
                       max_repairs=max_repairs, memory_generator=memory_generator,
-                      trusted_discovery_keys=trusted_discovery_keys, legacy=True)
-                      if not trusted_discovery_keys else None)
+                      trusted_discovery_keys=trusted_discovery_keys,
+                      trusted_player_statement_receipts=trusted_player_statement_receipts,
+                      legacy=True)
+                      if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
             return _restore_completed_turn(registry, prior, metadata, fingerprint, version, legacy)
     trusted_memory_role = scene.get('protagonist')
     travel_world = world
@@ -811,7 +836,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
             prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
             trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel,
-            trusted_discovery_keys=trusted_discovery_keys)
+            trusted_discovery_keys=trusted_discovery_keys,
+            trusted_player_statement_receipts=trusted_player_statement_receipts)
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

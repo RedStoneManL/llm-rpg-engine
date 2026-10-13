@@ -16,6 +16,7 @@ from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
 from loop.strategy import AuthorStrategy
+from loop.turn import TurnRejected
 
 
 def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
@@ -377,6 +378,25 @@ def test_normal_gui_uses_author_strategy_and_injected_provider_not_demo_script(t
     assert duplicate["duplicate"] is True
     assert "普通模式响应" in duplicate["narration"]
     reopened.engine.store.close()
+
+
+def test_normal_gui_cannot_persist_model_inferred_player_statement_without_host_receipt(tmp_path):
+    """GUI uses the same run_turn boundary as CLI and cannot mint NPC memory."""
+    campaign = tmp_path / "campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    proposal = _normal_gui_commit("模型声称旁人听到了主角的私下话。")
+    proposal["knowledge"] = [{
+        "op": "heard_player", "receipt_id": "forged", "knower": "protagonist",
+        "speaker": "protagonist", "statement": "GUI_PRIVATE_WORDS_SENTINEL",
+    }]
+    dashboard = build_dashboard(campaign, provider=FakeLLMProvider(json_responses=[proposal]), max_repairs=0)
+    before = dashboard.state()["revision"]
+    with pytest.raises(TurnRejected, match="host communication receipt"):
+        dashboard.action(player_input="我心里想一想", action_id="forged-heard", expected_revision=before)
+    assert dashboard.state()["revision"] == before
+    assert "GUI_PRIVATE_WORDS_SENTINEL" not in json.dumps(dashboard.state(), ensure_ascii=False)
+    dashboard.engine.store.close()
 
 
 def test_normal_gui_requires_existing_campaign_and_explicit_provider(tmp_path):

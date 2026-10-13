@@ -13,6 +13,7 @@ from typing import Any
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from context.place_observations import public_place_observations
+from kernel.contextsystem import ValidationError
 from systems.knowledge import player_statement_fact_key
 from systems.time import band_name
 
@@ -402,6 +403,134 @@ def host_player_statement_receipt(world: dict, scene: dict, *, recipient: str,
         "when": when,
         "rule": "宿主显式选定的公开直述片段；仅该收件人可记录主角说过此句，不把它当世界事实。",
     }
+
+
+def player_statement_receipt_errors(world: dict, scene: dict, commit, *,
+                                    receipts: Iterable[dict[str, object]] = ()) -> list[ValidationError]:
+    """Validate the narrow host capability behind ``knowledge.heard_player``.
+
+    This is deliberately usable by the ordinary turn gateway as well as the
+    native importer.  ``heard_player`` is not a model inference from the
+    player's whole input: a trusted host must first select the exact public
+    utterance, recipient, and (when applicable) legal arrival.  Recomputing
+    the receipt from the current public projection prevents a caller from
+    smuggling a hand-written receipt for an absent or hidden recipient.
+
+    Other KnowledgeSystem operations remain ordinary authoring operations.
+    This helper governs only the special source-bound player-to-NPC record.
+    """
+    supplied: dict[str, dict[str, object]] = {}
+    malformed_ids: set[object] = set()
+    for receipt in receipts:
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("id"), str) or not receipt["id"]:
+            malformed_ids.add(None)
+            continue
+        receipt_id = receipt["id"]
+        if receipt_id in supplied:
+            malformed_ids.add(receipt_id)
+            continue
+        supplied[receipt_id] = receipt
+
+    graph = world.get("systems", {}).get("ontology")
+    day = int(scene.get("day") or world.get("meta", {}).get("day") or 1)
+    seen: set[tuple[str, str]] = set()
+    errors: list[ValidationError] = []
+
+    for index, item in enumerate(commit.sections.get("knowledge", [])):
+        if not isinstance(item, dict) or item.get("op", "told") != "heard_player":
+            continue
+
+        field = f"[{index}]"
+        receipt_id = item.get("receipt_id")
+        receipt = supplied.get(receipt_id) if isinstance(receipt_id, str) else None
+        if receipt is None or receipt_id in malformed_ids:
+            errors.append(ValidationError(
+                "knowledge", f"{field}.receipt_id", "missing_host_receipt",
+                "heard_player 需要一份宿主明确签发的通信收据",
+            ))
+            continue
+
+        # No author-controlled extension fields: the event's complete meaning
+        # is the receipt plus its exact recipient/speaker/wording projection.
+        if set(item) != {"op", "receipt_id", "knower", "speaker", "statement"}:
+            errors.append(ValidationError(
+                "knowledge", field, "invalid_host_receipt",
+                "heard_player 只能包含收据绑定的字段",
+            ))
+            continue
+
+        recipient = item.get("knower")
+        speaker = item.get("speaker")
+        statement = item.get("statement")
+        if not all(isinstance(value, str) and value for value in (recipient, speaker, statement)):
+            errors.append(ValidationError(
+                "knowledge", field, "invalid_host_receipt",
+                "heard_player 必须逐字匹配宿主收据",
+            ))
+            continue
+
+        when = receipt.get("when")
+        destination: str | None
+        if when == {"kind": "current_scene"}:
+            destination = None
+        elif (isinstance(when, dict) and when.get("kind") == "matching_move"
+              and isinstance(when.get("to"), str) and when["to"]):
+            destination = when["to"]
+        else:
+            errors.append(ValidationError(
+                "knowledge", f"{field}.receipt_id", "invalid_host_receipt",
+                "通信收据缺少有效的当前场景或匹配移动条件",
+            ))
+            continue
+
+        try:
+            expected = host_player_statement_receipt(
+                world, scene, recipient=recipient, statement=statement,
+                arrival_destination=destination,
+            )
+        except ValueError:
+            errors.append(ValidationError(
+                "knowledge", f"{field}.receipt_id", "invalid_host_receipt",
+                "通信收据的收件人不在当前公开场景或合法抵达场景中",
+            ))
+            continue
+
+        expected_fields = ("id", "op", "speaker", "recipient", "statement", "when")
+        if (any(receipt.get(name) != expected[name] for name in expected_fields)
+                or speaker != expected["speaker"] or recipient != expected["recipient"]
+                or statement != expected["statement"]):
+            errors.append(ValidationError(
+                "knowledge", f"{field}.receipt_id", "invalid_host_receipt",
+                "heard_player 必须逐字匹配当前宿主通信收据",
+            ))
+            continue
+
+        if destination is not None and not any(
+                isinstance(move, dict)
+                and move.get("who") == scene.get("protagonist")
+                and move.get("to") == destination
+                for move in commit.sections.get("moves", [])):
+            errors.append(ValidationError(
+                "knowledge", f"{field}.receipt_id", "invalid_host_receipt",
+                "抵达场景通信收据需要本回合匹配的主角移动",
+            ))
+            continue
+
+        fact_key = player_statement_fact_key(speaker, statement)
+        marker = (recipient, fact_key)
+        if marker in seen:
+            errors.append(ValidationError(
+                "knowledge", field, "duplicate_host_receipt",
+                "同一收件人和原话每回合只能记录一次",
+            ))
+            continue
+        seen.add(marker)
+        if graph is not None and graph.value_at(recipient, f"knows:{fact_key}", day) is not None:
+            errors.append(ValidationError(
+                "knowledge", field, "existing_player_statement",
+                "已有该收件人的同一玩家陈述记录，不能覆盖",
+            ))
+    return errors
 
 
 class NativeAuthoringPolicyError(ValueError):

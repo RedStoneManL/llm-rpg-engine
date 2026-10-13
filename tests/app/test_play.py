@@ -169,6 +169,30 @@ def test_play_loop_world_updated_after_turn(tmp_path):
     assert engine.world is not None
 
 
+def test_play_loop_cannot_publish_hidden_destination_proposed_by_author(tmp_path):
+    """The terminal product path shares GUI's publish-time travel contract."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+
+    proposal = {
+        "narration": "你绕开公开道路，直接抵达不该看见的旧塔。",
+        "moves": [{"who": "protagonist", "to": "north_bank_old_tower"}],
+        "places": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试非法移动"}],
+    }
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(json_responses=[proposal]), embedder=None)
+    _seed_demo_campaign(engine)
+    before = engine.store.revision
+    output: list[str] = []
+    play_loop(engine, inputs=["直接去旧塔", "/quit"], out=output.append, max_repairs=0)
+
+    assert engine.store.revision == before
+    assert engine.world["systems"]["ontology"].neighbors("protagonist", "located_in", 1) == ["stonebridge_inn"]
+    assert "世界保持原状" in "\n".join(output)
+    engine.store.close()
+
+
 # ---------------------------------------------------------------------------
 # Phase E Task 2: OOC rewind commands (/rewind, /undo, /oops, //retcon, //veto)
 # ---------------------------------------------------------------------------

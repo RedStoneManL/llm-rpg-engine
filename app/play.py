@@ -517,7 +517,8 @@ def play_loop(
                     embedder=engine.embedder, required_sections=required_sections,
                     cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
                     memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
-                    memory_generator=engine.interpretive_memory_generator)
+                    memory_generator=engine.interpretive_memory_generator,
+                    enforce_player_travel=True)
                 turn_published = True
                 engine.world = applied.world
                 prev_scene = scene
@@ -554,6 +555,7 @@ def play_loop(
                         prev_scene=prev_scene,
                         memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                         memory_generator=engine.interpretive_memory_generator,
+                        enforce_player_travel=True,
                     )
                 finally:
                     spinner.stop()

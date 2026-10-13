@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 from app.engine import build_engine
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
@@ -16,6 +18,7 @@ from context.native_authoring import (host_player_statement_receipt,
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
+from loop.turn import TurnRejected, run_turn
 from systems.knowledge import player_statement_fact_key
 
 
@@ -307,6 +310,22 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
             "knowledge": [{**proposal["knowledge"][0], "knower": "protagonist"}],
         })
         assert native_authoring_policy_errors(engine.world, scene, remote, player_statement_receipts=[receipt])
+
+        class ProposalStrategy:
+            def produce(self, *args, **kwargs):
+                return commit
+
+        # The importer has its own narrow policy, but the shared product
+        # gateway must also refuse a model-shaped proposal if a normal caller
+        # forgets to carry the host receipt through to run_turn.
+        revision = engine.store.revision
+        with pytest.raises(TurnRejected, match="host communication receipt"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, player_input,
+                strategy=ProposalStrategy(), provider=engine.provider,
+                max_repairs=0,
+            )
+        assert engine.store.revision == revision
     finally:
         engine.store.close()
 

@@ -120,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             strategy=ImportedAuthor(commit), provider=engine.provider,
             required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
             trusted_discovery_keys=trusted_discovery_keys,
+            trusted_player_statement_receipts=statement_receipts,
         )
         print(json.dumps({"narration": result.narration, "revision": result.receipt["revision"]}, ensure_ascii=False))
     finally:

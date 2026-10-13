@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-12 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-13 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
@@ -52,6 +52,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
+| RCV-13 | P0 | 已验收（产品入口边界收敛） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；不把 native 条件到达/recall 扩大为普通作者的未验证上下文 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -679,3 +680,28 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `11` **一次** 导入至 `12`。该提交只有 clock、narration、summary 与 directive event，零 `knowledge_set`：洛恩保留第九回合的
   唯一原句 digest record，苏芮没有该知识，集市没有 matching world fact；主角仍在 `stonebridge_market`、旧铜灯仍由主角持有。
   这验证单次同场安全回忆，不声称长局、跨场景或所有普通作者入口已全面覆盖。没有重放/补写历史或新增 communication receipt。
+
+- 2026-10-13：首次以真实产品调用链而非仅 native acceptance scripts 审计十回合已出现的材料。普通 CLI
+  `play_loop`、GUI `PlayerDashboard.action` 和 compare 的最终 apply 都是 `AuthorStrategy`（compare 先产生候选）→
+  `run_turn`；普通 `assemble_context` 已共享 `scene_capabilities`、`pov_world` 和 `public_place_observations`，所以公开地点观察属于
+  正常作者路径。`conditional_arrivals`、显式 `host_player_statement_receipt` 的签发，以及经可信 event 回验的
+  `recipient_heard_player_statement` recall 仍是 `export_native_turn_context.py` / `import_native_turn.py` 的 redacted native
+  hand-off 材料；普通 UI/CLI 没有“选择一句公开直述并指定收件人”的宿主控件，因而默认不会签发此能力。普通 KnowledgeSystem
+  仍可写其常规 `told` 等机制，不能借此把整段玩家输入、心理活动或 narrator prose 推断成 NPC 已听到的原话。
+
+  审计同时发现两个会跨入口造成真实影响的缺口并在共同边界修复：(1) GUI 已开启主角 POV travel publish validation，CLI
+  与 compare 最终 apply 原先仅有 prompt 指引、没有传 `enforce_player_travel=True`；现在两条 CLI 路径同样启用，隐藏目的地的
+  author proposal 在修复/耗尽预算后整 turn 零写入。(2) `heard_player` 原先只有 native policy 检查，普通
+  `AuthorStrategy → run_turn` 能把模型自称的对话写为 NPC memory。现在 `run_turn/produce_turn` 共同要求 host receipt；它逐字比对
+  speaker/recipient/statement/condition，并由当前公开 POV 重算收件人与合法到达，拒绝重复/既有记录与附加作者字段。耗尽 repair
+  预算时整 turn 拒绝，避免 narration 说“NPC 听到”而 durable memory 没有；action-id fingerprint 也包含该 capability。
+  native importer 将它已经审计过的 receipt 显式传入同一 gateway，未放宽 native policy。
+
+  新离线回归以真实 CLI play loop 证明伪造的隐藏旧塔移动保持 revision/位置不变，以真实 GUI action 证明伪造
+  `heard_player` 不入 state，原 native importer 的显式 receipt 路径仍成功。专项
+  `tests/app/test_play.py tests/app/test_gui.py tests/scripts/test_native_turn_tools.py tests/context/test_capabilities.py -rA`
+  为 **`76 passed in 3.21s`**；正式完整 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1893 passed, 1 deselected in 21.34s`**。唯一 deselect 仍为既有 slow real embedding；没有真实模型、B1/profiling、push、PR、部署，
+  也没有生成或导入新的真实作者候选。该覆盖是产品入口与该具体 capability 的回归，不把此前的 native recall 验收夸大为长局、跨场景或
+  所有普通作者材料的完整验收。
