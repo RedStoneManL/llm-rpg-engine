@@ -52,7 +52,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
-| RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界，并复用条件化公开到达/可信原话投影 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
+| RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI/GUI（含 compare）对主角旅行与明确玩家对 NPC 原话使用发布边界；native importer 保留独立的 native policy + receipt 审查 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 只显式转交其已审查的 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
+| RCV-18 | P0 | 已验收（普通作者知识权限边界） | 普通玩家作者不得把自由玩家文本洗成 NPC 知识 | 候选与最终 EventBatch 双校验：普通入口只允许 protagonist 的通用知识；NPC 的玩家原话必须精确匹配 host receipt；trusted native import/history 保持独立 policy。专项 50 passed；完整 gate 1912 passed / 1 deselected |
 | RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
@@ -856,3 +857,21 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   这是需要单独修复/回归的普通入口 transcript-laundering 缺口，不可通过手改候选、删测试或把这一 HTTP 成功表述为预期的安全通过。修复设计必须保留
   NPC 合法获得独立来源事实的能力，同时阻止作者把玩家自由输入伪装成普通 `told`；在明确边界和测试矩阵确定前，不导入该隔离剧情，也不声称旧塔目标、
   路径安全或长程记忆质量已解决。
+
+- 2026-10-13：RCV-18 针对上述 `12901b1` 记录的实际绕过完成系统性收敛。普通 CLI、GUI 与 compare 在显式
+  `enforce_player_knowledge_authority` 下，candidate 层拒绝将通用 `told`、`endowment`、`broadcast` 写给 NPC，及用
+  `facts` 的 `knows:*` 谓词绕过；唯一允许的 NPC 玩家原话仍是 host-signed 的 `heard_player` receipt。最终 `EventBatch`
+  在 materialization 后再次拒绝未授权 `knowledge_set`、任何 `knowledge_broadcast`、`knows:*` fact；仅 canonical
+  `source_kind=player_statement` 形状交由既有精确 receipt payload validator 逐字段比对，伪造形状同样零写入拒绝。上述都是
+  结构/来源校验，不依赖中文 `via`、任意 value 文本或 secrecy 缺省；后两项仍只是 contract-audit 事项而非 P0 自动拦截。
+
+  该约束仅在 ordinary player Author 路径启用，避免误伤受独立 `native_authoring_policy_errors` 审查的 native import、历史重放及
+  宿主/导演写入。Author 和 Hybrid 的普通产品提示亦改为只给 protagonist 写通用知识、明确 receipt 才可写 NPC。新增真实
+  PlayerDashboard/CLI/compare 路径回归：四种候选别名（told/endowment/broadcast/knows fact）都在 repair 前整 turn 拒绝；四种
+  materialization 后篡改（generic knowledge_set、broadcast、knows fact、伪 receipt 形状）均在 publish 前拒绝且 revision 不变；
+  合法 `/speak` receipt、protagonist told 与 action-id response-loss recovery 保持通过。原 revision-15 campaign 只保留为
+  Git-ignore failure evidence，未被本次修复写入、重放或导入。专项
+  `tests/app/test_normal_authoring_safe_context.py tests/app/test_explicit_speech.py tests/scripts/test_native_turn_tools.py tests/context/test_capabilities.py tests/loop/test_compare.py -rA`
+  为 **`50 passed in 2.54s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1912 passed, 1 deselected in 22.17s`**。唯一 deselect 仍是既有 slow real embedding；无真实模型、embedding 或网络，B1/profiling 保持 HOLD，未 push/PR/部署。

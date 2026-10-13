@@ -222,6 +222,91 @@ def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) 
     return errors
 
 
+def player_turn_knowledge_errors(commit, actor: str | None) -> list[ValidationError]:
+    """Constrain knowledge authority for an ordinary player-authored turn.
+
+    The normal CLI/GUI author may record knowledge acquired by the protagonist.
+    It cannot make an NPC learn the player's free-form input through a generic
+    ``told``/``endowment`` declaration, nor fan it out with ``broadcast``.
+    Explicit ``heard_player`` is handled by the separate host-receipt validator;
+    it is the only ordinary player-turn route that may write player speech to an
+    NPC.  Trusted host/director/bootstrap paths do not opt into this function.
+    """
+    if not isinstance(actor, str) or not actor:
+        return []
+    sections = getattr(commit, "sections", {}) or {}
+    errors: list[ValidationError] = []
+    for index, item in enumerate(sections.get("knowledge") or []):
+        if not isinstance(item, dict):
+            continue
+        op = item.get("op", "told")
+        if op == "heard_player":
+            continue
+        if op == "broadcast":
+            errors.append(ValidationError(
+                "knowledge", f"[{index}]", "untrusted_npc_knowledge",
+                "普通玩家回合不能用 broadcast 授予他人知识；玩家原话须用宿主通信收据。",
+            ))
+            continue
+        if op in {"told", "endowment", "discover_place", "discover_route"}:
+            if item.get("knower") != actor:
+                errors.append(ValidationError(
+                    "knowledge", f"[{index}].knower", "untrusted_npc_knowledge",
+                    "普通玩家回合只能把通用知识写给主角；NPC 获知主角原话须用宿主通信收据。",
+                ))
+    for index, item in enumerate(sections.get("facts") or []):
+        if (isinstance(item, dict) and isinstance(item.get("predicate"), str)
+                and item["predicate"].startswith("knows:")):
+            errors.append(ValidationError(
+                "facts", f"[{index}].predicate", "untrusted_npc_knowledge",
+                "普通玩家回合不能通过 facts 直接写入任何角色知识；请使用受约束的 knowledge 段。",
+            ))
+    return errors
+
+
+def player_turn_knowledge_event_errors(events: list[dict], actor: str | None) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_knowledge_errors`.
+
+    Run after materialization, so an owner hook cannot substitute a generic
+    knowledge event, a broadcast, or a raw ``knows:`` fact for the declaration
+    that proposal validation saw.  Receipt-shaped rows are left for
+    ``player_statement_receipt_event_errors`` to match exactly against the
+    host-issued plan.
+    """
+    if not isinstance(actor, str) or not actor:
+        return []
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted"):
+            continue
+        deltas = event.get("deltas")
+        if not isinstance(deltas, dict):
+            continue
+        event_type = event.get("type")
+        if event_type == "knowledge_broadcast":
+            errors.append(ValidationError(
+                "knowledge", f"event[{index}]", "untrusted_npc_knowledge",
+                "普通玩家回合的最终 payload 不能广播知识。",
+            ))
+        elif event_type == "knowledge_set" and deltas.get("knower") != actor:
+            # A host-receipt materialization is deliberately recognizable only
+            # by its canonical tag; the receipt validator checks every other
+            # field and rejects even a one-field mutation.
+            if deltas.get("source_kind") != "player_statement":
+                errors.append(ValidationError(
+                    "knowledge", f"event[{index}]", "untrusted_npc_knowledge",
+                    "普通玩家回合的最终 payload 含未经宿主授权的 NPC 知识写入。",
+                ))
+        if (event_type == "fact_asserted"
+                and isinstance(deltas.get("predicate"), str)
+                and deltas["predicate"].startswith("knows:")):
+            errors.append(ValidationError(
+                "facts", f"event[{index}]", "untrusted_npc_knowledge",
+                "普通玩家回合的最终 payload 不能以 fact 伪造知识写入。",
+            ))
+    return errors
+
+
 def validate_protagonist_moves(
     commit,
     world: dict,

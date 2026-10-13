@@ -450,6 +450,7 @@ class PlayerDashboard:
                     "trusted_player_statement_receipts": list(context.trusted_player_statement_receipts),
                 },
                 enforce_player_travel=True,
+                enforce_player_knowledge_authority=True,
                 trusted_player_statement_receipts=context.trusted_player_statement_receipts,
             )
             self.engine.world = result.world

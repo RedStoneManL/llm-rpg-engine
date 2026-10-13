@@ -185,9 +185,9 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 
 【铁律】上面 6 个【必填】段每回合都必须出现：narration 给散文、clock 给恰好一个元素、moves/places/cast/facts **没有该类变化就给 []（空数组）**。条目**要么字段齐全、要么根本别放**——宁可给 [] 也别塞一个缺字段的半成品（缺字段会被打回、拖慢一整局）。【可选】段没有就直接省略、不要硬凑。
 
-【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。当本回合有角色【得知 / 识破 / 被告知 / 无意获悉 / 主动透露】重要信息——秘密、线索、真相、谎言、关键数值——用 knowledge 段记录信息的流动。**尤其:凡本回合主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于"失忆"、POV 工具也查不到。**
-- told:      [{"op":"told","knower":知情者id,"fact_key":"实体.属性","value":其所知内容,"via":得知途径(可选)}]
-- broadcast: [{"op":"broadcast","fact_key":...,"value":...,"audience":{"faction":阵营id}或{"place":地点id}}]（一群人同时获悉）
+【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。普通玩家回合中，通用 told 只可写给 protagonist：凡主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于"失忆"、POV 工具也查不到。NPC 获知主角的原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由行动文字改写为 NPC 的 told、endowment、broadcast 或 knows: fact。NPC 独立来源的既有知识由宿主/导演/导入历史管理，不在普通玩家作者回合中补写。
+- told:      [{"op":"told","knower":"protagonist","fact_key":"实体.属性","value":主角所知内容,"via":合法来源(可选)}]
+- heard_player: 仅在宿主明确提供 receipt 时才可写给该 receipt 的唯一收件人；无 receipt 时省略 knowledge。
 fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商队首领.真实身份"），与世界事实同名——系统据此判断主角是否已知、并在叙事中对其未知之事保密。无人获得新信息时本段可省略（不必写 reason）。
 
 【世界事件·world（可选段）】当本回合发生区域级或世界级的大事——灾难、战争、瘟疫、政权更替、重大变故——用 world 段点名所有受影响的地点，引擎据此向下波及这些地点的子地点：
@@ -298,7 +298,7 @@ _SYSTEM_PROMPT_HYBRID = """\
    - 【可选】world: 区域/世界级事件波及的地点——见第 7 条
    - 【可选】quests: 记录"任务的开启/浮现/推进/收束"——见第 8 条
 4. 【铁律】上面 5 个【必填】段（moves/places/cast/facts/clock）每回合都必须出现：clock 给恰好一个元素，moves/places/cast/facts **散文里没有该类变化就给 [](空数组)**。条目要么字段齐全、要么根本别放——宁可 [] 也别塞缺字段的半成品。尤其：散文里主角移动了就必须有 moves、出现新地点就必须有 places，写了却漏记不行。【可选】段没有就直接省略。
-5. 【信息视野·knowledge（可选段）】散文中若有角色【得知/识破/被告知/无意获悉/主动透露】重要信息（秘密、线索、真相、谎言），记录到 knowledge 段：told 项 {"op":"told","knower":知情者id,"fact_key":"实体.属性","value":其所知,"via":途径(可选)}；一群人同时获悉用 broadcast 项 {"op":"broadcast","fact_key":...,"value":...,"audience":{"faction":id}或{"place":id}}。fact_key 尽量用 "实体.属性" 形式、与世界事实同名。散文未提及信息易手时省略本段。
+5. 【信息视野·knowledge（可选段）】这是普通玩家回合：通用 told 只可把本回合主角合法得知/亲历的信息写给 protagonist，形如 {"op":"told","knower":"protagonist","fact_key":"实体.属性","value":其所知,"via":途径(可选)}。NPC 听到主角原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由文字写成 NPC 的 told/endowment/broadcast，也不得用 facts 的 knows: 谓词代替。NPC 独立来源知识交由宿主/导演/导入历史，不在这里补写。散文未提及主角获得信息时省略本段。
 6. 只输出合法 JSON（不含 narration），不附任何 markdown 代码块或其他包装。
 7. 【世界事件·world（可选段）】散文中若描写了区域级或世界级的大事（灾难、战争、瘟疫、政权更替、重大变故），用 world 段点名所有受影响地点：world: [{"areas":[受影响地点id,...],"level":1|2|3,"summary":"一句话事件"}]。areas 用已存在或本回合刚创建的地点 id；你有完整世界视野，可点名任意位置。寻常个人场景省略本段。
 8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新明线任务（id必须全新，必须提供summary）；surface=暗线浮现进入明账（id须与上文【本地暗线】中 [id] 标签一致，切勿 open 新 id——暗线每条都标有 [id]，散文中玩家触碰了哪条就 surface 该 id）；advance=推进已有明线任务；resolve=收束已有明线任务。id 须与上文【任务·明账】中已列的 id 保持一致（open 除外）。寻常个人场景无任务变化时省略本段。

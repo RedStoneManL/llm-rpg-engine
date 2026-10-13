@@ -542,6 +542,8 @@ def play_loop(
                         embedder=engine.embedder,
                         max_repairs=max_repairs,
                         required_sections=required_sections,
+                        enforce_player_travel=True,
+                        enforce_player_knowledge_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
@@ -562,6 +564,7 @@ def play_loop(
                     memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                     memory_generator=engine.interpretive_memory_generator,
                     enforce_player_travel=True,
+                    enforce_player_knowledge_authority=True,
                     trusted_player_statement_receipts=trusted_player_statement_receipts)
                 turn_published = True
                 engine.world = applied.world
@@ -600,6 +603,7 @@ def play_loop(
                         memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                         memory_generator=engine.interpretive_memory_generator,
                         enforce_player_travel=True,
+                        enforce_player_knowledge_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:

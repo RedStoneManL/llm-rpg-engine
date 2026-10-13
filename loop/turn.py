@@ -30,7 +30,9 @@ from typing import Any
 from uuid import uuid4
 from loop.resources import prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
-from context.capabilities import discovery_grant_errors, validate_protagonist_move_events, validate_protagonist_moves
+from context.capabilities import (discovery_grant_errors, player_turn_knowledge_errors,
+                                  player_turn_knowledge_event_errors,
+                                  validate_protagonist_move_events, validate_protagonist_moves)
 from context.native_authoring import (player_statement_receipt_errors,
                                       player_statement_receipt_event_errors)
 
@@ -284,6 +286,7 @@ def produce_turn(
     max_repairs: int = 3,
     required_sections: frozenset = frozenset(),
     enforce_player_travel: bool = False,
+    enforce_player_knowledge_authority: bool = False,
     trusted_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> tuple:
@@ -358,6 +361,8 @@ def produce_turn(
         ))
         if enforce_player_travel:
             candidate_errors.extend(discovery_grant_errors(commit, scene.get("protagonist"), trusted_discovery_keys))
+            if enforce_player_knowledge_authority:
+                candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
             travel_errors = validate_protagonist_moves(
                 commit, world, scene,
                 narration_rewrite_from=travel_narration_baseline,
@@ -381,11 +386,12 @@ def produce_turn(
         if any(error.code in {
             "missing_host_receipt", "invalid_host_receipt",
             "duplicate_host_receipt", "existing_player_statement",
+            "untrusted_npc_knowledge",
         } for error in candidate_errors):
             # This is an authority error, not a malformed optional section.
             # Do not let a section-only repair erase the durable claim while
             # retaining narration that says an NPC heard private player words.
-            raise TurnRejected("player-to-NPC statement lacks a valid host communication receipt")
+            raise TurnRejected("player-to-NPC knowledge lacks a valid host communication receipt")
 
     reject_player_statement_authority_errors(errors)
 
@@ -523,6 +529,7 @@ def _run_turn_staged(
     memory_generator=None,
     trusted_memory_role=None,
     enforce_player_travel: bool = False,
+    enforce_player_knowledge_authority: bool = False,
     trusted_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> TurnResult:
@@ -559,6 +566,7 @@ def _run_turn_staged(
             strategy=strategy, provider=provider, embedder=embedder,
             max_repairs=max_repairs, required_sections=required_sections,
             enforce_player_travel=enforce_player_travel,
+            enforce_player_knowledge_authority=enforce_player_knowledge_authority,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts,
         )
@@ -776,6 +784,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              cascade_provider=None, catchup_provider=None, prev_scene=None,
              action_id=None, expected_revision=None, memory_role=None, memory_generator=None,
              host_envelope=None, enforce_player_travel: bool = False,
+             enforce_player_knowledge_authority: bool = False,
              trusted_discovery_keys=frozenset(),
              trusted_player_statement_receipts=()) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
@@ -834,6 +843,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if errors:
                 raise TurnRejected("final publish violates the player scene capability")
         batch.add_publish_validator(validate_travel_payload)
+        if enforce_player_knowledge_authority:
+            def validate_player_knowledge_payload(events):
+                errors = player_turn_knowledge_event_errors(events, travel_scene.get("protagonist"))
+                if errors:
+                    raise TurnRejected("final publish violates the player knowledge authority boundary")
+            batch.add_publish_validator(validate_player_knowledge_payload)
     def validate_player_statement_payload(events):
         errors = player_statement_receipt_event_errors(
             travel_world, travel_scene, events,
@@ -883,6 +898,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             cascade_provider=cascade_provider, catchup_provider=catchup_provider,
             prev_scene=prev_scene, memory_role=memory_role, memory_generator=memory_generator,
             trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel,
+            enforce_player_knowledge_authority=enforce_player_knowledge_authority,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts)
         authorized_player_statement_receipt_ids = tuple(

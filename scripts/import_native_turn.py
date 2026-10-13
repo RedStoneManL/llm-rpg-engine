@@ -119,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
             engine.registry, engine.store, engine.world, scene, player_input,
             strategy=ImportedAuthor(commit), provider=engine.provider,
             required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
+            # Native import is gated above by native_authoring_policy_errors;
+            # it is not an ordinary player AuthorStrategy turn.
+            enforce_player_knowledge_authority=False,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=statement_receipts,
         )
