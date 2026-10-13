@@ -782,3 +782,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1900 passed, 1 deselected in 27.27s`**。唯一 deselect 仍为既有 slow real embedding。此前 Chromium
   证据仅确认收件人/原话控件和提示文本存在，并未验证 publish 或恢复；本次以 WSGI 层协议回归补齐，未把它表述为浏览器端提交验证。
+
+- 2026-10-13：随后补做 loopback Chromium 的有限产品恢复验证（临时 campaign、公开同场旅店掌柜、固定 fake provider，
+  不代表真实模型剧情质量）。浏览器原生 input/change 与 submit click 先从 required 行动文本为空的无效表单变为有效，实际
+  `POST /api/action 200` 并显示 `行动已保存（版本 3）。`。停止服务、以同 campaign 新建 dashboard/server、刷新页面后，
+  原 pending 信封的可见恢复控件实际得到第二个 200、显示 `已恢复此前保存的行动。`，revision 保持 3。只改逐字原话后再次
+  点击恢复，实际得到 409，页面保留 pending 并显示需要查看状态后结束恢复，revision 仍为 3。临时 DB、浏览器 profile 和
+  请求运行数据均已删除，未放入 bundle/source/diff；这关闭“仅控件渲染”的产品证据缺口，但不扩展为真实作者质量或长局验收。
