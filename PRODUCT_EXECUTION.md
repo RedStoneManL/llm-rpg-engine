@@ -60,7 +60,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI/GUI（含 compare）对主角旅行与明确玩家对 NPC 原话使用发布边界；native importer 保留独立的 native policy + receipt 审查 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 只显式转交其已审查的 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
 | RCV-18 | P0 | 已验收（普通作者知识权限边界） | 普通玩家作者不得把自由玩家文本洗成 NPC 知识 | 候选与最终 EventBatch 双校验：普通入口只允许 protagonist 的通用知识；NPC 的玩家原话必须精确匹配 host receipt；trusted native import/history 保持独立 policy。专项 100 passed；完整 gate 1914 passed / 1 deselected |
 | RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
-| RCV-19 | P1 | 已验收（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | DTO 仅从 protagonist POV 和 LoreSystem 明态一行摘要生成；真实 state/WSGI 刷新覆盖目标、任务 open/advance/resolve、撤回/重开，暗线/secret/private sentinel 不泄漏；不新增写入口、作者权限或自动剧情 |
+| RCV-19 | P1 | 已验收（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | DTO 仅从 protagonist POV 和 LoreSystem 明态/此前明态后已结的公开一行摘要生成；真实 state/WSGI 刷新覆盖目标、任务 open/advance/resolve、撤回/重开，暗线/secret/private sentinel 不泄漏；不新增写入口、作者权限或自动剧情 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -917,13 +917,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   该切片直接改善长期游玩的方向感，复用现有 `LoreSystem` 投影和 player POV，不新增任务写入、GM 读取、暗线暴露或作者权限。
 
 - 2026-10-13：RCV-19 已完成。玩家 GUI 新增只读“目标与任务”面板，`build_player_state()` 的 `objectives`
-  DTO 只读取主角已投影的当前 `目标`/`goal`（无当前 fact 时回退角色公开 goal）以及 LoreSystem 已处于 `明` 状态的
-  `{id, summary}` 账本行。它不读取 `EventStore`、暗线、任务的 secret/stages/provenance、GM canonical view 或私有解释；
+  DTO 只读取主角已投影的当前 `目标`/`goal`（无当前 fact 时回退角色公开 goal）、LoreSystem 已处于 `明` 状态的
+  `{id, summary}` 账本行，以及**此前已进入明账**才又结案的公开 completion 摘要。它不读取 `EventStore`、暗线、任务的
+  secret/stages/provenance、GM canonical view 或私有解释；
   页面也没有任务写入、任务选择、自动剧情或额外 author capability。
 
   新回归经 dashboard state 与真实 WSGI `/api/state` 刷新，验证长期目标覆盖、任务 open→advance→resolve、两次 rewind
   后恢复各自正确摘要与关闭重开的一致性；暗线及 lore secret sentinel 均不进入 JSON。`tests/app/test_gui.py -rA`
   为 **`28 passed in 0.46s`**；抽取的浏览器脚本经 `node --check` 通过。正式完整离线 gate 为
-  **`1918 passed, 1 deselected in 21.65s`**，唯一 deselect 是既有 slow real embedding；没有真实模型/embedding/网络、B1、
+  **`1918 passed, 1 deselected in 21.72s`**，唯一 deselect 是既有 slow real embedding；没有真实模型/embedding/网络、B1、
   profiling、push、PR 或部署。该切片改善的是已保存目标的可见性和回放一致性，不把任务摘要当成事实权威，也不声称暗线/GM
   细节可被玩家读取。
+
+  有限浏览器复核暴露并修复两个呈现缺口：初版把“没有任务”与“已完成任务”渲染成相同空态，且 390px 宽的既有地图最小内容
+  会使页面横向溢出。现在单独显示进行中/已完成两栏；仅此前明态再结案的任务可进入已完成栏，后台暗线即使结案也不能进入。
+  使用既有临时 loopback campaign、当前代码、headless Chromium 和只读 `/api/state` 拦截响应实测空/进行中/完成三态分别可辨，
+  390px 下 `scrollWidth == clientWidth == 390`。未保存截图、未写入该 campaign，未将浏览器模拟称作模型或长期剧情质量验收。

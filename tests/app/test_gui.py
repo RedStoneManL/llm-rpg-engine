@@ -25,6 +25,11 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     initial = dashboard.state()
     assert initial["scene"]["location"]["id"] == "stonebridge_inn"
     assert initial["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
+    assert initial["objectives"] == {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [],
+        "completed_quests": [],
+    }
     assert initial["codex"][0]["title"] == "石桥镇"
     assert {node["id"] for node in initial["map"]["nodes"]} == {
         "stonebridge_inn", "stonebridge_market",
@@ -93,6 +98,10 @@ def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp
         kernel_event("lore_created", day=1, scene="s1", turn=1, summary="暗线",
                      deltas={"id": "hidden_tower_thread", "about": "GUI_OBJECTIVE_DARK_SENTINEL",
                              "secret": "GUI_OBJECTIVE_PRIVATE_SENTINEL", "state": "暗"}),
+        # A backstage line can also conclude.  It must not be reclassified as
+        # a player-visible completion merely because it now has state 了结.
+        kernel_event("quest_expired", day=2, scene="s1", turn=1, summary="暗线过期",
+                     deltas={"id": "hidden_tower_thread"}),
     ])
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
@@ -101,6 +110,7 @@ def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp
     assert opened["objectives"] == {
         "long_term_goal": "在集市确认渡口的消息来源",
         "active_quests": [{"id": "verify_ferry_report", "summary": "向可信目击者核实渡口消息"}],
+        "completed_quests": [],
     }
     assert "GUI_OBJECTIVE_PRIVATE_SENTINEL" not in json.dumps(opened, ensure_ascii=False)
     assert "GUI_OBJECTIVE_DARK_SENTINEL" not in json.dumps(opened, ensure_ascii=False)
@@ -125,11 +135,15 @@ def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
     assert dashboard.state()["objectives"]["active_quests"] == []
+    assert dashboard.state()["objectives"]["completed_quests"] == [
+        {"id": "verify_ferry_report", "summary": "已找到可核实的目击者"},
+    ]
 
     rewind(engine, 3)
     assert dashboard.state()["objectives"]["active_quests"] == [
         {"id": "verify_ferry_report", "summary": "已找到可核实的目击者"},
     ]
+    assert dashboard.state()["objectives"]["completed_quests"] == []
     rewind(engine, 2)
     assert dashboard.state()["objectives"]["active_quests"] == [
         {"id": "verify_ferry_report", "summary": "向可信目击者核实渡口消息"},
