@@ -1,0 +1,28 @@
+{
+  "narration": "你避开裂开的干土，提着旧铜灯沿来路退回石桥集市，找到洛恩。\n\n「坡口的干土有裂缝，旁边还有湿泥。你今早经过时，有没有看见明确能绕开的安全落脚点？」你把眼前见过的情况说明白。\n\n洛恩摇了摇头：「我只能说，今早来时走得通。可要指出哪一脚能绕开你说的裂缝、踩下去又稳妥，我说不准。湿泥那边能不能踩，我也不能保证。」\n\n他没能给出可确认的安全落脚点。那段坡路仍不能当作已核实可通行的路线；你留在集市，旧铜灯仍提在手中。",
+  "moves": [{"who": "protagonist", "to": "stonebridge_market"}],
+  "places": [],
+  "cast": [],
+  "facts": [{
+    "subject": "market_witness_luoen",
+    "predicate": "reported:downhill_safe_footholds",
+    "value": "洛恩听取主角关于坡口裂缝和湿泥的描述后，答复自己只能确认今早来时曾走得通，无法指出能绕开所述裂缝且踩踏稳妥的具体落脚点，也不能保证邻近湿泥可以踩踏；本次答复未核实坡路当前可通行性。"
+  }],
+  "knowledge": [
+    {
+      "op": "told",
+      "knower": "market_witness_luoen",
+      "fact_key": "market_riverward_stone_lip_6e84c2f9.坡口路面险情",
+      "value": "主角告知坡口的干土有裂缝，旁边有湿泥；这是主角转述的观察，并非洛恩亲自查看所得。",
+      "via": "主角返回石桥集市后当面说明"
+    },
+    {
+      "op": "told",
+      "knower": "protagonist",
+      "fact_key": "market_witness_luoen.reported:downhill_safe_footholds",
+      "value": "洛恩听取主角关于坡口裂缝和湿泥的描述后，答复自己只能确认今早来时曾走得通，无法指出能绕开所述裂缝且踩踏稳妥的具体落脚点，也不能保证邻近湿泥可以踩踏；本次答复未核实坡路当前可通行性。",
+      "via": "抵达石桥集市后听洛恩当面答复"
+    }
+  ],
+  "clock": [{"advance": false, "days": 0, "bands": 0, "reason": "从邻接坡口返回集市并作简短询问，仍在同一晨间时段。"}]
+}

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -29,6 +30,11 @@ def _move_proposal() -> dict:
         "places": [], "cast": [], "facts": [],
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程步行"}],
     }
+
+
+def _original_failure_candidate() -> dict:
+    fixture = Path(__file__).parents[1] / "fixtures" / "ordinary_gui_transcript_laundering_candidate.json"
+    return json.loads(fixture.read_text(encoding="utf-8"))
 
 
 def _engine_with_safe_arrival(tmp_path, provider) -> object:
@@ -173,6 +179,33 @@ def test_normal_gui_rejects_npc_knowledge_aliases_without_receipt_before_repair(
         assert engine.store.revision == before
         # Authority rejection is all-or-nothing: no knowledge-only repair can
         # leave narration claiming the NPC heard the player's words.
+        assert len(provider.calls) == 1
+    finally:
+        engine.store.close()
+
+
+def test_original_gui_transcript_laundering_candidate_is_rejected_without_writes(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_original_failure_candidate()])
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    engine.store.append_many([
+        kernel_event("character_created", day=1, scene="s1", turn=0, summary="public luoen", deltas={
+            "id": "market_witness_luoen", "sketch": "公开集市见证人", "goal": "整理摊位", "tier": "tracked",
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="luoen at market", deltas={
+            "who": "market_witness_luoen", "to": "stonebridge_market",
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    dashboard = PlayerDashboard(engine, strategy=AuthorStrategy(), demo=False)
+    before = engine.store.revision
+    try:
+        with pytest.raises(TurnRejected, match="knowledge lacks a valid host communication receipt"):
+            dashboard.action(
+                player_input="不踩裂开的干土，带着旧铜灯安全返回石桥集市，向洛恩说明坡口有裂缝和湿泥；只问他今早经过那里时是否见过明确可绕开的安全落脚点。若他不能确定，就不把那段路当作可通行。",
+                action_id="original-transcript-laundering-candidate", expected_revision=before,
+            )
+        assert engine.store.revision == before
         assert len(provider.calls) == 1
     finally:
         engine.store.close()
