@@ -950,3 +950,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 
   首次 GUI 专项中新增 DTO 断言误将 demo place kind 写为 `town`；实际 DTO 正确为既有 `settlement`，该失败未被跳过或删除，
   修正期望后专项通过。该切片不表示行动已移动、目标已推进或可看到隐藏路线。
+
+- 2026-10-13：RCV-22 已完成。玩家仪表盘新增只读“当前可交谈角色”面板；它与明确交流下拉框**共同**消费既有的
+  `speech_recipients`，即 `native_authoring_context` 的主角 POV、当前场景、公开可观察人物投影。没有新增 DTO、人物查询、
+  visibility 规则、通信授权或写接口；面板中的人并不获得 NPC 知识、通信 receipt 或行动权限。真实 dashboard 回归覆盖初始
+  无人、同场两个公开人物、同场 hidden 人物不进入 state/JSON、通过既有公开出口移动后列表刷新为空，以及关闭重开后仍为空。
+  `tests/app/test_gui.py -rA` 为 **`29 passed in 0.48s`**；浏览器脚本经 `node --check`。本机 loopback Chromium 以只读
+  `/api/state` 响应分别渲染空态和两个公开标签，断言下拉框与面板完全同源、没有非 GET 请求，且 390px 下
+  `scrollWidth == clientWidth == 390`。浏览器拦截仅验证展示，不替代上述真实 Python 隐私/移动回归；没有 campaign 写入、截图、
+  真实模型、embedding、网络、B1、profiling、push、PR 或部署。

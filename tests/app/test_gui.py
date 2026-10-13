@@ -87,6 +87,62 @@ def test_dashboard_does_not_serialize_secret_or_private_memory(tmp_path):
     engine.store.close()
 
 
+def test_player_talkable_people_reuse_public_current_scene_recipients_and_refresh_after_move(tmp_path):
+    """The display is the existing receipt-safe recipient projection, not a new view."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    engine = dashboard.engine
+    assert dashboard.state()["speech_recipients"] == []
+
+    engine.store.append_many([
+        kernel_event("character_created", day=1, scene="s1", turn=0, summary="public a", deltas={
+            "id": "a_public_listener", "sketch": "公开同场的艾", "goal": "交谈", "tier": "tracked",
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="public a at inn", deltas={
+            "who": "a_public_listener", "to": "stonebridge_inn",
+        }),
+        kernel_event("character_created", day=1, scene="s1", turn=0, summary="public b", deltas={
+            "id": "b_public_listener", "sketch": "公开同场的贝", "goal": "交谈", "tier": "tracked",
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="public b at inn", deltas={
+            "who": "b_public_listener", "to": "stonebridge_inn",
+        }),
+        kernel_event("entity_created", day=1, scene="s1", turn=0, summary="hidden listener", deltas={
+            "id": "HIDDEN_GUI_TALKABLE_SENTINEL", "etype": "Person", "tier": "tracked",
+            "attrs": {"visibility": "hidden", "sketch": "PRIVATE_GUI_TALKABLE_SENTINEL"},
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="hidden listener at inn", deltas={
+            "who": "HIDDEN_GUI_TALKABLE_SENTINEL", "to": "stonebridge_inn",
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+
+    populated = dashboard.state()
+    assert populated["speech_recipients"] == [
+        {"id": "a_public_listener", "label": "公开同场的艾"},
+        {"id": "b_public_listener", "label": "公开同场的贝"},
+    ]
+    rendered = json.dumps(populated, ensure_ascii=False)
+    assert "HIDDEN_GUI_TALKABLE_SENTINEL" not in rendered
+    assert "PRIVATE_GUI_TALKABLE_SENTINEL" not in rendered
+
+    # The offline demo takes the existing public exit.  Its resulting state is
+    # also the refresh source for both the recipient select and the new panel.
+    moved = dashboard.action(player_input="去集市看看", action_id="talkable-people-move",
+                             expected_revision=populated["revision"])
+    assert moved["state"]["scene"]["location"]["id"] == "stonebridge_market"
+    assert moved["state"]["speech_recipients"] == []
+    dashboard.engine.store.close()
+
+    reopened = build_dashboard(campaign, demo=True)
+    reopened_state = reopened.state()
+    assert reopened_state["scene"]["location"]["id"] == "stonebridge_market"
+    assert reopened_state["speech_recipients"] == []
+    assert "HIDDEN_GUI_TALKABLE_SENTINEL" not in json.dumps(reopened_state, ensure_ascii=False)
+    reopened.engine.store.close()
+
+
 def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp_path):
     """The player DTO is a read model, not a second task-writing path."""
     campaign = tmp_path / "campaign"
