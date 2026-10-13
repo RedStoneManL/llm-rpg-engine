@@ -82,6 +82,10 @@ def test_legacy_empty_discovery_fingerprint_recovers_but_nonempty_does_not(engin
     with pytest.raises(RevisionConflict):
         run_turn(engine.registry, engine.store, old_world, scene, '买酒', strategy=MustNotRun(),
             provider=FakeLLMProvider(), action_id='legacy-discovery', required_sections=REQUIRED_SECTIONS,
+            enforce_player_knowledge_authority=True)
+    with pytest.raises(RevisionConflict):
+        run_turn(engine.registry, engine.store, old_world, scene, '买酒', strategy=MustNotRun(),
+            provider=FakeLLMProvider(), action_id='legacy-discovery', required_sections=REQUIRED_SECTIONS,
             trusted_discovery_keys=frozenset({'x.discovered'}))
 
 

@@ -152,16 +152,16 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         # provider/session/credential implementation details.
         'memory': _memory_request_config(memory_role, memory_generator),
     }
+    if enforce_player_knowledge_authority:
+        # This is an authorization mode, not prose.  It must stay visible even
+        # in the old compatibility envelope so an old, less-constrained
+        # sidecar cannot be restored through the ordinary player boundary.
+        envelope['ordinary_player_knowledge_authority'] = True
     if not legacy:
         envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
         if include_player_statement_receipts:
             envelope['trusted_player_statement_receipts'] = copy.deepcopy(
                 list(trusted_player_statement_receipts))
-        # This does not describe prose; it is an authorization mode.  A
-        # response-loss retry must not use a sidecar minted by a less
-        # constrained caller to bypass the ordinary player entry boundary.
-        if enforce_player_knowledge_authority:
-            envelope['ordinary_player_knowledge_authority'] = True
     try:
         encoded = json.dumps(envelope, sort_keys=True, ensure_ascii=False,
                              separators=(',', ':'), allow_nan=False)
