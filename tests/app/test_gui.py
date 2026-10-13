@@ -37,6 +37,10 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     assert initial["map"]["edges"] == [{
         "from": "stonebridge_inn", "to": "stonebridge_market", "cost": "1",
     }]
+    assert initial["scene"]["exits"] == [{
+        "id": "stonebridge_market", "label": "石桥集市", "kind": "settlement",
+    }]
+    assert initial["scene"]["exit_costs"] == {"stonebridge_market": "1"}
     assert "north_bank_old_tower" not in json.dumps(initial, ensure_ascii=False)
 
     saved = dashboard.action(player_input="去集市看看", action_id="gui-1", expected_revision=initial["revision"])

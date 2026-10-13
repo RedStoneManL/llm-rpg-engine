@@ -226,6 +226,12 @@ def build_player_state(engine) -> dict[str, Any]:
     exits: list[dict[str, str]] = []
     capability = scene_capabilities(engine.world, scene)
     map_data = capability.map_dto()
+    exit_costs: dict[str, str] = {}
+    for route in capability.routes:
+        if route.source == scene.get("location"):
+            exit_costs[route.destination] = route.cost
+        elif route.destination == scene.get("location"):
+            exit_costs[route.source] = route.cost
     if graph is not None:
         for fact in graph.current_facts(protagonist):
             if fact.predicate != "hidden" and fact.secrecy != "secret":
@@ -263,7 +269,8 @@ def build_player_state(engine) -> dict[str, Any]:
     return {
         "revision": int(engine.world.get("_revision") or engine.store.revision),
         "turn": last_turn(engine),
-        "scene": {"day": day, "location": places.get(scene.get("location")), "exits": exits},
+        "scene": {"day": day, "location": places.get(scene.get("location")),
+                  "exits": exits, "exit_costs": exit_costs},
         "map": map_data,
         "character": {"id": protagonist, "facts": character_facts},
         "objectives": objectives,
@@ -605,7 +612,7 @@ _JS = _JS.replace(
 )
 _JS = _JS.replace(
     "visible.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));host.append(exits)}",
-    r"""visible.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='route-suggestion';button.addEventListener('click',()=>suggestExit(x.label));item.append(document.createTextNode(`→ ${x.label}（${x.kind}） `),button);exits.append(item)});host.append(exits)}""",
+    r"""const exitCosts=state&&state.scene&&state.scene.exit_costs&&typeof state.scene.exit_costs==='object'?state.scene.exit_costs:{};visible.forEach(x=>{const item=el('li'),button=el('button','填入行动'),cost=typeof exitCosts[x.id]==='string'?` · 移动成本 ${exitCosts[x.id]}`:'';button.type='button';button.className='route-suggestion';button.addEventListener('click',()=>suggestExit(x.label));item.append(document.createTextNode(`→ ${x.label}（${x.kind}${cost}） `),button);exits.append(item)});host.append(exits)}""",
 )
 _CSS += ".route-suggestion{margin-left:6px;padding:3px 7px;font-size:.8rem}.player-map li{margin:6px 0}"
 

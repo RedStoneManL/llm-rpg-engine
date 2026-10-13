@@ -62,6 +62,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
 | RCV-19 | P1 | 已验收（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | DTO 仅从 protagonist POV 和 LoreSystem 明态/此前明态后已结的公开一行摘要生成；真实 state/WSGI 刷新覆盖目标、任务 open/advance/resolve、撤回/重开，暗线/secret/private sentinel 不泄漏；不新增写入口、作者权限或自动剧情 |
 | RCV-20 | P1 | 已验收（出口行动建议） | 玩家地图列出了严格 POV 的可达出口，却不能把它变成可编辑的行动起点 | 每个现有 `scene.exits` 只生成浏览器本地的“填入行动”建议；空框填入、已有输入追加而不覆盖，点击不提交/不移动/不建 action-id，仍由既有回合验证决定移动是否合法 |
+| RCV-21 | P1 | 已验收（出口成本提示） | 玩家可选择已知出口，但无法看见同一 POV 路由已有的移动成本 | DTO 仅把 `SceneCapabilities.routes` 中当前地点的公开 cost 写入 GUI 专用平行 `exit_costs`，保持 native `available_exits` 形状不变；浏览器只读显示，不改移动、路线、发现、提交或权限 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -940,3 +941,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   API、权限、发现规则或 author capability 变化；真正移动仍只能在既有 `run_turn`/scene capability 校验通过后发生。
   真正 loopback Chromium 点击确认已有文字未被覆盖、状态明确提示“仍需编辑并保存行动”、请求列表没有任何非 GET 项，且 390px
   下 `scrollWidth == clientWidth == 390`。此为输入辅助而非目标或任务推进。
+
+- 2026-10-13：RCV-21 已完成。`build_player_state()` 从同一个已按主角 POV 过滤的 `SceneCapabilities.routes`
+  取得当前地点到每个 `scene.exits` 的 `cost`，写入玩家 GUI 专用的平行 `scene.exit_costs`，再在出口文本中显示“移动成本”。
+  既有 `scene.exits` 保持形状不变，以免将展示成本无关地扩展到 native author 的 `available_exits` 协议；没有重新查询 canonical 图，
+  也不向 map DTO、移动提交、发现或 action envelope 写入任何新值。浏览器实际 `/api/state` 只含 `stonebridge_market` 的成本 `1`，
+  页面显示 `→ 石桥集市（settlement · 移动成本 1）`，390px 下仍无横向溢出且没有非 GET 请求。
+
+  首次 GUI 专项中新增 DTO 断言误将 demo place kind 写为 `town`；实际 DTO 正确为既有 `settlement`，该失败未被跳过或删除，
+  修正期望后专项通过。该切片不表示行动已移动、目标已推进或可看到隐藏路线。
