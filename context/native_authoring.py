@@ -39,7 +39,8 @@ def _current_public_fact(graph, fact_key: str, day: int):
 
 
 def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
-                             host_authorized_routes: list[dict[str, str]] | None = None) -> dict:
+                             host_authorized_routes: list[dict[str, str]] | None = None,
+                             player_statement_receipts: list[dict[str, object]] | None = None) -> dict:
     """Build a bounded author-only supplement from safe, attributable material.
 
     ``player_context`` remains the public UI view.  This supplement does not
@@ -150,9 +151,10 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         "stateful_inventory": inventory,
         "present_people": people,
         "conditional_arrivals": arrivals,
-        "communication_receipts": _player_statement_receipts(
-            actor, player_input, people, arrivals,
-        ),
+        # Empty by default.  A trusted host must explicitly select a direct,
+        # public player statement and one recipient; raw player input often
+        # mixes actions, thoughts, and speech and is never auto-promoted.
+        "communication_receipts": list(player_statement_receipts or []),
         # Empty by default.  Only a host-side validator may put an existing,
         # undiscovered direct route here; proposal text never creates one.
         "host_authorized_routes": list(host_authorized_routes or []),
@@ -263,44 +265,53 @@ def _conditional_arrivals(world: dict, scene: dict) -> list[dict[str, object]]:
     return arrivals
 
 
-def _player_statement_receipts(actor: object, player_input: str | None,
-                               current_people: list[dict[str, object]],
-                               arrivals: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Describe the only player-to-NPC knowledge write native authors may use.
+def host_player_statement_receipt(world: dict, scene: dict, *, recipient: str,
+                                  statement: str, arrival_destination: str | None = None) -> dict[str, object]:
+    """Create one trusted, explicit player-to-NPC communication receipt.
 
-    The statement is the exact host-supplied player input, not text extracted
-    from narration.  A recipient is authorized only if already public and
-    co-present, or in a matching legal-arrival row.  It remains a report by
-    the protagonist, never a new world fact or discovery grant.
+    The host supplies the exact spoken fragment and recipient.  No parser
+    extracts dialogue from the player's whole command, so thoughts, actions,
+    and private asides remain absent unless a trusted caller selected them
+    explicitly (which the caller must not do for non-public speech).
     """
-    if not isinstance(actor, str) or not actor or not isinstance(player_input, str) or not player_input:
-        return []
-    recipients = [
-        {"id": person["id"], "when": {"kind": "current_scene"}}
-        for person in current_people
+    if not isinstance(recipient, str) or not recipient:
+        raise ValueError("host player statement receipt requires a recipient")
+    if not isinstance(statement, str) or not statement:
+        raise ValueError("host player statement receipt requires a non-empty exact statement")
+    actor = scene.get("protagonist")
+    if not isinstance(actor, str) or not actor:
+        raise ValueError("host player statement receipt requires a protagonist")
+    context = native_authoring_context(world, scene)
+    current = {
+        person.get("id") for person in context.get("present_people", [])
         if isinstance(person, dict) and isinstance(person.get("id"), str)
-    ]
-    for arrival in arrivals:
-        if not isinstance(arrival, dict):
-            continue
-        move = arrival.get("move")
-        if not isinstance(move, dict) or move.get("who") != actor or not isinstance(move.get("to"), str):
-            continue
-        for person in arrival.get("present_people", []):
-            if isinstance(person, dict) and isinstance(person.get("id"), str):
-                recipients.append({
-                    "id": person["id"],
-                    "when": {"kind": "matching_move", "to": move["to"]},
-                })
-    if not recipients:
-        return []
-    return [{
+    }
+    when: dict[str, str]
+    if arrival_destination is None:
+        if recipient not in current:
+            raise ValueError("host player statement recipient must be publicly co-present now")
+        when = {"kind": "current_scene"}
+    else:
+        if not isinstance(arrival_destination, str) or not arrival_destination:
+            raise ValueError("host arrival player statement requires a destination")
+        matched = next((arrival for arrival in context.get("conditional_arrivals", [])
+                        if isinstance(arrival, dict)
+                        and isinstance(arrival.get("move"), dict)
+                        and arrival["move"].get("to") == arrival_destination), None)
+        people = matched.get("present_people", []) if isinstance(matched, dict) else []
+        if recipient not in {person.get("id") for person in people if isinstance(person, dict)}:
+            raise ValueError("host player statement recipient must be public at the matching legal arrival")
+        when = {"kind": "matching_move", "to": arrival_destination}
+    receipt_id = f"{recipient}:{player_statement_fact_key(actor, statement)}:{when.get('to', 'current')}"
+    return {
+        "id": receipt_id,
         "op": "heard_player",
         "speaker": actor,
-        "statement": player_input,
-        "recipients": recipients,
-        "rule": "仅可让列出的当前共场人物，或提交匹配合法移动后共场的人物，收到这句原样玩家陈述；这记录主角说过什么，不断言陈述为世界事实。",
-    }]
+        "recipient": recipient,
+        "statement": statement,
+        "when": when,
+        "rule": "宿主显式选定的公开直述片段；仅该收件人可记录主角说过此句，不把它当世界事实。",
+    }
 
 
 class NativeAuthoringPolicyError(ValueError):
@@ -375,7 +386,7 @@ def _native_visible_speakers(world: dict, scene: dict, *,
 
 def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
                                    trusted_discovery_keys=frozenset(),
-                                   player_input: str | None = None) -> list[str]:
+                                   player_statement_receipts: list[dict[str, object]] | None = None) -> list[str]:
     """Validate the native author's *authority*, not ordinary creative quality.
 
     A native author may create public places/people and may preserve a new
@@ -556,24 +567,11 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
         elif fact.get("secrecy") not in {None, "public"}:
             errors.append("new public scene facts may not be restricted")
 
-    communication_context = native_authoring_context(
-        world, scene, player_input=player_input,
-    )
-    current_hearers: set[str] = set()
-    arrival_hearers: dict[str, set[str]] = {}
-    for receipt in communication_context.get("communication_receipts", []):
-        if not isinstance(receipt, dict) or receipt.get("op") != "heard_player":
-            continue
-        for recipient in receipt.get("recipients", []):
-            if not isinstance(recipient, dict) or not isinstance(recipient.get("id"), str):
-                continue
-            when = recipient.get("when")
-            if not isinstance(when, dict):
-                continue
-            if when.get("kind") == "current_scene":
-                current_hearers.add(recipient["id"])
-            elif when.get("kind") == "matching_move" and isinstance(when.get("to"), str):
-                arrival_hearers.setdefault(when["to"], set()).add(recipient["id"])
+    receipts_by_id = {
+        receipt.get("id"): receipt
+        for receipt in (player_statement_receipts or [])
+        if isinstance(receipt, dict) and isinstance(receipt.get("id"), str)
+    }
 
     heard_statement_keys: set[tuple[str, str]] = set()
     told: dict[str, tuple[Any, str | None]] = {}
@@ -597,19 +595,28 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
             recipient = item.get("knower")
             speaker = item.get("speaker")
             statement = item.get("statement")
-            allowed_recipient = (
-                recipient in current_hearers
-                or any(recipient in recipients for destination, recipients in arrival_hearers.items()
-                       if destination in committed_arrival_destinations)
-            )
-            if not isinstance(player_input, str) or not player_input:
-                errors.append("native heard_player records require a non-empty host player input")
-            if speaker != scene.get("protagonist"):
-                errors.append("native heard_player speaker must be the current protagonist")
-            if not isinstance(statement, str) or statement != player_input:
-                errors.append("native heard_player statement must exactly equal the host player input")
-            if not isinstance(recipient, str) or not allowed_recipient:
-                errors.append("native heard_player recipient must be public and co-present now or after the matching legal move")
+            receipt_id = item.get("receipt_id")
+            receipt = receipts_by_id.get(receipt_id)
+            if receipt is None:
+                errors.append("native heard_player requires one exact host communication receipt")
+                continue
+            if speaker != receipt.get("speaker") or speaker != scene.get("protagonist"):
+                errors.append("native heard_player speaker must match the host receipt and current protagonist")
+            if recipient != receipt.get("recipient") or statement != receipt.get("statement"):
+                errors.append("native heard_player recipient and statement must exactly match the host receipt")
+            when = receipt.get("when")
+            if not isinstance(when, dict):
+                errors.append("native heard_player receipt must have a host-selected scene condition")
+            elif when.get("kind") == "current_scene":
+                pass
+            elif (when.get("kind") == "matching_move"
+                  and isinstance(when.get("to"), str)
+                  and when["to"] in committed_arrival_destinations):
+                pass
+            else:
+                errors.append("native heard_player receipt requires its matching legal move")
+            if set(item) - {"op", "receipt_id", "knower", "speaker", "statement"}:
+                errors.append("native heard_player may not add author-controlled knowledge fields")
             if isinstance(recipient, str) and isinstance(speaker, str) and isinstance(statement, str):
                 fact_key = player_statement_fact_key(speaker, statement)
                 if graph is not None and graph.value_at(recipient, f"knows:{fact_key}", day) is not None:

@@ -10,7 +10,9 @@ import sys
 from app.engine import build_engine
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
-from context.native_authoring import native_authoring_context, native_authoring_policy_errors
+from context.native_authoring import (host_player_statement_receipt,
+                                      native_authoring_context,
+                                      native_authoring_policy_errors)
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
@@ -123,15 +125,16 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
 
 def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_path):
     campaign = _native_campaign(tmp_path)
-    player_input = "我亲眼看见客栈门口的石阶有裂缝。"
-    statement = player_input
+    # A real command can mix a physical action, an unspoken thought, and a
+    # directed utterance.  Only the trusted host-selected utterance may become
+    # a receipt; neither the raw command nor a keyword-derived substring is
+    # eligible by default.
+    player_input = "我检查门栓，心里想起旧债，转头只告诉玛拉：客栈门口的石阶有裂缝。"
+    statement = "客栈门口的石阶有裂缝。"
     proposal = {
         "narration": "你把亲眼所见的石阶裂缝告诉玛拉。",
         "moves": [], "places": [], "links": [], "cast": [], "facts": [],
-        "knowledge": [{
-            "op": "heard_player", "knower": "innkeeper_mara",
-            "speaker": "protagonist", "statement": statement,
-        }],
+        "knowledge": [],
         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "同场说明没有推进时段"}],
     }
     engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
@@ -147,27 +150,40 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
         ], preflight=lambda history: project(engine.registry, history))
         engine.world = project(engine.registry, engine.store.iter_events())
         scene = _build_scene(engine)
-        context = native_authoring_context(engine.world, scene, player_input=player_input)
-        receipt = context["communication_receipts"]
-        assert receipt[0]["statement"] == player_input
-        assert receipt[0]["recipients"] == [{"id": "innkeeper_mara", "when": {"kind": "current_scene"}}]
+        receipt = host_player_statement_receipt(
+            engine.world, scene, recipient="innkeeper_mara", statement=statement,
+        )
+        context = native_authoring_context(
+            engine.world, scene, player_input=player_input,
+            player_statement_receipts=[receipt],
+        )
+        assert context["communication_receipts"] == [receipt]
+        assert native_authoring_context(engine.world, scene, player_input=player_input)["communication_receipts"] == []
+        assert context["communication_receipts"][0]["statement"] == statement
+        assert player_input != statement
         assert "HEARD_PLAYER_PRIVATE_SENTINEL" not in repr(context)
+
+        proposal["knowledge"] = [{
+            "op": "heard_player", "receipt_id": receipt["id"], "knower": "innkeeper_mara",
+            "speaker": "protagonist", "statement": statement,
+        }]
 
         from kernel.turncommit import TurnCommit
         commit = TurnCommit.from_dict(proposal)
+        assert native_authoring_policy_errors(engine.world, scene, commit)  # no host receipt by default
         assert native_authoring_policy_errors(
-            engine.world, scene, commit, player_input=player_input,
+            engine.world, scene, commit, player_statement_receipts=[receipt],
         ) == []
         altered = TurnCommit.from_dict({
             **proposal,
             "knowledge": [{**proposal["knowledge"][0], "statement": "作者改写的句子"}],
         })
-        assert native_authoring_policy_errors(engine.world, scene, altered, player_input=player_input)
+        assert native_authoring_policy_errors(engine.world, scene, altered, player_statement_receipts=[receipt])
         remote = TurnCommit.from_dict({
             **proposal,
             "knowledge": [{**proposal["knowledge"][0], "knower": "protagonist"}],
         })
-        assert native_authoring_policy_errors(engine.world, scene, remote, player_input=player_input)
+        assert native_authoring_policy_errors(engine.world, scene, remote, player_statement_receipts=[receipt])
     finally:
         engine.store.close()
 
@@ -175,6 +191,7 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
     proposal_path.write_text(json.dumps(proposal, ensure_ascii=False), encoding="utf-8")
     subprocess.run([
         sys.executable, str(IMPORTER), str(campaign), str(proposal_path), player_input,
+        "--host-player-statement", "innkeeper_mara", statement,
     ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
     reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
     try:
@@ -184,7 +201,9 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
         assert graph.value_at("stonebridge_inn", "status", 1) is None
         assert native_authoring_policy_errors(
             reopened.world, _build_scene(reopened), TurnCommit.from_dict(proposal),
-            player_input=player_input,
+            player_statement_receipts=[host_player_statement_receipt(
+                reopened.world, _build_scene(reopened), recipient="innkeeper_mara", statement=statement,
+            )],
         )
     finally:
         reopened.store.close()
@@ -241,23 +260,27 @@ def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_
         assert native_authoring_policy_errors(engine.world, scene, without_move)
 
         statement = "我在布棚外空地看见一根系棚绳的木桩。"
+        receipt = host_player_statement_receipt(
+            engine.world, scene, recipient="market_witness_luoen", statement=statement,
+            arrival_destination="stonebridge_market",
+        )
         arrival_receipt = TurnCommit.from_dict({
             "narration": "你抵达集市，把自己的观察告诉洛恩。",
             "moves": [{"who": "protagonist", "to": "stonebridge_market"}],
             "places": [], "links": [], "cast": [], "facts": [],
             "knowledge": [{
                 "op": "heard_player", "knower": "market_witness_luoen",
-                "speaker": "protagonist", "statement": statement,
+                "receipt_id": receipt["id"], "speaker": "protagonist", "statement": statement,
             }],
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程回到集市"}],
         })
         assert native_authoring_policy_errors(
-            engine.world, scene, arrival_receipt, player_input=statement,
+            engine.world, scene, arrival_receipt, player_statement_receipts=[receipt],
         ) == []
         assert native_authoring_policy_errors(
             engine.world, scene,
             TurnCommit.from_dict({**arrival_receipt.to_dict(), "moves": []}),
-            player_input=statement,
+            player_statement_receipts=[receipt],
         )
     finally:
         engine.store.close()

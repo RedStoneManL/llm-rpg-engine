@@ -629,14 +629,20 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   有来源的“公开交流回执”能力的缺口；不能通过从 narration 自动抽取或放开任意 native knowledge 绕过。代码未改变，未重跑
   gate，按请求未上传。
 
-- 2026-10-13：关闭该双向交流缺口的最小通路为 `knowledge.heard_player`。宿主将原样非空玩家输入及仅限公开共场的当前/匹配
-  合法到达收件人列入 `authoring_context.communication_receipts`；native policy 只接受 `speaker=protagonist`、逐字相等的
-  statement、该 receipt 中的收件人，并拒绝隐藏/远程人物、无 host 输入、改写文字、重复同收件人记录以及已存在的同 key 认知。
-  `KnowledgeSystem` 以非作者可选的 digest key 写入 `knowledge_set`，value 保留主角陈述且标 `source_kind=player_statement`；
-  这不是 world fact、路线/地点发现或 NPC 亲历。既有第八事件没有补写。
+- 2026-10-13：`91c810d` 曾把整条非空 `player_input` 与公开共场收件人绑定。这只能校验“全文相等”，却不能区分行动、心理/旁白和
+  对不同人物的说话；因此明确标为 **WIP，未用于 campaign、未补写第八事件，现已废弃**。不能由 narration/关键词猜测，也不能让
+  native 作者自行授予收件人权限。
 
-  新正负回归覆盖当前/条件化到达收件人、原样输入绑定、隐藏 sentinel 隔离、远程/改写/无移动/重复覆盖拒绝，以及事件级
+- 2026-10-13：替代的最小通路仍为 `knowledge.heard_player`，但 `communication_receipts` **默认空**。可信宿主必须显式选择一个
+  公开直述片段与一个收件人（到达后场景还须选择合法目的地），经 `host_player_statement_receipt` 用公开当前/条件到达 POV 验证后，
+  才发出 `{id, op, speaker, recipient, statement, when}` receipt。proposal 只能提交相同的 `receipt_id`、`knower`、`speaker`、
+  `statement`，不得附加作者控制的知识字段；没有 receipt、改写、远程/隐藏人物、未匹配到达、重复覆盖均 fail-closed。
+  `KnowledgeSystem` 以非作者可选的 digest key 写入 `knowledge_set`，value 仅为该片段且标 `source_kind=player_statement`；
+  这不是 world fact、路线/地点发现或 NPC 亲历。例中宿主只选“我看见一根木桩。”给洛恩时，苏芮得不到心理或私下话，洛恩也不接收动作
+  指令。既有历史完全不改。
+
+  新正负回归覆盖默认无 receipt、显式当前/条件到达收件人、隐藏 sentinel 隔离、远程/改写/无匹配移动/重复覆盖拒绝，以及事件级
   source/via/key 形状。专项 `tests/systems/test_knowledge.py tests/scripts/test_native_turn_tools.py
-  tests/context/test_place_observations.py -rA` 为 **`55 passed in 2.23s`**；本提交正式完整离线 gate 为
-  **`1889 passed, 1 deselected in 20.60s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、B1/profiling、
-  push、PR 或部署；下一步是 bundle/source/安全检查与按可用性一次 Library 持久化尝试。
+  tests/context/test_place_observations.py -rA` 为 **`55 passed in 2.23s`**；正式完整离线 gate 为
+  **`1889 passed, 1 deselected in 20.84s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、B1/profiling、
+  push、PR、部署或 Library 上传；下一步仅在用户授权下继续新的候选回合。

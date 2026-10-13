@@ -22,7 +22,9 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from app.engine import build_engine
 from app.play import _build_scene
 from context.capabilities import host_route_discovery_grant
-from context.native_authoring import NativeAuthoringPolicyError, native_authoring_policy_errors
+from context.native_authoring import (NativeAuthoringPolicyError,
+                                      host_player_statement_receipt,
+                                      native_authoring_policy_errors)
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
@@ -67,6 +69,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("player_input")
     parser.add_argument("--host-authorize-route", action="append", default=[], metavar="DESTINATION",
                         help="trusted host only: grant one existing undiscovered adjacent route for this import")
+    parser.add_argument("--host-player-statement", action="append", default=[], nargs=2,
+                        metavar=("RECIPIENT", "EXACT_SPOKEN_FRAGMENT"),
+                        help="trusted host only: explicitly authorize one current-scene public player statement")
+    parser.add_argument("--host-arrival-player-statement", action="append", default=[], nargs=3,
+                        metavar=("DESTINATION", "RECIPIENT", "EXACT_SPOKEN_FRAGMENT"),
+                        help="trusted host only: authorize one public statement after a matching legal arrival")
     args = parser.parse_args(argv)
     campaign = args.campaign
     proposal_path = args.proposal
@@ -85,10 +93,22 @@ def main(argv: list[str] | None = None) -> int:
             key for option in route_options
             for key in (option["place_discovery_key"], option["route_discovery_key"])
         )
+        statement_receipts = [
+            host_player_statement_receipt(
+                engine.world, scene, recipient=recipient, statement=statement,
+            )
+            for recipient, statement in args.host_player_statement
+        ] + [
+            host_player_statement_receipt(
+                engine.world, scene, recipient=recipient, statement=statement,
+                arrival_destination=destination,
+            )
+            for destination, recipient, statement in args.host_arrival_player_statement
+        ]
         policy_errors = native_authoring_policy_errors(
             engine.world, scene, commit,
             trusted_discovery_keys=trusted_discovery_keys,
-            player_input=player_input,
+            player_statement_receipts=statement_receipts,
         )
         if policy_errors:
             raise NativeAuthoringPolicyError(
