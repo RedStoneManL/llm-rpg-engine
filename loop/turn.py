@@ -822,6 +822,10 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     trusted_memory_role = scene.get('protagonist')
     travel_world = world
     travel_scene = copy.deepcopy(scene)
+    # Filled only after the validated final commit is available.  The publish
+    # validator must distinguish a merely *offered* host receipt from a
+    # receipt that the accepted commit actually authorizes to materialize.
+    authorized_player_statement_receipt_ids: tuple[str, ...] = ()
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
     if enforce_player_travel:
         def validate_travel_payload(events):
@@ -834,6 +838,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         errors = player_statement_receipt_event_errors(
             travel_world, travel_scene, events,
             receipts=trusted_player_statement_receipts,
+            authorized_receipt_ids=authorized_player_statement_receipt_ids,
         )
         if errors:
             raise TurnRejected("final publish violates the player-statement receipt boundary")
@@ -865,6 +870,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             trusted_memory_role=trusted_memory_role, enforce_player_travel=enforce_player_travel,
             trusted_discovery_keys=trusted_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts)
+        authorized_player_statement_receipt_ids = tuple(
+            item['receipt_id']
+            for item in result.commit.sections.get('knowledge', [])
+            if (isinstance(item, dict) and item.get('op', 'told') == 'heard_player'
+                and isinstance(item.get('receipt_id'), str))
+        )
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

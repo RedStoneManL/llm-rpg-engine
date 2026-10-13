@@ -533,46 +533,70 @@ def player_statement_receipt_errors(world: dict, scene: dict, commit, *,
     return errors
 
 
+def _is_player_statement_digest_key(fact_key: object) -> bool:
+    """Return whether ``fact_key`` belongs to the reserved receipt namespace.
+
+    The full digest is deliberately not parsed here.  A corrupted or shortened
+    suffix must remain protected too: otherwise a materializer could evade the
+    final gate merely by changing one character of a planned digest key.
+    """
+    return (isinstance(fact_key, str)
+            and ".reported_player_statement:" in fact_key
+            and not fact_key.startswith(".reported_player_statement:"))
+
+
 def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iterable[dict[str, object]], *,
-                                          receipts: Iterable[dict[str, object]] = ()) -> list[str]:
+                                          receipts: Iterable[dict[str, object]] = (),
+                                          authorized_receipt_ids: Iterable[str] = ()) -> list[str]:
     """Fail closed if final payload events invent a player-statement record.
 
     ``produce_turn`` validates the declaration. This companion runs in the
-    final EventBatch validator so a hook or materialization change cannot
-    mutate or append a ``source_kind=player_statement`` knowledge event after
-    that declaration check.
+    final EventBatch validator with the *declared* receipt ids, so a hook or
+    materialization change cannot delete/change the protected digest key,
+    remove/change ``source_kind``, append another player-statement record, or
+    accept an arrival after its effective move was retracted/superseded.
     """
     events = tuple(events)
     expected: list[dict[str, object]] = []
+    authorized = tuple(authorized_receipt_ids)
+    requested_ids = set(authorized)
+    if any(not isinstance(receipt_id, str) or not receipt_id for receipt_id in authorized):
+        return ["final player-statement plan contains an invalid receipt id"]
+    if len(requested_ids) != len(authorized):
+        return ["final player-statement plan repeats a receipt id"]
+
     seen_receipts: set[str] = set()
     for receipt in receipts:
         if not isinstance(receipt, dict):
+            continue
+        receipt_id = receipt.get("id")
+        if receipt_id not in requested_ids:
             continue
         recipient = receipt.get("recipient")
         statement = receipt.get("statement")
         when = receipt.get("when")
         if not isinstance(recipient, str) or not recipient or not isinstance(statement, str) or not statement:
-            continue
+            return ["final player-statement plan has an invalid receipt"]
         if when == {"kind": "current_scene"}:
             destination = None
         elif (isinstance(when, dict) and when.get("kind") == "matching_move"
               and isinstance(when.get("to"), str) and when["to"]):
             destination = when["to"]
         else:
-            continue
+            return ["final player-statement plan has an invalid receipt"]
         try:
             canonical = host_player_statement_receipt(
                 world, scene, recipient=recipient, statement=statement,
                 arrival_destination=destination,
             )
         except ValueError:
-            continue
+            return ["final player-statement plan cannot be reconstructed"]
         if any(receipt.get(field) != canonical[field]
                for field in ("id", "op", "speaker", "recipient", "statement", "when")):
-            continue
+            return ["final player-statement plan does not match its host receipt"]
         receipt_id = canonical["id"]
         if receipt_id in seen_receipts:
-            continue
+            return ["final player-statement plan repeats a receipt id"]
         seen_receipts.add(receipt_id)
         expected.append({
             "deltas": {
@@ -585,13 +609,34 @@ def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iter
             "destination": destination,
         })
 
+    if seen_receipts != requested_ids:
+        return ["final player-statement plan refers to a missing host receipt"]
+
     errors: list[str] = []
     matched: set[int] = set()
-    for event in events:
-        if not isinstance(event, dict) or event.get("type") != "knowledge_set":
+    arrival_matches: set[int] = set()
+    graph = world.get("systems", {}).get("ontology")
+    actor = scene.get("protagonist")
+    day = int(scene.get("day") or world.get("meta", {}).get("day") or 1)
+    locations = (graph.neighbors(actor, "located_in", day)
+                 if graph is not None and isinstance(actor, str) and actor else [])
+    current_location = locations[0] if len(locations) == 1 else None
+    last_active_move_index: int | None = None
+
+    for event_index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted"):
             continue
         deltas = event.get("deltas")
-        if not isinstance(deltas, dict) or deltas.get("source_kind") != "player_statement":
+        if event.get("type") == "entity_moved" and isinstance(deltas, dict) and deltas.get("who") == actor:
+            destination = deltas.get("to")
+            current_location = destination if isinstance(destination, str) and destination else None
+            last_active_move_index = event_index
+            continue
+        if event.get("type") != "knowledge_set" or not isinstance(deltas, dict):
+            continue
+        protected = (deltas.get("source_kind") == "player_statement"
+                     or _is_player_statement_digest_key(deltas.get("fact_key")))
+        if not protected:
             continue
         match = next((index for index, allowed in enumerate(expected)
                       if allowed["deltas"] == deltas and index not in matched), None)
@@ -599,15 +644,29 @@ def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iter
             errors.append("final payload contains an untrusted player-statement knowledge event")
         else:
             matched.add(match)
+            destination = expected[match]["destination"]
+            if destination is not None and (
+                    current_location != destination or last_active_move_index is None):
+                errors.append("final payload lacks an active effective arrival before a player-statement receipt")
+            elif destination is not None:
+                arrival_matches.add(match)
+    if len(matched) != len(expected):
+        errors.append("final payload omits an authorized player-statement knowledge event")
+    for index in arrival_matches:
+        if current_location != expected[index]["destination"]:
+            errors.append("final payload leaves the arrival destination before publication")
     for index in matched:
         destination = expected[index]["destination"]
         if destination is not None and not any(
-                isinstance(event, dict) and event.get("type") == "entity_moved"
+                isinstance(event, dict) and not event.get("retracted")
+                and event.get("type") == "entity_moved"
                 and isinstance(event.get("deltas"), dict)
-                and event["deltas"].get("who") == scene.get("protagonist")
+                and event["deltas"].get("who") == actor
                 and event["deltas"].get("to") == destination
                 for event in events):
-            errors.append("final payload omits the move required by a player-statement receipt")
+            # Defensive consistency check for a future change that alters the
+            # ordered state machine above.
+            errors.append("final payload omits the active move required by a player-statement receipt")
     return errors
 
 

@@ -346,26 +346,36 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
             )
         assert repair_strategy.repaired is False and engine.store.revision == revision
 
-        # Final EventBatch validation sees the materialized event payload too;
-        # a post-declaration mutation cannot turn a valid host receipt into a
-        # different player-statement record.
+        # Final EventBatch validation sees the materialized event payload too.
+        # It reserves both the player-statement source kind and its digest-key
+        # namespace, so a hook cannot turn a valid host receipt into an
+        # unmarked/generic knowledge fact merely by deleting or changing the
+        # source field after declaration validation.
         knowledge = engine.registry.owner_of_section("knowledge")
         original_to_events = knowledge.to_events
+        tamper = {"kind": "value"}
 
         def tampered_to_events(section, decl, *, turn, day, scene):
             events = original_to_events(section, decl, turn=turn, day=day, scene=scene)
             for event in events:
                 if event.get("deltas", {}).get("source_kind") == "player_statement":
-                    event["deltas"]["value"] = "POST_MATERIALIZATION_FORGED_WORDS"
+                    if tamper["kind"] == "value":
+                        event["deltas"]["value"] = "POST_MATERIALIZATION_FORGED_WORDS"
+                    elif tamper["kind"] == "delete_source_kind":
+                        del event["deltas"]["source_kind"]
+                    else:
+                        event["deltas"]["source_kind"] = "ordinary_author_claim"
             return events
 
         monkeypatch.setattr(knowledge, "to_events", tampered_to_events)
-        with pytest.raises(TurnRejected, match="final publish violates the player-statement"):
-            run_turn(
-                engine.registry, engine.store, engine.world, scene, player_input,
-                strategy=ProposalStrategy(), provider=engine.provider,
-                trusted_player_statement_receipts=[receipt], max_repairs=0,
-            )
+        for kind in ("value", "delete_source_kind", "change_source_kind"):
+            tamper["kind"] = kind
+            with pytest.raises(TurnRejected, match="final publish violates the player-statement"):
+                run_turn(
+                    engine.registry, engine.store, engine.world, scene, player_input,
+                    strategy=ProposalStrategy(), provider=engine.provider,
+                    trusted_player_statement_receipts=[receipt], max_repairs=0,
+                )
         assert engine.store.revision == revision
     finally:
         engine.store.close()
@@ -392,7 +402,7 @@ def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_p
         reopened.store.close()
 
 
-def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_path):
+def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_path, monkeypatch):
     """A one-turn public exit can have an arrival scene without leaking host cast."""
     campaign = _native_campaign(tmp_path)
     engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
@@ -475,6 +485,51 @@ def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_
             TurnCommit.from_dict({**arrival_receipt.to_dict(), "moves": []}),
             player_statement_receipts=[receipt],
         )
+
+        # The final publish gate must inspect the materialized event sequence,
+        # not merely find any matching move.  A retracted arrival has no effect;
+        # likewise an injected later move means the final payload no longer
+        # leaves the protagonist at the arrival receipt's destination.
+        class ProposalStrategy:
+            def produce(self, *args, **kwargs):
+                return arrival_receipt
+
+        place = engine.registry.owner_of_section("moves")
+        knowledge = engine.registry.owner_of_section("knowledge")
+        original_place_to_events = place.to_events
+        original_knowledge_to_events = knowledge.to_events
+        tamper = {"kind": "retracted_arrival"}
+
+        def tampered_place_to_events(section, decl, *, turn, day, scene):
+            events = original_place_to_events(section, decl, turn=turn, day=day, scene=scene)
+            if tamper["kind"] == "retracted_arrival":
+                for event in events:
+                    if event.get("type") == "entity_moved":
+                        event["retracted"] = True
+            return events
+
+        def tampered_knowledge_to_events(section, decl, *, turn, day, scene):
+            events = original_knowledge_to_events(section, decl, turn=turn, day=day, scene=scene)
+            if tamper["kind"] == "later_move_away":
+                events.append(kernel_event(
+                    "entity_moved", day=day, scene=scene,
+                    summary="tampered late departure",
+                    deltas={"who": "protagonist", "to": "stonebridge_inn"}, turn=turn,
+                ))
+            return events
+
+        monkeypatch.setattr(place, "to_events", tampered_place_to_events)
+        monkeypatch.setattr(knowledge, "to_events", tampered_knowledge_to_events)
+        revision = engine.store.revision
+        for kind in ("retracted_arrival", "later_move_away"):
+            tamper["kind"] = kind
+            with pytest.raises(TurnRejected, match="final publish violates the player-statement"):
+                run_turn(
+                    engine.registry, engine.store, engine.world, scene, statement,
+                    strategy=ProposalStrategy(), provider=engine.provider,
+                    trusted_player_statement_receipts=[receipt], max_repairs=0,
+                )
+        assert engine.store.revision == revision
     finally:
         engine.store.close()
 

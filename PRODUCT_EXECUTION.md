@@ -720,3 +720,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   tests/app/test_gui.py tests/app/test_play.py -rA` 为 **`144 passed in 3.21s`**；正式完整 gate 为
   **`1894 passed, 1 deselected in 21.19s`**。唯一 deselect 仍为既有 slow real embedding，无真实模型、B1/profiling、push、PR、部署或
   新真实作者候选。
+
+- 2026-10-13：`31d5b5a` 的初次 final-payload 复核又发现两个绕过，故该 checkpoint 同样标为 **WIP，不是最终验收点**：原判定只
+  枚举 `source_kind=player_statement`，materializer 若删除/改写该字段便能让同一 digest-key `knowledge_set` 跳过；arrival
+  则以任意匹配 `entity_moved` 为真，没有排除 retracted move 或检查同一事件序列中主角的实际最终位置。后续修复把 receipt 的
+  完整声明计划显式交给 final validator，保留整个 `*.reported_player_statement:*` digest namespace；每一计划记录必须恰好 materialize
+  为完整相等的 delta（包含不可丢失的 `source_kind`），未计划的同类 source 或 digest-key 一律拒绝。arrival 在 active event 的顺序
+  状态机中验证：知识事件前必须已实际抵达目的地，且发布时最终仍在该目的地；retracted move、晚到 move 与随后离开均不满足。
+
+  精确回归在真实 `run_turn → EventBatch.publish` 路径篡改 value、删除/替换 source_kind、retract arrival move、以及在 knowledge 后插入
+  离开 move；每种均在 publish 前 `TurnRejected` 且 revision 不变。专项
+  `tests/scripts/test_native_turn_tools.py tests/test_action_integrity.py -rA` 为 **`97 passed in 2.77s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1894 passed, 1 deselected in 22.07s`**。
+  唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络，未启用 B1/profiling、未 push/PR/部署或导入新真实作者候选。
