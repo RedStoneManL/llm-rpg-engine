@@ -819,3 +819,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `stonebridge_market(1日)` 文案。定向为 **`67 passed in 0.30s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1902 passed, 1 deselected in 21.17s`**。唯一 deselect 仍是既有 slow real embedding；未调用真实模型、embedding、网络、B1、profiling、push、PR 或部署。
+
+- 2026-10-13：对隔离的 revision 15 campaign 仅运行既有 `digest_fleet` 摘要链、未重跑任何玩家 action。recap provider 的两次
+  `[system,user]` 消息均先逐字节匹配已捕获的正常链输入：s4 场景摘要消息 SHA-256 为
+  `e32400276651bafd8a0d8d287f129c846283812029daa24f0f66e72f8a6e690f`，随后 total-recompression 消息为
+  `049254349ae903588ae03b732fe3f271f2ba148418cbd8acfe49a1b22e36a024`。以两份给定本地 native JSON response 通过同一结构化链后，
+  临时副本从 revision 15/110 events 变为 revision 17/112 events：seq 111 是 `s4` 的 `scene_summarized`，seq 112 是
+  `recap_recompressed`；结果的 `recap_status=saved`。再用“任何生成请求即失败”的 provider 运行同一 digest，结果零 provider calls、零 append，
+  因为没有 aged raw scene。前台 `native-author-turn13-gui-v1` receipt 仍为 seq 106..110、revision 15；原始 isolated source 的 DB/JSONL
+  哈希和状态亦未变。验收材料在 Git-ignore 的 snapshot acceptance 目录。
+
+  **测试数据质量债务**：本次 s4 摘要是实际 native response，但历史 s1–s3 只有 fake 的“一句话摘要”占位，其中 s2/s3 重复；因此 total response
+  正确地说明没有可合并的具体剧情、承诺、关系或未解问题。这只验证 normal recap chain 的消息绑定、写入与去重，不是长程记忆质量证据。未来类似真实验收须对
+  所需历史 scene 取得真实 native recap；这些 legacy placeholders 保留为审计证据，禁止事后以虚构内容覆写。无真实模型/网络、B1、profiling、push、PR 或部署。
