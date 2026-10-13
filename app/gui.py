@@ -416,7 +416,11 @@ class PlayerDashboard:
                 stored = self._stored_context(action_id)
                 if stored is not None:
                     if stored.recipient != recipient or stored.statement != statement:
-                        raise GuiRequestError("请求标识已绑定到另一项明确交流；请刷新后重试。")
+                        # A receipt already exists, so this is not a request that
+                        # the browser can safely reject and discard.  The original
+                        # committed turn may be recoverable only with its original
+                        # envelope; keep the client in its explicit recovery path.
+                        raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
                     context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene,
                                               stored.recipient, stored.statement,
                                               stored.trusted_player_statement_receipts)

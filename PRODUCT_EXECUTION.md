@@ -52,7 +52,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-09 | P1 | 已验收（显式只读 GM 总览） | 启动时隔离的 canonical 世界总览、地图、系统、时间线与公开 Codex | player/GM 路由互斥；GM 无写路由且不显示私有角色解释；其引用型私有泄漏已 fail-closed |
 | RCV-10 | P1 | 已验收（正常玩家入口与恢复上下文） | 正常 GUI 接既有 `AuthorStrategy`/provider、原 action-id 的冷重开恢复 | 不降级为 demo；host scene/prev_scene 同事务写入 sidecar；旧缺失 envelope 明确 409；实测 server cold restart 恢复 |
 | RCV-11 | P1 | 已验收（修正后：玩家地图与行动边界） | 统一 canonical/POV 世界地点图 read-model，并把玩家出口文本升级为可视、只读地图 | 同一 map DTO 算法分别消费 POV 与 canonical 图；玩家 DOM/API 不含隐藏地点/边或私有文本；三项 repair/final-payload/缺起点 fail-closed 修正已补；下一项才是 event-owned 发现状态 |
-| RCV-13 | P0 | 已验收（普通作者安全材料闭环） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界，并复用条件化公开到达/可信原话投影 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
+| RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI、GUI 和 native importer 对主角旅行与玩家对 NPC 原话使用同一发布边界，并复用条件化公开到达/可信原话投影 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 显式转交 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -770,3 +770,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   为 **`127 passed in 2.95s`**；正式完整离线 gate 为
   **`1900 passed, 1 deselected in 24.53s`**。本机 Chromium/Playwright 对 loopback GUI 实测确认独立收件人/原话控件及提示文本渲染。
   唯一 deselect 仍为既有 slow real embedding；没有真实模型/embedding/网络、B1/profiling、push、PR 或部署。
+
+- 2026-10-13：对 `5bbd5ab` 的恢复语义复核发现一个交付前回归：若 action 已提交而客户端以同一 action ID
+  改写明确交流的收件人或原话，GUI controller 曾抛 `GuiRequestError`，HTTP 因而返回带
+  `confirmed_rejection=true` 的 400；浏览器会清掉 pending，错误声称该动作未保存。现统一改为
+  `GuiRecoveryError` 的中性 409，响应没有 `confirmed_rejection`，浏览器保留 pending 并要求用户刷新检查
+  世界状态或明确结束恢复。新增真实 WSGI HTTP 反例：先提交，再冷重开，以相同 action ID 改原话，断言
+  409 与精确中性 payload。定向
+  `tests/app/test_explicit_speech.py tests/app/test_gui.py tests/test_action_integrity.py -rA` 为
+  **`114 passed in 0.86s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1900 passed, 1 deselected in 27.27s`**。唯一 deselect 仍为既有 slow real embedding。此前 Chromium
+  证据仅确认收件人/原话控件和提示文本存在，并未验证 publish 或恢复；本次以 WSGI 层协议回归补齐，未把它表述为浏览器端提交验证。
