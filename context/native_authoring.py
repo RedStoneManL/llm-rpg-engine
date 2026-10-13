@@ -7,6 +7,7 @@ turning an absent fact into an NPC claim.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 from context.access import pov_world
@@ -58,7 +59,8 @@ def _is_public_subject_in_view(canonical, visible, subject: str) -> bool:
 
 def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
                              host_authorized_routes: list[dict[str, str]] | None = None,
-                             player_statement_receipts: list[dict[str, object]] | None = None) -> dict:
+                             player_statement_receipts: list[dict[str, object]] | None = None,
+                             trusted_events: Iterable[dict[str, object]] = ()) -> dict:
     """Build a bounded author-only supplement from safe, attributable material.
 
     ``player_context`` remains the public UI view.  This supplement does not
@@ -75,6 +77,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
     view = pov_world(world, scene, pov=actor, redact_facts=True)
     visible = view.get("systems", {}).get("ontology")
 
+    trusted_event_index = _trusted_active_event_index(trusted_events)
     inventory: list[dict[str, str]] = []
     people: list[dict[str, object]] = []
     if visible is not None and actor:
@@ -138,6 +141,9 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                         "confidence": "declared",
                     })
                     seen_evidence.add(fact_key)
+                evidence.extend(_recipient_player_statement_evidence(
+                    canonical, visible, person_id, actor, trusted_event_index,
+                ))
                 # A ``reported:*`` fact is intentionally a fact *about this
                 # visible source's statement*, not proof of the reported
                 # proposition.  It can therefore be replayed as the exact
@@ -164,7 +170,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                 "absence_meaning": "not_supplied_not_npc_unknown",
             })
 
-    arrivals = _conditional_arrivals(world, scene)
+    arrivals = _conditional_arrivals(world, scene, trusted_event_index=trusted_event_index)
     return {
         "scene_time": {"day": day, "band": band_name(band)},
         "stateful_inventory": inventory,
@@ -191,7 +197,65 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
     }
 
 
-def _arrival_public_people(world: dict, scene: dict) -> list[dict[str, object]]:
+def _trusted_active_event_index(events: Iterable[dict[str, object]]) -> dict[str, dict[str, object]]:
+    """Index only uniquely identified active host events.
+
+    Native context never serializes this input.  It is supplied directly by an
+    EventStore-owning host and is used solely to verify that a projected player
+    statement originated in the narrow ``heard_player`` event form.
+    """
+    grouped: dict[str, list[dict[str, object]]] = {}
+    for event in events:
+        if not isinstance(event, dict) or event.get("retracted"):
+            continue
+        event_id = event.get("id")
+        if isinstance(event_id, str) and event_id:
+            grouped.setdefault(event_id, []).append(event)
+    return {event_id: entries[0] for event_id, entries in grouped.items() if len(entries) == 1}
+
+
+def _recipient_player_statement_evidence(canonical, visible, recipient: str, actor: object,
+                                         trusted_event_index: dict[str, dict[str, object]]) -> list[dict[str, str]]:
+    """Project only verified ``heard_player`` records held by one safe recipient.
+
+    A record is not a world fact.  It becomes author-facing recall material
+    only where the recipient is already safe current/arrival scene material,
+    its graph fact names the source event, and that event proves the exact
+    protagonist wording, recipient, digest key, and ``player_statement`` kind.
+    """
+    if not isinstance(actor, str) or not actor:
+        return []
+    evidence: list[dict[str, str]] = []
+    for fact in canonical.current_facts(recipient):
+        if not fact.predicate.startswith("knows:") or not isinstance(fact.source_event, str):
+            continue
+        fact_key = fact.predicate[len("knows:"):]
+        event = trusted_event_index.get(fact.source_event)
+        deltas = event.get("deltas") if isinstance(event, dict) else None
+        if not isinstance(deltas, dict) or event.get("type") != "knowledge_set":
+            continue
+        statement = deltas.get("value")
+        if (deltas.get("source_kind") != "player_statement"
+                or deltas.get("knower") != recipient
+                or deltas.get("via") != actor
+                or not isinstance(statement, str) or not statement
+                or deltas.get("fact_key") != fact_key
+                or fact.value != statement
+                or fact_key != player_statement_fact_key(actor, statement)):
+            continue
+        evidence.append({
+            "fact_key": fact_key,
+            "value": statement,
+            "source": "recipient_heard_player_statement",
+            "confidence": "heard_exact_words",
+            "speaker": actor,
+            "meaning": "recipient_heard_statement_not_world_truth",
+        })
+    return evidence
+
+
+def _arrival_public_people(world: dict, scene: dict, *,
+                           trusted_event_index: dict[str, dict[str, object]]) -> list[dict[str, object]]:
     """Project only public people observable after a legal same-turn arrival.
 
     ``pov_world`` normally treats co-location as observable so ordinary scenes
@@ -241,6 +305,9 @@ def _arrival_public_people(world: dict, scene: dict) -> list[dict[str, object]]:
                 "confidence": "declared",
             })
             seen_evidence.add(fact_key)
+        evidence.extend(_recipient_player_statement_evidence(
+            canonical, visible, person_id, actor, trusted_event_index,
+        ))
         for fact in canonical.current_facts(person_id):
             if not fact.predicate.startswith("reported:") or fact.secrecy != "public":
                 continue
@@ -263,7 +330,8 @@ def _arrival_public_people(world: dict, scene: dict) -> list[dict[str, object]]:
     return people
 
 
-def _conditional_arrivals(world: dict, scene: dict) -> list[dict[str, object]]:
+def _conditional_arrivals(world: dict, scene: dict, *,
+                          trusted_event_index: dict[str, dict[str, object]] | None = None) -> list[dict[str, object]]:
     """Return arrival-only material for each already legal public exit.
 
     This projection is shared by brief construction and native policy checks.
@@ -280,7 +348,9 @@ def _conditional_arrivals(world: dict, scene: dict) -> list[dict[str, object]]:
             "condition": "仅当本 TurnCommit 同时提交该主角的对应合法移动后，以下人物才是抵达时可呈现的场景材料；它不是行动开始时主角已知的事实。",
             "move": {"who": actor, "to": destination.id},
             "location": {"id": destination.id, "label": destination.label, "kind": destination.kind},
-            "present_people": _arrival_public_people(world, arrival_scene),
+            "present_people": _arrival_public_people(
+                world, arrival_scene, trusted_event_index=trusted_event_index or {},
+            ),
         })
     return arrivals
 
@@ -364,10 +434,11 @@ def _native_new_ids(commit) -> tuple[set[str], set[str], set[str]]:
 
 
 def _native_speakable_sources(world: dict, scene: dict, *,
-                              arrival_destinations: frozenset[str] = frozenset()) -> dict[str, tuple[Any, str]]:
+                              arrival_destinations: frozenset[str] = frozenset(),
+                              trusted_events: Iterable[dict[str, object]] = ()) -> dict[str, tuple[Any, str]]:
     """Map supplied public facts to speakers usable in this exact proposal."""
     supplied: dict[str, tuple[Any, str]] = {}
-    context = native_authoring_context(world, scene)
+    context = native_authoring_context(world, scene, trusted_events=trusted_events)
     people = list(context.get("present_people", []))
     for arrival in context.get("conditional_arrivals", []):
         move = arrival.get("move") if isinstance(arrival, dict) else None
@@ -378,20 +449,28 @@ def _native_speakable_sources(world: dict, scene: dict, *,
         if not isinstance(speaker, str):
             continue
         for evidence in person.get("speakable_evidence", []):
+            # A recipient's recall of the player's words is author-facing
+            # conversation grounding, not authority to manufacture a public
+            # canonical fact from those words.  A visible recipient may still
+            # make a new source-bound ``reported:*`` statement in response.
+            if (isinstance(evidence, dict)
+                    and evidence.get("source") == "recipient_heard_player_statement"):
+                continue
             if isinstance(evidence, dict) and isinstance(evidence.get("fact_key"), str):
                 supplied[evidence["fact_key"]] = (evidence.get("value"), speaker)
     return supplied
 
 
 def _native_visible_speakers(world: dict, scene: dict, *,
-                             arrival_destinations: frozenset[str] = frozenset()) -> set[str]:
+                             arrival_destinations: frozenset[str] = frozenset(),
+                             trusted_events: Iterable[dict[str, object]] = ()) -> set[str]:
     """Return only the sources explicitly present in the redacted brief.
 
     Presence here is a capability, not a claim about every canonical person at
     the location.  Reusing ``native_authoring_context`` keeps policy and the
     material actually handed to the author on the same POV boundary.
     """
-    context = native_authoring_context(world, scene)
+    context = native_authoring_context(world, scene, trusted_events=trusted_events)
     people = list(context.get("present_people", []))
     for arrival in context.get("conditional_arrivals", []):
         move = arrival.get("move") if isinstance(arrival, dict) else None
@@ -406,7 +485,8 @@ def _native_visible_speakers(world: dict, scene: dict, *,
 
 def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
                                    trusted_discovery_keys=frozenset(),
-                                   player_statement_receipts: list[dict[str, object]] | None = None) -> list[str]:
+                                   player_statement_receipts: list[dict[str, object]] | None = None,
+                                   trusted_events: Iterable[dict[str, object]] = ()) -> list[str]:
     """Validate the native author's *authority*, not ordinary creative quality.
 
     A native author may create public places/people and may preserve a new
@@ -428,6 +508,7 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
     that is world creation, not discovery of an existing hidden route.
     """
     graph = world.get("systems", {}).get("ontology")
+    trusted_events = tuple(trusted_events)
     day = int(scene.get("day") or world.get("meta", {}).get("day") or 1)
     existing = set(graph.entities) if graph is not None else set()
     people, places, entities = _native_new_ids(commit)
@@ -540,9 +621,11 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
     )
     supplied = _native_speakable_sources(
         world, scene, arrival_destinations=committed_arrival_destinations,
+        trusted_events=trusted_events,
     )
     visible_speakers = _native_visible_speakers(
         world, scene, arrival_destinations=committed_arrival_destinations,
+        trusted_events=trusted_events,
     )
     reports: dict[str, tuple[Any, str]] = {}
     for fact in commit.sections.get("facts", []):

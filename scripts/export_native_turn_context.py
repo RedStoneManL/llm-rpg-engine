@@ -95,6 +95,7 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
             engine.world, scene, player_input=player_input,
             host_authorized_routes=route_options,
             player_statement_receipts=statement_receipts,
+            trusted_events=engine.store.iter_events(),
         ),
         "free_action_goal": goal,
         "turncommit_schema": {

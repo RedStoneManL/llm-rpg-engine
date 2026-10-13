@@ -143,6 +143,109 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
         engine.store.close()
 
 
+def test_native_context_recalls_only_verified_recipient_player_statement(tmp_path):
+    campaign = _native_campaign(tmp_path)
+    statement = "我只对洛恩说这句公开观察。"
+    key = player_statement_fact_key("protagonist", statement)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        heard = kernel_event("knowledge_set", day=1, scene="s1", turn=1, summary="洛恩听到主角陈述", deltas={
+            "knower": "market_witness_luoen", "fact_key": key, "value": statement,
+            "via": "protagonist", "source_kind": "player_statement",
+        })
+        engine.store.append_many([
+            kernel_event("character_created", day=1, scene="s1", turn=0, summary="洛恩在客栈", deltas={
+                "id": "market_witness_luoen", "sketch": "洛恩", "goal": "收好空筐", "tier": "tracked",
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="洛恩在客栈", deltas={
+                "who": "market_witness_luoen", "to": "stonebridge_inn",
+            }),
+            heard,
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        scene = _build_scene(engine)
+        events = list(engine.store.iter_events())
+        # Raw graph knowledge alone is not enough: only a host-supplied,
+        # source-verified event list can project the recall material.
+        default = native_authoring_context(engine.world, scene)
+        default_luoen = next(person for person in default["present_people"]
+                             if person["id"] == "market_witness_luoen")
+        assert default_luoen["speakable_evidence"] == []
+
+        context = native_authoring_context(engine.world, scene, trusted_events=events)
+        luoen = next(person for person in context["present_people"]
+                     if person["id"] == "market_witness_luoen")
+        assert luoen["speakable_evidence"] == [{
+            "fact_key": key, "value": statement,
+            "source": "recipient_heard_player_statement",
+            "confidence": "heard_exact_words", "speaker": "protagonist",
+            "meaning": "recipient_heard_statement_not_world_truth",
+        }]
+        mara = next(person for person in context["present_people"] if person["id"] == "innkeeper_mara")
+        assert mara["speakable_evidence"] == []
+
+        tampered = [
+            {**event, "deltas": {**event["deltas"], "source_kind": "untrusted"}}
+            if event["id"] == heard["id"] else event
+            for event in events
+        ]
+        rejected = native_authoring_context(engine.world, scene, trusted_events=tampered)
+        rejected_luoen = next(person for person in rejected["present_people"]
+                              if person["id"] == "market_witness_luoen")
+        assert rejected_luoen["speakable_evidence"] == []
+
+        # The recall grounds a reply, but is not a licence to turn the
+        # protagonist's wording into a public canonical fact.
+        from kernel.turncommit import TurnCommit
+        echo_as_fact = TurnCommit.from_dict({
+            "narration": "洛恩复述你说过的话。", "moves": [], "places": [], "links": [], "cast": [],
+            "facts": [{"subject": "protagonist", "predicate": key.split(".", 1)[1],
+                       "value": statement, "secrecy": "public"}],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "同场回忆不推进时段"}],
+        })
+        assert native_authoring_policy_errors(
+            engine.world, scene, echo_as_fact, trusted_events=events,
+        )
+    finally:
+        engine.store.close()
+
+
+def test_native_context_recalls_verified_player_statement_only_on_matching_arrival(tmp_path):
+    campaign = _native_campaign(tmp_path)
+    statement = "我只在抵达后对洛恩说这句。"
+    key = player_statement_fact_key("protagonist", statement)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("character_created", day=1, scene="s1", turn=0, summary="洛恩在集市", deltas={
+                "id": "market_witness_luoen", "sketch": "洛恩", "goal": "收好空筐", "tier": "mentioned",
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="洛恩在集市", deltas={
+                "who": "market_witness_luoen", "to": "stonebridge_market",
+            }),
+            kernel_event("knowledge_set", day=1, scene="s0", turn=0, summary="洛恩曾听到主角陈述", deltas={
+                "knower": "market_witness_luoen", "fact_key": key, "value": statement,
+                "via": "protagonist", "source_kind": "player_statement",
+            }),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        context = native_authoring_context(
+            engine.world, _build_scene(engine), trusted_events=engine.store.iter_events(),
+        )
+        assert all(person["id"] != "market_witness_luoen" for person in context["present_people"])
+        arrival = context["conditional_arrivals"][0]
+        luoen = next(person for person in arrival["present_people"]
+                     if person["id"] == "market_witness_luoen")
+        assert luoen["speakable_evidence"] == [{
+            "fact_key": key, "value": statement,
+            "source": "recipient_heard_player_statement",
+            "confidence": "heard_exact_words", "speaker": "protagonist",
+            "meaning": "recipient_heard_statement_not_world_truth",
+        }]
+    finally:
+        engine.store.close()
+
+
 def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_path):
     campaign = _native_campaign(tmp_path)
     # A real command can mix a physical action, an unspoken thought, and a

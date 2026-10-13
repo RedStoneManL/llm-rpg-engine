@@ -661,3 +661,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   修复后才保存第九作者候选原文，并在真实 campaign revision `10` 上以唯一的洛恩回执一次导入至 revision `11`。实际只写
   `market_witness_luoen` 对精确主角片段的 digest-key `knowledge_set`（`source_kind=player_statement`）；苏芮无该 key、集市没有对应
   world fact，未补写历史。候选没有替换叙事。无真实模型、push、部署或重跑候选。
+
+- 2026-10-13：第九回合后只读导出发现一个端到端缺口：`heard_player` 虽已落为 recipient 的 `knows:<digest>`，原
+  `speakable_evidence` 只接受有配套公开 canonical fact 的知识，导致洛恩下一 author brief 看不到自己已听到的原句。`native_authoring_context`
+  现只在可信 EventStore 提供的 active event 中验证 `knowledge_set` 的 `source_kind=player_statement`、收件人、当前主角 via、精确 value、
+  digest key 与 graph 的 `source_event` 全部一致，才为当前/匹配条件到达的安全收件人投影独立
+  `recipient_heard_player_statement` evidence。默认无 trusted events 不投影；篡改 event、其他 NPC、撤回或任意私有 `knows:` 均不通过。
+  该 evidence 明确是“收件人听到原句，不是世界真相”，并从 native policy 的可重写 canonical-fact sources 中排除；可用于叙事和收件人的
+  新 `reported:*` 回应，不能把主角话伪造成 public world fact。
+
+  真实 revision `11` 的只读 brief 现只给洛恩一条精确 recall：`protagonist.reported_player_statement:3350e0f966055bdd2d86`、原句、
+  speaker=protagonist、`confidence=heard_exact_words`，没有新 communication receipt、没有预设回应、没有其他洛恩私有认知。专项
+  `tests/scripts/test_native_turn_tools.py tests/context/test_place_observations.py -rA` 为 **`16 passed in 2.49s`**；正式 gate 为
+  **`1891 passed, 1 deselected in 20.92s`**。仍无真实模型、push、部署或历史重写。

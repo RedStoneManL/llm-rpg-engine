@@ -109,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
             engine.world, scene, commit,
             trusted_discovery_keys=trusted_discovery_keys,
             player_statement_receipts=statement_receipts,
+            trusted_events=engine.store.iter_events(),
         )
         if policy_errors:
             raise NativeAuthoringPolicyError(
