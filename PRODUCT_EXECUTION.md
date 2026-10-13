@@ -61,6 +61,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-18 | P0 | 已验收（普通作者知识权限边界） | 普通玩家作者不得把自由玩家文本洗成 NPC 知识 | 候选与最终 EventBatch 双校验：普通入口只允许 protagonist 的通用知识；NPC 的玩家原话必须精确匹配 host receipt；trusted native import/history 保持独立 policy。专项 100 passed；完整 gate 1914 passed / 1 deselected |
 | RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
 | RCV-19 | P1 | 已验收（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | DTO 仅从 protagonist POV 和 LoreSystem 明态/此前明态后已结的公开一行摘要生成；真实 state/WSGI 刷新覆盖目标、任务 open/advance/resolve、撤回/重开，暗线/secret/private sentinel 不泄漏；不新增写入口、作者权限或自动剧情 |
+| RCV-20 | P1 | 已验收（出口行动建议） | 玩家地图列出了严格 POV 的可达出口，却不能把它变成可编辑的行动起点 | 每个现有 `scene.exits` 只生成浏览器本地的“填入行动”建议；空框填入、已有输入追加而不覆盖，点击不提交/不移动/不建 action-id，仍由既有回合验证决定移动是否合法 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -933,3 +934,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   会使页面横向溢出。现在单独显示进行中/已完成两栏；仅此前明态再结案的任务可进入已完成栏，后台暗线即使结案也不能进入。
   使用既有临时 loopback campaign、当前代码、headless Chromium 和只读 `/api/state` 拦截响应实测空/进行中/完成三态分别可辨，
   390px 下 `scrollWidth == clientWidth == 390`。未保存截图、未写入该 campaign，未将浏览器模拟称作模型或长期剧情质量验收。
+
+- 2026-10-13：RCV-20 已完成。地图的当前可达出口现在各有本地“填入行动”按钮：它只将 `前往〈可见地点〉。`
+  放入行动框；原框为空时直接填入，原框已有内容时保留原文并换行追加建议。点击不提交、不移动、不发 action-id，也没有后端
+  API、权限、发现规则或 author capability 变化；真正移动仍只能在既有 `run_turn`/scene capability 校验通过后发生。
+  真正 loopback Chromium 点击确认已有文字未被覆盖、状态明确提示“仍需编辑并保存行动”、请求列表没有任何非 GET 项，且 390px
+  下 `scrollWidth == clientWidth == 390`。此为输入辅助而非目标或任务推进。

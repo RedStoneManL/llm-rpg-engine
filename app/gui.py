@@ -599,6 +599,15 @@ _JS = _JS.replace(
     "clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);",
     "renderMap(s.map,s.scene.location);",
 )
+_JS = _JS.replace(
+    "function renderMap(data,location){",
+    r"""function suggestExit(label){const input=$('action-input');if(!input)return;const suggestion=`前往${label}。`,existing=input.value.trim();input.value=existing?`${input.value.replace(/\s*$/,'')}\n${suggestion}`:suggestion;input.focus();setStatus(`已填入前往 ${label} 的建议；仍需编辑并保存行动。`)}function renderMap(data,location){""",
+)
+_JS = _JS.replace(
+    "visible.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));host.append(exits)}",
+    r"""visible.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='route-suggestion';button.addEventListener('click',()=>suggestExit(x.label));item.append(document.createTextNode(`→ ${x.label}（${x.kind}） `),button);exits.append(item)});host.append(exits)}""",
+)
+_CSS += ".route-suggestion{margin-left:6px;padding:3px 7px;font-size:.8rem}.player-map li{margin:6px 0}"
 
 _GM_INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 本地 GM 世界总览</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow gm-mode\">LOCAL · GM READ-ONLY · CANONICAL WORLD</p><h1>世界总览</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p><p class=\"notice\">这是启动时通过 <code>--gm</code> 显式开启的本地只读模式。切换玩家/GM 视角需要重启服务；这里没有编辑、推进或玩家行动按钮。</p></header><section class=\"grid gm-grid\"><article class=\"panel map-panel\"><h2>全局地点连接图</h2><p class=\"hint\">节点和连线直接来自当前地点实体与 <code>adjacent_to</code> 关系。</p><div id=\"map\" class=\"map-graph\"></div></article><article class=\"panel\"><h2>地点系统</h2><div id=\"places\"></div></article><article class=\"panel\"><h2>角色系统</h2><div id=\"people\"></div></article><article class=\"panel\"><h2>物品与持有关系</h2><div id=\"objects\"></div></article><article class=\"panel\"><h2>摘要 / recap</h2><div id=\"recaps\"></div></article><article class=\"panel timeline\"><h2>世界事件时间线</h2><p class=\"hint\">标明客观事实、公开叙事、摘要以及已撤回历史。私有角色解释不会在此出现。</p><div id=\"timeline\"></div></article></section><footer>GM 全局可见不等于玩家可见，也不会写回玩家响应、模型上下文或私有解释记忆。</footer></main><script src=\"/app.js\"></script></body></html>"""
 _GM_INDEX = _GM_INDEX.replace('<article class="panel"><h2>摘要 / recap</h2>', '<article class="panel codex"><h2>世界设定典（只读）</h2><label for="codex-search">搜索标题、类别或正文</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div></article><article class="panel"><h2>摘要 / recap</h2>')
