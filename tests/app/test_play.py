@@ -245,6 +245,8 @@ def test_cli_author_prompt_binds_goal_scope_and_public_observation(tmp_path):
         user = "\n".join(message["content"] for message in messages if message["role"] == "user")
         assert 'protagonist.goal = "在黎明前找到旧塔的线索"' in user
         assert "【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。" in user
+        assert "出口：stonebridge_market（路径成本 1）" in user
+        assert "stonebridge_market(1日)" not in user
         assert "门外石阶潮湿。" in user
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in user
         assert "普通玩家回合不拥有完整世界视野" in system
@@ -282,6 +284,8 @@ def test_dashboard_author_strategy_uses_the_same_scoped_context(tmp_path):
                          if message["role"] == "user")
         assert 'protagonist.goal = "在黎明前找到旧塔的线索"' in user
         assert "【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。" in user
+        assert "出口：stonebridge_market（路径成本 1）" in user
+        assert "stonebridge_market(1日)" not in user
         assert "GUI 门前石阶潮湿。" in user
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in user
     finally:

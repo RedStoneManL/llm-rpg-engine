@@ -367,9 +367,13 @@ def test_inject_lists_exits():
     frag = ps.inject(scene, w)
     assert "暗黑森林" in frag.text
     assert "边境城" in frag.text
-    # travel costs appear
-    assert "1" in frag.text
-    assert "5" in frag.text
+    # ``travel_cost`` is a routing weight, not a day/time conversion.  The
+    # author-facing scene fragment must name it accurately so it cannot bias
+    # the independently required ``clock`` declaration.
+    assert "路径成本 1" in frag.text
+    assert "路径成本 5" in frag.text
+    assert "1日" not in frag.text
+    assert "5日" not in frag.text
 
 
 def test_inject_no_location_returns_none():

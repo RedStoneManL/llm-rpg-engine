@@ -476,7 +476,7 @@ class PlaceSystem(ContextSystem):
         exits = g.relation_attrs_at(loc_id, "adjacent_to", day)
         if exits:
             exits_text = "、".join(
-                f"{dst}({attrs.get('travel_cost', 1)}日)" for dst, attrs in exits
+                f"{dst}（路径成本 {attrs.get('travel_cost', 1)}）" for dst, attrs in exits
             )
             location_text = f"当前位置：{loc_id}（{loc_kind}）。出口：{exits_text}"
             affordance = "可移动目标：" + "、".join(dst for dst, _ in exits)

@@ -803,3 +803,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `tests/context/test_place_observations.py tests/context/test_capabilities.py -rA` 为 **`23 passed in 0.37s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1902 passed, 1 deselected in 21.61s`**。
   唯一 deselect 为既有 slow real embedding；未调用真实模型、embedding 或网络，B1/profiling 保持 HOLD，未 push/PR/部署，也未生成新的玩家回合。
+
+- 2026-10-13：以完整 v2 实际 `[system,user]` 捕获（SHA-256
+  `868fb13f9ab3bc28d37b207a275ebbd86124864779e426f31bf14dfb280b5338`）为唯一作者上下文，隔离的 revision 14
+  campaign 经真实 WSGI `POST /api/action → PlayerDashboard → run_turn → AuthorStrategy` 单次传入本地 native 作者候选。provider
+  收到的 bytes 与 v2 完全一致；候选未进入 repair，HTTP 为 `200 OK`，revision `14→15`，receipt 覆盖 seq `106..110`。
+  候选将坡口路面险情作为普通 fact 和主角 `knowledge.told` 写入，clock 仍为同一晨间；冷重开以同一 action-id 返回
+  `duplicate=true`、revision 仍为 15，守卫 provider 零调用。提交后的摘要尝试因刻意不提供新本地摘要而为 `pending`，它不是
+  native 摘要质量验收、不是 repair，也没有使用 Fake 的“一句话摘要”当模型质量结论。原 rev14 snapshot 的 DB/JSONL 哈希保持不变；
+  完整的原 prompt、候选、HTTP/receipt/recovery 证据都在 Git-ignore 的 snapshot acceptance 目录，未重跑或改写这条剧情历史。
+
+- 2026-10-13：修复普通作者场景片段把 `travel_cost` 路径权重渲染成“日”的误导：`PlaceSystem.inject` 现显示
+  `地点（路径成本 N）`，与 GM GUI 已有的“移动成本”术语一致；没有把路径成本转换为 day/band，clock 仍由 candidate 的独立
+  `clock` section 裁定。新增/收紧 PlaceSystem、正常 CLI AuthorStrategy 和正常 GUI AuthorStrategy 回归，明确拒绝旧的
+  `stonebridge_market(1日)` 文案。定向为 **`67 passed in 0.30s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1902 passed, 1 deselected in 21.17s`**。唯一 deselect 仍是既有 slow real embedding；未调用真实模型、embedding、网络、B1、profiling、push、PR 或部署。
