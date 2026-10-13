@@ -877,3 +877,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   专项 `tests/app/test_normal_authoring_safe_context.py tests/test_action_integrity.py -rA` 为 **`100 passed in 0.68s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1914 passed, 1 deselected in 21.69s`**。唯一 deselect 仍是既有 slow real embedding；无真实模型、embedding 或网络，B1/profiling 保持 HOLD，未 push/PR/部署。
+
+- 2026-10-13：RCV-18 有限复核确认并修复两项共享 API/恢复边界。其一，
+  `enforce_player_knowledge_authority=True` 不再嵌套在 `enforce_player_travel` 内：候选校验和 final
+  `EventBatch` 校验各自按自己的显式开关执行，故任何调用者不能以 `travel=False` 静默关闭普通玩家知识边界。
+  其二，新的 sidecar 明确记录 `authority_modes.ordinary_player_knowledge_authority`。普通入口对真正的
+  旧无模式 sidecar 仅开启窄的、只读兼容路径：请求必须没有当前 discovery/communication grant、metadata
+  没有新模式标记、receipt 事件与 metadata 中 caller-visible events 完全一致，并且按当前普通权限重验通过；
+  任何 NPC generic knowledge/broadcast/`knows:*` 或无法从旧 sidecar 重建的 player-statement receipt 都中性
+  `RevisionConflict`，零 generation、零写入。带明确 `false` 模式的较新结果仍是跨模式冲突，不能借兼容桥恢复。
+
+  新回归覆盖 `(travel=False, knowledge=True)` 的 candidate 和 materialized final 双层拒绝、预模式合法主角
+  `told` 的零写恢复、预模式 laundering 的零写冲突，以及既有跨模式冲突。定向
+  `tests/app/test_normal_authoring_safe_context.py tests/test_action_integrity.py -rA` 为 **`104 passed in 0.73s`**；
+  正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1917 passed, 1 deselected in 21.85s`**。唯一 deselect 仍为既有 slow real embedding；未调用真实模型、embedding 或网络，
+  未触及 B1/profiling、push、PR、部署或原 failure campaign。

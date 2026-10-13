@@ -184,6 +184,58 @@ def test_normal_gui_rejects_npc_knowledge_aliases_without_receipt_before_repair(
         engine.store.close()
 
 
+def test_knowledge_authority_does_not_depend_on_travel_mode(tmp_path, monkeypatch):
+    """Shared callers cannot accidentally disable this boundary with travel=False."""
+    scene = {"protagonist": "protagonist", "present": [], "day": 1,
+             "location": "stonebridge_inn", "id": "s1"}
+    provider = FakeLLMProvider(json_responses=[_npc_knowledge_bypass("told")])
+    engine = _engine_with_safe_arrival(tmp_path / "candidate", provider)
+    try:
+        before = engine.store.revision
+        with pytest.raises(TurnRejected, match="knowledge lacks a valid host communication receipt"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "告诉见证人坡口情况",
+                strategy=AuthorStrategy(), provider=provider, action_id="knowledge-without-travel-candidate",
+                expected_revision=before, enforce_player_travel=False,
+                enforce_player_knowledge_authority=True,
+            )
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+    final_proposal = _move_proposal()
+    final_proposal["knowledge"] = [{
+        "op": "told", "knower": "protagonist", "fact_key": "market.notice",
+        "value": "主角从公开告示得知集市仍开放", "via": "公开告示",
+    }]
+    provider = FakeLLMProvider(json_responses=[final_proposal])
+    engine = _engine_with_safe_arrival(tmp_path / "final", provider)
+    owner = engine.registry.owner_of_section("knowledge")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("knowledge_set", day=day, scene=scene, turn=turn,
+            summary="forged npc knowledge", deltas={
+                "knower": "market_witness", "fact_key": "slope.hazard", "value": "FORGED",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    try:
+        before = engine.store.revision
+        with pytest.raises(TurnRejected, match="player knowledge authority boundary"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "去集市看看",
+                strategy=AuthorStrategy(), provider=provider, action_id="knowledge-without-travel-final",
+                expected_revision=before, enforce_player_travel=False,
+                enforce_player_knowledge_authority=True,
+            )
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
 def test_original_gui_transcript_laundering_candidate_is_rejected_without_writes(tmp_path):
     provider = FakeLLMProvider(json_responses=[_original_failure_candidate()])
     engine = _engine_with_safe_arrival(tmp_path, provider)
@@ -332,5 +384,96 @@ def test_action_recovery_cannot_cross_into_ordinary_knowledge_authority_mode(tmp
                 enforce_player_knowledge_authority=True,
             )
         assert len(provider.calls) >= 1
+    finally:
+        engine.store.close()
+
+
+def test_pre_mode_safe_action_recovers_read_only_under_ordinary_authority(tmp_path):
+    proposal = _move_proposal()
+    proposal["knowledge"] = [{
+        "op": "told", "knower": "protagonist", "fact_key": "market.notice",
+        "value": "主角从公开告示得知集市仍开放", "via": "公开告示",
+    }]
+    provider = FakeLLMProvider(json_responses=[proposal])
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    scene = {"protagonist": "protagonist", "present": [], "day": 1,
+             "location": "stonebridge_inn", "id": "s1"}
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("verified legacy recovery must not generate")
+
+    try:
+        base_revision = engine.store.revision
+        first = run_turn(
+            engine.registry, engine.store, engine.world, scene, "查看告示",
+            strategy=AuthorStrategy(), provider=provider, action_id="pre-mode-safe-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_knowledge_authority=False,
+        )
+        row = engine.store._conn.execute(
+            "SELECT metadata FROM action_result_metadata WHERE action_id=?", ("pre-mode-safe-action",),
+        ).fetchone()
+        metadata = json.loads(row["metadata"])
+        metadata.pop("authority_modes")  # faithfully model a pre-mode sidecar
+        engine.store._conn.execute(
+            "UPDATE action_result_metadata SET metadata=? WHERE action_id=?",
+            (json.dumps(metadata, sort_keys=True, ensure_ascii=False), "pre-mode-safe-action"),
+        )
+        engine.store._conn.commit()
+        before = (engine.store.revision, engine.store.jsonl_path.read_bytes(),
+                  engine.store.get_action_result_metadata("pre-mode-safe-action"))
+        duplicate = run_turn(
+            engine.registry, engine.store, engine.world, scene, "查看告示",
+            strategy=MustNotRun(), provider=FakeLLMProvider(), action_id="pre-mode-safe-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_knowledge_authority=True,
+        )
+        assert duplicate.receipt["duplicate"] is True and duplicate.events == first.events
+        assert (engine.store.revision, engine.store.jsonl_path.read_bytes(),
+                engine.store.get_action_result_metadata("pre-mode-safe-action")) == before
+    finally:
+        engine.store.close()
+
+
+def test_pre_mode_laundered_npc_knowledge_remains_a_zero_write_conflict(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_npc_knowledge_bypass("told")])
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    scene = {"protagonist": "protagonist", "present": [], "day": 1,
+             "location": "stonebridge_inn", "id": "s1"}
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("unsafe legacy result must not generate")
+
+    try:
+        base_revision = engine.store.revision
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "告诉见证人坡口情况",
+            strategy=AuthorStrategy(), provider=provider, action_id="pre-mode-laundered-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_knowledge_authority=False,
+        )
+        row = engine.store._conn.execute(
+            "SELECT metadata FROM action_result_metadata WHERE action_id=?", ("pre-mode-laundered-action",),
+        ).fetchone()
+        metadata = json.loads(row["metadata"])
+        metadata.pop("authority_modes")
+        engine.store._conn.execute(
+            "UPDATE action_result_metadata SET metadata=? WHERE action_id=?",
+            (json.dumps(metadata, sort_keys=True, ensure_ascii=False), "pre-mode-laundered-action"),
+        )
+        engine.store._conn.commit()
+        before = (engine.store.revision, engine.store.jsonl_path.read_bytes(),
+                  engine.store.get_action_result_metadata("pre-mode-laundered-action"))
+        with pytest.raises(RevisionConflict, match="cannot be safely recovered"):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "告诉见证人坡口情况",
+                strategy=MustNotRun(), provider=FakeLLMProvider(), action_id="pre-mode-laundered-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_knowledge_authority=True,
+            )
+        assert (engine.store.revision, engine.store.jsonl_path.read_bytes(),
+                engine.store.get_action_result_metadata("pre-mode-laundered-action")) == before
     finally:
         engine.store.close()

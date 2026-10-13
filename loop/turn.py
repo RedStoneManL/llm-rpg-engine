@@ -171,7 +171,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
 
 
 def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_revision,
-                            legacy_fingerprints=()):
+                            legacy_fingerprints=(), restricted_legacy_fingerprints=(),
+                            legacy_validator=None):
     if not isinstance(metadata, dict) or metadata.get('kind') != 'turn_result':
         raise ActionAlreadyCommitted(prior['receipt'], None, metadata_status='corrupt')
     result = metadata.get('result')
@@ -210,6 +211,13 @@ def _restore_completed_turn(registry, prior, metadata, fingerprint, expected_rev
     if (metadata['request_fingerprint'] not in accepted_fingerprints
             or metadata['base_revision'] != expected_revision):
         raise RevisionConflict('action_id already belongs to a different request')
+    if (metadata['request_fingerprint'] in set(restricted_legacy_fingerprints)
+            and legacy_validator is not None):
+        # A legacy request envelope omitted an authorization bit.  It is never
+        # a licence to repeat or reinterpret the old action: the caller must
+        # prove its already-published payload obeys the current boundary before
+        # this function returns the stored result.
+        legacy_validator(events, metadata)
     if 'recap_status' not in result:
         # Older v1 sidecars predate this presentation-only field.  Preserve
         # their recovery compatibility without guessing a failed recap.
@@ -365,10 +373,10 @@ def produce_turn(
         candidate_errors.extend(player_statement_receipt_errors(
             world, scene, commit, receipts=trusted_player_statement_receipts,
         ))
+        if enforce_player_knowledge_authority:
+            candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
         if enforce_player_travel:
             candidate_errors.extend(discovery_grant_errors(commit, scene.get("protagonist"), trusted_discovery_keys))
-            if enforce_player_knowledge_authority:
-                candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
             travel_errors = validate_protagonist_moves(
                 commit, world, scene,
                 narration_rewrite_from=travel_narration_baseline,
@@ -833,9 +841,46 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       legacy=True,
                       enforce_player_knowledge_authority=enforce_player_knowledge_authority)
                       if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
+            # Sidecars written before ordinary-player knowledge authority had
+            # no mode marker.  Offer a deliberately narrow, read-only bridge
+            # only for an otherwise unprivileged envelope; any host discovery
+            # or communication grant remains a current-mode-only contract.
+            old_ordinary_mode = None
+            if (enforce_player_knowledge_authority
+                    and not trusted_discovery_keys
+                    and not trusted_player_statement_receipts):
+                old_ordinary_mode = _turn_request_fingerprint(
+                    scene, player_input, version, memory_role,
+                    prev_scene=prev_scene, required_sections=required_sections,
+                    max_repairs=max_repairs, memory_generator=memory_generator,
+                    enforce_player_knowledge_authority=False,
+                )
+
+            def validate_old_ordinary_mode(events, stored_metadata):
+                # New sidecars explicitly say which mode produced them.  Only
+                # the genuinely pre-mode shape can use this bridge; a current
+                # false-mode request must remain a cross-mode conflict.
+                if "authority_modes" in stored_metadata:
+                    raise RevisionConflict('action_id already belongs to a different request')
+                errors = player_turn_knowledge_event_errors(
+                    events, scene.get("protagonist"),
+                    allow_player_statement=False,
+                )
+                # We cannot recreate a host-issued speech receipt from an old
+                # no-mode sidecar.  Require the existing canonical validator
+                # to find no protected player-statement row at all.
+                errors.extend(player_statement_receipt_event_errors(
+                    world, scene, events,
+                ))
+                if errors:
+                    raise RevisionConflict('action_id cannot be safely recovered under current authority')
+
             return _restore_completed_turn(
                 registry, prior, metadata, fingerprint, version,
-                tuple(value for value in (receiptless, legacy) if value is not None),
+                tuple(value for value in (receiptless, legacy, old_ordinary_mode)
+                      if value is not None),
+                restricted_legacy_fingerprints=(old_ordinary_mode,) if old_ordinary_mode else (),
+                legacy_validator=(validate_old_ordinary_mode if old_ordinary_mode else None),
             )
     trusted_memory_role = scene.get('protagonist')
     travel_world = world
@@ -852,12 +897,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if errors:
                 raise TurnRejected("final publish violates the player scene capability")
         batch.add_publish_validator(validate_travel_payload)
-        if enforce_player_knowledge_authority:
-            def validate_player_knowledge_payload(events):
-                errors = player_turn_knowledge_event_errors(events, travel_scene.get("protagonist"))
-                if errors:
-                    raise TurnRejected("final publish violates the player knowledge authority boundary")
-            batch.add_publish_validator(validate_player_knowledge_payload)
+    if enforce_player_knowledge_authority:
+        def validate_player_knowledge_payload(events):
+            errors = player_turn_knowledge_event_errors(events, travel_scene.get("protagonist"))
+            if errors:
+                raise TurnRejected("final publish violates the player knowledge authority boundary")
+        batch.add_publish_validator(validate_player_knowledge_payload)
     def validate_player_statement_payload(events):
         errors = player_statement_receipt_event_errors(
             travel_world, travel_scene, events,
@@ -932,6 +977,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                 'kind': 'turn_result',
                 'request_fingerprint': fingerprint,
                 'base_revision': version,
+                # Persist the explicit mode so future changes can distinguish
+                # this current false-mode request from a truly old sidecar
+                # that predated the authorization feature.
+                'authority_modes': {
+                    'ordinary_player_knowledge_authority': bool(enforce_player_knowledge_authority),
+                },
                 'host_envelope': copy.deepcopy(host_envelope),
                 'result': {
                     'commit': {

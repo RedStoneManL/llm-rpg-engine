@@ -264,14 +264,17 @@ def player_turn_knowledge_errors(commit, actor: str | None) -> list[ValidationEr
     return errors
 
 
-def player_turn_knowledge_event_errors(events: list[dict], actor: str | None) -> list[ValidationError]:
+def player_turn_knowledge_event_errors(
+    events: list[dict], actor: str | None, *, allow_player_statement: bool = True,
+) -> list[ValidationError]:
     """Final-payload companion for :func:`player_turn_knowledge_errors`.
 
     Run after materialization, so an owner hook cannot substitute a generic
     knowledge event, a broadcast, or a raw ``knows:`` fact for the declaration
     that proposal validation saw.  Receipt-shaped rows are left for
     ``player_statement_receipt_event_errors`` to match exactly against the
-    host-issued plan.
+    host-issued plan.  A recovery path that cannot reproduce that host plan
+    must set ``allow_player_statement=False`` and fail closed instead.
     """
     if not isinstance(actor, str) or not actor:
         return []
@@ -292,7 +295,8 @@ def player_turn_knowledge_event_errors(events: list[dict], actor: str | None) ->
             # A host-receipt materialization is deliberately recognizable only
             # by its canonical tag; the receipt validator checks every other
             # field and rejects even a one-field mutation.
-            if deltas.get("source_kind") != "player_statement":
+            if (deltas.get("source_kind") != "player_statement"
+                    or not allow_player_statement):
                 errors.append(ValidationError(
                     "knowledge", f"event[{index}]", "untrusted_npc_knowledge",
                     "普通玩家回合的最终 payload 含未经宿主授权的 NPC 知识写入。",
