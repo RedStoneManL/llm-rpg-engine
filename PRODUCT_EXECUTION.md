@@ -13,6 +13,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   质量结论。每轮优先做一次跨模块审视，沉淀公共 DTO、事务/可见性边界或持久化协议，而不是散弹式补丁。
 - 离线/fake/Chromium 回归用于验证确定性边界和可恢复性；同时要安排受控剧情场景的原生 agent 可玩性、
   一致性与信息可见性评估。该评估不新增外部付费模型调用、不修改凭据；结果要与模拟测试的结论分开记录。
+- 有限 native 验收必须按证据强度分层记录：原始候选、实际普通入口请求消息和本地确定性提交可证明该候选在
+  当时的产品边界、持久化与恢复协议下被如何处理；它们不能证明付费/远程模型质量、长期剧情质量或浏览器点击
+  行为。若回合触发摘要，必须逐请求比对既有受控摘要消息与原 response，不能把旧 fake/占位摘要改写成
+  “真实”摘要。一次已收束的同类 native 切片只保留工件和结论，不为增加测试数反复重放；只有发现新的共享
+  边界、用户明确要求或后续功能使其失效时才重开验收。
 - 上下文按任务复杂度慷慨使用，并以 agentic 渐进披露（先读取相关模块/测试/证据，再扩展）保持可审计；
   不以机械 token 阈值中断有效开发。
 
@@ -55,6 +60,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-13 | P0 | 已验收（普通作者安全材料与 GUI 恢复闭环） | 普通 CLI/GUI（含 compare）对主角旅行与明确玩家对 NPC 原话使用发布边界；native importer 保留独立的 native policy + receipt 审查 | CLI/compare 最终 apply 现在与 GUI 同样开启 `enforce_player_travel`；`heard_player` 必须携带宿主重算验证的精确 receipt，默认普通入口不签发，native importer 只显式转交其已审查的 receipt；普通 `AuthorStrategy` 仅接收 native 安全投影后的文本，不接触 raw events、隐藏资料或新 receipt；已提交 action 的 GUI 原话/收件人不匹配走未确认的 409 恢复路径，绝不作为可丢弃的 400；receiptless RCV-12 action-id sidecar 兼容与最终 event payload 复核另见本轮末项，不能把 a715e09 单独当验收版本 |
 | RCV-18 | P0 | 已验收（普通作者知识权限边界） | 普通玩家作者不得把自由玩家文本洗成 NPC 知识 | 候选与最终 EventBatch 双校验：普通入口只允许 protagonist 的通用知识；NPC 的玩家原话必须精确匹配 host receipt；trusted native import/history 保持独立 policy。专项 100 passed；完整 gate 1914 passed / 1 deselected |
 | RCV-14 | P1 | 已验收（普通作者上下文契约对齐） | 核对真实 CLI/GUI `AuthorStrategy` provider 消息，并移除与 POV 行动范围矛盾的“完整世界视野”指令 | 两条正常入口均实际传入主角长期目标、当前 `scene_capabilities` 行动范围和持久公开地点观察；私有 sentinel 不入 prompt。普通作者可在已授权范围内推进到有意义结果、风险或分岔，不被要求把每次视线变化当作停点；未提供的远方/隐藏/未发现地点不得由普通作者写成已发生的 world 变化 |
+| RCV-19 | P1 | 进行中（玩家目标与任务账本） | GUI 已有叙事/物品/地图/Codex，但不显示主角长期目标或引擎已有的明态任务，长局缺少可见的推进锚点 | 新 DTO 必须只从玩家 POV 和 LoreSystem 的明态公开摘要生成；不读取 raw events、暗线、私有记忆或 GM 状态。覆盖初始目标、任务开/推进/完成、撤回/冷重开与 GUI 刷新；不新增作者权限、任务写入口或自动剧情 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -893,3 +899,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1917 passed, 1 deselected in 21.85s`**。唯一 deselect 仍为既有 slow real embedding；未调用真实模型、embedding 或网络，
   未触及 B1/profiling、push、PR、部署或原 failure campaign。
+
+- 2026-10-13：RCV-18 修复后的下一份原生候选只做了一次有限的普通入口验收，现已收束，不再重复同类问路。
+  原候选、零写 AuthorStrategy `[system,user]` 捕获和执行结果均保存于 Git-ignore 的 acceptance 区；候选 SHA-256 为
+  `382e726a95325a68d2ebbd4c24c228d2e9ac22b6ed2c739f1a8c27b92b0356f5`，捕获消息 SHA-256 为
+  `03d86ec64b54d45cf023859979940f8ed866aac2446e8ee2c066a5aae4b384b1`。在原 revision 15 campaign 的 fresh disposable
+  copy 中，`PlayerDashboard.action → run_turn → AuthorStrategy` 首次请求逐字匹配该 capture；本地确定性
+  `NativeAuthorProvider` 仅按顺序返回该原始候选和两份既存、逐字比对的 recap response，严格三次请求、无第四次请求。
+  action `rcv18-repaired-native-author-once` 从 revision `15→16`，receipt 覆盖 seq `111..119`，结果 `recap_status=saved`；
+  主角回到 `stonebridge_market` 且仍持有旧铜灯，新增的 knowledge 只属于 protagonist，对洛恩没有新的
+  `knowledge_set`。关闭重开后以同 action ID 重试返回 `duplicate=true`、revision 仍为 16，guard provider 零调用。
+  原 source DB/JSONL 前后哈希保持不变。该结论只说明“给定 native 候选”在修复后能经普通入口按权限提交、保存并冷恢复；
+  它不是付费 API、远程模型质量、浏览器点击或长局质量验收。候选中无 `secrecy` 的 reported fact 与自由 `via` 被现有
+  contract 接受，这只是观测结果，未在本轮擅自扩大为新的 P0 修复。
+
+  下一项改为 RCV-19：让玩家在既有 GUI 中看到自己的长期目标和已经公开的明态任务账本，并在撤回/重开后保持一致。
+  该切片直接改善长期游玩的方向感，复用现有 `LoreSystem` 投影和 player POV，不新增任务写入、GM 读取、暗线暴露或作者权限。
