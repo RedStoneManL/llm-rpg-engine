@@ -14,6 +14,7 @@ from context.native_authoring import native_authoring_context, native_authoring_
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
+from systems.knowledge import player_statement_fact_key
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -120,6 +121,75 @@ def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path
         engine.store.close()
 
 
+def test_native_heard_player_is_exact_local_and_cannot_overwrite_knowledge(tmp_path):
+    campaign = _native_campaign(tmp_path)
+    player_input = "我亲眼看见客栈门口的石阶有裂缝。"
+    statement = player_input
+    proposal = {
+        "narration": "你把亲眼所见的石阶裂缝告诉玛拉。",
+        "moves": [], "places": [], "links": [], "cast": [], "facts": [],
+        "knowledge": [{
+            "op": "heard_player", "knower": "innkeeper_mara",
+            "speaker": "protagonist", "statement": statement,
+        }],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "同场说明没有推进时段"}],
+    }
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("entity_created", day=1, scene="s1", turn=0, summary="隐藏旁听者", deltas={
+                "id": "hidden_listener", "etype": "Person", "tier": "tracked",
+                "attrs": {"sketch": "HEARD_PLAYER_PRIVATE_SENTINEL", "visibility": "hidden"},
+            }),
+            kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="隐藏旁听者在客栈", deltas={
+                "who": "hidden_listener", "to": "stonebridge_inn",
+            }),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        scene = _build_scene(engine)
+        context = native_authoring_context(engine.world, scene, player_input=player_input)
+        receipt = context["communication_receipts"]
+        assert receipt[0]["statement"] == player_input
+        assert receipt[0]["recipients"] == [{"id": "innkeeper_mara", "when": {"kind": "current_scene"}}]
+        assert "HEARD_PLAYER_PRIVATE_SENTINEL" not in repr(context)
+
+        from kernel.turncommit import TurnCommit
+        commit = TurnCommit.from_dict(proposal)
+        assert native_authoring_policy_errors(
+            engine.world, scene, commit, player_input=player_input,
+        ) == []
+        altered = TurnCommit.from_dict({
+            **proposal,
+            "knowledge": [{**proposal["knowledge"][0], "statement": "作者改写的句子"}],
+        })
+        assert native_authoring_policy_errors(engine.world, scene, altered, player_input=player_input)
+        remote = TurnCommit.from_dict({
+            **proposal,
+            "knowledge": [{**proposal["knowledge"][0], "knower": "protagonist"}],
+        })
+        assert native_authoring_policy_errors(engine.world, scene, remote, player_input=player_input)
+    finally:
+        engine.store.close()
+
+    proposal_path = tmp_path / "heard-player.json"
+    proposal_path.write_text(json.dumps(proposal, ensure_ascii=False), encoding="utf-8")
+    subprocess.run([
+        sys.executable, str(IMPORTER), str(campaign), str(proposal_path), player_input,
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        graph = reopened.world["systems"]["ontology"]
+        key = player_statement_fact_key("protagonist", statement)
+        assert graph.value_at("innkeeper_mara", f"knows:{key}", 1) == statement
+        assert graph.value_at("stonebridge_inn", "status", 1) is None
+        assert native_authoring_policy_errors(
+            reopened.world, _build_scene(reopened), TurnCommit.from_dict(proposal),
+            player_input=player_input,
+        )
+    finally:
+        reopened.store.close()
+
+
 def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_path):
     """A one-turn public exit can have an arrival scene without leaking host cast."""
     campaign = _native_campaign(tmp_path)
@@ -169,6 +239,26 @@ def test_legal_arrival_context_is_conditional_and_hides_destination_secrets(tmp_
             **with_arrival.to_dict(), "moves": [],
         })
         assert native_authoring_policy_errors(engine.world, scene, without_move)
+
+        statement = "我在布棚外空地看见一根系棚绳的木桩。"
+        arrival_receipt = TurnCommit.from_dict({
+            "narration": "你抵达集市，把自己的观察告诉洛恩。",
+            "moves": [{"who": "protagonist", "to": "stonebridge_market"}],
+            "places": [], "links": [], "cast": [], "facts": [],
+            "knowledge": [{
+                "op": "heard_player", "knower": "market_witness_luoen",
+                "speaker": "protagonist", "statement": statement,
+            }],
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "短程回到集市"}],
+        })
+        assert native_authoring_policy_errors(
+            engine.world, scene, arrival_receipt, player_input=statement,
+        ) == []
+        assert native_authoring_policy_errors(
+            engine.world, scene,
+            TurnCommit.from_dict({**arrival_receipt.to_dict(), "moves": []}),
+            player_input=statement,
+        )
     finally:
         engine.store.close()
 

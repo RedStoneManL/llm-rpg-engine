@@ -628,3 +628,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   作者伪造 NPC 认知，明确只接受 protagonist told（除宿主 discovery grant）。因此这是一个需单独设计宿主验证、行动局部、
   有来源的“公开交流回执”能力的缺口；不能通过从 narration 自动抽取或放开任意 native knowledge 绕过。代码未改变，未重跑
   gate，按请求未上传。
+
+- 2026-10-13：关闭该双向交流缺口的最小通路为 `knowledge.heard_player`。宿主将原样非空玩家输入及仅限公开共场的当前/匹配
+  合法到达收件人列入 `authoring_context.communication_receipts`；native policy 只接受 `speaker=protagonist`、逐字相等的
+  statement、该 receipt 中的收件人，并拒绝隐藏/远程人物、无 host 输入、改写文字、重复同收件人记录以及已存在的同 key 认知。
+  `KnowledgeSystem` 以非作者可选的 digest key 写入 `knowledge_set`，value 保留主角陈述且标 `source_kind=player_statement`；
+  这不是 world fact、路线/地点发现或 NPC 亲历。既有第八事件没有补写。
+
+  新正负回归覆盖当前/条件化到达收件人、原样输入绑定、隐藏 sentinel 隔离、远程/改写/无移动/重复覆盖拒绝，以及事件级
+  source/via/key 形状。专项 `tests/systems/test_knowledge.py tests/scripts/test_native_turn_tools.py
+  tests/context/test_place_observations.py -rA` 为 **`55 passed in 2.23s`**；本提交正式完整离线 gate 为
+  **`1889 passed, 1 deselected in 20.60s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、B1/profiling、
+  push、PR 或部署；下一步是 bundle/source/安全检查与按可用性一次 Library 持久化尝试。

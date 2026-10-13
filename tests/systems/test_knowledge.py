@@ -11,7 +11,8 @@ from systems.character import CharacterSystem
 from systems.place import PlaceSystem
 from systems.faction import FactionSystem
 from systems.knowledge import (KnowledgeSystem, knows, knowers_of,
-                               place_discovery_key, route_discovery_key)
+                               place_discovery_key, player_statement_fact_key,
+                               route_discovery_key)
 from facts.graph import FactGraph
 
 
@@ -197,6 +198,30 @@ def test_to_events_told_one_event():
     assert evs[0]["deltas"]["knower"] == "艾拉"
     assert evs[0]["deltas"]["fact_key"] == "桥.status"
     assert evs[0]["deltas"]["value"] == "毁坏"
+
+
+def test_heard_player_uses_source_bound_generated_fact_key():
+    """A recipient records the speaker's wording, never a world fact."""
+    ks = KnowledgeSystem()
+    statement = "我看见桥边只有一根木桩。"
+    decl = [{"op": "heard_player", "knower": "艾拉", "speaker": "主角", "statement": statement}]
+    events = ks.to_events("knowledge", decl, turn=2, day=1, scene="s1")
+    assert len(events) == 1
+    assert events[0]["type"] == "knowledge_set"
+    assert events[0]["deltas"] == {
+        "knower": "艾拉",
+        "fact_key": player_statement_fact_key("主角", statement),
+        "value": statement,
+        "via": "主角",
+        "source_kind": "player_statement",
+    }
+
+    graph = _graph_with_persons("艾拉", "主角")
+    world = {"systems": {"ontology": graph, "knowledge": {}}}
+    assert ks.validate("knowledge", decl, world) == []
+    ks.apply(world, events[0])
+    assert knows(graph, "艾拉", player_statement_fact_key("主角", statement), 1) == statement
+    assert graph.value_at("桥", "status", 1) is None
 
 
 def test_to_events_endowment_n_events():

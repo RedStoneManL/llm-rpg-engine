@@ -88,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         policy_errors = native_authoring_policy_errors(
             engine.world, scene, commit,
             trusted_discovery_keys=trusted_discovery_keys,
+            player_input=player_input,
         )
         if policy_errors:
             raise NativeAuthoringPolicyError(

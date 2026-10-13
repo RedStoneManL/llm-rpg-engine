@@ -24,6 +24,7 @@ Module query helpers (pure functions over FactGraph):
 """
 from __future__ import annotations
 
+from hashlib import sha256
 from typing import Any
 
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
@@ -70,6 +71,18 @@ def route_discovery_key(a: str, b: str) -> str:
     """Canonical, direction-independent fact key for discovering a route."""
     first, second = sorted((a, b))
     return f"route:{first}|{second}.discovered"
+
+
+def player_statement_fact_key(speaker: str, statement: str) -> str:
+    """Return a non-author-controlled key for one exact player statement.
+
+    A recipient knowing that the protagonist *said* something is not an
+    assertion that the statement is true.  The digest makes the receipt
+    idempotently identifiable without letting a native author choose a key
+    that could supersede an unrelated NPC belief.
+    """
+    digest = sha256(statement.encode("utf-8")).hexdigest()[:20]
+    return f"{speaker}.reported_player_statement:{digest}"
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +283,26 @@ class KnowledgeSystem(ContextSystem):
                         hint=f"告知目标 '{knower}' 不存在于图中",
                     ))
 
+            elif op == "heard_player":
+                for field in ("knower", "speaker", "statement"):
+                    if not isinstance(item.get(field), str) or not item.get(field):
+                        errs.append(ValidationError(
+                            section=section,
+                            field=f"[{i}].{field}",
+                            code="missing",
+                            hint=f"heard_player 必须提供非空 {field}",
+                        ))
+                if g:
+                    for field in ("knower", "speaker"):
+                        entity_id = item.get(field)
+                        if isinstance(entity_id, str) and entity_id and g.get_entity(entity_id) is None:
+                            errs.append(ValidationError(
+                                section=section,
+                                field=f"[{i}].{field}",
+                                code="dangling_ref",
+                                hint=f"heard_player 的 {field} '{entity_id}' 不存在于图中",
+                            ))
+
             elif op == "endowment":
                 # --- required field checks ---
                 if not isinstance(item.get("knower"), str) or not item.get("knower"):
@@ -338,6 +371,7 @@ class KnowledgeSystem(ContextSystem):
         """Map knowledge declarations to events by op field.
 
         told       → one knowledge_set event
+        heard_player → one source-bound knowledge_set event
         endowment  → N knowledge_set events (one per grant item)
         broadcast  → one knowledge_broadcast event (audience in deltas)
         """
@@ -388,6 +422,27 @@ class KnowledgeSystem(ContextSystem):
                         "fact_key": fact_key,
                         "value": item["value"],
                         "via": item.get("via"),
+                    },
+                    turn=turn,
+                ))
+
+            elif op == "heard_player":
+                knower = item.get("knower")
+                speaker = item.get("speaker")
+                statement = item.get("statement")
+                if not isinstance(knower, str) or not isinstance(speaker, str) or not isinstance(statement, str):
+                    log.warning("to_events heard_player item missing required fields")
+                    continue
+                fact_key = player_statement_fact_key(speaker, statement)
+                out.append(kernel_event(
+                    "knowledge_set", day=day, scene=scene,
+                    summary=f"{knower} 听到 {speaker} 的陈述",
+                    deltas={
+                        "knower": knower,
+                        "fact_key": fact_key,
+                        "value": statement,
+                        "via": speaker,
+                        "source_kind": "player_statement",
                     },
                     turn=turn,
                 ))
