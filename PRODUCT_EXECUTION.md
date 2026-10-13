@@ -617,3 +617,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `single_observation` 已在下一 native context 的 `public_place_observations` 出现；同回合无 quest event，未见自动暗线
   误触发。候选叙事中的“没有替自己接着发问”作为质量观察保留，未悄悄改文。第七候选原文、只读安全回执和后续 proposal/import
   证据均留在 `review_material/`；不重放、不修改既有历史。
+
+- 2026-10-13：第八真实作者候选原样保存后，经 importer **仅一次** 导入 revision `9 → 10`。它新增洛恩的两条
+  public、source-bound `reported:*` 陈述（空地描述与其记忆的差异、下坡入口的限定标记），并以同值/同 source 各写一条
+  `knowledge.told(knower=protagonist)`；地点仍为石桥集市、旧铜灯仍由主角持有、无 quest 事件。实际该 turn 的两个
+  `knowledge_set` 接收者都是 protagonist，洛恩没有 `knows:*` 写入；不得把散文中的“你告诉洛恩”表述为系统已持久化的
+  NPC 记忆。
+
+  机制审查确认：正常 `KnowledgeSystem`/`AuthorStrategy` 支持将 `told` 写给任意既存 knower，但 native handoff 为防止
+  作者伪造 NPC 认知，明确只接受 protagonist told（除宿主 discovery grant）。因此这是一个需单独设计宿主验证、行动局部、
+  有来源的“公开交流回执”能力的缺口；不能通过从 narration 自动抽取或放开任意 native knowledge 绕过。代码未改变，未重跑
+  gate，按请求未上传。
