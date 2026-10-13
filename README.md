@@ -30,7 +30,14 @@ Alternatively, supply `DEEPSEEK_API_KEY` in the environment or point `RPG_DEEPSE
 
 An empty campaign directory starts a new world; an existing one resumes it. The original Zhipu Coding Plan launcher remains available as `./run.sh`, with `.env.local.example` for configuration. Provider keys and personal saves are not included in the repository.
 
-Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). In play, `/help` lists commands, including `/undo`, `/recall`, and `/quit`.
+Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). In play, `/help` lists commands, including `/undo`, `/recall`, `/speak`, and `/quit`.
+
+`/speak <当前公开同场角色> <逐字原话>` is the only CLI shortcut that can ask the
+host to record that a particular NPC heard a particular sentence. It never extracts
+dialogue from ordinary action prose: the named recipient must be publicly co-present
+right now, and only the exact supplied sentence is eligible for that one turn's
+receipt. It is not a world fact and does not authorize another NPC, a thought, or an
+unselected part of the player input.
 
 ### Offline private-memory experiment
 
@@ -95,6 +102,14 @@ routes (with the current place highlighted), visible adjacent exits, browse publ
 entries, and undo the latest turn. Refreshing or restarting the local server
 reads the same saved campaign; action submission uses the existing explicit
 action-id/revision path rather than a second GUI transaction.
+
+The player form also has an optional **明确说出原话** section. Select a current public
+co-present recipient and enter the exact one sentence to be remembered; both fields
+are required together. The browser sends those separately from the normal action text,
+the local host revalidates visibility before issuing one receipt, and the original
+receipt is retained in the action-id recovery envelope so a cold retry cannot silently
+change who heard what. Leaving the section empty keeps the previous behavior: ordinary
+action text, thoughts, and narration never become NPC memory automatically.
 
 If a browser loses an action response after the engine has published it, the
 page retains the original action-id, input, and revision in that browser's
@@ -165,7 +180,7 @@ DM-ground-truth tools, multi-user accounts, public deployment, and editing are
 outside this slice. The explicit offline demo and GM read-only constructors
 disable embedding even if `RPG_EMBEDDER` is set; normal GUI play retains the
 existing environment-driven embedding behavior. Visibility follows the existing POV rules: the
-protagonist/current location, co-present people, discovered entities, and
+protagonist/current location, public co-present people, discovered entities, and
 legacy places without restrictive metadata can be visible. It does not claim
 every legacy place requires a discovery event; event-owned gradual discovery
 of legacy public places remains a future system-level step.

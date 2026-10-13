@@ -29,6 +29,7 @@ from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene
 from context.access import pov_world
 from context.capabilities import scene_capabilities
+from context.native_authoring import host_player_statement_receipt, native_authoring_context
 from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
@@ -202,6 +203,17 @@ def build_player_state(engine) -> dict[str, Any]:
             if isinstance(text, str):
                 narrations.append(text)
     codex = _public_codex(engine.world)
+    # This is deliberately the same redacted current-scene projection used to
+    # decide whether a host may issue a ``heard_player`` receipt.  It exposes
+    # no arbitrary NPC beliefs and never includes arrival-only recipients.
+    authoring = native_authoring_context(engine.world, scene)
+    speech_recipients = []
+    for person in authoring.get("present_people", []):
+        if not isinstance(person, dict) or not isinstance(person.get("id"), str):
+            continue
+        observable = person.get("observable") if isinstance(person.get("observable"), dict) else {}
+        label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
+        speech_recipients.append({"id": person["id"], "label": label})
     return {
         "revision": int(engine.world.get("_revision") or engine.store.revision),
         "turn": last_turn(engine),
@@ -211,6 +223,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "inventory": inventory,
         "narration": narrations[-8:],
         "codex": codex,
+        "speech_recipients": speech_recipients,
     }
 
 
@@ -328,6 +341,9 @@ class _RequestContext:
     expected_revision: int | None
     scene: dict[str, Any]
     prev_scene: dict[str, Any] | None
+    recipient: str | None
+    statement: str | None
+    trusted_player_statement_receipts: tuple[dict[str, Any], ...]
 
 
 class PlayerDashboard:
@@ -356,13 +372,25 @@ class PlayerDashboard:
             envelope = metadata.get("host_envelope") if isinstance(metadata, dict) else None
             scene = envelope.get("scene") if isinstance(envelope, dict) else None
             prev_scene = envelope.get("prev_scene") if isinstance(envelope, dict) else None
-            if not isinstance(scene, dict) or (prev_scene is not None and not isinstance(prev_scene, dict)):
+            saved_recipient = envelope.get("speak_recipient") if isinstance(envelope, dict) else None
+            saved_statement = envelope.get("speak_statement") if isinstance(envelope, dict) else None
+            saved_receipts = envelope.get("trusted_player_statement_receipts", []) if isinstance(envelope, dict) else []
+            if (not isinstance(scene, dict) or (prev_scene is not None and not isinstance(prev_scene, dict))
+                    or saved_recipient is not None and not isinstance(saved_recipient, str)
+                    or saved_statement is not None and not isinstance(saved_statement, str)
+                    or (saved_recipient is None) != (saved_statement is None)
+                    or not isinstance(saved_receipts, list) or len(saved_receipts) > 1
+                    or any(not isinstance(item, dict) for item in saved_receipts)):
                 raise ValueError
-            return _RequestContext("", None, scene, prev_scene)
+            if bool(saved_receipts) != bool(saved_recipient):
+                raise ValueError
+            return _RequestContext("", None, scene, prev_scene, saved_recipient, saved_statement,
+                                   tuple(saved_receipts))
         except Exception:
             raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
 
-    def action(self, *, player_input: str, action_id: str, expected_revision: int | None) -> dict[str, Any]:
+    def action(self, *, player_input: str, action_id: str, expected_revision: int | None,
+               recipient: str | None = None, statement: str | None = None) -> dict[str, Any]:
         if not isinstance(player_input, str) or not player_input.strip():
             raise GuiRequestError("请输入一个行动。")
         if len(player_input.encode("utf-8")) > _MAX_ACTION_BYTES:
@@ -371,16 +399,39 @@ class PlayerDashboard:
             raise GuiRequestError("请求标识无效，请刷新后重试。")
         if expected_revision is not None and (type(expected_revision) is not int or expected_revision < 0):
             raise GuiRequestError("页面状态无效，请刷新后重试。")
+        if (recipient is None) != (statement is None):
+            raise GuiRequestError("请同时明确选择当前同场收件人并填写逐字原话。")
+        if recipient is not None:
+            if (not isinstance(recipient, str) or not recipient or len(recipient) > 128
+                    or not isinstance(statement, str) or not statement.strip()
+                    or len(statement.encode("utf-8")) > _MAX_ACTION_BYTES):
+                raise GuiRequestError("收件人或逐字原话无效，请重新选择当前同场角色。")
         with self.lock:
             existing = self.requests.get(action_id)
-            if existing is not None and existing.player_input == player_input and existing.expected_revision == expected_revision:
+            if (existing is not None and existing.player_input == player_input
+                    and existing.expected_revision == expected_revision
+                    and existing.recipient == recipient and existing.statement == statement):
                 context = existing
             else:
                 stored = self._stored_context(action_id)
                 if stored is not None:
-                    context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene)
+                    if stored.recipient != recipient or stored.statement != statement:
+                        raise GuiRequestError("请求标识已绑定到另一项明确交流；请刷新后重试。")
+                    context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene,
+                                              stored.recipient, stored.statement,
+                                              stored.trusted_player_statement_receipts)
                 else:
-                    context = _RequestContext(player_input, expected_revision, _build_scene(self.engine), self.previous_scene)
+                    scene = _build_scene(self.engine)
+                    try:
+                        receipts = (() if recipient is None else (
+                            host_player_statement_receipt(
+                                self.engine.world, scene, recipient=recipient, statement=statement,
+                            ),
+                        ))
+                    except ValueError as exc:
+                        raise GuiRequestError("收件人必须是当前公开同场角色，且原话不能为空。") from exc
+                    context = _RequestContext(player_input, expected_revision, scene, self.previous_scene,
+                                              recipient, statement, receipts)
                 if existing is None:
                     self.requests[action_id] = context
             result = run_turn(
@@ -389,8 +440,13 @@ class PlayerDashboard:
                 max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
                 catchup_provider=self.engine.cascade_provider,
                 prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
-                host_envelope={"scene": context.scene, "prev_scene": context.prev_scene},
+                host_envelope={
+                    "scene": context.scene, "prev_scene": context.prev_scene,
+                    "speak_recipient": context.recipient, "speak_statement": context.statement,
+                    "trusted_player_statement_receipts": list(context.trusted_player_statement_receipts),
+                },
                 enforce_player_travel=True,
+                trusted_player_statement_receipts=context.trusted_player_statement_receipts,
             )
             self.engine.world = result.world
             if not bool(getattr(result, "receipt", {}).get("duplicate")):
@@ -445,18 +501,23 @@ _INDEX = _INDEX.replace(
 )
 _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
+_INDEX = _INDEX.replace(
+    '</textarea><div class="actions">',
+    '</textarea><fieldset class="speech"><legend>明确说出原话（可选）</legend><label for="speech-recipient">当前公开同场收件人</label><select id="speech-recipient"><option value="">不记录对话</option></select><label for="speech-statement">逐字原话</label><textarea id="speech-statement" maxlength="2000" placeholder="只填写愿意让所选角色准确记住的一句话。"></textarea><p class="hint">只有同时明确选择收件人和原话时，宿主才会签发本回合的单一通信收据；普通行动文字不会自动变成对话。</p></fieldset><div class="actions">',
+)
 _JS = r"""(() => {
 let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-action.v1';
 const $=id=>document.getElementById(id); const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
 function clear(n){n.replaceChildren()} function setStatus(t,err=false){const n=$('status');n.textContent=t;n.style.color=err?'#ffadb0':'#e9edf2'}
+function renderSpeechRecipients(items){const select=$('speech-recipient'),old=select.value;clear(select);select.append(el('option','不记录对话'));select.lastChild.value='';(items||[]).forEach(x=>{const option=el('option',x.label||x.id);option.value=x.id;select.append(option)});select.value=[...select.options].some(x=>x.value===old)?old:''}
 function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(pendingKey);return null}}
 function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}
 function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}
-function render(s){state=s;clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
+function render(s){state=s;renderSpeechRecipients(s.speech_recipients);clear($('narration'));(s.narration.length?s.narration:['尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
 async function api(url,options){const r=await fetch(url,options);let data;try{data=await r.json()}catch(_){const e=new Error('响应格式错误，请刷新页面。');e.confirmedRejection=false;throw e}if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}return data}
-async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});if(!d||d.ok!==true||!d.state||!Number.isInteger(d.revision))throw new Error('响应未确认，请刷新页面后恢复上次请求。');render(d.state);sessionStorage.removeItem(pendingKey);syncPending();$('action-input').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){if(err.confirmedRejection){sessionStorage.removeItem(pendingKey);syncPending();setStatus(`请求已被服务器拒绝，未提交。请修改后再试。${err.message}`,true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally{setBusy(false)}}
+async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});if(!d||d.ok!==true||!d.state||!Number.isInteger(d.revision))throw new Error('响应未确认，请刷新页面后恢复上次请求。');render(d.state);sessionStorage.removeItem(pendingKey);syncPending();$('action-input').value='';$('speech-statement').value='';$('speech-recipient').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){if(err.confirmedRejection){sessionStorage.removeItem(pendingKey);syncPending();setStatus(`请求已被服务器拒绝，未提交。请修改后再试。${err.message}`,true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally{setBusy(false)}}
 async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}
-$('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const text=$('action-input').value.trim();if(!text)return;const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`;const envelope={text,action_id,expected_revision:state.revision};sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});
+$('action-form').addEventListener('submit',e=>{e.preventDefault();if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const text=$('action-input').value.trim(),recipient=$('speech-recipient').value,statement=$('speech-statement').value;if(!text)return;if((recipient&&!statement.trim())||(!recipient&&statement.trim())){setStatus('请同时明确选择当前同场收件人并填写逐字原话。',true);return}const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`,envelope={text,action_id,expected_revision:state.revision};if(recipient){envelope.recipient=recipient;envelope.statement=statement}sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});
 $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
 })();"""
@@ -474,7 +535,7 @@ _JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请
 # still deserves a first-class visual instead of a hand-written exit list.  All
 # labels come from the already-redacted DTO and are assigned through
 # ``textContent``; SVG nodes are read-only selectors, never navigation writes.
-_CSS += ".player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}}"
+_CSS += ".speech{border:1px solid #405469;border-radius:8px;margin:12px 0;padding:10px}.speech label,.speech select{display:block;width:100%;margin:5px 0}.speech select{background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit;padding:8px}.hint{color:#9eb1c5;font-size:.9rem}.player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}}"
 _INDEX = _INDEX.replace('<div id="map"></div>', '<div id="map" class="player-map"></div>')
 _JS = _JS.replace(
     "function render(s){state=s;",
@@ -603,10 +664,11 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 return _json_response(start_response, "200 OK", dashboard.state())
             if method == "POST" and path == "/api/action":
                 _require_same_origin_json(environ)
-                data = _read_json_request(environ, minimum=0, maximum=_MAX_ACTION_BYTES + 512,
+                data = _read_json_request(environ, minimum=0, maximum=(_MAX_ACTION_BYTES * 2) + 1024,
                                           error_message="请求格式无效，请刷新后重试。")
                 return _json_response(start_response, "200 OK", dashboard.action(
-                    player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision")))
+                    player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision"),
+                    recipient=data.get("recipient"), statement=data.get("statement")))
             if method == "POST" and path == "/api/undo":
                 _require_same_origin_json(environ)
                 data = _read_json_request(environ, minimum=2, maximum=256,

@@ -13,15 +13,21 @@ from systems.knowledge import knows, place_discovery_key, route_discovery_key
 
 def entity_visible(graph, entity, scene, pov, day):
     eid = entity.id
-    if eid == pov or eid == scene.get('location') or eid in scene.get('present', []):
-        return True
-    if entity.etype == 'Person' and scene.get('location') in graph.neighbors(eid, 'located_in', day):
+    # Self remains visible, but a canonical hidden/secret/undiscovered entity
+    # never becomes player-visible merely because a stale scene ``present``
+    # list or co-location relation mentions it.  This shared boundary feeds
+    # normal author context, GUI state, and tool projections.
+    if eid == pov:
         return True
     visibility = entity.attrs.get('visibility')
     if visibility in {'hidden', 'secret'}:
         return False
     if visibility == 'undiscovered':
         return knows(graph, pov, place_discovery_key(eid), day) is True
+    if eid == scene.get('location') or eid in scene.get('present', []):
+        return True
+    if entity.etype == 'Person' and scene.get('location') in graph.neighbors(eid, 'located_in', day):
+        return True
     if pov in (entity.attrs.get('discovered_by') or []):
         return True
     if knows(graph, pov, place_discovery_key(eid), day):

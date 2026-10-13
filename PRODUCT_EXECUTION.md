@@ -752,3 +752,21 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1898 passed, 1 deselected in 26.12s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型/embedding/网络，未启用
   B1/profiling、未 push/PR/部署或导入新的真实作者候选。
+
+- 2026-10-13：为使已验收的明确交流 capability 可由普通玩家实际使用，CLI 新增唯一的 turn-producing
+  `/speak <当前公开同场角色> <逐字原话>`；GUI 增加独立的当前公开同场收件人选择和逐字原话字段。两端都不是从普通行动、
+  心理活动或 narration 猜测对话：宿主只在当前 scene 用 `host_player_statement_receipt` 重算可见共场收件人后签发一份
+  receipt，并把它传给既有 Author/Hybrid、`run_turn`、candidate/final publish 验证。正常 author prompt 仅显示这份明确授权，
+  要求精确 receipt id/收件人/原话；它不成为世界事实或对其他角色的授权。
+
+  GUI 初次请求把 host-signed receipt 连同原 scene/prev_scene 写入既有 action-id sidecar；冷重开只重放这一已保存 envelope，
+  改动收件人或原话会 fail closed。GUI state 只通过既有 native redacted current-scene projection 提供可选择的收件人。实施中发现
+  一个更高优先共同缺口：`pov_world` 曾在 visibility 判断前因 co-location 暴露 hidden/secret/undiscovered Person；现先拒绝受限实体，
+  再处理 public co-presence，因此普通作者、player DTO 和 POV tools 都不再因同地点泄漏 hidden ID/正文。
+
+  新回归覆盖真实 CLI `/speak` 的精确 durable knowledge、GUI 当前可见收件人/隐藏收件人拒绝、sidecar 冷恢复与篡改拒绝，及安全
+  author prompt。联合专项
+  `tests/app/test_explicit_speech.py tests/context/test_assembler.py tests/context/test_capabilities.py tests/llm/test_tools.py tests/app/test_gui.py tests/app/test_play.py tests/scripts/test_native_turn_tools.py tests/loop/test_compare.py -rA`
+  为 **`127 passed in 2.95s`**；正式完整离线 gate 为
+  **`1900 passed, 1 deselected in 24.53s`**。本机 Chromium/Playwright 对 loopback GUI 实测确认独立收件人/原话控件及提示文本渲染。
+  唯一 deselect 仍为既有 slow real embedding；没有真实模型/embedding/网络、B1/profiling、push、PR 或部署。

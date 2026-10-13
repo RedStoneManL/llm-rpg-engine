@@ -44,7 +44,8 @@ log = get_logger("context.assembler")
 _GUARDRAIL_TAG = "⚠️只约束·勿泄露"
 
 
-def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=()) -> str:
+def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=(),
+                           player_statement_receipts=()) -> str:
     """Render the normal author's narrow share of native-safe scene material.
 
     A store-owning host may supply a private, in-memory active-event snapshot.
@@ -56,7 +57,10 @@ def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=()) -> st
     """
     if not isinstance(trusted_events, (tuple, list)):
         trusted_events = ()
-    safe = native_authoring_context(world, scene, trusted_events=trusted_events)
+    safe = native_authoring_context(
+        world, scene, trusted_events=trusted_events,
+        player_statement_receipts=list(player_statement_receipts),
+    )
     current_people = safe.get("present_people", [])
     arrivals = safe.get("conditional_arrivals", [])
     lines: list[str] = []
@@ -110,6 +114,28 @@ def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=()) -> st
     if arrival_lines:
         lines.append("【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。")
         lines.extend(arrival_lines)
+
+    receipts = safe.get("communication_receipts", [])
+    receipt_lines: list[str] = []
+    for receipt in receipts:
+        if not isinstance(receipt, dict):
+            continue
+        receipt_id = receipt.get("id")
+        recipient = receipt.get("recipient")
+        statement = receipt.get("statement")
+        when = receipt.get("when")
+        if not all(isinstance(value, str) and value for value in (receipt_id, recipient, statement)):
+            continue
+        if not isinstance(when, dict) or when.get("kind") != "current_scene":
+            continue
+        receipt_lines.append(
+            f"- 收据 {receipt_id}：宿主已明确选定主角对当前公开同场的 {recipient} 说原话“{statement}”。"
+            "若记录该角色听到此句，只能提交逐字相同的 knowledge.heard_player（含此 receipt_id）；"
+            "它不是世界事实，也不能扩展到其他人、心理活动或未选定的话。"
+        )
+    if receipt_lines:
+        lines.append("【本回合明确交流授权】")
+        lines.extend(receipt_lines)
 
     return "\n".join(lines)
 

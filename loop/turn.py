@@ -874,6 +874,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             '_safe_authoring_handoff': safe_authoring_handoff(
                 world, scene,
                 trusted_events=tuple(copy.deepcopy(event) for event in batch.iter_events(include_retracted=True)),
+                player_statement_receipts=trusted_player_statement_receipts,
             ),
         }
         result = _run_turn_staged(registry, batch, world, scene, player_input,

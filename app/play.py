@@ -181,6 +181,7 @@ OOC 指令 (以 / 开头):
   /quit                — 退出游戏
   /recall <关键词>       — 在记忆中搜索
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
+  /speak <收件人> <原话> — 明确对当前公开同场角色说出原话（仅该句可记忆）
   /compare on|off      — 开/关 甲丙策略对比模式
   /rewind <N>          — 回退到第 N 回合之前（撤回 N 及之后的所有事件）
   /undo                — 撤销最后一回合（别名：/oops, //veto）
@@ -454,6 +455,34 @@ def play_loop(
             continue
         line = cleaned
 
+        # ``/speak`` is deliberately a turn-producing command, not an OOC
+        # parser for ordinary prose.  The user supplies both recipient and
+        # exact words; the host then validates current public co-presence and
+        # creates the narrow receipt used by the existing publish gateway.
+        trusted_player_statement_receipts = ()
+        if line.startswith("/speak"):
+            command, separator, remainder = line.partition(" ")
+            if command.lower() != "/speak":
+                separator = ""
+            if not separator:
+                out("[speak] 用法：/speak <当前公开同场角色> <逐字原话>")
+                continue
+            recipient, separator, statement = remainder.strip().partition(" ")
+            if not recipient or not separator or not statement.strip():
+                out("[speak] 用法：/speak <当前公开同场角色> <逐字原话>")
+                continue
+            scene_for_receipt = _build_scene(engine)
+            try:
+                from context.native_authoring import host_player_statement_receipt
+                receipt = host_player_statement_receipt(
+                    engine.world, scene_for_receipt, recipient=recipient, statement=statement,
+                )
+            except ValueError:
+                out("[speak] 收件人必须是当前公开同场角色，且原话不能为空。")
+                continue
+            trusted_player_statement_receipts = (receipt,)
+            line = f"我对 {recipient} 说：{statement}"
+
         if line.startswith("/"):
             revision_before = engine.store.revision
             stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
@@ -498,6 +527,7 @@ def play_loop(
                     '_safe_authoring_handoff': safe_authoring_handoff(
                         engine.world, scene,
                         trusted_events=tuple(engine.store.iter_events(include_retracted=True)),
+                        player_statement_receipts=trusted_player_statement_receipts,
                     ),
                 }
                 spinner = _Spinner(out)
@@ -512,6 +542,7 @@ def play_loop(
                         embedder=engine.embedder,
                         max_repairs=max_repairs,
                         required_sections=required_sections,
+                        trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
                     spinner.stop()
@@ -530,7 +561,8 @@ def play_loop(
                     cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
                     memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                     memory_generator=engine.interpretive_memory_generator,
-                    enforce_player_travel=True)
+                    enforce_player_travel=True,
+                    trusted_player_statement_receipts=trusted_player_statement_receipts)
                 turn_published = True
                 engine.world = applied.world
                 prev_scene = scene
@@ -568,6 +600,7 @@ def play_loop(
                         memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                         memory_generator=engine.interpretive_memory_generator,
                         enforce_player_travel=True,
+                        trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
                     spinner.stop()

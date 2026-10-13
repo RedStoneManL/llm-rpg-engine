@@ -27,6 +27,7 @@ def run_compare(
     embedder=None,
     max_repairs: int = 3,
     required_sections: frozenset = frozenset(),
+    trusted_player_statement_receipts=(),
 ) -> dict:
     """Run both 甲 (AuthorStrategy) and 丙 (HybridStrategy) on the same snapshot.
 
@@ -53,6 +54,7 @@ def run_compare(
         embedder=embedder,
         max_repairs=max_repairs,
         required_sections=required_sections,
+        trusted_player_statement_receipts=trusted_player_statement_receipts,
     )
     log.debug("run_compare: 甲 done narration=%r attempts=%d dropped=%s",
               jia_commit.narration[:40], jia_attempts, jia_dropped)
@@ -65,6 +67,7 @@ def run_compare(
         embedder=embedder,
         max_repairs=max_repairs,
         required_sections=required_sections,
+        trusted_player_statement_receipts=trusted_player_statement_receipts,
     )
     log.debug("run_compare: 丙 done narration=%r attempts=%d dropped=%s",
               str(bing_commit.narration)[:40], bing_attempts, bing_dropped)
