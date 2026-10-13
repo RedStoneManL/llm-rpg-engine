@@ -832,3 +832,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **测试数据质量债务**：本次 s4 摘要是实际 native response，但历史 s1–s3 只有 fake 的“一句话摘要”占位，其中 s2/s3 重复；因此 total response
   正确地说明没有可合并的具体剧情、承诺、关系或未解问题。这只验证 normal recap chain 的消息绑定、写入与去重，不是长程记忆质量证据。未来类似真实验收须对
   所需历史 scene 取得真实 native recap；这些 legacy placeholders 保留为审计证据，禁止事后以虚构内容覆写。无真实模型/网络、B1、profiling、push、PR 或部署。
+
+- 2026-10-13：下一项真实验收改为让**前台作者与必要摘要都经过普通产品入口**，而不是继续对同一回合做离线摘要补丁。复用未改动的
+  isolated revision 15 source，以真实 `PlayerDashboard.action → run_turn → AuthorStrategy` 先做零写 capture；下一最小玩家输入是安全返回
+  石桥集市、向洛恩说明坡口裂缝/湿泥，并只询问他本人今早是否见过明确的安全绕行落脚点，若不能确定则不把路线当作可通行。它是风险后的
+  有界决策/来源核实，而非第 N 次局部观察。capture 唯一 provider `[system,user]` 消息 SHA-256 为
+  `ae4cc53eaac4c3b3a591f3ff83ddf65b88656d49115463d75a965ad5a231d669`；捕获 provider 在首个 `complete_messages` 后停止，临时 copy revision
+  仍为 15、零写入，source DB/JSONL 哈希保持原值。
+
+  **下一份需要的真实材料仅为**对该 exact author message 的完整 `AuthorStrategy` JSON candidate。它通过结构/权限校验后，才在 fresh disposable copy
+  中经同一 GUI 路径提交；同一 run_turn 的 recap provider 必须依序字节匹配既有 s4/total message，并使用已留存的两个 native 摘要 response。
+  如果出现第三个 provider 请求，立即记录并停止，不自行补答。这样会一并验收 normal GUI 前台提交、post-commit recap 保存及工件落盘顺序；既有
+  s1–s3 placeholders 继续只是审计材料，不会冒充真实长程记忆。Library 刚失败，按约定本阶段不重试。
