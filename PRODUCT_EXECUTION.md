@@ -844,3 +844,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   中经同一 GUI 路径提交；同一 run_turn 的 recap provider 必须依序字节匹配既有 s4/total message，并使用已留存的两个 native 摘要 response。
   如果出现第三个 provider 请求，立即记录并停止，不自行补答。这样会一并验收 normal GUI 前台提交、post-commit recap 保存及工件落盘顺序；既有
   s1–s3 placeholders 继续只是审计材料，不会冒充真实长程记忆。Library 刚失败，按约定本阶段不重试。
+
+- 2026-10-13：上述普通入口 native candidate 的一次隔离执行发现 **P0 边界绕过**，因此这一轮 HTTP `200` 绝不构成安全验收。真实
+  `PlayerDashboard.action → run_turn → AuthorStrategy` 在 revision 15 的 disposable copy 上接受了候选，revision 到 16；它合法移动回集市，且
+  后台 provider 请求顺序为 exact author → s4 summary（既有 hash）→ total recompression（既有 hash），无额外请求并保存 recap。但候选没有
+  host-signed explicit communication receipt，却以普通 `knowledge.told` 写入了 `market_witness_luoen` 对主角自由文字的 durable
+  `knowledge_set`（receipt seq 113）：`fact_key=market_riverward_stone_lip_6e84c2f9.坡口路面险情`，value 是“主角告知…”，
+  `via=主角返回石桥集市后当面说明`。它未使用 `heard_player` 或 `source_kind=player_statement`，故既有 shared receipt validator 没有拒绝；
+  新 NPC report fact 的缺省 secrecy 与自由 via 亦被实际接受。原 revision-15 source DB/JSONL 哈希不变。
+
+  这是需要单独修复/回归的普通入口 transcript-laundering 缺口，不可通过手改候选、删测试或把这一 HTTP 成功表述为预期的安全通过。修复设计必须保留
+  NPC 合法获得独立来源事实的能力，同时阻止作者把玩家自由输入伪装成普通 `told`；在明确边界和测试矩阵确定前，不导入该隔离剧情，也不声称旧塔目标、
+  路径安全或长程记忆质量已解决。
