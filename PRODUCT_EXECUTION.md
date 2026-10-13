@@ -674,3 +674,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   speaker=protagonist、`confidence=heard_exact_words`，没有新 communication receipt、没有预设回应、没有其他洛恩私有认知。专项
   `tests/scripts/test_native_turn_tools.py tests/context/test_place_observations.py -rA` 为 **`16 passed in 2.49s`**；正式 gate 为
   **`1891 passed, 1 deselected in 20.92s`**。仍无真实模型、push、部署或历史重写。
+
+- 2026-10-13：独立第十 native 作者只得到该最小 recall、没有此前游玩聊天或其他洛恩认知；其原文候选已保存并从真实 revision
+  `11` **一次** 导入至 `12`。该提交只有 clock、narration、summary 与 directive event，零 `knowledge_set`：洛恩保留第九回合的
+  唯一原句 digest record，苏芮没有该知识，集市没有 matching world fact；主角仍在 `stonebridge_market`、旧铜灯仍由主角持有。
+  这验证单次同场安全回忆，不声称长局、跨场景或所有普通作者入口已全面覆盖。没有重放/补写历史或新增 communication receipt。
