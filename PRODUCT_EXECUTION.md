@@ -959,3 +959,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/api/state` 响应分别渲染空态和两个公开标签，断言下拉框与面板完全同源、没有非 GET 请求，且 390px 下
   `scrollWidth == clientWidth == 390`。浏览器拦截仅验证展示，不替代上述真实 Python 隐私/移动回归；没有 campaign 写入、截图、
   真实模型、embedding、网络、B1、profiling、push、PR 或部署。
+
+- 2026-10-13：RCV-22 的可恢复交付已额外保存到连接账号自己的 Google Drive 根目录，未改变任何共享权限。上传前以
+  `8c78ec1` 检索未发现同版本文件；上传后官方 metadata readback 均显示 `shared=false`、唯一 owner 为当前账号，且大小与
+  本地一致：完整 Git bundle（Drive ID `1WQWodLaoS_C_mczz87mkhDPeo5quvAw9`，commit `8c78ec1f18a77d2f51f5b3829e0706505e530c6c`，
+  3,242,130 bytes，本地 SHA-256
+  `d79b3a6c8ab4fefa8558dc0ba0843ba90b669c7bfaa1977b7691853bd14e59d0`）；源码归档（Drive ID
+  `11PmZn-RhzcBFOxEyA1epxz8ISoOYrSOo`，2,784,821 bytes，本地 SHA-256
+  `87dfde37cf83524658f4a124cab433b5c286077b4cf0a2209fcf177a1255d059`）；恢复校验说明（Drive ID
+  `1_-D7_L47FdK8PSyuWI7_zY_9Z6i4OuoA`，1,941 bytes，本地 SHA-256
+  `8714102e75d3dbdf4699e70cc3a9db9fa470a8a7a4ef20b373c1ec02fe890e47`）。
+
+  官方 Drive raw fetch 已成功创建三份认证下载引用并再次报告相同文件大小；但该执行环境随后对这三个短期下载引用作本地
+  materialize 时均返回 HTTP 403，未能取得可供 `sha256sum` 的云端字节。因此本次**只完成 metadata/size 回读，未完成
+  云端内容 SHA-256 比对**；没有因此重传、覆盖、分享或发送邮件。待支持的下载引用可 materialize 后，仍应再做字节哈希回读。
