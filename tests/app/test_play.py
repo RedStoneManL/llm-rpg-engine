@@ -204,6 +204,48 @@ def test_play_loop_ooc_recall_no_turn(tmp_path):
     assert events_after == events_before, "recall should not add events"
 
 
+def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
+    """A long-running CLI must not query a pre-peer POV projection forever."""
+    from app.engine import build_engine
+    from app.gui import build_dashboard
+    from app.play import _build_scene, play_loop
+
+    campaign = tmp_path / "campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    peer = build_dashboard(campaign, demo=True)
+    output: list[str] = []
+    peer_saved: list[dict] = []
+    resets = [0]
+
+    class ResetOnly:
+        def reset(self):
+            resets[0] += 1
+
+    def inputs():
+        yield "/recall 石桥"
+        peer_saved.append(peer.action(
+            player_input="另一终端先去集市", action_id="cli-recall-peer",
+            expected_revision=peer.state()["revision"],
+        ))
+        yield "/recall 石桥"
+        yield "/quit"
+
+    try:
+        initial_revision = engine.world["_revision"]
+        play_loop(engine, inputs=inputs(), out=output.append, strategy=ResetOnly())
+        assert peer_saved and peer_saved[0]["revision"] != initial_revision
+        assert engine.world["_revision"] == peer_saved[0]["revision"]
+        assert _build_scene(engine)["location"] == "stonebridge_market"
+        assert engine.store.revision == peer_saved[0]["revision"]
+        assert len([line for line in output if line.startswith("[recall]")]) >= 2
+        assert resets == [1]
+    finally:
+        peer.engine.store.close()
+        engine.store.close()
+
+
 def test_player_recall_uses_pov_projection_and_keeps_hidden_places_out(tmp_path):
     """Recall hides guesses but still searches places this protagonist discovered."""
     from app.engine import build_engine

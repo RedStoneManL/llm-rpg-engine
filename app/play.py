@@ -274,6 +274,26 @@ def _previous_scene_before_latest_action(engine) -> dict | None:
     return _build_scene(_SceneEngine())
 
 
+def _refresh_if_store_advanced(engine, previous_scene: dict | None, strategy) -> dict | None:
+    """Catch a peer publish before a long-running CLI reads or authors again.
+
+    The REPL keeps its projected world and author conversation in memory, while
+    another local CLI or dashboard may have durably changed the same campaign.
+    A regular OOC read has no optimistic write conflict to force a refresh, so
+    compare the cached revision before each non-empty input.  This mirrors the
+    dashboard's passive synchronization and stays strictly read-only: no event,
+    receipt, transcript, or retry is created by observing the peer history.
+    """
+    cached_revision = engine.world.get("_revision")
+    if type(cached_revision) is int and cached_revision == engine.store.revision:
+        return previous_scene
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    if hasattr(strategy, "reset"):
+        strategy.reset()
+    return _previous_scene_before_latest_action(engine)
+
+
 def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
                  steering: list[str | None] | None = None) -> bool:
     """Dispatch an OOC command. Returns True if the loop should stop.
@@ -515,6 +535,12 @@ def play_loop(
             log.debug("play_loop: skipping pure-noise input %r", line)
             continue
         line = cleaned
+
+        # A peer dashboard/CLI may have committed between two lines of this
+        # long-running REPL.  Do this before `/recall`, `/speak`, or normal
+        # scene construction so every player-facing read uses one current POV
+        # projection and any author cache cannot carry stale history forward.
+        prev_scene = _refresh_if_store_advanced(engine, prev_scene, strategy)
 
         # ``/speak`` is deliberately a turn-producing command, not an OOC
         # parser for ordinary prose.  The user supplies both recipient and
