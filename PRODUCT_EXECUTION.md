@@ -88,6 +88,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-45 | P0 | 已验收（乐观版本冲突后的 scope／世界恢复） | CLI 在 `RevisionConflict` 后虽重放 world 并 reset 作者缓存，却保留过期 `prev_scene`；GUI 还会把已确定未提交的冲突泛化为 500，内存 world 与下一行动 scope 都可能过期 | CLI/GUI 都在**无同 ID receipt**的冲突后只读投影当前 store、重建最新存活 action 的 action-start scope 并 reset 策略；GUI 返回可安全丢弃的 400。已有同 ID durable receipt 仍走保守 409 恢复，绝不误称未提交 |
 | RCV-46 | P0 | 已验收（GUI 过期撤销后的 authoritative refresh） | 另一实例已保存行动后，GUI 对过期 revision 的 undo 会拒绝，却保留旧内存投影，使紧随其后的 `/api/state` 仍与 SQLite 不一致 | action conflict 与 stale undo 共用只读刷新：重放 store、重建 action-start scope、reset 策略；undo 仍不写入/不撤回任何事件，返回 confirmed 400 后 `/api/state` 立即反映 peer action |
 | RCV-47 | P0 | 已验收（GUI 被动读路径跨实例同步） | RCV-46 只在过期写请求被拒绝时刷新；另一实例已发布而玩家只请求 state/recall 时，dashboard 仍可能展示旧 projection | state、recall、action 入口先比较缓存 revision 与 SQLite；仅不同时只读重投影、重建 scope、reset 一次。被动 GET/recall 不写事件、receipt 或 transcript |
+| RCV-48 | P0 | 已验收（GM 只读跨实例同步） | 独立 GM dashboard 也缓存启动时 projection，却没有玩家写入口或 revision-bound 拒绝路径；另一玩家实例发布后，GM 的普通 GET 会永久停在旧世界 | GM `state()` 先比较缓存 revision 与 SQLite；仅不同时只读重投影后再构建 canonical、私有解释仍过滤的 DTO。GM GET 不写事件、receipt 或 transcript |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1406,3 +1407,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`3 passed in 0.30s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1979 passed, 1 deselected in 23.05s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络、浏览器或外部服务。
+
+- 2026-10-14：RCV-48 复查与玩家页面隔离启动的只读 GM dashboard。它没有 action、undo 或 revision-bound
+  拒绝分支，因此 RCV-47 不能自动覆盖它：先启动 GM，再由另一玩家 dashboard 正常保存客栈→集市移动后，旧 GM
+  的 `/api/gm/state` 红例实际仍回 revision 1，而 durable store／玩家已为 revision 2。这个问题不会授权 GM 写入；
+  它只是读页持有了过期 projection。
+
+  `GmDashboard.state()` 现先比较缓存 `_revision` 与 SQLite revision；不一致时仅以既有 registry 和完整事件流重投影，
+  再照原来的 canonical GM DTO 读取。刷新不创建事件、receipt、transcript 或 action，也不改变私有解释的过滤：后者仍
+  由 `build_gm_state()`／`public_history()` 边界负责。新 WSGI 双实例回归让 GM 仅 GET `/api/gm/state`，断言 revision
+  和主角地点已跟随 peer publish，同时 refresh 前后 event 列表严格相同，证明 GM GET 没有写入。此为本地 deterministic
+  controller／WSGI 验证，不是浏览器点击、真实模型或网络验收。
+  GUI／CLI／projection 联动专项为 **`76 passed in 1.17s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1980 passed, 1 deselected in 22.68s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。

@@ -11,7 +11,7 @@ import app.engine as engine_module
 import app.gui as gui
 from app.engine import build_engine, rewind
 from app.gui import (GuiRequestError, PlayerDashboard, _seed_demo_campaign,
-                     GmDashboard, build_dashboard, build_gm_state,
+                     GmDashboard, build_dashboard, build_gm_dashboard, build_gm_state,
                      build_player_state, make_app)
 from kernel.events import kernel_event
 from kernel.projection import project
@@ -751,6 +751,41 @@ def test_gui_read_endpoints_reproject_after_peer_publish_without_a_write_request
     finally:
         peer.engine.store.close()
         dashboard.engine.store.close()
+
+
+def test_gm_state_reprojects_after_peer_player_publish_without_writing(tmp_path):
+    """The separately opened read-only GM page must not stay at its boot revision.
+
+    A GM dashboard owns no action or rejection path that could incidentally
+    refresh it.  Its ordinary GET therefore has to observe a player dashboard
+    publish and rebuild from the durable event history without adding another
+    event, receipt, or transcript row.
+    """
+    campaign = tmp_path / "campaign"
+    player = build_dashboard(campaign, demo=True)
+    gm = build_gm_dashboard(campaign)
+    try:
+        initial = gm.state()
+        before_events = list(gm.engine.store.iter_events())
+        saved = player.action(
+            player_input="另一页面先去集市", action_id="gm-peer-publish",
+            expected_revision=player.state()["revision"],
+        )
+        assert initial["revision"] != saved["revision"]
+        after_peer_publish = list(gm.engine.store.iter_events())
+        assert len(after_peer_publish) > len(before_events)
+
+        status, body = _get_wsgi(make_app(gm, mode="gm"), "/api/gm/state")
+        refreshed = json.loads(body.decode("utf-8"))
+        assert status.startswith("200")
+        assert refreshed["revision"] == saved["revision"]
+        assert gm.engine.world["_revision"] == saved["revision"]
+        protagonist = next(person for person in refreshed["people"] if person["id"] == "protagonist")
+        assert protagonist["location"] == "stonebridge_market"
+        assert list(gm.engine.store.iter_events()) == after_peer_publish
+    finally:
+        gm.engine.store.close()
+        player.engine.store.close()
 
 
 def _post_wsgi(app, path, payload, *, host="127.0.0.1:8765", origin="http://127.0.0.1:8765",
