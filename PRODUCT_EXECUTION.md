@@ -87,6 +87,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-44 | P0 | 已验收（撤销／回退 catch-up 作用域恢复） | RCV-43 修复了冷重开，但 CLI `/undo`／`/rewind` 与 GUI undo 在 revision 改变后仍强行清空作用域锚点；下一动作会把持续同场 stale NPC 误作新进入 | 成功 rewind 后 CLI 与 GUI 都从最新存活 action receipt 重建 prior scene；真实 `行动→undo→行动` 回归确认没有额外 catch-up／`character_evolved`，策略缓存 reset 语义不变 |
 | RCV-45 | P0 | 已验收（乐观版本冲突后的 scope／世界恢复） | CLI 在 `RevisionConflict` 后虽重放 world 并 reset 作者缓存，却保留过期 `prev_scene`；GUI 还会把已确定未提交的冲突泛化为 500，内存 world 与下一行动 scope 都可能过期 | CLI/GUI 都在**无同 ID receipt**的冲突后只读投影当前 store、重建最新存活 action 的 action-start scope 并 reset 策略；GUI 返回可安全丢弃的 400。已有同 ID durable receipt 仍走保守 409 恢复，绝不误称未提交 |
 | RCV-46 | P0 | 已验收（GUI 过期撤销后的 authoritative refresh） | 另一实例已保存行动后，GUI 对过期 revision 的 undo 会拒绝，却保留旧内存投影，使紧随其后的 `/api/state` 仍与 SQLite 不一致 | action conflict 与 stale undo 共用只读刷新：重放 store、重建 action-start scope、reset 策略；undo 仍不写入/不撤回任何事件，返回 confirmed 400 后 `/api/state` 立即反映 peer action |
+| RCV-47 | P0 | 已验收（GUI 被动读路径跨实例同步） | RCV-46 只在过期写请求被拒绝时刷新；另一实例已发布而玩家只请求 state/recall 时，dashboard 仍可能展示旧 projection | state、recall、action 入口先比较缓存 revision 与 SQLite；仅不同时只读重投影、重建 scope、reset 一次。被动 GET/recall 不写事件、receipt 或 transcript |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1390,3 +1391,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `revision 1 != 2`，不是模拟 response。相关 GUI／CLI／action-integrity 专项为 **`154 passed in 1.57s`**；正式完整
   离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1978 passed, 1 deselected in 22.89s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络、浏览器或外部服务。
+
+- 2026-10-14：RCV-47 继续 RCV-46 的跨实例一致性审计，避免把“只有被拒绝的写入才刷新”误当完整恢复。
+  实际双 dashboard 红例中，peer 用正常 demo action 从客栈保存到集市；旧 dashboard 不提交 action/undo，只 GET
+  `/api/state`，旧代码仍回 revision 1 而 SQLite/peer 已为 revision 2。若只读 recall 先执行，同样会在旧 projection
+  上查询，因而不能把 passive refresh 留给用户主动触发一个失败写操作。
+
+  `PlayerDashboard` 现统一在 state、recall 和 action 入口比较缓存 `_revision` 与 store revision；仅不一致时才复用
+  RCV-46 的只读重投影、最新存活 receipt 的 action-start scope 恢复和一次 strategy reset。revision 相同的连续 GET 不
+  重复 reset。该检查不创建事件、receipt、transcript、重试或权限，也不读取客户端 scene。
+
+  新 WSGI 回归让 peer 先发布，再让旧 controller **先**做 `recall`、随后 GET state：recall 已返回 peer revision，state
+  显示集市，scope 为客栈，第二次 state 不再 reset；旧代码在第一 state assertion 实际失败 `1 != 2`。相关三条控制为
+  **`3 passed in 0.30s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1979 passed, 1 deselected in 23.05s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络、浏览器或外部服务。

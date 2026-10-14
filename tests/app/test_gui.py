@@ -708,6 +708,51 @@ def test_gui_stale_undo_refreshes_authoritative_world_before_confirmed_rejection
         dashboard.engine.store.close()
 
 
+def test_gui_read_endpoints_reproject_after_peer_publish_without_a_write_request(tmp_path):
+    """Passive state/recall reads must not need a rejected mutation to catch up.
+
+    A separate dashboard saves the ordinary action.  The first dashboard then
+    performs only GET state reads: no action, undo, or receipt retry is used to
+    force the synchronization.  The second read is intentionally checked too,
+    so an already-current world does not repeatedly reset the author cache.
+    """
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    peer = build_dashboard(campaign, demo=True)
+    resets = [0]
+
+    class ResetOnly:
+        def reset(self):
+            resets[0] += 1
+
+    dashboard.strategy = ResetOnly()
+    initial = dashboard.state()
+    try:
+        peer_saved = peer.action(
+            player_input="另一页面先去集市", action_id="peer-before-read",
+            expected_revision=peer.state()["revision"],
+        )
+        recall = dashboard.recall("石桥")
+        assert recall["revision"] == peer_saved["revision"]
+        assert resets == [1]
+
+        status, body = _get_wsgi(make_app(dashboard), "/api/state")
+        refreshed = json.loads(body.decode("utf-8"))
+        assert status.startswith("200")
+        assert refreshed["revision"] == peer_saved["revision"]
+        assert refreshed["revision"] != initial["revision"]
+        assert refreshed["scene"]["location"]["id"] == "stonebridge_market"
+        assert dashboard.previous_scene is not None
+        assert dashboard.previous_scene["location"] == "stonebridge_inn"
+        assert resets == [1]
+
+        dashboard.state()
+        assert resets == [1]
+    finally:
+        peer.engine.store.close()
+        dashboard.engine.store.close()
+
+
 def _post_wsgi(app, path, payload, *, host="127.0.0.1:8765", origin="http://127.0.0.1:8765",
                content_type="application/json"):
     raw = json.dumps(payload).encode("utf-8") if content_type == "application/json" else b"expected_revision=1"

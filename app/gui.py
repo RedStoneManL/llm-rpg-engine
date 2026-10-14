@@ -429,6 +429,7 @@ class PlayerDashboard:
 
     def state(self) -> dict[str, Any]:
         with self.lock:
+            self._refresh_if_store_advanced()
             state = build_player_state(self.engine)
             state["session"] = {"soft_direction": self.steering}
             return state
@@ -449,6 +450,12 @@ class PlayerDashboard:
         if hasattr(self.strategy, "reset"):
             self.strategy.reset()
 
+    def _refresh_if_store_advanced(self) -> None:
+        """Observe peer publishes before serving another player operation."""
+        cached_revision = self.engine.world.get("_revision")
+        if type(cached_revision) is not int or cached_revision != self.engine.store.revision:
+            self._refresh_authoritative_world()
+
     def recall(self, query: str) -> dict[str, Any]:
         """Run the shared, read-only player POV recall query for this session."""
         if not isinstance(query, str) or not query.strip():
@@ -457,6 +464,7 @@ class PlayerDashboard:
         if len(cleaned.encode("utf-8")) > _MAX_RECALL_QUERY_BYTES:
             raise GuiRequestError("回忆关键词过长，请缩短后重试。")
         with self.lock:
+            self._refresh_if_store_advanced()
             scene = _build_scene(self.engine)
             return {
                 "hits": player_recall(self.engine.registry, self.engine.world, scene, cleaned),
@@ -530,6 +538,7 @@ class PlayerDashboard:
                     or len(statement.encode("utf-8")) > _MAX_ACTION_BYTES):
                 raise GuiRequestError("收件人或逐字原话无效，请重新选择当前同场角色。")
         with self.lock:
+            self._refresh_if_store_advanced()
             existing = self.requests.get(action_id)
             if (existing is not None and existing.player_input == player_input
                     and existing.expected_revision == expected_revision
