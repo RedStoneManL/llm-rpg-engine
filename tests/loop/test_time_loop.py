@@ -460,6 +460,111 @@ def test_play_loop_tracks_prev_scene_so_catchup_fires_on_second_turn(tmp_path):
     )
 
 
+def test_compare_play_loop_runs_catchup_with_background_provider_and_reopens(tmp_path):
+    """The selected compare candidate must trigger and persist real catch-up work.
+
+    This is intentionally not a kwargs-only test: two `/compare on` turns run
+    through candidate generation and the final ``PreparedCandidate -> run_turn``
+    apply.  A stale innkeeper enters scope only on the second turn, so the
+    compare apply path must call the configured background provider and append
+    its evolved state.  Reopening verifies the background event is durable.
+    """
+    from app.engine import Engine
+    from app.play import play_loop
+    from kernel.events import open_store
+    from systems.faction import FactionSystem
+    from systems.knowledge import KnowledgeSystem
+    from systems.object import ObjectSystem
+    import app.play as play_mod
+    import hashlib
+
+    camp = tmp_path / "compare-catchup"
+    camp.mkdir()
+    reg = Registry()
+    reg.register(OntologySystem())
+    reg.register(PlaceSystem())
+    reg.register(CharacterSystem())
+    reg.register(ObjectSystem())
+    reg.register(FactionSystem())
+    reg.register(KnowledgeSystem())
+    reg.register(DirectorSystem())
+    reg.register(CascadeSystem())
+    reg.register(TimeSystem())
+    db = camp / "events.db"
+    jsonl = camp / "events.jsonl"
+    store = open_store(str(db), str(jsonl), reg.event_types())
+    store.append(kernel_event(
+        "character_created", day=1, scene="genesis", summary="innkeeper 登场",
+        deltas={"id": "innkeeper", "tier": "tracked", "sketch": "旅馆掌柜", "goal": "维持生计"},
+        turn=0,
+    ))
+    store.append(kernel_event(
+        "time_advanced", day=5, scene="genesis", summary="五天流逝",
+        deltas={"to_day": 5, "reason": "elapse"}, turn=0,
+    ))
+    engine = Engine(
+        registry=reg,
+        store=store,
+        provider=None,
+        embedder=None,
+        world=project(reg, store.iter_events()),
+        campaign_seed=int(hashlib.sha256(b"compare-catchup").hexdigest()[:12], 16),
+    )
+    engine.provider = FakeLLMProvider(
+        responses=["乙一：保持观察。", "乙二：掌柜出现在眼前。"],
+        json_responses=[
+            {"narration": "甲一：先留意旅馆外。", "moves": [], "places": [], "cast": [], "facts": [],
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+            {"narration": "乙一：保持观察。", "moves": [], "places": [], "cast": [], "facts": [],
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+            {"narration": "甲二：掌柜来到柜台前。", "moves": [], "places": [], "cast": [], "facts": [],
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+            {"narration": "乙二：掌柜出现在眼前。", "moves": [], "places": [], "cast": [], "facts": [],
+             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+        ],
+    )
+    catchup_provider = KeyedCatchup({
+        "innkeeper": {"changed": True, "predicate": "mood", "value": "孤寂", "note": "五日无客"},
+    })
+    engine.cascade_provider = catchup_provider
+    scenes = [
+        {"protagonist": "protagonist", "present": [], "day": 5, "id": "inn", "location": "inn"},
+        {"protagonist": "protagonist", "present": ["innkeeper"], "day": 5, "id": "inn", "location": "inn"},
+    ]
+    scene_index = [0]
+
+    def fake_build_scene(_engine):
+        index = scene_index[0]
+        scene_index[0] += 1
+        return scenes[min(index, len(scenes) - 1)]
+
+    original_build_scene = play_mod._build_scene
+    play_mod._build_scene = fake_build_scene
+    try:
+        play_loop(engine, inputs=["/compare on", "先看门口", "看看掌柜", "/quit"], out=lambda _: None)
+    finally:
+        play_mod._build_scene = original_build_scene
+        store.close()
+
+    # The keyed provider identifies a genuine catch-up request, rather than a
+    # shared foreground Author/Hybrid call.  Its resulting canonical event
+    # must survive replay from the SQLite/JSONL-backed store.
+    assert any("实体 id：innkeeper" in call for call in catchup_provider.calls)
+    reopened = open_store(str(db), str(jsonl), reg.event_types())
+    try:
+        events = list(reopened.iter_events())
+        evolved = [event for event in events if event["type"] == "character_evolved"]
+        assert len(evolved) == 1
+        assert evolved[0]["deltas"] == {
+            "id": "innkeeper", "predicate": "mood", "value": "孤寂", "op": "evolve",
+        }
+        replayed = project(reg, events)
+        assert replayed["systems"]["ontology"].value_at("innkeeper", "mood", 5) == "孤寂"
+        assert replayed["systems"]["ontology"].get_entity("innkeeper").attrs["last_update"] == 5
+    finally:
+        reopened.close()
+
+
 def test_run_catchup_repair_loop_uses_repaired_result():
     """Bad first response (missing 'changed') + conforming second → repaired result used.
     The repair message names the missing field."""

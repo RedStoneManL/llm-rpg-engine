@@ -1156,3 +1156,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1948 passed, 1 deselected in 26.22s`**；唯一 deselect 是既有 slow real embedding。该回归未使 catch-up
   实际执行，不是浏览器点击、真实模型、外部预算或长期剧情质量验收。
+
+  后续补齐该证据缺口时，复用相同本地 compare 路径构造了一个 day 5 的 stale `innkeeper`：第一回合不在场，第二回合才
+  进入 `present`。真实 `/compare on → run_compare → PreparedCandidate → run_turn` 的第二次最终 apply 因而实际触发
+  `run_catchup`；单独配置的 `KeyedCatchup` 收到含 `实体 id：innkeeper` 的后台请求，而不是前台 Author/Hybrid 调用，写入
+  一条 `character_evolved(mood=孤寂)`。关闭并从 SQLite/JSONL 重开后，事件仍存在、ontology 投影的 mood 与
+  `last_update=5` 保持一致。该回归覆盖了修复所影响的实际后台分支与持久化/replay，而不是只观察参数；仍完全是本地
+  Fake provider，不是浏览器或真实模型验收。
