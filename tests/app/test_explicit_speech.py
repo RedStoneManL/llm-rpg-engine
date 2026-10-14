@@ -83,6 +83,64 @@ def test_cli_speak_explicitly_issues_one_current_scene_receipt(tmp_path):
         seed.engine.store.close()
 
 
+def test_cli_speak_accepts_the_unique_public_display_name(tmp_path):
+    """CLI status exposes labels, so a unique public label must be usable safely."""
+    statement = "请替我记住：桥边的灯还亮着。"
+    seed = build_dashboard(tmp_path / "campaign", demo=True)
+    _add_public_innkeeper(seed.engine)
+    scene = _build_scene(seed.engine)
+    receipt = host_player_statement_receipt(
+        seed.engine.world, scene, recipient="innkeeper_mara", statement=statement,
+    )
+    provider = FakeLLMProvider(json_responses=[_proposal(receipt, statement)])
+    seed.engine.provider = provider
+    output: list[str] = []
+    try:
+        play_loop(
+            seed.engine,
+            inputs=["/status", f'/speak "公开同场的玛拉" {statement}', "/quit"],
+            out=output.append,
+            max_repairs=0,
+        )
+        graph = seed.engine.world["systems"]["ontology"]
+        key = player_statement_fact_key("protagonist", statement)
+        assert graph.value_at("innkeeper_mara", f"knows:{key}", 1) == statement
+        assert "[状态] 同场角色：公开同场的玛拉" in output
+        prompt = next(user for _, user in provider.calls if "[player]" in user)
+        assert receipt["id"] in prompt
+        assert "PRIVATE_SPEECH_SENTINEL" not in prompt
+    finally:
+        seed.engine.store.close()
+
+
+def test_cli_speak_rejects_an_ambiguous_public_display_name_without_writing(tmp_path):
+    seed = build_dashboard(tmp_path / "campaign", demo=True)
+    _add_public_innkeeper(seed.engine)
+    seed.engine.store.append_many([
+        kernel_event("character_created", day=1, scene="s1", turn=0, summary="same public label", deltas={
+            "id": "another_mara", "sketch": "公开同场的玛拉", "goal": "同名公开角色", "tier": "tracked",
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="same public label at inn", deltas={
+            "who": "another_mara", "to": "stonebridge_inn",
+        }),
+    ], preflight=lambda history: project(seed.engine.registry, history))
+    seed.engine.world = project(seed.engine.registry, seed.engine.store.iter_events())
+    seed.engine.world["_revision"] = seed.engine.store.revision
+    before = (seed.engine.store.revision, list(seed.engine.store.iter_events()))
+    output: list[str] = []
+    try:
+        play_loop(
+            seed.engine,
+            inputs=['/speak "公开同场的玛拉" 请记住这句。', "/quit"],
+            out=output.append,
+            max_repairs=0,
+        )
+        assert any("唯一的当前公开同场角色显示名或 ID" in line for line in output)
+        assert (seed.engine.store.revision, list(seed.engine.store.iter_events())) == before
+    finally:
+        seed.engine.store.close()
+
+
 def test_gui_explicit_speech_is_visible_only_to_current_recipient_and_cold_recovers(tmp_path):
     campaign = tmp_path / "campaign"
     seed = build_dashboard(campaign, demo=True)

@@ -189,7 +189,7 @@ OOC 指令 (以 / 开头):
   /codex [关键词]        — 浏览公开世界设定
   /status               — 查看当前公开位置、同场角色、背包与出口
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
-  /speak <收件人> <原话> — 明确对当前公开同场角色说出原话（仅该句可记忆）
+  /speak <显示名或 ID> <原话> — 明确对当前公开同场角色说出原话（显示名有空格时加引号；仅该句可记忆）
   /compare on|off      — 开/关 甲丙策略对比模式
   /rewind <N>          — 回退到第 N 回合之前（撤回 N 及之后的所有事件）
   /undo                — 撤销最后一回合（别名：/oops, //veto）
@@ -305,7 +305,22 @@ def _player_label(graph, entity_id: str) -> str:
     entity = graph.get_entity(entity_id) if graph is not None else None
     if entity is None:
         return ""
-    return str(entity.attrs.get("label") or entity.attrs.get("name") or entity_id)
+    return str(entity.attrs.get("label") or entity.attrs.get("name")
+               or entity.attrs.get("sketch") or entity_id)
+
+
+def _public_speech_recipients(engine, scene: dict) -> list[dict[str, str]]:
+    """Return the same safe recipient choices used by the player dashboard."""
+    from context.native_authoring import native_authoring_context
+
+    choices: list[dict[str, str]] = []
+    for person in native_authoring_context(engine.world, scene).get("present_people", []):
+        if not isinstance(person, dict) or not isinstance(person.get("id"), str):
+            continue
+        observable = person.get("observable") if isinstance(person.get("observable"), dict) else {}
+        label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
+        choices.append({"id": person["id"], "label": label})
+    return choices
 
 
 def _print_player_status(engine, out: Callable) -> None:
@@ -321,8 +336,7 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 第 {day} 天 · {band} · 版本 {engine.store.revision}")
     out(f"[状态] 当前位置：{location.label if location else '未确定'}")
 
-    people = [_player_label(graph, person_id) for person_id in scene.get("present", [])
-              if _player_label(graph, person_id)]
+    people = [person["label"] for person in _public_speech_recipients(engine, scene)]
     out(f"[状态] 同场角色：{'、'.join(people) if people else '无'}")
 
     inventory = []
@@ -340,6 +354,65 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 长期目标：{objectives['long_term_goal'] or '未设定'}")
     active = [item['summary'] for item in objectives['active_quests']]
     out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
+
+
+def _resolve_public_speech_recipient(engine, scene: dict, remainder: str) -> tuple[str, str] | None:
+    """Resolve one exact, current public recipient label or id for ``/speak``.
+
+    The terminal status view deliberately exposes player-facing labels, while
+    the durable communication receipt must retain the canonical recipient id.
+    Accepting a label only when it maps to one public co-located person keeps
+    those two normal-player surfaces usable without turning names into a
+    discovery query.  Ambiguous labels, hidden people, and stale labels all
+    fail closed; the receipt helper remains the authority for co-presence.
+    """
+    raw = remainder.strip()
+    if not raw:
+        return None
+    public_people = _public_speech_recipients(engine, scene)
+
+    recipient_text: str
+    statement: str
+    if raw[:1] in {'"', "'"}:
+        quote = raw[0]
+        end = raw.find(quote, 1)
+        if end <= 1:
+            return None
+        recipient_text = raw[1:end]
+        statement = raw[end + 1:].strip()
+    else:
+        # Display names may themselves contain spaces.  Match only complete
+        # aliases at the beginning of the supplied text, taking the longest
+        # first so a shorter public label cannot consume a longer one.
+        recipient_text = ""
+        statement = ""
+        aliases = {
+            alias
+            for person in public_people
+            for alias in (person["id"], person["label"])
+            if isinstance(alias, str) and alias
+        }
+        folded = raw.casefold()
+        for alias in sorted(aliases, key=len, reverse=True):
+            if folded.startswith(alias.casefold()) and len(raw) > len(alias) and raw[len(alias)].isspace():
+                recipient_text = raw[:len(alias)]
+                statement = raw[len(alias):].strip()
+                break
+        if not recipient_text:
+            return None
+
+    if not statement:
+        return None
+    matched = {
+        person["id"]
+        for person in public_people
+        if recipient_text.casefold() in {
+            person["id"].casefold(), person["label"].casefold(),
+        }
+    }
+    if len(matched) != 1:
+        return None
+    return next(iter(matched)), statement
 
 
 def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
@@ -630,13 +703,14 @@ def play_loop(
             if command.lower() != "/speak":
                 separator = ""
             if not separator:
-                out("[speak] 用法：/speak <当前公开同场角色> <逐字原话>")
-                continue
-            recipient, separator, statement = remainder.strip().partition(" ")
-            if not recipient or not separator or not statement.strip():
-                out("[speak] 用法：/speak <当前公开同场角色> <逐字原话>")
+                out("[speak] 用法：/speak <当前公开同场角色显示名或 ID> <逐字原话>")
                 continue
             scene_for_receipt = _build_scene(engine)
+            parsed_speech = _resolve_public_speech_recipient(engine, scene_for_receipt, remainder)
+            if parsed_speech is None:
+                out("[speak] 请使用唯一的当前公开同场角色显示名或 ID；含空格的显示名请加引号。")
+                continue
+            recipient, statement = parsed_speech
             try:
                 from context.native_authoring import host_player_statement_receipt
                 receipt = host_player_statement_receipt(

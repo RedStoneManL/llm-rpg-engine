@@ -96,6 +96,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-53 | P1 | 已验收（CLI 玩家态势查看） | 终端 REPL 是正常游玩入口，但玩家在回合间没有只读查看当前位置、同场角色、背包和已知出口的命令 | `/status` 只从主角 redacted POV 和既有 scene capability 构建态势，不写事件、receipt、transcript 或权限；隐藏地点/事实不输出 |
 | RCV-54 | P1 | 已验收（CLI 长期目标与公开任务） | `/status` 补齐近景态势后，CLI 仍缺 GUI 已有的长期目标和公开明态任务，长局缺少推进锚点 | GUI/CLI 共享同一 protagonist POV objective read-model；只显示目标与 Lore `明` 态摘要，排除暗线、stages、provenance、私有解释与 GM 状态 |
 | RCV-55 | P1 | 已验收（CLI 公开 Codex 浏览） | GUI 已有公开世界设定典，但终端 REPL 只有模糊 `/recall`，不能枚举或按关键词筛选公开设定 | `/codex [关键词]` 只读取既有 Codex public index，按 kind/title/body 筛选；零事件、receipt、transcript、revision 写入，且不接 raw store、GM 或私有记忆 |
+| RCV-56 | P1 | 已验收（CLI 显示名明确交流） | `/status` 只显示同场角色的公开显示名，而 `/speak` 过去实际只接受内部 ID，玩家无法直接使用状态页信息发起既有的明确交流流程 | `/speak` 只将唯一的当前公开显示名（空格名可加引号）或既有 ID 解析为 canonical recipient；重名、隐藏或过期名称 fail-closed，既有 host receipt 仍为最终同场授权 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1487,3 +1488,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   也不创建事件、receipt、transcript 或 revision。定向 CLI/Codex 回归为 **`37 passed in 0.67s`**，新增回归确认公开
   石桥条目可见、hidden id/私有 sentinel 不出现且事件与 revision 完全不变。正式完整离线 gate 为
   **`1985 passed, 1 deselected in 21.52s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-56 审计终端明确交流闭环时发现，`/status` 显示的只是公开显示名，而 `/speak` 实际将第一个
+  token 原样作为内部 recipient ID 交给 receipt validator；玩家依状态页输入名字会被错误拒绝。现在 CLI 复用与 dashboard
+  同源的 `native_authoring_context` 当前公开收件人清单，接受唯一显示名或 ID，并将其转换为既有 canonical ID 后仍交给
+  `host_player_statement_receipt` 做最终验证。含空格显示名可加引号；重名、隐藏、过期或空原话均 fail-closed，不猜测
+  目标、不给发现能力，也不新增 receipt 形状或授权。专项 CLI／explicit-speech 回归为 **`36 passed`**；其中
+  `/status → /speak "公开同场的玛拉"` 实际持久化既有精确交流，两个同名公开角色则零写入拒绝。正式完整离线 gate 为
+  **`1987 passed, 1 deselected in 22.16s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
