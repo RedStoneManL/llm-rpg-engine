@@ -204,6 +204,32 @@ def test_play_loop_ooc_recall_no_turn(tmp_path):
     assert events_after == events_before, "recall should not add events"
 
 
+def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
+    """CLI orientation is useful, but must not become a hidden-world reader."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    before_revision = engine.store.revision
+    before_events = list(engine.store.iter_events())
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/status", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "当前位置：石桥客栈" in rendered
+        assert "背包：旧铜灯" in rendered
+        assert "已知出口：石桥集市（成本 1）" in rendered
+        assert "north_bank_old_tower" not in rendered
+        assert "北岸旧塔" not in rendered
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
+        assert engine.store.revision == before_revision
+        assert list(engine.store.iter_events()) == before_events
+    finally:
+        engine.store.close()
+
+
 def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
     """A long-running CLI must not query a pre-peer POV projection forever."""
     from app.engine import build_engine

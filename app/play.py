@@ -26,6 +26,9 @@ import time
 from typing import Callable, Iterable, Any
 
 from app.player_recall import player_recall
+from context.access import pov_world
+from context.capabilities import scene_capabilities
+from kernel.clock import band_name
 
 # ---------------------------------------------------------------------------
 # #4 — Loading indicator while a turn is generated
@@ -182,6 +185,7 @@ _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
   /quit                — 退出游戏
   /recall <关键词>       — 在记忆中搜索
+  /status               — 查看当前公开位置、同场角色、背包与出口
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
   /speak <收件人> <原话> — 明确对当前公开同场角色说出原话（仅该句可记忆）
   /compare on|off      — 开/关 甲丙策略对比模式
@@ -294,6 +298,44 @@ def _refresh_if_store_advanced(engine, previous_scene: dict | None, strategy) ->
     return _previous_scene_before_latest_action(engine)
 
 
+def _player_label(graph, entity_id: str) -> str:
+    """Return an ID-free player label from an already projected graph."""
+    entity = graph.get_entity(entity_id) if graph is not None else None
+    if entity is None:
+        return ""
+    return str(entity.attrs.get("label") or entity.attrs.get("name") or entity_id)
+
+
+def _print_player_status(engine, out: Callable) -> None:
+    """Render a compact, read-only CLI orientation panel from protagonist POV."""
+    scene = _build_scene(engine)
+    protagonist = scene.get("protagonist")
+    view = pov_world(engine.world, scene, pov=protagonist, redact_facts=True)
+    graph = view.get("systems", {}).get("ontology")
+    capability = scene_capabilities(view, scene, actor=protagonist)
+    day = scene.get("day") or 1
+    band = band_name((view.get("meta", {}) or {}).get("band", 0))
+    location = next((place for place in capability.places if place.id == capability.location), None)
+    out(f"[状态] 第 {day} 天 · {band} · 版本 {engine.store.revision}")
+    out(f"[状态] 当前位置：{location.label if location else '未确定'}")
+
+    people = [_player_label(graph, person_id) for person_id in scene.get("present", [])
+              if _player_label(graph, person_id)]
+    out(f"[状态] 同场角色：{'、'.join(people) if people else '无'}")
+
+    inventory = []
+    if graph is not None and isinstance(protagonist, str):
+        inventory = [_player_label(graph, item_id) for item_id, entity in graph.entities.items()
+                     if entity.etype == "Object" and protagonist in graph.neighbors(item_id, "held_by", day)]
+        inventory = [label for label in inventory if label]
+    out(f"[状态] 背包：{'、'.join(inventory) if inventory else '空'}")
+
+    costs = {(route.source, route.destination): route.cost for route in capability.routes}
+    exits = [f"{place.label}（成本 {costs.get(tuple(sorted((capability.location or '', place.id))), '1')}）"
+             for place in capability.exits]
+    out(f"[状态] 已知出口：{'、'.join(exits) if exits else '无'}")
+
+
 def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
                  steering: list[str | None] | None = None) -> bool:
     """Dispatch an OOC command. Returns True if the loop should stop.
@@ -353,6 +395,13 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
                 out(f"[recall] {h}")
         else:
             out("[recall] 无")
+        return False
+
+    elif verb == "status":
+        if arg.strip():
+            out("[状态] 用法：/status")
+            return False
+        _print_player_status(engine, out)
         return False
 
     elif verb == "memory":

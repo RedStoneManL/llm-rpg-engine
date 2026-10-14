@@ -93,6 +93,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-50 | P1 | 已验收（CLI transcript canonical turn） | 可选 `transcript.jsonl` 以 REPL 本地计数写 `turn`，冷重开、rewind 或 peer publish 后可与 durable campaign 回合脱节甚至重复编号 | 每个普通行动以 `store.next_turn()` 标识当前 canonical 回合；冷重开追加记录、rewind、peer publish 和失败后重试不再凭本会话计数伪造编号 |
 | RCV-51 | P1 | 已验收（CLI transcript revision identity） | canonical turn 在 rewind 后会被新分支复用；仅有 `turn` 仍无法区分已撤回分支与重写后的同回合记录 | 每个成功 transcript row 同时记录 publish 后的 store revision；不改 EventStore、回合语义或 transcript 的非权威定位 |
 | RCV-52 | P1 | 已验收（CLI transcript receipt linkage） | 普通 CLI 回合实际有自动持久化 action receipt，但 transcript 未记录其 action ID，无法精确映射到 receipt／recovery evidence | 每个成功 single/compare transcript row 记录既有 receipt action_id；不新增 CLI 自动重试、读取接口或持久化协议 |
+| RCV-53 | P1 | 已验收（CLI 玩家态势查看） | 终端 REPL 是正常游玩入口，但玩家在回合间没有只读查看当前位置、同场角色、背包和已知出口的命令 | `/status` 只从主角 redacted POV 和既有 scene capability 构建态势，不写事件、receipt、transcript 或权限；隐藏地点/事实不输出 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1464,3 +1465,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   retry 入口、读取 API、权限或写入。undo→重写回归断言两个同 turn 的记录同时拥有不同非空 action ID 与 revision。
   正式完整离线 gate 为 **`1983 passed, 1 deselected in 23.55s`**；唯一 deselect 是既有 slow real embedding，未调用
   真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-53 回到终端主玩家入口的实际可玩性：GUI 已有只读位置、背包和出口，而 REPL 只有行动与 recall，
+  玩家无法在回合间查看当前公开态势。新增 `/status`，仅通过 protagonist 的 redacted POV、`scene_capabilities` 和已
+  投影 ontology 输出 day/band、当前位置、公开同场角色、背包与已知出口/成本。它不是 canonical 查询、地图发现、GM
+  视图或写入入口。专项先暴露 `held_by` 关系方向被误读、背包错误显示为空；已复用 GUI 的物品→角色关系方向修正。
+  回归断言隐藏旧塔和私有 sentinel 不出现，SQLite 事件/revision 完全不变。正式完整离线 gate 为
+  **`1984 passed, 1 deselected in 23.77s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
