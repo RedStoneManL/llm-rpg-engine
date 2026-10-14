@@ -88,6 +88,36 @@ class EventStore:
         ).fetchone()
         return json.loads(row['metadata']) if row is not None else None
 
+    def latest_active_action_prefix(self):
+        """Return ``(receipt, active_history_before_it)`` from one read snapshot.
+
+        A controller uses this on cold start to recover the action-start scene
+        for catch-up.  Keeping receipt selection and prefix replay in the same
+        SQLite snapshot prevents a concurrent rewind from mixing a formerly
+        active receipt with a differently retracted prefix.
+        """
+        self._conn.execute('BEGIN')
+        try:
+            rows = self._conn.execute(
+                'SELECT * FROM action_receipts WHERE first_seq > 0 '
+                'ORDER BY revision DESC, last_seq DESC'
+            ).fetchall()
+            for row in rows:
+                receipt = dict(row)
+                if self.action_receipt_is_retracted(receipt):
+                    continue
+                history = [self._row_to_event(event) for event in self._conn.execute(
+                    'SELECT * FROM events WHERE seq < ? AND retracted=0 ORDER BY seq ASC',
+                    (receipt['first_seq'],),
+                )]
+                self._conn.commit()
+                return receipt, history
+            self._conn.commit()
+            return None
+        except BaseException:
+            self._conn.rollback()
+            raise
+
     def action_receipt_is_retracted(self, receipt):
         return self._conn.execute(
             'SELECT 1 FROM events WHERE seq BETWEEN ? AND ? AND retracted=1 LIMIT 1',

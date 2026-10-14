@@ -169,6 +169,7 @@ def _sanitize_input(line: str) -> str:
 
 
 from kernel.observability import get_tracer
+from kernel.projection import project
 from loop.turn import run_turn, apply_turn, advanced_day, REQUIRED_SECTIONS
 from loop.compare import run_compare
 from loop.strategy import AuthorStrategy
@@ -244,6 +245,33 @@ def _build_scene(engine) -> dict:
         "id": scene_id,
         "location": location,
     }
+
+
+def _previous_scene_before_latest_action(engine) -> dict | None:
+    """Recover the prior action-start scene after a cold reopen.
+
+    Catch-up is intentionally based on whether a tracked entity entered the
+    player's scope since the previous *durable player action*.  That context
+    used to be session-only, so reopening could make every stale co-located
+    entity look newly arrived.  The receipt range already identifies the last
+    fully active publish; replaying the immutable prefix before it recreates
+    the same scene without writing, generating, or trusting client data.
+
+    No active receipt (for example a freshly seeded campaign) remains the
+    existing first-action behavior and returns ``None``.
+    """
+    recovered = engine.store.latest_active_action_prefix()
+    if recovered is None:
+        return None
+    _receipt, history = recovered
+    if not history:
+        return None
+    prior_world = project(engine.registry, history)
+
+    class _SceneEngine:
+        world = prior_world
+
+    return _build_scene(_SceneEngine())
 
 
 def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
@@ -470,7 +498,9 @@ def play_loop(
     # transcript, action receipt, or safe world projection.
     steering: list[str | None] = [None]
     turn_no = 0
-    prev_scene = None  # track previous turn's scene for catch-up enter-scope detection
+    # Rebuild the previous durable action-start scene on cold CLI reopen.  It
+    # keeps catch-up's enter-scope rule stable across process boundaries.
+    prev_scene = _previous_scene_before_latest_action(engine)
 
     for line in inputs:
         line = line.rstrip("\n")

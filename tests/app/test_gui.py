@@ -63,6 +63,7 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
 
     reopened = build_dashboard(campaign, demo=True)
     assert reopened.state()["scene"]["location"]["id"] == "stonebridge_inn"
+    assert reopened.previous_scene is None  # retracted receipts are never recovery anchors
     assert reopened.state()["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
     assert saved["narration"] not in reopened.state()["narration"]
     reopened.engine.store.close()
@@ -189,6 +190,135 @@ def test_dashboard_undo_resets_author_conversation_before_next_action(tmp_path):
     finally:
         settings.set_conversation_mode("stateless")
         dashboard.engine.store.close()
+
+
+def test_dashboard_reopen_keeps_catchup_scope_from_last_saved_action(tmp_path):
+    """A cold GUI reopen must not turn a continuously present NPC into a new arrival.
+
+    Catch-up deliberately happens on the *next* action after an entity enters
+    player scope.  Here the innkeeper was already co-located before a saved
+    no-move time advance.  A live dashboard keeps that prior scene in memory;
+    reopening the same campaign used to replace it with ``None`` and wrongly
+    run an extra catch-up evolution on the next ordinary action.
+    """
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    dashboard.engine.store.append(kernel_event(
+        "character_created", day=1, scene="s1", turn=0, summary="掌柜在客栈",
+        deltas={"id": "innkeeper", "tier": "tracked", "sketch": "掌柜", "goal": "照看客栈"},
+    ))
+    dashboard.engine.store.append(kernel_event(
+        "entity_moved", day=1, scene="s1", turn=0, summary="掌柜留在客栈",
+        deltas={"who": "innkeeper", "to": "stonebridge_inn"},
+    ))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+
+    class AdvanceInPlace:
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="客栈里安静地过去了几天。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": True, "days": 4, "bands": 0, "reason": "客栈内等待"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    # Model an already-live session: before the saved wait, this NPC was in
+    # scope, so its later staleness must not be interpreted as a fresh entry.
+    dashboard.previous_scene = gui._build_scene(dashboard.engine)
+    dashboard.strategy = AdvanceInPlace()
+    saved = dashboard.action(player_input="留在客栈等待", action_id="catchup-wait",
+                             expected_revision=dashboard.state()["revision"])
+    assert saved["duplicate"] is False
+    assert dashboard.engine.world["meta"]["day"] == 5
+    dashboard.engine.store.close()
+
+    class ObserveInPlace(AdvanceInPlace):
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="你仍在客栈内观察。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+    catchup = FakeLLMProvider(json_responses=[{
+        "changed": True, "predicate": "mood", "value": "不应因重开而变化",
+    }])
+    reopened = build_dashboard(campaign, demo=True)
+    reopened.strategy = ObserveInPlace()
+    reopened.engine.cascade_provider = catchup
+    try:
+        assert reopened.previous_scene is not None
+        follow_up = reopened.action(player_input="看看客栈", action_id="catchup-after-reopen",
+                                    expected_revision=reopened.state()["revision"])
+        assert follow_up["duplicate"] is False
+        assert catchup.calls == []
+        assert all(event["type"] != "character_evolved"
+                   for event in reopened.engine.store.iter_events())
+    finally:
+        reopened.engine.store.close()
+
+
+def test_dashboard_reopen_preserves_pending_catchup_after_actual_arrival(tmp_path):
+    """Recovery must retain a real entry, not silence catch-up after a restart."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    dashboard.engine.store.append(kernel_event(
+        "character_created", day=1, scene="s1", turn=0, summary="集市旅人在远处",
+        deltas={"id": "market_traveler", "tier": "tracked", "sketch": "旅人", "goal": "赶路"},
+    ))
+    dashboard.engine.store.append(kernel_event(
+        "entity_moved", day=1, scene="s1", turn=0, summary="旅人留在集市",
+        deltas={"who": "market_traveler", "to": "stonebridge_market"},
+    ))
+    dashboard.engine.store.append(kernel_event(
+        "time_advanced", day=5, scene="s1", turn=0, summary="数日过去",
+        deltas={"to_day": 5, "reason": "fixture time"},
+    ))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+    # The demo's first visible exit moves the protagonist from inn to market.
+    dashboard.previous_scene = gui._build_scene(dashboard.engine)
+    arrived = dashboard.action(player_input="去集市", action_id="catchup-arrival",
+                               expected_revision=dashboard.state()["revision"])
+    assert arrived["state"]["scene"]["location"]["id"] == "stonebridge_market"
+    assert all(event["type"] != "character_evolved"
+               for event in dashboard.engine.store.iter_events())
+    dashboard.engine.store.close()
+
+    class ObserveInPlace:
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="你先观察集市。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    catchup = FakeLLMProvider(json_responses=[{
+        "changed": True, "predicate": "mood", "value": "久候后的轻松",
+    }])
+    reopened = build_dashboard(campaign, demo=True)
+    reopened.strategy = ObserveInPlace()
+    reopened.engine.cascade_provider = catchup
+    try:
+        assert reopened.previous_scene is not None
+        assert reopened.previous_scene["location"] == "stonebridge_inn"
+        reopened.action(player_input="看看旅人", action_id="catchup-after-arrival",
+                        expected_revision=reopened.state()["revision"])
+        assert catchup.calls
+        assert any(event["type"] == "character_evolved"
+                   and event["deltas"]["id"] == "market_traveler"
+                   for event in reopened.engine.store.iter_events())
+    finally:
+        reopened.engine.store.close()
 
 
 def test_player_gui_recall_uses_shared_pov_boundary_without_writing(tmp_path):

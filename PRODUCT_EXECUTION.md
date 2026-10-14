@@ -83,6 +83,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-40 | P1 | 已验收（玩家 GUI POV recall） | CLI recall 已有安全投影，但 dashboard 没有等价的长期游玩只读查询；另起实现容易重新把 canonical world 接到浏览器 | 共享 `player_recall` 只接受当前 protagonist 的 redacted POV；GUI `GET /api/recall` 与页面查询只返回受限文本、零事件／receipt／revision 写入，隐藏 id 不命中而公开资料可用 |
 | RCV-41 | P0 | 已验收（GUI 撤销作者缓存） | CLI `/undo`/`/rewind` 会清空多回合作者缓存，但 GUI 撤销只重置上一场景，可能让下一次作者请求携带已撤回的玩家交流 | GUI `undo()` 在成功 rewind 后同样 reset 策略缓存；真实 controller 的多回合 Author 回归确认第二次 prompt 不含已撤回行动，canonical world 仍由 replay 决定 |
 | RCV-42 | P1 | 已验收（GUI 启动模式如实标识） | 正常已保存 campaign 的玩家页也固定写成 `OFFLINE DEMO`／离线试用，容易误导用户把真实 normal author 流程当替身 | HTTP shell 仅按 `dashboard.demo` 渲染 `OFFLINE DEMO` 或 `SAVED CAMPAIGN` 与相应本地说明；不改变 DTO、provider、行动、事件或权限 |
+| RCV-43 | P0 | 已验收（冷重开 catch-up 作用域恢复） | catch-up 的“本回合进入视野”判断只保存在 CLI/GUI controller 内存；重开会把持续同场的 stale NPC 误当新进入，或若粗暴禁用又会丢失真实抵达后的待处理 catch-up | 从最新仍未撤回 action receipt 的首 seq 前，在单一 SQLite 只读 snapshot 重放 action-start scene；CLI 和 GUI 均采用它。回归同时证明持续同场不误演化、真实抵达后重开仍会演化、撤回 receipt 不作锚点 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1315,3 +1316,23 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   不把 provider 名称、模型、canonical world、事件或任何新数据插入 HTML。WSGI 以同一已种子 campaign 分别启动 demo
   和 normal dashboard，验证标签互斥且 normal HTML 仍不含隐藏地点 id。定向与完整离线 gate、bundle/fresh-clone 的
   实际结果另记于本提交验证；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-43 回到正常游玩／重开流程而非增加展示件。catch-up 的语义是只对“自上一玩家回合起
+  新进入当前 scope”的 stale tracked 实体作后台演化；CLI 的 `prev_scene` 与 GUI 的 `previous_scene` 却都只存在
+  进程内存。实际 GUI 红例先让掌柜在客栈与主角同场，再保存一个不移动、推进至 day 5 的等待回合并关闭重开；旧代码
+  将下一次原地观察的前场景置为 `None`，错误调用 catch-up provider 并写入 `character_evolved`。这不是模型质量
+  问题，而是相同持久历史在持续会话与冷重开后的行为不同。
+
+  修复新增 `EventStore.latest_active_action_prefix()`：它在一个短 SQLite read snapshot 内寻找最新且整段未撤回的
+  action receipt，并读取其 `first_seq` **之前**的 active history。`app.play` 由该前缀只读投影 action-start
+  scene；CLI `play_loop` 初始值和 `PlayerDashboard` 构造时的 `previous_scene` 都使用该恢复结果。没有读取 client scene、
+  不写入 EventStore／JSONL、不会生成或调用前台模型；没有 active receipt 的新 genesis 继续保持原先 `None` 语义。
+  仅选“当前 scene”会掩盖真实刚抵达的 catch-up，故没有采用该捷径。
+
+  两个确定性 dashboard controller → `run_turn` 本地 fixture 覆盖相反分支：(1) 持续同场的 stale innkeeper 经冷重开后
+  原地观察，catch-up provider 调用数为零且没有 `character_evolved`；(2) 主角实际从客栈进入含 stale traveler 的集市，
+  关闭重开后下一回合仍按恢复的客栈起点触发一次 `character_evolved`。另断言撤回 action 的 receipt 不会成为恢复锚点。
+  这是离线 Fake provider 的持久化／流程一致性证据，不是浏览器点击或真实模型质量验收；本项无浏览器专属交互面。
+  相关 GUI／CLI／catch-up 专项为 `83 passed in 1.06s`；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1973 passed, 1 deselected in 22.40s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。

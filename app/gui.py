@@ -27,7 +27,7 @@ from uuid import uuid4
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 from app.engine import build_engine, last_turn, rewind
-from app.play import _build_scene
+from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
 from context.access import pov_world
 from context.capabilities import scene_capabilities
@@ -414,7 +414,11 @@ class PlayerDashboard:
         self.strategy = strategy if strategy is not None else OfflineDemoStrategy()
         self.max_repairs = max_repairs
         self.demo = demo
-        self.previous_scene: dict[str, Any] | None = None
+        # Unlike a fresh genesis, an existing campaign may have just been
+        # reopened between two player actions.  Recover the prior durable
+        # action-start scene so catch-up preserves its enter-scope semantics
+        # instead of treating every stale co-located NPC as newly present.
+        self.previous_scene: dict[str, Any] | None = _previous_scene_before_latest_action(engine)
         # This is deliberately controller-session state, not world state.  It
         # may guide the next author prompt, but must never become part of a
         # player action receipt or its recovery envelope.
