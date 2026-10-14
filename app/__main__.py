@@ -153,6 +153,8 @@ def _print_resume_recap(engine, out: Callable) -> None:
     if g is not None:
         try:
             for f in g.current_facts("protagonist"):
+                if getattr(f, "secrecy", None) == "secret" or getattr(f, "predicate", None) == "hidden":
+                    continue
                 if getattr(f, "predicate", None) == "真名" and not name:
                     name = str(f.value)
                 elif getattr(f, "predicate", None) == "目标":
@@ -160,24 +162,60 @@ def _print_resume_recap(engine, out: Callable) -> None:
         except Exception:
             pass
 
-    # Journey (compressed) + most-recent scene (verbatim) from the narrative slice.
-    # Fully guarded: this runs on every load BEFORE play_loop, so a corrupted /
-    # old-format save must degrade gracefully, never raise.
+    # Real engines must consume the public-history DTO rather than the projected
+    # narrative slice directly.  The latter may contain an ordinary narration
+    # that the DTO correctly rejects because it explicitly references private
+    # memory.  Test-only/lightweight engines without that DTO retain the legacy
+    # world-state fallback below.
     journey: list = []
     recent: list = []
-    try:
-        ns = systems.get("narrative") or {}
-        buckets = ns.get("scenes") or []
-        if not isinstance(buckets, list):
-            buckets = []
-        if ns.get("super_summary"):
-            journey.append(ns["super_summary"])
-        journey += [b["summary"] for b in buckets
-                    if isinstance(b, dict) and b.get("summary")]
-        last = buckets[-1] if buckets and isinstance(buckets[-1], dict) else {}
-        recent = [t for t in (last.get("raw") or []) if t]
-    except Exception:
-        journey, recent = [], []
+    history_reader = getattr(engine, "public_history", None)
+    if callable(history_reader):
+        try:
+            history = history_reader()
+            last_scene = None
+            for event in history:
+                if event.get("retracted"):
+                    continue
+                event_type = event.get("type")
+                deltas = event.get("deltas") if isinstance(event.get("deltas"), dict) else {}
+                if event_type == "recap_recompressed" and isinstance(deltas.get("super_summary"), str):
+                    journey.append(deltas["super_summary"])
+                elif event_type == "scene_summarized" and isinstance(deltas.get("summary"), str):
+                    journey.append(deltas["summary"])
+                elif event_type == "narration_recorded" and isinstance(deltas.get("text"), str):
+                    last_scene = event.get("scene")
+            if last_scene is not None:
+                recent = [
+                    event["deltas"]["text"]
+                    for event in history
+                    if (not event.get("retracted") and event.get("type") == "narration_recorded"
+                        and event.get("scene") == last_scene
+                        and isinstance(event.get("deltas"), dict)
+                        and isinstance(event["deltas"].get("text"), str))
+                ]
+        except ValueError:
+            # A public row referencing private memory is deliberately
+            # fail-closed.  Suppress narrative prose rather than echoing a
+            # body or aborting the startup path.
+            journey, recent = [], []
+        except Exception:
+            journey, recent = [], []
+    else:
+        # Fully guarded fallback for test doubles and pre-DTO callers.
+        try:
+            ns = systems.get("narrative") or {}
+            buckets = ns.get("scenes") or []
+            if not isinstance(buckets, list):
+                buckets = []
+            if ns.get("super_summary"):
+                journey.append(ns["super_summary"])
+            journey += [b["summary"] for b in buckets
+                        if isinstance(b, dict) and b.get("summary")]
+            last = buckets[-1] if buckets and isinstance(buckets[-1], dict) else {}
+            recent = [t for t in (last.get("raw") or []) if t]
+        except Exception:
+            journey, recent = [], []
 
     if not (name or objective or journey or recent):
         return  # nothing to recap (edge/empty save)

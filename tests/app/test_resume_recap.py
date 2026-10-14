@@ -116,3 +116,26 @@ def test_resume_recap_uses_canonical_store_projection_without_private_memory(tmp
         assert "RETRACTED_PRIVATE_BODY" not in rendered and "retracted-id" not in rendered
     finally:
         engine.store.close()
+
+
+def test_resume_recap_suppresses_narration_when_public_history_fails_closed(tmp_path):
+    engine = build_engine(tmp_path / "campaign", enable_interpretive_memory=True)
+    try:
+        engine.store.append_many([
+            kernel_event("character_interpretation_recorded", day=1, scene="inn", turn=1,
+                         id="private-resume-ref", summary="private", deltas={
+                "actor": "protagonist", "text": "PRIVATE_RESUME_REFERENCE_SENTINEL", "memory_id": "private-resume",
+            }),
+            kernel_event("narration_recorded", day=1, scene="inn", turn=1,
+                         summary="bad ordinary narration", deltas={
+                "scene": "inn", "text": "ORDINARY_RESUME_REFERENCE_SENTINEL",
+            }, thread_refs=["private-resume-ref"]),
+        ])
+        engine.world = project(engine.registry, engine.store.iter_events())
+        out = []
+        _print_resume_recap(engine, out.append)
+        rendered = "\n".join(out)
+        assert "PRIVATE_RESUME_REFERENCE_SENTINEL" not in rendered
+        assert "ORDINARY_RESUME_REFERENCE_SENTINEL" not in rendered
+    finally:
+        engine.store.close()
