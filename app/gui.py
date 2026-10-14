@@ -433,6 +433,22 @@ class PlayerDashboard:
             state["session"] = {"soft_direction": self.steering}
             return state
 
+    def _refresh_authoritative_world(self) -> None:
+        """Rebuild controller-only recovery state after a known stale revision.
+
+        This is deliberately read-only: a peer action already changed the
+        durable store, while the controller's cached projection and catch-up
+        anchor describe an older world.  Keep it shared by normal action and
+        revision-bound undo rejection so `/api/state` immediately represents
+        the authoritative history that the player is told to refresh.
+        """
+        from kernel.projection import project
+        self.engine.world = project(self.engine.registry, self.engine.store.iter_events())
+        self.engine.world["_revision"] = self.engine.store.revision
+        self.previous_scene = _previous_scene_before_latest_action(self.engine)
+        if hasattr(self.strategy, "reset"):
+            self.strategy.reset()
+
     def recall(self, query: str) -> dict[str, Any]:
         """Run the shared, read-only player POV recall query for this session."""
         if not isinstance(query, str) or not query.strip():
@@ -583,13 +599,8 @@ class PlayerDashboard:
                 # used by CLI/cold-reopen/undo recovery, and clear only this
                 # rejected in-memory envelope before giving the browser a
                 # confirmed rejection it can safely discard.
-                from kernel.projection import project
-                self.engine.world = project(self.engine.registry, self.engine.store.iter_events())
-                self.engine.world["_revision"] = self.engine.store.revision
-                self.previous_scene = _previous_scene_before_latest_action(self.engine)
+                self._refresh_authoritative_world()
                 self.requests.pop(action_id, None)
-                if hasattr(self.strategy, "reset"):
-                    self.strategy.reset()
                 raise GuiRequestError("世界状态已更新；此行动未提交。请刷新后重试。") from exc
             self.engine.world = result.world
             if not bool(getattr(result, "receipt", {}).get("duplicate")):
@@ -608,7 +619,8 @@ class PlayerDashboard:
             raise GuiRequestError("撤销请求无效，请刷新后重试。")
         with self.lock:
             if expected_revision != self.engine.store.revision:
-                raise GuiRequestError("世界已变化；请刷新后再决定是否撤销。")
+                self._refresh_authoritative_world()
+                raise GuiRequestError("世界已变化；已刷新本地状态，请重新决定是否撤销。")
             turn = last_turn(self.engine)
             if turn <= 0:
                 raise GuiRequestError("当前没有可撤销的玩家回合。")

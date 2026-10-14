@@ -86,6 +86,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-43 | P0 | 已验收（冷重开 catch-up 作用域恢复） | catch-up 的“本回合进入视野”判断只保存在 CLI/GUI controller 内存；重开会把持续同场的 stale NPC 误当新进入，或若粗暴禁用又会丢失真实抵达后的待处理 catch-up | 从最新仍未撤回 action receipt 的首 seq 前，在单一 SQLite 只读 snapshot 重放 action-start scene；CLI 和 GUI 均采用它。回归同时证明持续同场不误演化、真实抵达后重开仍会演化、撤回 receipt 不作锚点 |
 | RCV-44 | P0 | 已验收（撤销／回退 catch-up 作用域恢复） | RCV-43 修复了冷重开，但 CLI `/undo`／`/rewind` 与 GUI undo 在 revision 改变后仍强行清空作用域锚点；下一动作会把持续同场 stale NPC 误作新进入 | 成功 rewind 后 CLI 与 GUI 都从最新存活 action receipt 重建 prior scene；真实 `行动→undo→行动` 回归确认没有额外 catch-up／`character_evolved`，策略缓存 reset 语义不变 |
 | RCV-45 | P0 | 已验收（乐观版本冲突后的 scope／世界恢复） | CLI 在 `RevisionConflict` 后虽重放 world 并 reset 作者缓存，却保留过期 `prev_scene`；GUI 还会把已确定未提交的冲突泛化为 500，内存 world 与下一行动 scope 都可能过期 | CLI/GUI 都在**无同 ID receipt**的冲突后只读投影当前 store、重建最新存活 action 的 action-start scope 并 reset 策略；GUI 返回可安全丢弃的 400。已有同 ID durable receipt 仍走保守 409 恢复，绝不误称未提交 |
+| RCV-46 | P0 | 已验收（GUI 过期撤销后的 authoritative refresh） | 另一实例已保存行动后，GUI 对过期 revision 的 undo 会拒绝，却保留旧内存投影，使紧随其后的 `/api/state` 仍与 SQLite 不一致 | action conflict 与 stale undo 共用只读刷新：重放 store、重建 action-start scope、reset 策略；undo 仍不写入/不撤回任何事件，返回 confirmed 400 后 `/api/state` 立即反映 peer action |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1373,3 +1374,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   相关 CLI／GUI／fleet 专项为 **`84 passed in 1.17s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1977 passed, 1 deselected in 21.98s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-46 沿 RCV-45 的 dashboard 恢复审计继续检查另一个 revision-bound 写入口。两份 dashboard
+  同时打开同一 campaign 时，peer 已用正常 `PlayerDashboard.action()` 保存移动；旧 dashboard 随后以渲染时的旧 revision
+  请求 undo，会正确拒绝，但旧实现只抛错误而不重投影。于是其下一次 `/api/state` 仍返回旧 revision/地点，虽然 SQLite
+  已有 peer world，用户被告知“刷新”却得不到可刷新的当前 controller state。
+
+  `PlayerDashboard` 现将 RCV-45 的已知 stale-revision 处理抽成共享只读恢复：project 当前 store、设定 revision、以
+  最新存活 action receipt 重建 catch-up action-start scope，并 reset author strategy。action conflict 继续仅清除当前失败
+  request context；stale undo 不撤回、写入或补偿任何事件，只返回“世界已变化；已刷新本地状态”的 confirmed 400。已有
+  `expected_revision`/undo 绑定和已提交 action 的 409 recovery 语义不放宽。
+
+  新 WSGI 双 dashboard 回归实际让 peer 走正常 demo action 保存到集市，再由旧页面提交 stale undo：400 后立即 GET
+  `/api/state` 已是 peer 的 revision/集市场景，重建的前场景为客栈且策略 reset 恰一次。该回归先以旧代码实际失败
+  `revision 1 != 2`，不是模拟 response。相关 GUI／CLI／action-integrity 专项为 **`154 passed in 1.57s`**；正式完整
+  离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1978 passed, 1 deselected in 22.89s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络、浏览器或外部服务。

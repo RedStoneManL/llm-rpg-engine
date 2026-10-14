@@ -663,6 +663,51 @@ def test_undo_is_revision_bound_and_second_identical_request_cannot_undo_twice(t
     dashboard.engine.store.close()
 
 
+def test_gui_stale_undo_refreshes_authoritative_world_before_confirmed_rejection(tmp_path):
+    """A revision-bound undo rejection must not leave `/api/state` stale.
+
+    A second dashboard publishes a real durable action after the first page was
+    rendered.  The first dashboard's undo is correctly rejected, but its next
+    state read must already reflect the peer action and recover the peer
+    action-start scope rather than only telling the browser to refresh an
+    unchanged in-memory projection.
+    """
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    peer = build_dashboard(campaign, demo=True)
+    resets = [0]
+
+    class ResetOnly:
+        def reset(self):
+            resets[0] += 1
+
+    dashboard.strategy = ResetOnly()
+    initial = dashboard.state()
+    try:
+        peer_saved = peer.action(
+            player_input="另一页面先去集市", action_id="peer-before-undo",
+            expected_revision=peer.state()["revision"],
+        )
+        status, payload = _post_wsgi(make_app(dashboard), "/api/undo", {
+            "expected_revision": initial["revision"],
+        })
+        assert status.startswith("400")
+        assert payload["confirmed_rejection"] is True
+        assert "世界已变化" in payload["message"]
+
+        state_status, state_body = _get_wsgi(make_app(dashboard), "/api/state")
+        refreshed = json.loads(state_body.decode("utf-8"))
+        assert state_status.startswith("200")
+        assert refreshed["revision"] == peer_saved["revision"]
+        assert refreshed["scene"]["location"]["id"] == "stonebridge_market"
+        assert dashboard.previous_scene is not None
+        assert dashboard.previous_scene["location"] == "stonebridge_inn"
+        assert resets == [1]
+    finally:
+        peer.engine.store.close()
+        dashboard.engine.store.close()
+
+
 def _post_wsgi(app, path, payload, *, host="127.0.0.1:8765", origin="http://127.0.0.1:8765",
                content_type="application/json"):
     raw = json.dumps(payload).encode("utf-8") if content_type == "application/json" else b"expected_revision=1"
