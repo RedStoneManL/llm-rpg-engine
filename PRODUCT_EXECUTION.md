@@ -95,6 +95,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-52 | P1 | 已验收（CLI transcript receipt linkage） | 普通 CLI 回合实际有自动持久化 action receipt，但 transcript 未记录其 action ID，无法精确映射到 receipt／recovery evidence | 每个成功 single/compare transcript row 记录既有 receipt action_id；不新增 CLI 自动重试、读取接口或持久化协议 |
 | RCV-53 | P1 | 已验收（CLI 玩家态势查看） | 终端 REPL 是正常游玩入口，但玩家在回合间没有只读查看当前位置、同场角色、背包和已知出口的命令 | `/status` 只从主角 redacted POV 和既有 scene capability 构建态势，不写事件、receipt、transcript 或权限；隐藏地点/事实不输出 |
 | RCV-54 | P1 | 已验收（CLI 长期目标与公开任务） | `/status` 补齐近景态势后，CLI 仍缺 GUI 已有的长期目标和公开明态任务，长局缺少推进锚点 | GUI/CLI 共享同一 protagonist POV objective read-model；只显示目标与 Lore `明` 态摘要，排除暗线、stages、provenance、私有解释与 GM 状态 |
+| RCV-55 | P1 | 已验收（CLI 公开 Codex 浏览） | GUI 已有公开世界设定典，但终端 REPL 只有模糊 `/recall`，不能枚举或按关键词筛选公开设定 | `/codex [关键词]` 只读取既有 Codex public index，按 kind/title/body 筛选；零事件、receipt、transcript、revision 写入，且不接 raw store、GM 或私有记忆 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1473,3 +1474,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   视图或写入入口。专项先暴露 `held_by` 关系方向被误读、背包错误显示为空；已复用 GUI 的物品→角色关系方向修正。
   回归断言隐藏旧塔和私有 sentinel 不出现，SQLite 事件/revision 完全不变。正式完整离线 gate 为
   **`1984 passed, 1 deselected in 23.77s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-54 将 GUI 已有的长期方向感带回正常 CLI 入口，而不复制两套筛选逻辑。新的
+  `app.player_objectives` 只消费主角 POV 投影和 Lore 的公开明态条目；`/status` 显示当前长期目标与公开活动任务，
+  不读取暗线、stages、provenance、私有解释、GM 或 raw history。GUI 复用同一 read-model，回归覆盖目标覆盖、
+  任务推进／结案、rewind 与冷重开，并断言 secret sentinel 不进 CLI／GUI JSON。正式完整离线 gate 为
+  **`1984 passed, 1 deselected in 22.94s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-55 补齐终端的公开世界设定浏览。GUI 已有只读 Codex，但普通 REPL 过去只能以 `/recall`
+  模糊查询当前 POV，不能查看既有公开设定典。新增 `/codex [关键词]`，直接复用既有 `codex_entries` public index，
+  对 kind、title、body 做大小写无关筛选，并明确输出无匹配结果；它不接 EventStore 原始流、GM 视图或私有记忆，
+  也不创建事件、receipt、transcript 或 revision。定向 CLI/Codex 回归为 **`37 passed in 0.67s`**，新增回归确认公开
+  石桥条目可见、hidden id/私有 sentinel 不出现且事件与 revision 完全不变。正式完整离线 gate 为
+  **`1985 passed, 1 deselected in 21.52s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。

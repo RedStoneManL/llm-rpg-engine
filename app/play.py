@@ -186,6 +186,7 @@ _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
   /quit                — 退出游戏
   /recall <关键词>       — 在记忆中搜索
+  /codex [关键词]        — 浏览公开世界设定
   /status               — 查看当前公开位置、同场角色、背包与出口
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
   /speak <收件人> <原话> — 明确对当前公开同场角色说出原话（仅该句可记忆）
@@ -400,6 +401,24 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
                 out(f"[recall] {h}")
         else:
             out("[recall] 无")
+        return False
+
+    elif verb == "codex":
+        from systems.codex import codex_entries
+        query = arg.strip().casefold()
+        entries = [entry for entry in codex_entries(engine.world) if isinstance(entry, dict)]
+        if query:
+            entries = [entry for entry in entries if query in " ".join(
+                str(entry.get(field, "")) for field in ("kind", "title", "body")
+            ).casefold()]
+        if not entries:
+            out("[codex] 没有匹配的公开设定。")
+            return False
+        for entry in entries[:12]:
+            kind = str(entry.get("kind") or "设定")
+            title = str(entry.get("title") or entry.get("id") or "未命名")
+            body = str(entry.get("body") or "")
+            out(f"[codex] [{kind}] {title}：{body}")
         return False
 
     elif verb == "status":

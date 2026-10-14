@@ -232,6 +232,26 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         engine.store.close()
 
 
+def test_play_loop_codex_is_public_read_only_and_filterable(tmp_path):
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    before = (engine.store.revision, list(engine.store.iter_events()))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/codex 石桥", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "[地理志] 石桥镇" in rendered
+        assert "north_bank_old_tower" not in rendered
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events())) == before
+    finally:
+        engine.store.close()
+
+
 def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
     """A long-running CLI must not query a pre-peer POV projection forever."""
     from app.engine import build_engine
