@@ -246,6 +246,33 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         engine.store.close()
 
 
+def test_play_loop_map_uses_existing_pov_topology_without_writing(tmp_path):
+    """Terminal map is a read-only counterpart to the existing player GUI map."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    before = (engine.store.revision, list(engine.store.iter_events()),
+              engine.store.jsonl_path.read_bytes())
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/map", "/map extra", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "[地图] 石桥客栈（venue）（当前位置）" in rendered
+        assert "[地图] 石桥集市（settlement）" in rendered
+        assert "[地图] 石桥客栈 ↔ 石桥集市（成本 1）" in rendered
+        assert "[地图] 用法：/map" in rendered
+        assert "north_bank_old_tower" not in rendered
+        assert "北岸旧塔" not in rendered
+        assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events()),
+                engine.store.jsonl_path.read_bytes()) == before
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_codex_is_public_read_only_and_filterable(tmp_path):
     from app.engine import build_engine
     from app.gui import _seed_demo_campaign

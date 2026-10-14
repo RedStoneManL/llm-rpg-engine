@@ -190,6 +190,7 @@ OOC 指令 (以 / 开头):
   /codex [关键词]        — 浏览公开世界设定
   /journal              — 查看最近公开叙事
   /status               — 查看当前公开位置、同场角色、背包与出口
+  /map                  — 查看已知地点与公开路径
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
   /speak <显示名或 ID> <原话> — 明确对当前公开同场角色说出原话（显示名有空格时加引号；仅该句可记忆）
   /compare on|off      — 开/关 甲丙策略对比模式
@@ -362,6 +363,34 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
     completed = [item['summary'] for item in objectives['completed_quests']]
     out(f"[状态] 已结任务：{'、'.join(completed) if completed else '无'}")
+
+
+def _print_player_map(engine, out: Callable) -> None:
+    """Render the existing player-POV map contract without a write or lookup."""
+    scene = _build_scene(engine)
+    protagonist = scene.get("protagonist")
+    view = pov_world(engine.world, scene, pov=protagonist, redact_facts=True)
+    capability = scene_capabilities(view, scene, actor=protagonist)
+    nodes = {place.id: place for place in capability.places}
+    if not nodes:
+        out("[地图] 暂无已知地点。")
+        return
+    out("[地图] 已知地点：")
+    for place in capability.places:
+        marker = "（当前位置）" if place.id == capability.location else ""
+        out(f"[地图] {place.label}（{place.kind}）{marker}")
+    if not capability.routes:
+        out("[地图] 暂无已知路径。")
+        return
+    out("[地图] 已知路径：")
+    for route in capability.routes:
+        source = nodes.get(route.source)
+        destination = nodes.get(route.destination)
+        if source is None or destination is None:
+            # Do not fall back to raw ids if an inconsistent graph ever slips
+            # through the DTO contract.
+            continue
+        out(f"[地图] {source.label} ↔ {destination.label}（成本 {route.cost}）")
 
 
 def _print_public_journal(engine, out: Callable, *, limit: int = 8) -> None:
@@ -539,6 +568,13 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
             out("[状态] 用法：/status")
             return False
         _print_player_status(engine, out)
+        return False
+
+    elif verb == "map":
+        if arg.strip():
+            out("[地图] 用法：/map")
+            return False
+        _print_player_map(engine, out)
         return False
 
     elif verb == "memory":
