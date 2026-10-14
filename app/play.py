@@ -359,6 +359,8 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 长期目标：{objectives['long_term_goal'] or '未设定'}")
     active = [item['summary'] for item in objectives['active_quests']]
     out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
+    completed = [item['summary'] for item in objectives['completed_quests']]
+    out(f"[状态] 已结任务：{'、'.join(completed) if completed else '无'}")
 
 
 def _resolve_public_speech_recipient(engine, scene: dict, remainder: str) -> tuple[str, str] | None:

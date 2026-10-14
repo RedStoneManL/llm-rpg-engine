@@ -266,6 +266,44 @@ def test_play_loop_codex_is_public_read_only_and_filterable(tmp_path):
         engine.store.close()
 
 
+def test_play_loop_status_shows_only_previously_public_completed_quests(tmp_path):
+    """Terminal orientation must expose the same safe completion ledger as GUI."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("quest_opened", day=1, scene="s1", turn=1, summary="公开任务", deltas={
+            "id": "repair_gate", "summary": "修好集市的旧门",
+        }),
+        kernel_event("quest_resolved", day=1, scene="s1", turn=2, summary="公开完成", deltas={
+            "id": "repair_gate", "by": "player",
+        }),
+        kernel_event("lore_created", day=1, scene="s1", turn=1, summary="暗线", deltas={
+            "id": "hidden_thread", "about": "CLI_COMPLETED_DARK_SENTINEL", "state": "暗",
+        }),
+        kernel_event("quest_expired", day=1, scene="s1", turn=2, summary="暗线结束", deltas={
+            "id": "hidden_thread",
+        }),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = (engine.store.revision, list(engine.store.iter_events()))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/status", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "已结任务：修好集市的旧门" in rendered
+        assert "CLI_COMPLETED_DARK_SENTINEL" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events())) == before
+    finally:
+        engine.store.close()
+
+
 def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
     """A long-running CLI must not query a pre-peer POV projection forever."""
     from app.engine import build_engine
