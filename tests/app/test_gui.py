@@ -1116,6 +1116,38 @@ def test_gm_fails_closed_when_ordinary_history_references_active_or_retracted_pr
     engine.store.close()
 
 
+def test_player_state_keeps_safe_panels_when_public_history_references_private_memory(tmp_path):
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+                          enable_interpretive_memory=True)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("character_interpretation_recorded", day=1, scene="s1", turn=0,
+                     id="private-player-state-ref", summary="private", deltas={
+            "actor": "protagonist", "text": "PRIVATE_PLAYER_STATE_SENTINEL", "memory_id": "state-ref",
+        }),
+        kernel_event("narration_recorded", day=1, scene="s1", turn=0, summary="ordinary bad ref", deltas={
+            "text": "ORDINARY_PLAYER_STATE_SENTINEL",
+        }, thread_refs=["private-player-state-ref"]),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    dashboard = PlayerDashboard(engine, demo=True)
+    before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    state = dashboard.state()
+    assert state["narration"] == []
+    assert state["narration_unavailable"] is True
+    assert state["scene"]["location"]["id"] == "stonebridge_inn"
+    status, raw = _get_wsgi(make_app(dashboard), "/api/state")
+    assert status.startswith("200")
+    payload = json.loads(raw.decode("utf-8"))
+    assert payload["narration"] == [] and payload["narration_unavailable"] is True
+    rendered = json.dumps(payload, ensure_ascii=False)
+    assert "PRIVATE_PLAYER_STATE_SENTINEL" not in rendered
+    assert "ORDINARY_PLAYER_STATE_SENTINEL" not in rendered
+    assert (engine.store.revision, list(engine.store.iter_events(include_retracted=True))) == before
+    engine.store.close()
+
+
 def _normal_gui_commit(narration="NORMAL_GUI_PROVIDER_STUB"):
     return {"narration": narration, "moves": [], "places": [], "cast": [], "facts": [],
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试正常 GUI 接线"}]}

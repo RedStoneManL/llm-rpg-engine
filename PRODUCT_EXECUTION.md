@@ -102,6 +102,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-59 | P1 | 已验收（CLI 公开行动日志） | GUI 有最近公共叙事面板，长运行终端只能依赖滚屏，无法以受限方式回看当前分支的最近行动 | `/journal` 仅消费 `public_history()` 的活动 `narration_recorded` 文本并限至最近 8 条；私有记忆、撤回叙事、raw history 与任何写入路径均不进入 |
 | RCV-60 | P0 | 已验收（CLI journal 私有引用 fail-closed） | `public_history()` 会拒绝普通事件显式引用私有记录；未处理的 OOC journal 读取可能中断 REPL | `/journal` 将该 DTO 边界转成无正文的通用不可用提示；不回显私有或相关普通正文，零写入 |
 | RCV-61 | P0 | 已验收（续玩 recap 私有引用 fail-closed） | 启动续玩直接读 narrative 投影；普通 narration 若错误引用私有记录，可绕过 public-history 的 fail-closed 边界 | 真实 engine 的续玩文本只从 `public_history()` 提取公共 narration/recap；DTO 拒绝时压制叙事正文且继续启动，不输出异常或私有内容 |
+| RCV-62 | P0 | 已验收（玩家 dashboard 局部 fail-closed） | player state 读取 narration 时会传播 public-history 私有引用拒绝，导致整个安全只读页面变为 500 | state 仅压制 narration 并标记不可用；地图、背包、任务等手工 POV DTO 仍安全返回 200，零写入、无正文泄露 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1537,3 +1538,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   叙事文本而不使续玩启动失败。轻量测试 double 保留 legacy world-state fallback。回归构造私有记录和引用它的普通 narration，
   确认两类 sentinel 均不进入 resume 输出。正式完整离线 gate 为
   **`1991 passed, 1 deselected in 25.60s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-62 完成主玩家 dashboard 的同类审计。`build_player_state()` 为最近 narration 直接调用
+  `public_history()`；私有引用 DTO 拒绝会使整个 `/api/state` 走 HTTP 500，即使地图、背包、任务和 POV 状态本身安全。
+  现在 DTO 只把 narration 置空、显式标记 `narration_unavailable`；浏览器以通用不可用提示显示叙事区，其余安全面板继续
+  200 返回。回归构造私有记录和引用它的 ordinary narration，确认 WSGI payload 无两个 sentinel、位置仍可见、事件与
+  revision 不变；抽取后 JS 也通过 Node syntax check。正式完整离线 gate 为
+  **`1992 passed, 1 deselected in 25.62s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
