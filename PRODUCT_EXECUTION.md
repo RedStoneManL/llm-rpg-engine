@@ -82,6 +82,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-39 | P0 | 已验收（旧无主事件重开边界） | 兼容读取中无 owner 的旧事件会跳过系统 apply，却仍先推进 `meta.day/scene/timeline`，使恢复后的当前场景与实际投影脱节 | projection 先解析 owner；无 owner 时整条事件仅 debug 记录后忽略，不更新 meta/timeline。真实 SQLite/JSONL 旧 campaign 重开保持只读，已验证当前场景仍来自最后拥有者事件 |
 | RCV-40 | P1 | 已验收（玩家 GUI POV recall） | CLI recall 已有安全投影，但 dashboard 没有等价的长期游玩只读查询；另起实现容易重新把 canonical world 接到浏览器 | 共享 `player_recall` 只接受当前 protagonist 的 redacted POV；GUI `GET /api/recall` 与页面查询只返回受限文本、零事件／receipt／revision 写入，隐藏 id 不命中而公开资料可用 |
 | RCV-41 | P0 | 已验收（GUI 撤销作者缓存） | CLI `/undo`/`/rewind` 会清空多回合作者缓存，但 GUI 撤销只重置上一场景，可能让下一次作者请求携带已撤回的玩家交流 | GUI `undo()` 在成功 rewind 后同样 reset 策略缓存；真实 controller 的多回合 Author 回归确认第二次 prompt 不含已撤回行动，canonical world 仍由 replay 决定 |
+| RCV-42 | P1 | 已验收（GUI 启动模式如实标识） | 正常已保存 campaign 的玩家页也固定写成 `OFFLINE DEMO`／离线试用，容易误导用户把真实 normal author 流程当替身 | HTTP shell 仅按 `dashboard.demo` 渲染 `OFFLINE DEMO` 或 `SAVED CAMPAIGN` 与相应本地说明；不改变 DTO、provider、行动、事件或权限 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1305,3 +1306,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   个带 sentinel 的行动、撤销后验证 `_thread/_messages` 均为空；第二次真实 Author 请求含新行动且不含已撤回文本。
   背景 density 会与前台共享 fake provider，测试按第二行动文本选取前台消息而非误把最后一条后台请求当作者消息。
   定向与完整离线 gate、bundle/fresh-clone 的实际结果另记于本提交验证；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-42 在撤销缓存审计后核对 normal GUI shell，发现任何 player dashboard 都固定显示
+  `LOCAL · PLAYER VIEW · OFFLINE DEMO` 和“离线玩家试用”，即使启动的是已有 campaign + 正常 `AuthorStrategy`。
+  这不改变引擎状态，却会错误暗示实际 normal author 流程只是固定替身，影响玩家对保存/恢复语义的判断。
+
+  页面 shell 现只从已存在的 controller `demo` 布尔值选择 `OFFLINE DEMO` 或 `SAVED CAMPAIGN` 及对应本地说明；
+  不把 provider 名称、模型、canonical world、事件或任何新数据插入 HTML。WSGI 以同一已种子 campaign 分别启动 demo
+  和 normal dashboard，验证标签互斥且 normal HTML 仍不含隐藏地点 id。定向与完整离线 gate、bundle/fresh-clone 的
+  实际结果另记于本提交验证；无真实模型、embedding、网络或外部服务。

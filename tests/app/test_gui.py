@@ -68,6 +68,27 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     reopened.engine.store.close()
 
 
+def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_state(tmp_path):
+    """A normal GUI must not claim it is the fixed offline demo."""
+    campaign = tmp_path / "campaign"
+    demo = build_dashboard(campaign, demo=True)
+    status, demo_html = _get_wsgi(make_app(demo), "/")
+    assert status.startswith("200")
+    assert b"OFFLINE DEMO" in demo_html
+    assert b"SAVED CAMPAIGN" not in demo_html
+    demo.engine.store.close()
+
+    normal = build_dashboard(campaign, provider=FakeLLMProvider(responses=["unused"]))
+    try:
+        status, normal_html = _get_wsgi(make_app(normal), "/")
+        assert status.startswith("200")
+        assert b"SAVED CAMPAIGN" in normal_html
+        assert b"OFFLINE DEMO" not in normal_html
+        assert b"north_bank_old_tower" not in normal_html
+    finally:
+        normal.engine.store.close()
+
+
 def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(tmp_path):
     """The player sees the already-public engine clock, never a new time authority."""
     campaign = tmp_path / "campaign"
