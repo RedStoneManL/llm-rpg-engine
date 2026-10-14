@@ -1074,7 +1074,7 @@ def test_gm_timeline_marks_retracted_history_without_leaking_private_memory(tmp_
     dashboard.engine.store.close()
 
 
-def test_gm_fails_closed_when_ordinary_history_references_active_or_retracted_private_memory(tmp_path, caplog):
+def test_gm_keeps_canonical_panels_but_withholds_history_when_ordinary_rows_reference_private_memory(tmp_path, caplog):
     engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
                           enable_interpretive_memory=True)
     _seed_demo_campaign(engine)
@@ -1100,15 +1100,24 @@ def test_gm_fails_closed_when_ordinary_history_references_active_or_retracted_pr
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
     gm = GmDashboard(engine)
-    with pytest.raises(ValueError, match="public event references private memory") as excinfo:
-        gm.state()
-    assert "PRIVATE_" not in str(excinfo.value)
+    before = (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+              engine.store.jsonl_path.read_bytes())
+    state = gm.state()
+    assert state["history_unavailable"] is True
+    assert state["timeline"] == [] and state["recaps"] == []
+    assert state["places"] and state["map"]["nodes"]
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes()) == before
 
     gm_app = make_app(gm, mode="gm")
     status, raw = _get_wsgi(gm_app, "/api/gm/state")
     payload = json.loads(raw.decode("utf-8"))
-    assert status.startswith("500")
-    assert payload == {"message": "请求结果未能显示；请刷新查看当前状态。"}
+    assert status.startswith("200")
+    assert payload["history_unavailable"] is True
+    assert payload["timeline"] == [] and payload["recaps"] == []
+    assert payload["places"] and payload["map"]["nodes"]
+    assert (list(engine.store.iter_events(include_retracted=True)), engine.store.revision,
+            engine.store.jsonl_path.read_bytes()) == before
     rendered = json.dumps(payload, ensure_ascii=False) + caplog.text
     for sentinel in ("PRIVATE_ACTIVE_BODY_SENTINEL", "PRIVATE_RETRACTED_BODY_SENTINEL",
                      "ORDINARY_ACTIVE_REFERENCE_BODY", "ORDINARY_RETRACTED_REFERENCE_BODY"):

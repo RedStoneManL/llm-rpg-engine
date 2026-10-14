@@ -345,17 +345,25 @@ def build_gm_state(engine) -> dict[str, Any]:
     # Reuse the existing public-history boundary rather than merely dropping
     # private rows ourselves.  In particular it fails closed when an otherwise
     # ordinary narration/summary row references a private-memory event through
-    # thread_refs or chunk_ids.  GM may still see canonical secret facts and
-    # retracted ordinary events; neither is a private interpretation record.
-    timeline = [_gm_timeline_event(event) for event in engine.public_history()]
-    narrative = engine.world.get("systems", {}).get("narrative", {}) or {}
-    recaps = [
-        {"scene": str(bucket.get("scene") or ""), "summary": str(bucket["summary"])}
-        for bucket in narrative.get("scenes", [])
-        if isinstance(bucket, dict) and isinstance(bucket.get("summary"), str)
-    ]
-    if isinstance(narrative.get("super_summary"), str):
-        recaps.insert(0, {"scene": "总览", "summary": narrative["super_summary"]})
+    # thread_refs or chunk_ids.  Do not turn that history-only defect into a
+    # whole GM dashboard outage: map and canonical world state are independent
+    # read-only DTOs, while both prose histories are withheld as one slice.
+    history_unavailable = False
+    try:
+        timeline = [_gm_timeline_event(event) for event in engine.public_history()]
+    except ValueError:
+        timeline = []
+        history_unavailable = True
+    recaps: list[dict[str, str]] = []
+    if not history_unavailable:
+        narrative = engine.world.get("systems", {}).get("narrative", {}) or {}
+        recaps = [
+            {"scene": str(bucket.get("scene") or ""), "summary": str(bucket["summary"])}
+            for bucket in narrative.get("scenes", [])
+            if isinstance(bucket, dict) and isinstance(bucket.get("summary"), str)
+        ]
+        if isinstance(narrative.get("super_summary"), str):
+            recaps.insert(0, {"scene": "总览", "summary": narrative["super_summary"]})
     return {
         "mode": "gm_read_only",
         "revision": int(engine.world.get("_revision") or engine.store.revision),
@@ -367,6 +375,7 @@ def build_gm_state(engine) -> dict[str, Any]:
         "map": map_data,
         "timeline": timeline[-160:],
         "recaps": recaps,
+        "history_unavailable": history_unavailable,
         "codex": _public_codex(engine.world),
     }
 
@@ -787,10 +796,10 @@ function clear(n){n.replaceChildren()} function row(title,meta,details){const n=
 function facts(items){if(!items.length)return null;const list=el('ul');list.className='facts';items.forEach(f=>{const text=`${f.predicate}: ${f.value}${f.secrecy?`（${f.secrecy}）`:''}`;list.append(el('li',text))});return list}
 function entityRows(id,items,kind){const out=$(id);clear(out);if(!items.length){out.append(el('p','暂无记录。'));return}items.forEach(x=>{let meta=`${x.id} · ${x.tier}`;if(kind==='place')meta+=` · ${x.kind} · ${x.visibility}`;if(kind==='person'&&x.location)meta+=` · 位于 ${x.location}`;if(kind==='object'&&x.holder)meta+=` · 持有者 ${x.holder}`;out.append(row(x.label,meta,facts(x.facts)))})}
 function map(data){const host=$('map');clear(host);if(!data.nodes.length){host.append(el('p','暂无地点节点。'));return}const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),count=data.nodes.length,positions={};data.nodes.forEach((node,i)=>{const angle=(Math.PI*2*i/count)-Math.PI/2;positions[node.id]={x:260+Math.cos(angle)*Math.min(100,38*count),y:135+Math.sin(angle)*95}});data.edges.forEach(edge=>{const a=positions[edge.from],b=positions[edge.to];if(!a||!b)return;const line=document.createElementNS(ns,'line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('class','map-edge');svg.append(line)});data.nodes.forEach(node=>{const p=positions[node.id],g=document.createElementNS(ns,'g'),c=document.createElementNS(ns,'circle'),t=document.createElementNS(ns,'text');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','20');c.setAttribute('class','map-node');t.setAttribute('x',p.x);t.setAttribute('y',p.y+38);t.setAttribute('text-anchor','middle');t.setAttribute('class','map-label');t.textContent=node.label;g.append(c,t);svg.append(g)});host.append(svg);const list=el('ul');data.edges.forEach(e=>list.append(el('li',`${e.from} ↔ ${e.to}（移动成本 ${e.cost}）`)));host.append(list)}
-function timeline(items){const out=$('timeline');clear(out);items.slice().reverse().forEach(x=>{const tags=el('div');for(const name of [x.category,x.retracted?'retracted':null])if(name){const b=el('span',name==='objective'?'客观事实':name==='public_narrative'?'公开叙事':name==='recap'?'摘要':'已撤回');b.className=`badge ${name}`;tags.append(b)}const d=el('div',x.summary);out.append(row(`${x.type} · 第 ${x.day} 天 / 回合 ${x.turn}`,`${x.scene} · ${x.id}`,tags));out.lastChild.append(d)})}
-function recaps(items){const out=$('recaps');clear(out);if(!items.length){out.append(el('p','尚无已保存摘要。'));return}items.forEach(x=>out.append(row(x.scene,'已保存 recap',el('div',x.summary))));}
+function timeline(items,unavailable){const out=$('timeline');clear(out);if(unavailable){out.append(el('p','公开历史暂不可用；请查看当前世界状态。'));return}items.slice().reverse().forEach(x=>{const tags=el('div');for(const name of [x.category,x.retracted?'retracted':null])if(name){const b=el('span',name==='objective'?'客观事实':name==='public_narrative'?'公开叙事':name==='recap'?'摘要':'已撤回');b.className=`badge ${name}`;tags.append(b)}const d=el('div',x.summary);out.append(row(`${x.type} · 第 ${x.day} 天 / 回合 ${x.turn}`,`${x.scene} · ${x.id}`,tags));out.lastChild.append(d)})}
+function recaps(items,unavailable){const out=$('recaps');clear(out);if(unavailable){out.append(el('p','公开历史暂不可用；请查看当前世界状态。'));return}if(!items.length){out.append(el('p','尚无已保存摘要。'));return}items.forEach(x=>out.append(row(x.scene,'已保存 recap',el('div',x.summary))));}
 function codex(items){const out=$('codex'),q=$('codex-search').value.trim().toLowerCase();clear(out);const found=items.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(q));if(!found.length){out.append(el('p','没有匹配的公开设定。'));return}found.forEach(x=>{const d=el('details'),s=el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`);d.append(s,el('p',x.body));out.append(d)})}
-async function load(){try{const r=await fetch('/api/gm/state');const state=await r.json();if(!r.ok)throw new Error(state.message||'读取失败');entityRows('places',state.places,'place');entityRows('people',state.people,'person');entityRows('objects',state.objects,'object');map(state.map);timeline(state.timeline);recaps(state.recaps);codex(state.codex);$('codex-search').addEventListener('input',()=>codex(state.codex));$('status').textContent=`GM 只读视图 · 第 ${state.day} 天 · 回合 ${state.turn} · 版本 ${state.revision}`;}catch(err){$('status').textContent='GM 世界总览暂时不可用；请检查本地服务。'}}load();
+async function load(){try{const r=await fetch('/api/gm/state');const state=await r.json();if(!r.ok)throw new Error(state.message||'读取失败');entityRows('places',state.places,'place');entityRows('people',state.people,'person');entityRows('objects',state.objects,'object');map(state.map);timeline(state.timeline,state.history_unavailable===true);recaps(state.recaps,state.history_unavailable===true);codex(state.codex);$('codex-search').addEventListener('input',()=>codex(state.codex));$('status').textContent=`GM 只读视图 · 第 ${state.day} 天 · 回合 ${state.turn} · 版本 ${state.revision}`;}catch(err){$('status').textContent='GM 世界总览暂时不可用；请检查本地服务。'}}load();
 })();"""
 
 
