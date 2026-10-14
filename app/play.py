@@ -733,6 +733,12 @@ def play_loop(
                 from kernel.projection import project
                 engine.world = project(engine.registry, engine.store.iter_events())
                 engine.world['_revision'] = engine.store.revision
+                # A rejected optimistic turn never becomes the previous action
+                # for catch-up.  Another durable action may have won the race,
+                # so recover its action-start scene from the same receipt prefix
+                # used on cold reopen and OOC rewind instead of retaining this
+                # session's stale anchor.
+                prev_scene = _previous_scene_before_latest_action(engine)
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
                 out('[世界状态已更新，请重新尝试这次行动。]')

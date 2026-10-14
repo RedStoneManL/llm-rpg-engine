@@ -591,6 +591,80 @@ def test_play_loop_undo_rebuilds_catchup_scope_from_surviving_action(tmp_path):
         engine.store.close()
 
 
+def test_play_loop_revision_conflict_rebuilds_scope_from_newest_action(tmp_path, monkeypatch):
+    """A rejected stale CLI turn must not keep an older catch-up anchor.
+
+    This follows the actual publication-conflict route rather than replacing
+    ``run_turn`` with a synthetic exception.  While the first author call is
+    preparing, a separate durable player action moves the protagonist from the
+    inn to the market.  The original turn then loses its optimistic revision
+    race.  The next CLI action has to use the peer action's action-start scene
+    (the inn), just as a cold reopen would; carrying the original ``None``
+    anchor would make background enter-scope decisions depend on a failed
+    request.
+    """
+    from app import play as play_module
+    from app.gui import OfflineDemoStrategy, build_dashboard
+    from app.play import play_loop
+    from kernel.turncommit import TurnCommit
+    from loop.turn import run_turn as real_run_turn
+
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    engine = dashboard.engine
+    observed_previous_scenes = []
+    peer_published = [False]
+    peer_revision = [None]
+
+    def recording_run_turn(*args, **kwargs):
+        observed_previous_scenes.append(copy.deepcopy(kwargs.get("prev_scene")))
+        return real_run_turn(*args, **kwargs)
+
+    monkeypatch.setattr(play_module, "run_turn", recording_run_turn)
+
+    class ConflictThenObserve:
+        def produce(self, registry, world, scene, player_input, *, provider, embedder=None, repair=None):
+            if not peer_published[0]:
+                # ``run_turn`` restores a failed strategy's instance state;
+                # model the independent peer process outside that state so it
+                # publishes exactly once even while the rejected strategy is
+                # rolled back.
+                peer_published[0] = True
+                # This is an independent durable action, not a direct store
+                # append: it creates the receipt whose prefix is the recovery
+                # boundary the CLI must use after the outer optimistic publish
+                # is rejected.
+                peer = real_run_turn(
+                    registry, engine.store, engine.world, play_module._build_scene(engine), "同伴先去集市",
+                    strategy=OfflineDemoStrategy(), provider=engine.provider, embedder=engine.embedder,
+                    max_repairs=0, action_id="concurrent-peer-action",
+                )
+                engine.world = peer.world
+                peer_revision[0] = peer.receipt["revision"]
+            return TurnCommit(narration="你留在公开地点观察。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    output = []
+    try:
+        play_loop(engine, inputs=["先尝试观察", "依据刷新后的世界继续观察", "/quit"],
+                  out=output.append, strategy=ConflictThenObserve(), max_repairs=0)
+        assert "世界状态已更新" in "\n".join(output)
+        assert len(observed_previous_scenes) == 2
+        assert observed_previous_scenes[0] is None
+        assert observed_previous_scenes[1]["location"] == "stonebridge_inn"
+        assert engine.store.revision > peer_revision[0]
+        assert "[错误]" not in "\n".join(output)
+    finally:
+        engine.store.close()
+
+
 def test_dispatch_ooc_undo_retracts_last_turn(tmp_path):
     """/undo retracts the most recent turn's events."""
     from app.play import dispatch_ooc

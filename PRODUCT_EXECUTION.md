@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-13 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-14 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
@@ -85,6 +85,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-42 | P1 | 已验收（GUI 启动模式如实标识） | 正常已保存 campaign 的玩家页也固定写成 `OFFLINE DEMO`／离线试用，容易误导用户把真实 normal author 流程当替身 | HTTP shell 仅按 `dashboard.demo` 渲染 `OFFLINE DEMO` 或 `SAVED CAMPAIGN` 与相应本地说明；不改变 DTO、provider、行动、事件或权限 |
 | RCV-43 | P0 | 已验收（冷重开 catch-up 作用域恢复） | catch-up 的“本回合进入视野”判断只保存在 CLI/GUI controller 内存；重开会把持续同场的 stale NPC 误当新进入，或若粗暴禁用又会丢失真实抵达后的待处理 catch-up | 从最新仍未撤回 action receipt 的首 seq 前，在单一 SQLite 只读 snapshot 重放 action-start scene；CLI 和 GUI 均采用它。回归同时证明持续同场不误演化、真实抵达后重开仍会演化、撤回 receipt 不作锚点 |
 | RCV-44 | P0 | 已验收（撤销／回退 catch-up 作用域恢复） | RCV-43 修复了冷重开，但 CLI `/undo`／`/rewind` 与 GUI undo 在 revision 改变后仍强行清空作用域锚点；下一动作会把持续同场 stale NPC 误作新进入 | 成功 rewind 后 CLI 与 GUI 都从最新存活 action receipt 重建 prior scene；真实 `行动→undo→行动` 回归确认没有额外 catch-up／`character_evolved`，策略缓存 reset 语义不变 |
+| RCV-45 | P0 | 已验收（乐观版本冲突后的 scope／世界恢复） | CLI 在 `RevisionConflict` 后虽重放 world 并 reset 作者缓存，却保留过期 `prev_scene`；GUI 还会把已确定未提交的冲突泛化为 500，内存 world 与下一行动 scope 都可能过期 | CLI/GUI 都在**无同 ID receipt**的冲突后只读投影当前 store、重建最新存活 action 的 action-start scope 并 reset 策略；GUI 返回可安全丢弃的 400。已有同 ID durable receipt 仍走保守 409 恢复，绝不误称未提交 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1353,3 +1354,22 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   相关 GUI／CLI／time／action-integrity 专项为 **`170 passed in 1.49s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1975 passed, 1 deselected in 22.51s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-45 继续检查 RCV-43/44 的同一 action-start scope 语义，但覆盖另一条真实恢复入口：
+  乐观发布在作者准备期间输给另一条已保存行动。旧 CLI 对 `RevisionConflict` 会重放 world、reset 作者缓存并提示刷新，
+  却没有更新 `prev_scene`；下一次行动仍可能把失败请求之前的 scope 当作最新 durable action 的前场景。旧 GUI 则把
+  此类已确定没有提交的冲突归到 generic 500，既不刷新内存 world，也没有给浏览器可安全丢弃的拒绝语义。
+
+  现 CLI 与 GUI 都在**当前 action id 尚无 durable receipt**时，以同一
+  `latest_active_action_prefix()` 只读重放当前 store，恢复胜出行动的 action-start scene，并 reset 策略缓存。GUI
+  同时移除本次失败的内存 request context，返回带 `confirmed_rejection=true` 的 400，明确“世界状态已更新；此行动未提交”。
+  若同一 id 已有 receipt，仍返回保守 409 recovery，不把已保存动作误作可丢弃请求；没有新增重试、事件、权限、provider
+  或客户端 scene 信任。
+
+  两个端到端离线回归均让独立 durable demo action 在第一作者调用期间实际赢得 SQLite publish race：第一个 CLI/GUI
+  请求收到冲突，随后普通第二行动实际成功，传入的 `prev_scene` 均为胜出行动开始时的客栈而非旧 `None`。GUI 回归另经
+  WSGI 断言精确 400 JSON、无失败 action receipt、内存 state 已投影到集市、同 id request context 已清除；已有 receipt
+  的 409 分支保持原有测试。此为本地 deterministic controller／WSGI 流程验证，不是浏览器点击、真实模型或网络验收。
+  相关 CLI／GUI／fleet 专项为 **`84 passed in 1.17s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1977 passed, 1 deselected in 21.98s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。

@@ -29,6 +29,7 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
+from engine.store import RevisionConflict
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from context.native_authoring import host_player_statement_receipt, native_authoring_context
@@ -547,28 +548,49 @@ class PlayerDashboard:
             scene_for_turn = context.scene
             if self.steering:
                 scene_for_turn = {**context.scene, "_player_steer": self.steering}
-            result = run_turn(
-                self.engine.registry, self.engine.store, self.engine.world, scene_for_turn, player_input,
-                strategy=self.strategy, provider=self.engine.provider, embedder=self.engine.embedder,
-                max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
-                catchup_provider=self.engine.cascade_provider,
-                prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
-                host_envelope={
-                    "scene": context.scene, "prev_scene": context.prev_scene,
-                    "speak_recipient": context.recipient, "speak_statement": context.statement,
-                    "trusted_player_statement_receipts": list(context.trusted_player_statement_receipts),
-                },
-                enforce_player_travel=True,
-                enforce_player_knowledge_authority=True,
-                enforce_player_world_authority=True,
-                enforce_player_fact_authority=True,
-                enforce_player_entity_authority=True,
-                enforce_player_faction_authority=True,
-                enforce_player_place_authority=True,
-                enforce_player_item_authority=True,
-                enforce_player_quest_authority=True,
-                trusted_player_statement_receipts=context.trusted_player_statement_receipts,
-            )
+            try:
+                result = run_turn(
+                    self.engine.registry, self.engine.store, self.engine.world, scene_for_turn, player_input,
+                    strategy=self.strategy, provider=self.engine.provider, embedder=self.engine.embedder,
+                    max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
+                    catchup_provider=self.engine.cascade_provider,
+                    prev_scene=context.prev_scene, action_id=action_id, expected_revision=expected_revision,
+                    host_envelope={
+                        "scene": context.scene, "prev_scene": context.prev_scene,
+                        "speak_recipient": context.recipient, "speak_statement": context.statement,
+                        "trusted_player_statement_receipts": list(context.trusted_player_statement_receipts),
+                    },
+                    enforce_player_travel=True,
+                    enforce_player_knowledge_authority=True,
+                    enforce_player_world_authority=True,
+                    enforce_player_fact_authority=True,
+                    enforce_player_entity_authority=True,
+                    enforce_player_faction_authority=True,
+                    enforce_player_place_authority=True,
+                    enforce_player_item_authority=True,
+                    enforce_player_quest_authority=True,
+                    trusted_player_statement_receipts=context.trusted_player_statement_receipts,
+                )
+            except RevisionConflict as exc:
+                # If this id already names a durable receipt, the browser may
+                # be looking at a committed action with a mismatched recovery
+                # envelope.  It is not safe to tell it the request was merely
+                # rejected and let it discard that recovery state.
+                if self.engine.store.get_action_receipt(action_id) is not None:
+                    raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。") from exc
+                # Otherwise the optimistic publish did not commit.  Reproject
+                # the authoritative store, rebuild the same action-start scope
+                # used by CLI/cold-reopen/undo recovery, and clear only this
+                # rejected in-memory envelope before giving the browser a
+                # confirmed rejection it can safely discard.
+                from kernel.projection import project
+                self.engine.world = project(self.engine.registry, self.engine.store.iter_events())
+                self.engine.world["_revision"] = self.engine.store.revision
+                self.previous_scene = _previous_scene_before_latest_action(self.engine)
+                self.requests.pop(action_id, None)
+                if hasattr(self.strategy, "reset"):
+                    self.strategy.reset()
+                raise GuiRequestError("世界状态已更新；此行动未提交。请刷新后重试。") from exc
             self.engine.world = result.world
             if not bool(getattr(result, "receipt", {}).get("duplicate")):
                 self.previous_scene = context.scene

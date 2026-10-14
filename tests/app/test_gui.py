@@ -685,6 +685,89 @@ def _get_wsgi(app, path, *, query=""):
     return captured[0][0], response
 
 
+def test_gui_revision_conflict_refreshes_world_and_rebuilds_catchup_scope(tmp_path, monkeypatch):
+    """A known GUI optimistic conflict is a safe 400, not an ambiguous 500.
+
+    The first dashboard action loses a real publish race to an independent
+    durable player action.  The controller must then project the winner's
+    world and recover that winner's action-start scope before a fresh browser
+    action is allowed to continue.  A prior receipt using the *same* id is
+    deliberately not covered here: that remains the conservative 409 recovery
+    path rather than a discardable rejection.
+    """
+    from loop.turn import run_turn as real_run_turn
+
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    observed_previous_scenes = []
+    peer_published = [False]
+    peer_revision = [None]
+    resets = [0]
+
+    def recording_run_turn(*args, **kwargs):
+        observed_previous_scenes.append(copy.deepcopy(kwargs.get("prev_scene")))
+        return real_run_turn(*args, **kwargs)
+
+    monkeypatch.setattr(gui, "run_turn", recording_run_turn)
+
+    class ConflictThenObserve:
+        def produce(self, registry, world, scene, player_input, *, provider, embedder=None, repair=None):
+            if not peer_published[0]:
+                peer_published[0] = True
+                peer = real_run_turn(
+                    registry, dashboard.engine.store, dashboard.engine.world,
+                    gui._build_scene(dashboard.engine), "另一位玩家先去集市",
+                    strategy=gui.OfflineDemoStrategy(), provider=dashboard.engine.provider,
+                    embedder=dashboard.engine.embedder, max_repairs=0,
+                    action_id="gui-concurrent-peer-action",
+                )
+                dashboard.engine.world = peer.world
+                peer_revision[0] = peer.receipt["revision"]
+            return TurnCommit(narration="你在公开地点观察。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+        def reset(self):
+            resets[0] += 1
+
+    dashboard.strategy = ConflictThenObserve()
+    initial = dashboard.state()
+    try:
+        status, payload = _post_wsgi(make_app(dashboard), "/api/action", {
+            "text": "先尝试观察", "action_id": "gui-stale-action",
+            "expected_revision": initial["revision"],
+        })
+        assert status.startswith("400")
+        assert payload == {
+            "message": "世界状态已更新；此行动未提交。请刷新后重试。",
+            "confirmed_rejection": True,
+        }
+        assert dashboard.engine.store.get_action_receipt("gui-stale-action") is None
+        assert dashboard.state()["scene"]["location"]["id"] == "stonebridge_market"
+        assert dashboard.previous_scene is not None
+        assert dashboard.previous_scene["location"] == "stonebridge_inn"
+        assert "gui-stale-action" not in dashboard.requests
+        assert resets == [1]
+
+        continued = dashboard.action(
+            player_input="依据刷新后的世界继续观察", action_id="gui-after-refresh",
+            expected_revision=dashboard.state()["revision"],
+        )
+        assert continued["duplicate"] is False
+        assert dashboard.engine.store.revision > peer_revision[0]
+        assert len(observed_previous_scenes) == 2
+        assert observed_previous_scenes[0] is None
+        assert observed_previous_scenes[1]["location"] == "stonebridge_inn"
+    finally:
+        dashboard.engine.store.close()
+
+
 @pytest.mark.parametrize("host,origin,content_type", [
     ("127.0.0.1:8765", "http://attacker.invalid", "application/json"),
     ("attacker.invalid", "http://127.0.0.1:8765", "application/json"),
