@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import json
 
 import pytest
 
@@ -330,3 +331,58 @@ class TestDensityHook:
                          embedder=None, max_repairs=0)
 
         assert result.narration  # turn returned normally despite _run_demote_on_leave crash
+
+    @pytest.mark.parametrize("hook_name", [
+        "digest_fleet", "run_director", "run_cascade", "run_catchup", "run_lore",
+        "_run_demote_on_leave", "run_density",
+    ])
+    def test_backstage_hook_write_then_failure_is_locally_atomic_and_replayable(self, monkeypatch, hook_name):
+        """Every nonfatal post-foreground hook rolls back its own partial write.
+
+        The foreground turn intentionally remains committed when a background
+        service fails.  This verifies the complementary invariant: a hook that
+        writes an event and then raises leaves neither that sentinel nor a
+        SQLite/JSONL divergence behind.
+        """
+        import loop.turn as turn_mod
+
+        def broken(registry, store, *args, **kwargs):
+            store.append(kernel_event(
+                "lore_seeded", day=1, scene="s1", turn=store.next_turn(),
+                summary=f"BACKSTAGE_PARTIAL_{hook_name}",
+                deltas={"town": "town1", "source": hook_name},
+            ))
+            raise RuntimeError(f"simulated {hook_name} failure after write")
+
+        monkeypatch.setattr(turn_mod, hook_name, broken)
+        reg = _reg()
+        store = _store(reg)
+        world = _seed_world(reg, store, density=0.3)
+        scene = {"protagonist": "hero", "present": [], "day": 1,
+                 "id": "s1", "location": "othervenue"}
+        try:
+            result = run_turn(
+                reg, store, world, scene, "原地确认",
+                strategy=AuthorStrategy(),
+                provider=FakeLLMProvider(json_responses=[_narrator_commit()]),
+                cascade_provider=None, embedder=None, max_repairs=0,
+            )
+            assert result.narration
+            events = list(store.iter_events(include_retracted=True))
+            assert not any(event["summary"] == f"BACKSTAGE_PARTIAL_{hook_name}" for event in events)
+            assert [json.loads(line) for line in store.jsonl_path.read_text(encoding="utf-8").splitlines()] == events
+            db_path, jsonl_path = store.db_path, store.jsonl_path
+            store.close()
+            reopened = open_store(db_path, jsonl_path, allowed_types=reg.event_types())
+            try:
+                assert list(reopened.iter_events(include_retracted=True)) == events
+                assert not any(event["summary"] == f"BACKSTAGE_PARTIAL_{hook_name}"
+                               for event in reopened.iter_events(include_retracted=True))
+            finally:
+                reopened.close()
+        finally:
+            if getattr(store, "_conn", None) is not None:
+                try:
+                    store.close()
+                except Exception:
+                    pass

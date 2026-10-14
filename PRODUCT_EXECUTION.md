@@ -74,6 +74,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 的 stale-NPC 场景实际触发专用 catch-up，关闭/重开后 canonical 演化仍在。未做浏览器或真实模型调用 |
 | RCV-32 | P0 | 已验收（普通玩家势力 canonical 边界） | 普通 CLI/GUI/compare 作者仍可输出 `factions`，直接改写长期势力创建、成员、位阶或群组，且当前玩家 DTO 没有可审查的公开势力遭遇／加入 capability | 候选与最终 EventBatch 双校验拒绝任何普通 factions 写入；普通 GUI、compare preview、final-payload 篡改与 action-id mode binding 均零写通过。宿主／导演／native import 保持独立 policy |
 | RCV-33 | P0 | 已验收（普通玩家地点拓扑／人物移动边界） | travel gate 只验证主角目的地，普通作者仍能以 `links` 改写既有地图，或以 `moves` 调度既有人物；`materialize` 也没有普通入口权限 | 候选与最终 EventBatch 双校验仅允许全新 public 前沿地点的一条当前位置直连，以及新建公开人物随主角／留在当前位置；既有拓扑、既有人物移动和 materialize 均零写拒绝，普通公开前沿创建＋移动仍可用 |
+| RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1194,3 +1195,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   为 **`49 passed`**（其后相关 capabilities/strategy/play/compare 子集为 **`61 passed`**）；正式
   完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1956 passed, 1 deselected in 22.93s`**，唯一 deselect 是既有 slow real embedding。无真实模型、网络或外部服务。
+
+- 2026-10-14：RCV-34 沿“后台写入是否共享可恢复边界”的开放风险做完剩余审计。当前产品语义不是把所有后台
+  工作与前台动作绑成一次失败即整回合撤销：foreground publish 后，摘要、director、cascade、catch-up、lore、
+  demote-on-leave 与 density 都是非致命服务；其失败不得丢失已保存的玩家回合，但也不得留下自己半写入的事件。
+  既有测试只明确覆盖 digest/memory 的部分场景，因而新增一组统一的 write-then-raise 故障注入回归。
+
+  对七个钩子逐一先写可识别 sentinel 再抛异常，断言前台回合仍返回、sentinel 不在活跃或历史事件中、JSONL 与 SQLite
+  完全一致，并关闭重开再次验证无 sentinel。该项不改生产语义，只把已使用的每钩子 savepoint 事务边界、局部回滚和
+  replay 事实固定为可回归证据。专项 `tests/loop/test_turn_density_hook.py -q` 为 **`14 passed`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1963 passed, 1 deselected in 22.11s`**，唯一 deselect 是既有 slow real embedding。无真实模型、网络或外部服务。
