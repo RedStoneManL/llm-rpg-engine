@@ -76,6 +76,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-33 | P0 | 已验收（普通玩家地点拓扑／人物移动边界） | travel gate 只验证主角目的地，普通作者仍能以 `links` 改写既有地图，或以 `moves` 调度既有人物；`materialize` 也没有普通入口权限 | 候选与最终 EventBatch 双校验仅允许全新 public 前沿地点的一条当前位置直连，以及新建公开人物随主角／留在当前位置；既有拓扑、既有人物移动和 materialize 均零写拒绝，普通公开前沿创建＋移动仍可用 |
 | RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义 |
 | RCV-35 | P1 | 已验收（debug trace 私有解释隔离） | Debug trace 是本地 operator 原始 prompt/output 产物；已有 CLI/GUI/GM 记忆隔离，却未以实际 `--debug` 回合验证私有解释不进入 trace/viewer | 真实 opt-in memory + `--debug` 回合写入私有记录后，trace 原文与 viewer 全记录均不含私有正文；trace 继续只作为本地 operator 诊断，不是玩家 API |
+| RCV-36 | P1 | 已验收（当前严格 POV 地图浏览器复验） | RCV-11/20/21 已实现 POV 关系图、出口成本和仅填入行动，但之后多轮 GUI 组合变更缺少当前执行环境的完整浏览器证据 | loopback Chromium 实测隐藏地点不进 player API/DOM，图为仅 POV 节点/边；选点与“填入行动”零写入，390px 无溢出 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1220,3 +1221,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `tests/app/test_offline_private_memory_cli.py tests/app/test_trace_view.py -rA` 为 **`40 passed in 0.61s`**；正式完整离线
   gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1964 passed, 1 deselected in 22.69s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：在收到“继续严格 POV 地图关系图展示与浏览器验收”的队列后，先核对当前实现，确认 RCV-11 已经以
+  `SceneCapabilities.map_dto()` 统一 player POV 图、RCV-20/21 已提供出口建议和成本；因此没有重复开发或重写 DTO。
+  RCV-36 只在当前组合后的代码做一次 loopback Chromium 复验：临时 demo campaign 的 `/api/state` 与 player DOM 都不含
+  `north_bank_old_tower` 或 private sentinel；地图显示 2 个可见节点和 1 条可见边，节点选择仅显示本地详情。390px
+  viewport 下输入“我先观察周围。”再点“填入行动”，输入准确变为“我先观察周围。\n前往石桥集市。”，状态仍提示编辑并保存，
+  浏览器捕获到的写请求为空，`scrollWidth == clientWidth == 390`。临时 campaign 与服务均在验收后删除，未保存截图。
+
+  随后 `tests/app/test_gui.py -rA` 为 **`30 passed in 0.50s`**，组装后的 `_JS` 经 `node --check -` 通过。RCV-35 的
+  正式完整离线 gate 仍是当前功能代码的最近全量证明：**`1964 passed, 1 deselected in 22.69s`**；RCV-36 仅更新验收文档，
+  未运行真实模型、网络、外传或新写入路径。外部备份上传仍需单独批准；本地恢复包继续保留。
