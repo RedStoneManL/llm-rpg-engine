@@ -199,11 +199,37 @@ def _local_protagonist_cast_candidate(*, person_id: str = "protagonist", value: 
     }
 
 
+def _inventory_transfer_candidate(to: str) -> dict:
+    return {
+        "narration": "你郑重把旧铜灯交到对方手中。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "items": [{"op": "transfer", "item": "old_brass_lantern", "to": to}],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "当面交接物品"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
     _seed_demo_campaign(engine)
     return PlayerDashboard(engine, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+
+
+def _add_public_local_recipient(dashboard: PlayerDashboard, person_id: str = "inn_guest") -> None:
+    """Give the current scene one public recipient without changing the action under test."""
+    scene = _build_scene(dashboard.engine)
+    dashboard.engine.store.append_many([
+        kernel_event("character_created", day=scene["day"], scene=scene["id"], turn=0,
+                     summary="public local recipient", deltas={
+                         "id": person_id, "sketch": "客栈里的公开旅人", "goal": "等候商队", "tier": "tracked",
+                     }),
+        kernel_event("entity_moved", day=scene["day"], scene=scene["id"], turn=0,
+                     summary="recipient at current location", deltas={
+                         "who": person_id, "to": scene["location"],
+                     }),
+    ], preflight=lambda history: project(dashboard.engine.registry, history))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
 
 
 def test_normal_gui_rejects_remote_hidden_world_observation_without_writes(tmp_path):
@@ -285,6 +311,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
             "ordinary_player_world_authority": True,
             "ordinary_player_fact_authority": True,
             "ordinary_player_entity_authority": True,
+                "ordinary_player_item_authority": True,
         }
         calls_after_first = len(dashboard.engine.provider.calls)
         duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
@@ -552,6 +579,119 @@ def test_entity_authority_binds_recovery_mode_before_generation(tmp_path):
                 strategy=MustNotRun(), provider=provider, action_id="entity-mode-bound-action",
                 expected_revision=base_revision, enforce_player_travel=False,
                 enforce_player_entity_authority=True,
+            )
+        assert engine.store.revision == base_revision + 1
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_rejects_inventory_transfer_to_remote_hidden_person_without_writes(tmp_path):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _inventory_transfer_candidate("tower_warden"))
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player item change lies outside"):
+            dashboard.action(player_input="把旧铜灯交给远方的人", action_id="remote-item-transfer",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-item-transfer") is None
+        assert dashboard.engine.world["systems"]["ontology"].neighbors(
+            "old_brass_lantern", "held_by", 1,
+        ) == ["protagonist"]
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_transfer_inventory_to_remote_person(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _inventory_transfer_candidate("inn_guest"))
+    _add_public_local_recipient(dashboard)
+    owner = dashboard.engine.registry.owner_of_section("items")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("item_transferred", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_ITEM_SENTINEL", deltas={
+                "op": "transfer", "item": "old_brass_lantern", "to": "tower_warden",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player item authority boundary"):
+            dashboard.action(player_input="把旧铜灯交给旅人", action_id="remote-final-item-transfer",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-item-transfer") is None
+        assert dashboard.engine.world["systems"]["ontology"].neighbors(
+            "old_brass_lantern", "held_by", 1,
+        ) == ["protagonist"]
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_persists_local_inventory_transfer_and_recovers_without_generation(tmp_path):
+    campaign = tmp_path / "campaign"
+    dashboard = _ordinary_demo_dashboard(tmp_path, _inventory_transfer_candidate("inn_guest"))
+    _add_public_local_recipient(dashboard)
+    initial = dashboard.state()
+    try:
+        assert {entry["id"] for entry in initial["speech_recipients"]} == {"inn_guest"}
+        first = dashboard.action(player_input="把旧铜灯交给旅人", action_id="local-inventory-transfer",
+                                 expected_revision=initial["revision"])
+        assert first["duplicate"] is False
+        assert dashboard.engine.world["systems"]["ontology"].neighbors(
+            "old_brass_lantern", "held_by", 1,
+        ) == ["inn_guest"]
+        assert first["state"]["inventory"] == []
+        metadata = dashboard.engine.store.get_action_result_metadata("local-inventory-transfer")
+        assert metadata["authority_modes"]["ordinary_player_item_authority"] is True
+        calls_after_first = len(dashboard.engine.provider.calls)
+        duplicate = dashboard.action(player_input="把旧铜灯交给旅人", action_id="local-inventory-transfer",
+                                     expected_revision=initial["revision"])
+        assert duplicate["duplicate"] is True
+        assert len(dashboard.engine.provider.calls) == calls_after_first
+    finally:
+        dashboard.engine.store.close()
+
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    dashboard = PlayerDashboard(reopened, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+    try:
+        duplicate = dashboard.action(player_input="把旧铜灯交给旅人", action_id="local-inventory-transfer",
+                                     expected_revision=initial["revision"])
+        assert duplicate["duplicate"] is True
+        assert reopened.world["systems"]["ontology"].neighbors(
+            "old_brass_lantern", "held_by", 1,
+        ) == ["inn_guest"]
+        assert not reopened.provider.calls
+    finally:
+        reopened.store.close()
+
+
+def test_item_authority_binds_recovery_mode_before_generation(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_inventory_transfer_candidate("protagonist")])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("item-authority conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "整理背包",
+            strategy=AuthorStrategy(), provider=provider, action_id="item-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_item_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "整理背包",
+                strategy=MustNotRun(), provider=provider, action_id="item-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_item_authority=True,
             )
         assert engine.store.revision == base_revision + 1
     finally:

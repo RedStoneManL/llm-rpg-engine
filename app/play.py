@@ -547,6 +547,7 @@ def play_loop(
                         enforce_player_world_authority=True,
                         enforce_player_fact_authority=True,
                         enforce_player_entity_authority=True,
+                        enforce_player_item_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
@@ -571,6 +572,7 @@ def play_loop(
                     enforce_player_world_authority=True,
                     enforce_player_fact_authority=True,
                     enforce_player_entity_authority=True,
+                    enforce_player_item_authority=True,
                     trusted_player_statement_receipts=trusted_player_statement_receipts)
                 turn_published = True
                 engine.world = applied.world
@@ -613,6 +615,7 @@ def play_loop(
                         enforce_player_world_authority=True,
                         enforce_player_fact_authority=True,
                         enforce_player_entity_authority=True,
+                        enforce_player_item_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:

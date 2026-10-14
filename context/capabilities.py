@@ -509,6 +509,88 @@ def player_turn_entity_event_errors(events: list[dict], world: dict, scene: dict
     return errors
 
 
+def _player_item_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_item_authority_boundary", hint)
+
+
+def _ordinary_item_authority(world: dict, scene: dict) -> tuple[str | None, frozenset[str], frozenset[str]]:
+    """Return the action-start inventory and public local transfer targets.
+
+    This intentionally derives both inventory and destinations from the player
+    POV projection.  An ordinary author may hand over only an item the player
+    already holds, either to a current public person or by placing it at the
+    current visible location.  It cannot create an asset or manipulate an
+    object held elsewhere just because the canonical graph happens to contain
+    it.
+    """
+    actor, people = _ordinary_fact_subjects(world, scene)
+    if actor is None:
+        return None, frozenset(), frozenset()
+    view = pov_world(world, scene, pov=actor, redact_facts=True)
+    graph = view.get("systems", {}).get("ontology")
+    if graph is None:
+        return actor, frozenset(), frozenset()
+    day = scene.get("day") or view.get("meta", {}).get("day") or 1
+    inventory = frozenset(
+        item_id for item_id, entity in graph.entities.items()
+        if entity.etype == "Object" and actor in graph.neighbors(item_id, "held_by", day)
+    )
+    location = scene.get("location")
+    local_targets = set(people)
+    if isinstance(location, str) and graph.get_entity(location) is not None:
+        local_targets.add(location)
+    return actor, inventory, frozenset(local_targets)
+
+
+def player_turn_item_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Allow ordinary play to hand current inventory to public local targets.
+
+    The player-facing UI and authoring brief expose inventory, not the whole
+    object graph.  Constraining this section to a transfer from that inventory
+    keeps a useful normal action (give/drop an item) without letting ordinary
+    prose create assets or rewrite possession in remote/hidden scenes.
+    """
+    actor, inventory, targets = _ordinary_item_authority(world, scene)
+    if actor is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("items") or []):
+        if not isinstance(item, dict):
+            errors.append(_player_item_error("items", f"[{index}]",
+                                             "普通玩家回合的物品操作必须是本地公开交接。"))
+            continue
+        if (item.get("op") != "transfer" or item.get("item") not in inventory
+                or item.get("to") not in targets):
+            errors.append(_player_item_error(
+                "items", f"[{index}]",
+                "普通玩家回合只能把主角当前持有物品交给当前公开人物，或放在当前位置。",
+            ))
+    return errors
+
+
+def player_turn_item_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_item_errors`."""
+    actor, inventory, targets = _ordinary_item_authority(world, scene)
+    if actor is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted"):
+            continue
+        event_type = event.get("type")
+        if event_type not in {"object_created", "item_transferred"}:
+            continue
+        delta = event.get("deltas")
+        valid = (event_type == "item_transferred" and isinstance(delta, dict)
+                 and delta.get("item") in inventory and delta.get("to") in targets)
+        if not valid:
+            errors.append(_player_item_error(
+                "items", f"event[{index}]",
+                "普通玩家回合的最终物品事件越过了本地公开背包边界。",
+            ))
+    return errors
+
+
 def _declared_discovery_keys(commit, actor: str | None) -> frozenset[str]:
     """Return truthy discovery keys declared for this exact candidate.
 
