@@ -109,6 +109,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-66 | P0 | 已验收（GM 历史局部 fail-closed） | 普通事件引用私有记忆时，GM 虽不应显示任何相关正文，却会因 `public_history()` 拒绝而使整个只读 canonical dashboard 变为 500 | GM 将时间线与 recap 作为同一公开历史切片压制，显式 `history_unavailable`；canonical 地图、实体与事实继续只读返回 200，零事件／receipt／revision 写入 |
 | RCV-67 | P0 | 已验收（native brief 历史局部 fail-closed） | 安全 native-author 导出先构造 player DTO，却再次直接读取 `public_history()` 填充已知事件；私有引用会让导出失败，且调用方可能记录异常 | 只压制 `known_events`／`public_narrative` 并标记 `history_unavailable`；其余已有的 POV、背包、出口与授权安全 brief 保持离线、零 campaign 写入 |
 | RCV-68 | P1 | 已验收（CLI 严格 POV 地图） | GUI 有严格 POV 关系图，CLI 只有当前出口文本；终端长局无法查看已知地点与路径，又不能接 canonical 图补齐 | `/map` 仅消费既有 `scene_capabilities` POV contract，显示节点、路径和成本；无发现、移动、receipt、transcript 或 revision 写入 |
+| RCV-69 | P0 | 已验收（journal 跨入口活动分支回归） | CLI journal 已有单实例私有引用边界，但缺少 peer publish→undo 与冷重开组合证据 | 纯回归覆盖公开 peer narration 及时出现、撤回后消失、冷重开不复活；私有引用在冷重开后继续 fail-closed、零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |

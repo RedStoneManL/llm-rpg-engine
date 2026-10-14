@@ -395,6 +395,9 @@ def test_play_loop_journal_fails_closed_on_private_reference_without_writing(tmp
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
     before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    engine.store.close()
+    engine = build_engine(campaign := tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+                          enable_interpretive_memory=True)
     output: list[str] = []
     try:
         play_loop(engine, ["/journal", "/quit"], out=output.append)
@@ -444,6 +447,42 @@ def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_
         assert engine.store.revision == peer_saved[0]["revision"]
         assert len([line for line in output if line.startswith("[recall]")]) >= 2
         assert resets == [1]
+    finally:
+        peer.engine.store.close()
+        engine.store.close()
+
+
+def test_cli_journal_reprojects_peer_publish_and_hides_peer_undo(tmp_path):
+    """Journal follows the active branch after another dashboard saves then undoes."""
+    from app.engine import build_engine
+    from app.gui import build_dashboard
+    from app.play import play_loop
+
+    campaign = tmp_path / "campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    peer = build_dashboard(campaign, demo=True)
+    output: list[str] = []
+    try:
+        def inputs():
+            yield "/journal"
+            saved = peer.action(player_input="PEER_JOURNAL_SENTINEL", action_id="peer-journal",
+                                expected_revision=peer.state()["revision"])
+            yield "/journal"
+            peer.undo(expected_revision=saved["revision"])
+            yield "/journal"
+            yield "/quit"
+        play_loop(engine, inputs(), out=output.append)
+        journals = [line for line in output if line.startswith("[journal]")]
+        assert any("PEER_JOURNAL_SENTINEL" in line for line in journals)
+        assert "PEER_JOURNAL_SENTINEL" not in "\n".join(journals[-1:])
+        assert engine.world["_revision"] == peer.engine.store.revision
+        engine.store.close()
+        engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+        reopened: list[str] = []
+        play_loop(engine, ["/journal", "/quit"], out=reopened.append)
+        assert "PEER_JOURNAL_SENTINEL" not in "\n".join(reopened)
     finally:
         peer.engine.store.close()
         engine.store.close()
