@@ -25,6 +25,8 @@ import threading
 import time
 from typing import Callable, Iterable, Any
 
+from context.access import pov_world
+
 # ---------------------------------------------------------------------------
 # #4 — Loading indicator while a turn is generated
 # ---------------------------------------------------------------------------
@@ -294,7 +296,16 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         if not q:
             out("[recall] 请提供关键词，例如：/recall 桥")
             return False
-        hits = kernel_recall(engine.registry, q, engine.world)
+        # ``kernel_recall`` fans out through systems and therefore must not
+        # receive canonical state from a player-facing OOC command.  A guessed
+        # hidden id is not a discovery mechanism.  Reuse the same protagonist
+        # POV/redaction boundary used by normal player context and dashboard
+        # reads before asking systems to match any text.
+        scene = _build_scene(engine)
+        visible_world = pov_world(
+            engine.world, scene, pov=scene.get("protagonist"), redact_facts=True,
+        )
+        hits = kernel_recall(engine.registry, q, visible_world)
         if hits:
             for h in hits[:5]:
                 out(f"[recall] {h.text}")

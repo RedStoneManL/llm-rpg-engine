@@ -78,6 +78,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-35 | P1 | 已验收（debug trace 私有解释隔离） | Debug trace 是本地 operator 原始 prompt/output 产物；已有 CLI/GUI/GM 记忆隔离，却未以实际 `--debug` 回合验证私有解释不进入 trace/viewer | 真实 opt-in memory + `--debug` 回合写入私有记录后，trace 原文与 viewer 全记录均不含私有正文；trace 继续只作为本地 operator 诊断，不是玩家 API |
 | RCV-36 | P1 | 已验收（当前严格 POV 地图浏览器复验） | RCV-11/20/21 已实现 POV 关系图、出口成本和仅填入行动，但之后多轮 GUI 组合变更缺少当前执行环境的完整浏览器证据 | loopback Chromium 实测隐藏地点不进 player API/DOM，图为仅 POV 节点/边；选点与“填入行动”零写入，390px 无溢出 |
 | RCV-37 | P1 | 已验收（GUI 会话软方向） | CLI 已有非持久 `//steer`，但 GUI 玩家不能表达后续叙事偏好；不能把偏好误写成世界事实或 action-id 恢复输入 | GUI `/api/steer` 只更新 controller 会话、变更/清除重置策略缓存；实际行动才将其传入 prompt。偏好不进入 EventStore、transcript、host envelope 或 request fingerprint，冷重开 duplicate 仍恢复已提交结果 |
+| RCV-38 | P0 | 已验收（CLI recall POV 边界） | 玩家 OOC `/recall` 直接把 canonical world 交给系统 fan-out；猜测隐藏 id 可把未发现地点名称和种类当作查询结果输出 | 查询前用当前主角 scene 的 `pov_world(..., redact_facts=True)` 投影；公开资料仍可检索，隐藏地点猜测无结果，命令继续零回合／零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1249,3 +1250,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1966 passed, 1 deselected in 22.69s`**；唯一 deselect 是既有 slow real embedding。该项未调用真实模型、
   embedding、网络或外部服务；这是本地 Fake/demo 的产品交互与恢复边界验收，不是网络/真实模型质量证明。
+
+- 2026-10-14：RCV-38 在继续前先核对既有 CLI／GUI 的读边界，而不是为 dashboard 另加一套回忆功能。发现
+  CLI 的玩家 OOC `/recall` 仍直接将 canonical `engine.world` 传给各系统的 recall fan-out；在隔离 demo campaign
+  上，输入猜测的 `north_bank_old_tower` 实际返回了隐藏地点 id 和 `ruin` 类型。这是现有、可复现的玩家信息泄漏，
+  不依赖模型或新剧情。原失败输出保留在本轮验证记录中，未删除或改写该反例。
+
+  现将 recall 输入统一收敛到由当前 `_build_scene(engine)` 派生的 `pov_world(..., redact_facts=True)`。这复用普通
+  玩家上下文和 dashboard 的同一可见性／信念过滤，而不是在 recall hook 中按某个 id 打补丁。公开的“石桥”资料仍可
+  检索；已经由 `knowledge_set` 明确发现、但 canonical 属性仍为 `undiscovered` 的“封门”也仍可检索；猜测隐藏地点
+  得到 `无`，revision 不变。该修复没有给 GUI 新增 recall 出口，也没有改变 GM/operator、native author 或 canonical
+  recall 的内部用途。
+
+  定向 `tests/app/test_play.py tests/context/test_viewpoint.py tests/llm/test_tools.py tests/app/test_offline_private_memory_cli.py -rA`
+  为 **`71 passed in 0.82s`**；随后补充的已发现地点回归与 POV/tool 子集为 **`43 passed in 0.26s`**。完整离线 gate、
+  完整 bundle/fresh-clone 与哈希另记于该提交的恢复验证；无真实模型、embedding、网络或外部服务。

@@ -204,6 +204,57 @@ def test_play_loop_ooc_recall_no_turn(tmp_path):
     assert events_after == events_before, "recall should not add events"
 
 
+def test_player_recall_uses_pov_projection_and_keeps_hidden_places_out(tmp_path):
+    """Recall hides guesses but still searches places this protagonist discovered."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+    from systems.knowledge import place_discovery_key
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    # This is canonical-only until the protagonist receives an explicit
+    # discovery fact.  The player read view must retain the known branch while
+    # filtering the separately hidden north-tower counterexample below.
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0,
+                     summary="已发现的封门", deltas={
+                         "id": "known_sealed_gate", "level": 2, "kind": "venue",
+                         "seed": "你已经见过的封门", "visibility": "undiscovered",
+                     }),
+        kernel_event("knowledge_set", day=1, scene="s1", turn=0,
+                     summary="主角知道封门", deltas={
+                         "knower": "protagonist",
+                         "fact_key": place_discovery_key("known_sealed_gate"),
+                         "value": True,
+                     }),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = engine.store.revision
+    output: list[str] = []
+    try:
+        play_loop(engine, inputs=[
+            "/recall north_bank_old_tower",
+            "/recall 石桥",
+            "/recall 封门",
+            "/quit",
+        ], out=output.append)
+        rendered = "\n".join(output)
+        assert "north_bank_old_tower" not in rendered
+        assert "北岸" not in rendered
+        assert "[recall] 无" in rendered
+        # Public current-world material remains searchable; the fix is not a
+        # blanket disablement of a normal player aid.
+        assert "石桥" in rendered
+        assert "known_sealed_gate" in rendered
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_compare_on_then_input_runs_compare(tmp_path):
     """'/compare on' then a normal input runs run_compare and prints both candidates."""
     from app.play import play_loop

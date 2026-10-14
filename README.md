@@ -30,7 +30,7 @@ Alternatively, supply `DEEPSEEK_API_KEY` in the environment or point `RPG_DEEPSE
 
 An empty campaign directory starts a new world; an existing one resumes it. The original Zhipu Coding Plan launcher remains available as `./run.sh`, with `.env.local.example` for configuration. Provider keys and personal saves are not included in the repository.
 
-Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). In play, `/help` lists commands, including `/undo`, `/recall`, `/speak`, and `/quit`.
+Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). In play, `/help` lists commands, including `/undo`, `/recall`, `/speak`, and `/quit`. `/recall` searches only material visible in the current protagonist's POV; guessing an internal id does not reveal it.
 
 `/speak <当前公开同场角色> <逐字原话>` is the only CLI shortcut that can ask the
 host to record that a particular NPC heard a particular sentence. It never extracts
