@@ -94,6 +94,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-51 | P1 | 已验收（CLI transcript revision identity） | canonical turn 在 rewind 后会被新分支复用；仅有 `turn` 仍无法区分已撤回分支与重写后的同回合记录 | 每个成功 transcript row 同时记录 publish 后的 store revision；不改 EventStore、回合语义或 transcript 的非权威定位 |
 | RCV-52 | P1 | 已验收（CLI transcript receipt linkage） | 普通 CLI 回合实际有自动持久化 action receipt，但 transcript 未记录其 action ID，无法精确映射到 receipt／recovery evidence | 每个成功 single/compare transcript row 记录既有 receipt action_id；不新增 CLI 自动重试、读取接口或持久化协议 |
 | RCV-53 | P1 | 已验收（CLI 玩家态势查看） | 终端 REPL 是正常游玩入口，但玩家在回合间没有只读查看当前位置、同场角色、背包和已知出口的命令 | `/status` 只从主角 redacted POV 和既有 scene capability 构建态势，不写事件、receipt、transcript 或权限；隐藏地点/事实不输出 |
+| RCV-54 | P1 | 已验收（CLI 长期目标与公开任务） | `/status` 补齐近景态势后，CLI 仍缺 GUI 已有的长期目标和公开明态任务，长局缺少推进锚点 | GUI/CLI 共享同一 protagonist POV objective read-model；只显示目标与 Lore `明` 态摘要，排除暗线、stages、provenance、私有解释与 GM 状态 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |

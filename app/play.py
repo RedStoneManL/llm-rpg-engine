@@ -26,6 +26,7 @@ import time
 from typing import Callable, Iterable, Any
 
 from app.player_recall import player_recall
+from app.player_objectives import player_objectives
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from kernel.clock import band_name
@@ -334,6 +335,10 @@ def _print_player_status(engine, out: Callable) -> None:
     exits = [f"{place.label}（成本 {costs.get(tuple(sorted((capability.location or '', place.id))), '1')}）"
              for place in capability.exits]
     out(f"[状态] 已知出口：{'、'.join(exits) if exits else '无'}")
+    objectives = player_objectives(view, protagonist)
+    out(f"[状态] 长期目标：{objectives['long_term_goal'] or '未设定'}")
+    active = [item['summary'] for item in objectives['active_quests']]
+    out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
 
 
 def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,

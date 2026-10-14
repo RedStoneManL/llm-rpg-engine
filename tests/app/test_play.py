@@ -221,6 +221,8 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         assert "当前位置：石桥客栈" in rendered
         assert "背包：旧铜灯" in rendered
         assert "已知出口：石桥集市（成本 1）" in rendered
+        assert "长期目标：在黎明前找到旧塔的线索" in rendered
+        assert "公开任务：无" in rendered
         assert "north_bank_old_tower" not in rendered
         assert "北岸旧塔" not in rendered
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered

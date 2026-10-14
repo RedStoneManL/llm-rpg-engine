@@ -29,6 +29,7 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
+from app.player_objectives import player_objectives
 from engine.store import RevisionConflict
 from context.access import pov_world
 from context.capabilities import scene_capabilities
@@ -175,41 +176,7 @@ def _player_goal_and_quests(view: dict[str, Any], protagonist: str | None) -> di
     LoreSystem's already-public 明-state one-line ledger, never a lore line's
     hidden fields, stages, or raw event provenance.
     """
-    systems = view.get("systems")
-    systems = systems if isinstance(systems, dict) else {}
-    graph = systems.get("ontology")
-    goal: str | None = None
-    if graph is not None and isinstance(protagonist, str):
-        entity = graph.get_entity(protagonist)
-        if entity is not None and isinstance(entity.attrs.get("goal"), str):
-            goal = entity.attrs["goal"]
-        for fact in graph.current_facts(protagonist):
-            if fact.predicate in {"目标", "goal"} and isinstance(fact.value, str):
-                goal = fact.value
-
-    lore = systems.get("lore")
-    lore = lore if isinstance(lore, dict) else {}
-    lines = lore.get("lines", {})
-    quests: list[dict[str, str]] = []
-    completed: list[dict[str, str]] = []
-    if isinstance(lines, dict):
-        for quest_id, line in sorted(lines.items()):
-            if not isinstance(quest_id, str) or not isinstance(line, dict):
-                continue
-            if line.get("state") == "明" and isinstance(line.get("summary"), str):
-                quests.append({"id": quest_id, "summary": line["summary"]})
-                continue
-            # A resolved line is player-visible only when it was previously a
-            # 明 task.  This excludes dark lines that happened to expire or
-            # resolve backstage, while letting a player distinguish an empty
-            # ledger from a task they have just completed.
-            resolved = line.get("resolved")
-            summary = resolved.get("summary") if isinstance(resolved, dict) else None
-            summary = summary if isinstance(summary, str) and summary else line.get("summary")
-            if (line.get("state") == "了结" and isinstance(line.get("surfaced_turn"), int)
-                    and isinstance(summary, str)):
-                completed.append({"id": quest_id, "summary": summary})
-    return {"long_term_goal": goal, "active_quests": quests, "completed_quests": completed}
+    return player_objectives(view, protagonist)
 
 
 def build_player_state(engine) -> dict[str, Any]:
