@@ -510,6 +510,47 @@ def player_turn_entity_event_errors(events: list[dict], world: dict, scene: dict
     return errors
 
 
+def _player_faction_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_faction_authority_boundary", hint)
+
+
+def player_turn_faction_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Keep ordinary player turns out of canonical faction governance.
+
+    Faction creation and membership can change a remote person's rank and can
+    later fan out knowledge broadcasts.  The current player UI and safe
+    authoring DTO expose neither a public faction encounter nor a narrow host
+    receipt for joining one, so ordinary CLI/GUI/compare authors have no
+    evidence-based faction write capability.  Native import and host systems
+    remain independently authorized.
+    """
+    if scene.get("protagonist") is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, _item in enumerate((getattr(commit, "sections", {}) or {}).get("factions") or []):
+        errors.append(_player_faction_error(
+            "factions", f"[{index}]",
+            "普通玩家回合不能创建势力或变更成员／位阶；这属于宿主或导入历史权限。",
+        ))
+    return errors
+
+
+def player_turn_faction_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_faction_errors`."""
+    if scene.get("protagonist") is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted"):
+            continue
+        if event.get("type") in {"faction_created", "member_changed"}:
+            errors.append(_player_faction_error(
+                "factions", f"event[{index}]",
+                "普通玩家回合的最终势力 payload 越过了宿主／导入历史权限边界。",
+            ))
+    return errors
+
+
 def _player_item_error(section: str, field: str, hint: str) -> ValidationError:
     return ValidationError(section, field, "player_item_authority_boundary", hint)
 

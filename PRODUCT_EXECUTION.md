@@ -71,7 +71,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-28 | P1 | 已验收（CLI 软转向正常流程） | `//steer` 仍只是占位提示，玩家无法在不倒带的情况下表达后续叙事偏好 | `//steer <方向>`/`/steer <方向>` 仅保存在当前 CLI 会话，作为明确标记、JSON 引用的 Author/Hybrid prompt 偏好；不写 EventStore、transcript、receipt、路线或事实，`clear` 后重置策略会话以免旧偏好残留。普通旅行/发布边界不因偏好放宽 |
 | RCV-29 | P1 | 已验收（玩家 GUI 公开时间方位） | 引擎已维护公开 day/band，CLI/Author 可见，但玩家仪表盘只有回合与版本，长局无法从页面判断游戏内时间 | DTO 只读取已有 `meta.day/band` 并显示在 player status；真实 dashboard 回合、undo、WSGI 刷新和冷重开均从 EventStore replay 同一时钟。无新时间事件、写路由、权限或后台时钟 |
 | RCV-30 | P0 | 已验收（普通 Author/Hybrid 发布契约对齐） | RCV-23～27 已收紧普通玩家作者的 world/fact/entity/item/quest 发布边界，但两份实际模型提示仍保留 GM/全局事实示例，Hybrid 甚至声称可见完整世界，容易让正常行动先产出必拒候选 | 两个提示均只说明普通回合可发布的本地公开观察、public fact、人物／物品／任务范围；真实 `PlayerDashboard → HybridStrategy → run_turn` 离线双调用提交公开移动，并验证安全上下文不含私有 sentinel。不是浏览器点击或真实模型质量验收 |
-| RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 回归覆盖该调用边界。未触发实际 catch-up、浏览器或真实模型调用 |
+| RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 的 stale-NPC 场景实际触发专用 catch-up，关闭/重开后 canonical 演化仍在。未做浏览器或真实模型调用 |
+| RCV-32 | P0 | 已验收（普通玩家势力 canonical 边界） | 普通 CLI/GUI/compare 作者仍可输出 `factions`，直接改写长期势力创建、成员、位阶或群组，且当前玩家 DTO 没有可审查的公开势力遭遇／加入 capability | 候选与最终 EventBatch 双校验拒绝任何普通 factions 写入；普通 GUI、compare preview、final-payload 篡改与 action-id mode binding 均零写通过。宿主／导演／native import 保持独立 policy |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1163,3 +1164,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   一条 `character_evolved(mood=孤寂)`。关闭并从 SQLite/JSONL 重开后，事件仍存在、ontology 投影的 mood 与
   `last_update=5` 保持一致。该回归覆盖了修复所影响的实际后台分支与持久化/replay，而不是只观察参数；仍完全是本地
   Fake provider，不是浏览器或真实模型验收。
+
+- 2026-10-14：RCV-32 的交叉 section 审计发现，普通 Author/Hybrid 的现有发布边界已分别覆盖 world、facts、
+  cast／relations、items、quests 与 knowledge，却没有覆盖 `FactionSystem` 的 `factions` 段。该段可以创建长期势力或
+  变更成员、位阶／群组；后者还可能作为后续势力知识广播的基础。当前玩家 GUI、CLI 安全 handoff 与 POV DTO 都没有
+  公开势力遭遇、加入 receipt 或其他足以授权这种写入的窄 capability。因此普通玩家作者不能以自由叙事直接写 faction
+  canonical 关系；宿主、导演及 native import 仍走各自独立 policy。
+
+  本轮实现候选与最终 EventBatch 双层校验，并把 faction authority mode 纳入 action-id fingerprint/sidecar：普通
+  CLI、GUI 和 compare 均启用该模式，任何 `factions` proposal 或 materialization 注入的 `faction_created`／`member_changed`
+  都整体拒绝，不做只删 section 的修复。跨 false→true mode 的同 action-id 在生成前 fail-closed；不会把旧弱模式的
+  已提交动作静默恢复成当前边界。回归覆盖 GUI 候选拒绝、final payload 篡改原子拒绝、compare preview 在 Hybrid 前拒绝、
+  以及 recovery mode 绑定。专项 `tests/app/test_normal_authoring_safe_context.py tests/loop/test_strategy.py tests/app/test_play.py
+  tests/loop/test_compare.py -rA` 为 **`90 passed in 1.17s`**；正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python
+  -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1953 passed, 1 deselected in 22.53s`**，唯一 deselect 是既有
+  slow real embedding。RCV-32 的完整恢复包与 fresh-clone 验收在本地 checkpoint 记录中另列；没有调用真实模型、网络或外部服务。

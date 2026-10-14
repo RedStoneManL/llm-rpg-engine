@@ -250,6 +250,15 @@ def _quest_candidate(op: str, quest_id: str, summary: str | None = None) -> dict
     }
 
 
+def _faction_member_candidate(person: str, faction: str) -> dict:
+    return {
+        "narration": "远方势力的成员名册在此刻被改写。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "factions": [{"op": "member", "person": person, "faction": faction, "rank": "内环"}],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "无关的远方组织变更"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
@@ -384,6 +393,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
             "ordinary_player_world_authority": True,
             "ordinary_player_fact_authority": True,
             "ordinary_player_entity_authority": True,
+            "ordinary_player_faction_authority": True,
                 "ordinary_player_item_authority": True,
                 "ordinary_player_quest_authority": True,
         }
@@ -653,6 +663,96 @@ def test_entity_authority_binds_recovery_mode_before_generation(tmp_path):
                 strategy=MustNotRun(), provider=provider, action_id="entity-mode-bound-action",
                 expected_revision=base_revision, enforce_player_travel=False,
                 enforce_player_entity_authority=True,
+            )
+        assert engine.store.revision == base_revision + 1
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_rejects_remote_faction_membership_without_writes(tmp_path):
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path,
+        _faction_member_candidate("tower_warden", "remote_secret_order"),
+    )
+    scene = _build_scene(dashboard.engine)
+    dashboard.engine.store.append_many([
+        kernel_event("entity_created", day=scene["day"], scene=scene["id"], turn=0,
+                     summary="remote hidden person", deltas={
+                         "id": "tower_warden", "etype": "Person", "tier": "tracked",
+                         "attrs": {"visibility": "hidden"},
+                     }),
+        kernel_event("faction_created", day=scene["day"], scene=scene["id"], turn=0,
+                     summary="remote secret faction", deltas={
+                         "op": "faction", "id": "remote_secret_order", "tier": "tracked",
+                     }),
+    ], preflight=lambda history: project(dashboard.engine.registry, history))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player faction change lies outside"):
+            dashboard.action(player_input="改写远方成员名册", action_id="remote-faction-member",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-faction-member") is None
+        assert len(dashboard.engine.provider.calls) == 1
+        assert "remote_secret_order" not in json.dumps(
+            [event for event in dashboard.engine.store.iter_events() if event.get("turn") != 0],
+            ensure_ascii=False,
+        )
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_add_faction_membership(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _public_protagonist_fact_candidate())
+    owner = dashboard.engine.registry.owner_of_section("facts")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("member_changed", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_FACTION_SENTINEL", deltas={
+                "person": "tower_warden", "faction": "remote_secret_order", "rank": "内环",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player faction authority boundary"):
+            dashboard.action(player_input="原地确认", action_id="remote-final-faction",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-faction") is None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_faction_authority_binds_recovery_mode_before_generation(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_public_protagonist_fact_candidate()])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("faction-authority conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "原地确认",
+            strategy=AuthorStrategy(), provider=provider, action_id="faction-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_faction_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "原地确认",
+                strategy=MustNotRun(), provider=provider, action_id="faction-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_faction_authority=True,
             )
         assert engine.store.revision == base_revision + 1
     finally:
@@ -1056,6 +1156,30 @@ def test_compare_preview_rejects_npc_knowledge_before_any_candidate_is_shown(tmp
                 enforce_player_travel=True, enforce_player_knowledge_authority=True,
             )
         assert engine.store.revision == before
+        assert len(provider.calls) == 1
+    finally:
+        engine.store.close()
+
+
+def test_compare_preview_rejects_faction_change_before_any_candidate_is_shown(tmp_path):
+    provider = FakeLLMProvider(json_responses=[
+        _faction_member_candidate("tower_warden", "remote_secret_order"),
+    ])
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    before = engine.store.revision
+    try:
+        with pytest.raises(TurnRejected, match="player faction change lies outside"):
+            run_compare(
+                engine.registry, engine.world,
+                {"protagonist": "protagonist", "present": [], "day": 1,
+                 "location": "stonebridge_inn", "id": "s1"},
+                "改写远方成员名册", provider=provider,
+                required_sections=frozenset({"moves", "places", "cast", "facts", "clock"}),
+                enforce_player_travel=True,
+                enforce_player_faction_authority=True,
+            )
+        assert engine.store.revision == before
+        # The first Author candidate is rejected before Hybrid is started.
         assert len(provider.calls) == 1
     finally:
         engine.store.close()
