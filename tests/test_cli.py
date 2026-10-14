@@ -138,6 +138,17 @@ def test_rewind_last_cli(tmp_path):
     assert "保留台词" in _run(["recall", "保留台词", "--no-semantic"], home=env_home).stdout
 
 
+def test_rewind_zero_cli_leaves_turn_zero_events_intact(tmp_path):
+    _run(["new", "z"], home=tmp_path)
+    payload = json.dumps({"type": "action", "day": 0, "scene": "s0", "actors": [],
+                          "summary": "turn zero genesis", "turn": 0}, ensure_ascii=False)
+    assert _run(["log-event", payload], home=tmp_path).returncode == 0
+    r = _run(["rewind", "0"], home=tmp_path)
+    assert r.returncode == 0 and "positive player turn" in r.stdout
+    events = (tmp_path / "storage" / "campaigns" / "z" / "events.jsonl").read_text(encoding="utf-8")
+    assert "turn zero genesis" in events
+
+
 def test_log_event_with_turn(tmp_path):
     _run(["new", "z"], home=tmp_path)
     p = json.dumps({"type":"action","day":1,"scene":"s1","actors":["雷德"],

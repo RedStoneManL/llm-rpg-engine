@@ -24,6 +24,8 @@ def last_turn(campaign_dir):
 def rewind(campaign_dir, turn, *, embedder=None):
     """Retract events + remove chunks with turn>=`turn`, then reproject /
     recompact / reindex. State, working memory and vectors roll back automatically."""
+    if type(turn) is not int or turn < 1:
+        raise ValueError("rewind turn must be a positive player turn")
     cd = Path(campaign_dir)
     with EventStore(cd / "events.db", cd / "events.jsonl") as s:
         n_ev = s.retract_from_turn(turn)

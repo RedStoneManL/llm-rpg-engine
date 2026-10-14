@@ -104,6 +104,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-61 | P0 | 已验收（续玩 recap 私有引用 fail-closed） | 启动续玩直接读 narrative 投影；普通 narration 若错误引用私有记录，可绕过 public-history 的 fail-closed 边界 | 真实 engine 的续玩文本只从 `public_history()` 提取公共 narration/recap；DTO 拒绝时压制叙事正文且继续启动，不输出异常或私有内容 |
 | RCV-62 | P0 | 已验收（玩家 dashboard 局部 fail-closed） | player state 读取 narration 时会传播 public-history 私有引用拒绝，导致整个安全只读页面变为 500 | state 仅压制 narration 并标记不可用；地图、背包、任务等手工 POV DTO 仍安全返回 200，零写入、无正文泄露 |
 | RCV-63 | P0 | 已验收（创世保护的玩家倒带） | 无玩家回合时 CLI `/undo` 取 turn 0，旧实现会撤回全部创世事件；`/rewind 0` 同样可误删世界 | CLI 与 `app.engine.rewind` 仅接受正玩家 turn；空 undo/非正 rewind 明确拒绝且数据库、JSONL、revision 全不变 |
+| RCV-64 | P0 | 已验收（维护 CLI 创世保护） | 独立 `engine.rewind`／`bin/rpg rewind` 仍接受 0，可绕过 RCV-63 的 app 层保护并撤回 turn-0 事件 | legacy rewind API 与维护 CLI 同样只接受正 player turn；`--last` 正常回退保留，非正输入零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1553,3 +1554,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   回归从真实 demo 创世 campaign 运行 `/undo`、`/rewind 0`、`/rewind -1`，以及直接 API 反例，均确认 SQLite/JSONL 事件、
   retracted 状态与 revision 完全不变。正式完整离线 gate 为
   **`1994 passed, 1 deselected in 25.50s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-64 检查同一数据完整性不变量的独立维护入口。`engine/rewind.py` 与 `bin/rpg rewind 0`
+  仍可直接调用 legacy store rewind，因此能绕过 RCV-63 的 app 层限制。现在 legacy API 同样验证正整数，维护 CLI 在写前
+  打印通用拒绝；正常 `--last` 回退保持原行为。回归直接写入一个 turn-0 legacy event 后调用 API 反例，并通过真实
+  `bin/rpg` 创建 campaign、log turn-0、rewind 0，确认 JSONL 保留该事件。正式完整离线 gate 为
+  **`1996 passed, 1 deselected in 25.64s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。

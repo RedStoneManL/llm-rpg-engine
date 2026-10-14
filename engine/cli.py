@@ -219,6 +219,9 @@ def cmd_rewind(args):
         turn = args.turn
     else:
         raise ValueError("rewind needs <turn> or --last or --to-scene")
+    if turn < 1:
+        print("turn must be a positive player turn")
+        return
     res = rewind_mod.rewind(d, turn)
     print(f"rewound turn>={turn}: -{res['events_retracted']} events, -{res['chunks_removed']} chunks")
 

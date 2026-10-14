@@ -50,6 +50,18 @@ def test_rewind_last_is_noop_safe_when_empty(campaign):
     assert res["events_retracted"] == 0 and res["chunks_removed"] == 0
 
 
+def test_rewind_rejects_nonpositive_turn_before_touching_turn_zero_events(campaign):
+    import pytest
+
+    s, _ = _setup(campaign)
+    genesis = make_event("action", 0, "s0", [], "genesis", turn=0)
+    s.append(genesis)
+    before = list(s.iter_events(include_retracted=True))
+    with pytest.raises(ValueError, match="positive player turn"):
+        rewind(campaign, 0, embedder=FakeEmbedder())
+    assert list(s.iter_events(include_retracted=True)) == before
+
+
 def test_last_turn_counts_event_turns_not_just_chunks(campaign):
     # 导演事件可能无对应原文块;last_turn 必须也看事件 turn(/veto 契约)
     s, a = _setup(campaign)
