@@ -75,6 +75,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-32 | P0 | 已验收（普通玩家势力 canonical 边界） | 普通 CLI/GUI/compare 作者仍可输出 `factions`，直接改写长期势力创建、成员、位阶或群组，且当前玩家 DTO 没有可审查的公开势力遭遇／加入 capability | 候选与最终 EventBatch 双校验拒绝任何普通 factions 写入；普通 GUI、compare preview、final-payload 篡改与 action-id mode binding 均零写通过。宿主／导演／native import 保持独立 policy |
 | RCV-33 | P0 | 已验收（普通玩家地点拓扑／人物移动边界） | travel gate 只验证主角目的地，普通作者仍能以 `links` 改写既有地图，或以 `moves` 调度既有人物；`materialize` 也没有普通入口权限 | 候选与最终 EventBatch 双校验仅允许全新 public 前沿地点的一条当前位置直连，以及新建公开人物随主角／留在当前位置；既有拓扑、既有人物移动和 materialize 均零写拒绝，普通公开前沿创建＋移动仍可用 |
 | RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义 |
+| RCV-35 | P1 | 已验收（debug trace 私有解释隔离） | Debug trace 是本地 operator 原始 prompt/output 产物；已有 CLI/GUI/GM 记忆隔离，却未以实际 `--debug` 回合验证私有解释不进入 trace/viewer | 真实 opt-in memory + `--debug` 回合写入私有记录后，trace 原文与 viewer 全记录均不含私有正文；trace 继续只作为本地 operator 诊断，不是玩家 API |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1206,3 +1207,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   replay 事实固定为可回归证据。专项 `tests/loop/test_turn_density_hook.py -q` 为 **`14 passed`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1963 passed, 1 deselected in 22.11s`**，唯一 deselect 是既有 slow real embedding。无真实模型、网络或外部服务。
+
+- 2026-10-14：RCV-35 完成公开出口审计中的 debug trace 分支。`trace.jsonl` 与 `python -m app.trace`
+  是显式、本地、operator-only 的诊断工具，故保留原始玩家输入和完整 provider prompt/output，不应被误作玩家、GM
+  或公开历史 API。此前私有解释已在 CLI、GUI、GM 和 provider context 中隔离，但尚未实际证明启用 `--debug` 时它不进入
+  本地原始 trace。
+
+  新回归先以 `--offline-private-memory` 跑一回合，关闭重开确认主角私有解释记录确实已持久化；再验证同一回合生成的
+  `trace.jsonl` 原文和对每一条记录调用 `app.trace.show_record()` 的完整 viewer 输出均不含私有解释文本，而公开 player
+  input 仍在 trace 中。没有删改 trace 的诊断内容，也没有把 trace 接到网页、transcript、外传或新访问控制路径。文档同步
+  明确 trace 的本地敏感产物定位和分享前审阅要求。定向
+  `tests/app/test_offline_private_memory_cli.py tests/app/test_trace_view.py -rA` 为 **`40 passed in 0.61s`**；正式完整离线
+  gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1964 passed, 1 deselected in 22.69s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务。

@@ -34,6 +34,17 @@ When debug is off (no `RPG_DEBUG_TRACE` env var and no `--debug` flag), all
 tracer calls go to a `NoopTracer` whose methods are inert one-liners. There is
 zero overhead.
 
+### Audience and retention
+
+`trace.jsonl` is a **local operator diagnostic artifact**, not a player, GM,
+or public-history API.  It deliberately retains raw player input and full
+provider prompts/responses, so treat the file as potentially sensitive: do not
+serve it from the dashboard, attach it to a transcript, or upload/share it
+without an explicit review.  The offline private-memory experiment is excluded
+from provider context and therefore from trace records; `/memory` remains its
+only read outlet.  This does not make arbitrary player input or model output
+safe to publish.
+
 ---
 
 ## 2. Enable

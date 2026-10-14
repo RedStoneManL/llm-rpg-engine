@@ -127,3 +127,53 @@ def test_private_memory_experiment_is_explicit_and_replayable_without_public_lea
     assert '[memory] 无' in rewound_text
     assert rewound_text.count('[memory] 第 ') == 0
     assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in rewound_text
+
+
+def test_debug_trace_keeps_offline_private_memory_out_of_operator_records(tmp_path, monkeypatch):
+    """Debug is an operator-only raw prompt sink, not another /memory outlet.
+
+    The trace intentionally retains public player input and full provider
+    prompt/output for diagnosis.  This checks the narrower but essential
+    boundary: enabling it must not make the opt-in protagonist interpretation
+    enter those raw diagnostic records.
+    """
+    campaign = tmp_path / "private-memory-debug-trace"
+    _seed_campaign(campaign)
+    monkeypatch.delenv("RPG_DEBUG_TRACE", raising=False)
+    import kernel.observability as observability
+    observability._DEBUG_TRACER = None
+
+    main(
+        ["--campaign", str(campaign), "--offline-private-memory", "--debug"],
+        inputs=["PUBLIC_TRACE_CONTROL：在酒馆观察雨声", "/quit"],
+        out=lambda _line: None,
+        provider=_turn_provider(),
+    )
+
+    trace_path = campaign / "trace.jsonl"
+    assert trace_path.exists()
+    reopened = build_engine(campaign, provider=_turn_provider(), enable_interpretive_memory=True)
+    try:
+        from systems.interpretive_memory import records_for_actor
+        assert [row["text"] for row in records_for_actor(reopened.world, "protagonist")] == [
+            OFFLINE_INTERPRETIVE_MEMORY_TEXT,
+        ]
+    finally:
+        reopened.store.close()
+    raw_trace = trace_path.read_text(encoding="utf-8")
+    assert "PUBLIC_TRACE_CONTROL" in raw_trace
+    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in raw_trace
+    # Exercise the actual diagnostic viewer's full-record route as well: it
+    # must only reveal what the local trace already contains.
+    from app import trace
+    records = trace.load(str(trace_path))
+    rendered = []
+    import io
+    for record in records:
+        target = io.StringIO()
+        trace.show_record(record, out=target)
+        rendered.append(target.getvalue())
+    assert OFFLINE_INTERPRETIVE_MEMORY_TEXT not in "".join(rendered)
+
+    # Keep the process-global trace singleton from leaking into a later test.
+    observability._DEBUG_TRACER = None
