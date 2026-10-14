@@ -74,7 +74,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 的 stale-NPC 场景实际触发专用 catch-up，关闭/重开后 canonical 演化仍在。未做浏览器或真实模型调用 |
 | RCV-32 | P0 | 已验收（普通玩家势力 canonical 边界） | 普通 CLI/GUI/compare 作者仍可输出 `factions`，直接改写长期势力创建、成员、位阶或群组，且当前玩家 DTO 没有可审查的公开势力遭遇／加入 capability | 候选与最终 EventBatch 双校验拒绝任何普通 factions 写入；普通 GUI、compare preview、final-payload 篡改与 action-id mode binding 均零写通过。宿主／导演／native import 保持独立 policy |
 | RCV-33 | P0 | 已验收（普通玩家地点拓扑／人物移动边界） | travel gate 只验证主角目的地，普通作者仍能以 `links` 改写既有地图，或以 `moves` 调度既有人物；`materialize` 也没有普通入口权限 | 候选与最终 EventBatch 双校验仅允许全新 public 前沿地点的一条当前位置直连，以及新建公开人物随主角／留在当前位置；既有拓扑、既有人物移动和 materialize 均零写拒绝，普通公开前沿创建＋移动仍可用 |
-| RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义 |
+| RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义；取消语义见 RCV-65 |
 | RCV-35 | P1 | 已验收（debug trace 私有解释隔离） | Debug trace 是本地 operator 原始 prompt/output 产物；已有 CLI/GUI/GM 记忆隔离，却未以实际 `--debug` 回合验证私有解释不进入 trace/viewer | 真实 opt-in memory + `--debug` 回合写入私有记录后，trace 原文与 viewer 全记录均不含私有正文；trace 继续只作为本地 operator 诊断，不是玩家 API |
 | RCV-36 | P1 | 已验收（当前严格 POV 地图浏览器复验） | RCV-11/20/21 已实现 POV 关系图、出口成本和仅填入行动，但之后多轮 GUI 组合变更缺少当前执行环境的完整浏览器证据 | loopback Chromium 实测隐藏地点不进 player API/DOM，图为仅 POV 节点/边；选点与“填入行动”零写入，390px 无溢出 |
 | RCV-37 | P1 | 已验收（GUI 会话软方向） | CLI 已有非持久 `//steer`，但 GUI 玩家不能表达后续叙事偏好；不能把偏好误写成世界事实或 action-id 恢复输入 | GUI `/api/steer` 只更新 controller 会话、变更/清除重置策略缓存；实际行动才将其传入 prompt。偏好不进入 EventStore、transcript、host envelope 或 request fingerprint，冷重开 duplicate 仍恢复已提交结果 |
@@ -105,6 +105,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-62 | P0 | 已验收（玩家 dashboard 局部 fail-closed） | player state 读取 narration 时会传播 public-history 私有引用拒绝，导致整个安全只读页面变为 500 | state 仅压制 narration 并标记不可用；地图、背包、任务等手工 POV DTO 仍安全返回 200，零写入、无正文泄露 |
 | RCV-63 | P0 | 已验收（创世保护的玩家倒带） | 无玩家回合时 CLI `/undo` 取 turn 0，旧实现会撤回全部创世事件；`/rewind 0` 同样可误删世界 | CLI 与 `app.engine.rewind` 仅接受正玩家 turn；空 undo/非正 rewind 明确拒绝且数据库、JSONL、revision 全不变 |
 | RCV-64 | P0 | 已验收（维护 CLI 创世保护） | 独立 `engine.rewind`／`bin/rpg rewind` 仍接受 0，可绕过 RCV-63 的 app 层保护并撤回 turn-0 事件 | legacy rewind API 与维护 CLI 同样只接受正 player turn；`--last` 正常回退保留，非正输入零写入 |
+| RCV-65 | P0 | 已验收（后台取消全回合原子性） | RCV-34 覆盖七钩子异常的局部 rollback，但除 digest 外取消仅隐含依赖运行时继承关系，未以写入后取消证明所有入口都不会半发布 | director、cascade、catch-up、lore、demote、density 显式将 `asyncio.CancelledError` 上抛；七钩子均实测 partial write 后取消，前台、receipt、revision、SQLite/JSONL 与冷重开完全不变 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1560,3 +1561,23 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   打印通用拒绝；正常 `--last` 回退保持原行为。回归直接写入一个 turn-0 legacy event 后调用 API 反例，并通过真实
   `bin/rpg` 创建 campaign、log turn-0、rewind 0，确认 JSONL 保留该事件。正式完整离线 gate 为
   **`1996 passed, 1 deselected in 25.64s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-65 接续 RCV-34 的后台原子性，不把“异常非致命”与“取消可吞掉”混为一谈。此前 digest 和私有解释已显式
+  把 `asyncio.CancelledError` 作为控制流上抛；director、cascade、catch-up、lore、demote、density 则只因当前运行时继承关系而
+  恰好不会被 `except Exception` 捕获。现六处同样明确先上抛 cancellation，再保留普通 `Exception` 的非致命局部 rollback。
+  七个 post-foreground hook 都做了实际 fault injection：先在批中写入 sentinel，再取消；每例均要求整个 action 未 publish、
+  事件／revision／action receipt／JSONL 字节不变，并在关闭重开后复验。相反，既有 RuntimeError 回归继续确认普通后台故障只
+  回滚自身并保留前台回合，二者语义没有被合并。专项
+  `tests/loop/test_turn_density_hook.py tests/test_action_integrity.py -rA` 为 **`106 passed in 0.69s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`2003 passed, 1 deselected in 28.33s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-65 接续 RCV-34 的后台原子性，不把“异常非致命”与“取消可吞掉”混为一谈。此前 digest 和私有解释已显式
+  把 `asyncio.CancelledError` 作为控制流上抛；director、cascade、catch-up、lore、demote、density 则只因当前运行时继承关系而
+  恰好不会被 `except Exception` 捕获。现六处同样明确先上抛 cancellation，再保留普通 `Exception` 的非致命局部 rollback。
+  七个 post-foreground hook 都做了实际 fault injection：先在批中写入 sentinel，再取消；每例均要求整个 action 未 publish、
+  事件／revision／action receipt／JSONL 字节不变，并在关闭重开后复验。相反，既有 RuntimeError 回归继续确认普通后台故障只
+  回滚自身并保留前台回合，二者语义没有被合并。专项
+  `tests/loop/test_turn_density_hook.py tests/test_action_integrity.py -rA` 为 **`106 passed in 0.69s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`2003 passed, 1 deselected in 28.33s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。

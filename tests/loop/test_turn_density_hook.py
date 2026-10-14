@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import tempfile
 import json
+import asyncio
 
 import pytest
 
@@ -377,6 +378,75 @@ class TestDensityHook:
             try:
                 assert list(reopened.iter_events(include_retracted=True)) == events
                 assert not any(event["summary"] == f"BACKSTAGE_PARTIAL_{hook_name}"
+                               for event in reopened.iter_events(include_retracted=True))
+            finally:
+                reopened.close()
+        finally:
+            if getattr(store, "_conn", None) is not None:
+                try:
+                    store.close()
+                except Exception:
+                    pass
+
+    @pytest.mark.parametrize("hook_name", [
+        "digest_fleet", "run_director", "run_cascade", "run_catchup", "run_lore",
+        "_run_demote_on_leave", "run_density",
+    ])
+    def test_backstage_hook_write_then_cancellation_aborts_whole_turn(self, monkeypatch, hook_name):
+        """Cancellation is control flow: no foreground or partial hook write commits.
+
+        The non-cancellation test above intentionally preserves the foreground
+        action when a background hook fails.  A cancellation has the opposite
+        contract: every staged foreground and background row is discarded, so
+        a caller can safely treat the action as not published.
+        """
+        import loop.turn as turn_mod
+
+        def cancelled(registry, store, *args, **kwargs):
+            store.append(kernel_event(
+                "lore_seeded", day=1, scene="s1", turn=store.next_turn(),
+                summary=f"BACKSTAGE_CANCELLED_{hook_name}",
+                deltas={"town": "town1", "source": hook_name},
+            ))
+            raise asyncio.CancelledError(f"simulated {hook_name} cancellation after write")
+
+        monkeypatch.setattr(turn_mod, hook_name, cancelled)
+        reg = _reg()
+        store = _store(reg)
+        world = _seed_world(reg, store, density=0.3)
+        scene = {"protagonist": "hero", "present": [], "day": 1,
+                 "id": "s1", "location": "othervenue"}
+        before_events = list(store.iter_events(include_retracted=True))
+        before_revision = store.revision
+        before_jsonl = store.jsonl_path.read_bytes()
+        before_receipts = [dict(row) for row in store._conn.execute(
+            "SELECT * FROM action_receipts ORDER BY action_id"
+        )]
+        db_path, jsonl_path = store.db_path, store.jsonl_path
+        try:
+            with pytest.raises(asyncio.CancelledError, match="simulated"):
+                run_turn(
+                    reg, store, world, scene, "原地确认",
+                    strategy=AuthorStrategy(),
+                    provider=FakeLLMProvider(json_responses=[_narrator_commit()]),
+                    cascade_provider=None, embedder=None, max_repairs=0,
+                )
+            assert list(store.iter_events(include_retracted=True)) == before_events
+            assert store.revision == before_revision
+            assert store.jsonl_path.read_bytes() == before_jsonl
+            assert [dict(row) for row in store._conn.execute(
+                "SELECT * FROM action_receipts ORDER BY action_id"
+            )] == before_receipts
+            store.close()
+            reopened = open_store(db_path, jsonl_path, allowed_types=reg.event_types())
+            try:
+                assert list(reopened.iter_events(include_retracted=True)) == before_events
+                assert reopened.revision == before_revision
+                assert reopened.jsonl_path.read_bytes() == before_jsonl
+                assert [dict(row) for row in reopened._conn.execute(
+                    "SELECT * FROM action_receipts ORDER BY action_id"
+                )] == before_receipts
+                assert not any(event["summary"] == f"BACKSTAGE_CANCELLED_{hook_name}"
                                for event in reopened.iter_events(include_retracted=True))
             finally:
                 reopened.close()

@@ -795,6 +795,11 @@ def _run_turn_staged(
             if dir_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: director appended %d event(s)", len(dir_events))
+        except asyncio.CancelledError:
+            # Cancellation aborts the enclosing EventBatch.  Keep this
+            # explicit rather than relying on CancelledError's inheritance:
+            # ordinary hook failures are non-fatal, cancellation is not.
+            raise
         except Exception:
             log.exception("run_turn: run_director failed (non-fatal, backstage)")
 
@@ -809,6 +814,8 @@ def _run_turn_staged(
             if cas_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: cascade appended %d event(s)", len(cas_events))
+        except asyncio.CancelledError:
+            raise
         except Exception:
             log.exception("run_turn: run_cascade failed (non-fatal, backstage)")
 
@@ -828,6 +835,8 @@ def _run_turn_staged(
             if cat_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: catchup appended %d event(s)", len(cat_events))
+        except asyncio.CancelledError:
+            raise
         except Exception:
             log.exception("run_turn: run_catchup failed (non-fatal, backstage)")
 
@@ -840,6 +849,8 @@ def _run_turn_staged(
             if lore_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: lore appended %d event(s)", len(lore_events))
+        except asyncio.CancelledError:
+            raise
         except Exception:
             log.exception("run_turn: run_lore failed (non-fatal, backstage)")
 
@@ -854,6 +865,8 @@ def _run_turn_staged(
                 )
                 # Re-project after demote hook (safe: unchanged store → same world)
                 new_world = project(registry, store.iter_events())
+        except asyncio.CancelledError:
+            raise
         except Exception:
             log.exception("run_turn: demote_on_leave failed (non-fatal, backstage)")
 
@@ -873,6 +886,8 @@ def _run_turn_staged(
                     if dens_events:
                         new_world = project(registry, store.iter_events())
                         log.debug("run_turn: density appended %d event(s)", len(dens_events))
+        except asyncio.CancelledError:
+            raise
         except Exception:
             log.exception("run_turn: run_density failed (non-fatal, backstage)")
 
