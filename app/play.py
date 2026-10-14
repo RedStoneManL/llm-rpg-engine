@@ -601,6 +601,7 @@ def play_loop(
                     scene, player_input, strategy=PreparedCandidate(), provider=engine.provider,
                     embedder=engine.embedder, required_sections=required_sections,
                     cascade_provider=engine.cascade_provider, prev_scene=prev_scene,
+                    catchup_provider=engine.cascade_provider,
                     memory_role=(scene['protagonist'] if engine.interpretive_memory_enabled else None),
                     memory_generator=engine.interpretive_memory_generator,
                     enforce_player_travel=True,

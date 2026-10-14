@@ -71,6 +71,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-28 | P1 | 已验收（CLI 软转向正常流程） | `//steer` 仍只是占位提示，玩家无法在不倒带的情况下表达后续叙事偏好 | `//steer <方向>`/`/steer <方向>` 仅保存在当前 CLI 会话，作为明确标记、JSON 引用的 Author/Hybrid prompt 偏好；不写 EventStore、transcript、receipt、路线或事实，`clear` 后重置策略会话以免旧偏好残留。普通旅行/发布边界不因偏好放宽 |
 | RCV-29 | P1 | 已验收（玩家 GUI 公开时间方位） | 引擎已维护公开 day/band，CLI/Author 可见，但玩家仪表盘只有回合与版本，长局无法从页面判断游戏内时间 | DTO 只读取已有 `meta.day/band` 并显示在 player status；真实 dashboard 回合、undo、WSGI 刷新和冷重开均从 EventStore replay 同一时钟。无新时间事件、写路由、权限或后台时钟 |
 | RCV-30 | P0 | 已验收（普通 Author/Hybrid 发布契约对齐） | RCV-23～27 已收紧普通玩家作者的 world/fact/entity/item/quest 发布边界，但两份实际模型提示仍保留 GM/全局事实示例，Hybrid 甚至声称可见完整世界，容易让正常行动先产出必拒候选 | 两个提示均只说明普通回合可发布的本地公开观察、public fact、人物／物品／任务范围；真实 `PlayerDashboard → HybridStrategy → run_turn` 离线双调用提交公开移动，并验证安全上下文不含私有 sentinel。不是浏览器点击或真实模型质量验收 |
+| RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 回归覆盖该调用边界。未触发实际 catch-up、浏览器或真实模型调用 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1142,3 +1143,16 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   sentinel 未出现。正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest
   -o "addopts=-m 'not slow'" -rA` 为 **`1947 passed, 1 deselected in 22.36s`**；唯一 deselect 是既有 slow real embedding。
   该证据是离线 fixture 的完整策略/发布链，不是浏览器点击、真实模型或剧情质量结论。
+
+- 2026-10-14：RCV-31 的只读入口对照发现一个普通 compare 流程的后台 provider 传递差异。`/compare on` 先用
+  `run_compare` 生成甲／乙候选，再以 `PreparedCandidate → run_turn` 持久化甲；该最终调用此前传入了
+  `cascade_provider`，却漏传同一引擎配置的 `catchup_provider`。普通 CLI 分支和 GUI 已同时传两者，因此 compare
+  的 stale-entity catch-up 可能意外回退到前台 author provider，造成行为与模型预算来源不一致。
+
+  现在 compare 的最终 `run_turn` 与普通 CLI/GUI 一样显式传入 `engine.cascade_provider` 作为 cascade 与
+  catch-up provider。新增真实 CLI `/compare on → PlayerDashboard` 之外的 `play_loop → run_compare → PreparedCandidate → run_turn`
+  回归，monkeypatch 只观察最终持久化调用，断言二者是同一配置对象；候选仍由本地 `FakeLLMProvider` 确定性生成。
+  定向 `tests/app/test_play.py tests/loop/test_compare.py tests/app/test_gui.py -rA` 为 **`61 passed in 0.96s`**；正式完整离线
+  gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1948 passed, 1 deselected in 26.22s`**；唯一 deselect 是既有 slow real embedding。该回归未使 catch-up
+  实际执行，不是浏览器点击、真实模型、外部预算或长期剧情质量验收。

@@ -233,6 +233,49 @@ def test_play_loop_compare_on_then_input_runs_compare(tmp_path):
         f"Expected compare output mentioning candidates, got: {combined!r}"
 
 
+def test_play_loop_compare_passes_cli_catchup_provider(tmp_path, monkeypatch):
+    """Compare's final prepared turn keeps the same background provider wiring.
+
+    ``run_compare`` only prepares its two visible candidates.  The durable
+    ``run_turn`` call that applies 甲 must still receive both the cascade and
+    catch-up provider, exactly as ordinary CLI play and the dashboard do.
+    """
+    from app import play as play_module
+    from app.play import play_loop
+
+    jia_commit = {
+        "narration": "甲策略：你确认眼前的公开标记。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处确认"}],
+    }
+    bing_commit = {
+        "narration": "乙策略：你停在原地核验眼前细节。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处确认"}],
+    }
+    engine = _build_engine_with_game(tmp_path)
+    engine.provider = FakeLLMProvider(
+        responses=["乙策略：你停在原地核验眼前细节。"],
+        json_responses=[jia_commit, bing_commit],
+    )
+    marker = object()
+    engine.cascade_provider = marker
+    observed = {}
+    original = play_module.run_turn
+
+    def wrapped(*args, **kwargs):
+        observed["cascade"] = kwargs.get("cascade_provider")
+        observed["catchup"] = kwargs.get("catchup_provider")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(play_module, "run_turn", wrapped)
+    try:
+        play_loop(engine, inputs=["/compare on", "核验眼前", "/quit"], out=lambda _: None)
+        assert observed == {"cascade": marker, "catchup": marker}
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_help_prints_something(tmp_path):
     """/help prints something."""
     from app.play import play_loop
