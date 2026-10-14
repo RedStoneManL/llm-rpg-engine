@@ -591,7 +591,11 @@ class PlayerDashboard:
             if turn <= 0:
                 raise GuiRequestError("当前没有可撤销的玩家回合。")
             rewind(self.engine, turn)
-            self.previous_scene = None
+            # The remaining durable history still has an action-start scope.
+            # Rebuild it exactly as a cold reopen would, rather than making
+            # the next action treat every stale co-located entity as newly
+            # arrived merely because the user rewound the latest turn.
+            self.previous_scene = _previous_scene_before_latest_action(self.engine)
             # A rewind changes canonical history but the strategy's multi-turn
             # thread is only an in-memory prompt cache.  Keeping it would let
             # the next normal GUI action carry a retracted player exchange to

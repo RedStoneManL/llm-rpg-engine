@@ -527,6 +527,70 @@ def test_dispatch_ooc_rewind_retracts_and_reprojects(tmp_path):
     assert g.value_at("protagonist", "mood", 2) == "excited"
 
 
+def test_play_loop_undo_rebuilds_catchup_scope_from_surviving_action(tmp_path):
+    """CLI undo keeps the same catch-up scope contract as GUI/cold reopen."""
+    from app.gui import build_dashboard
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+    from kernel.turncommit import TurnCommit
+
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    engine = dashboard.engine
+    engine.store.append(kernel_event(
+        "character_created", day=1, scene="s1", turn=0, summary="掌柜在客栈",
+        deltas={"id": "innkeeper", "tier": "tracked", "sketch": "掌柜", "goal": "照看客栈"},
+    ))
+    engine.store.append(kernel_event(
+        "entity_moved", day=1, scene="s1", turn=0, summary="掌柜留在客栈",
+        deltas={"who": "innkeeper", "to": "stonebridge_inn"},
+    ))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+
+    class ObserveInPlace:
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="你留在客栈观察。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    catchup = FakeLLMProvider(json_responses=[{
+        "changed": True, "predicate": "mood", "value": "不应因撤销而变化",
+    }])
+    engine.cascade_provider = catchup
+
+    def inputs():
+        yield "第一段观察"
+        # This host time event survives the following player undo.  The NPC is
+        # stale but has never left the player's scope.
+        engine.store.append(kernel_event(
+            "time_advanced", day=5, scene="s1", turn=0, summary="数日过去",
+            deltas={"to_day": 5, "reason": "fixture host time"},
+        ))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        engine.world["_revision"] = engine.store.revision
+        yield "第二段观察"
+        yield "/undo"
+        yield "撤销后的观察"
+        yield "/quit"
+
+    try:
+        play_loop(engine, inputs=inputs(), out=lambda _: None, strategy=ObserveInPlace())
+        # Density may share the configured cheap provider; only the explicit
+        # catch-up prompt names an entity id in this stable form.
+        assert not any("实体 id：innkeeper" in user for _system, user in catchup.calls)
+        assert all(event["type"] != "character_evolved" for event in engine.store.iter_events())
+    finally:
+        engine.store.close()
+
+
 def test_dispatch_ooc_undo_retracts_last_turn(tmp_path):
     """/undo retracts the most recent turn's events."""
     from app.play import dispatch_ooc

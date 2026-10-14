@@ -557,7 +557,11 @@ def play_loop(
             if engine.store.revision != revision_before:
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
-                prev_scene = None
+                # `/undo` and `/rewind` change durable history just like a
+                # cold reopen.  Preserve catch-up's entering-scope semantics
+                # from the newest surviving player action instead of clearing
+                # the transient anchor unconditionally.
+                prev_scene = _previous_scene_before_latest_action(engine)
             if stop:
                 break
             continue

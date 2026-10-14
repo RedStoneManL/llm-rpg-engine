@@ -321,6 +321,63 @@ def test_dashboard_reopen_preserves_pending_catchup_after_actual_arrival(tmp_pat
         reopened.engine.store.close()
 
 
+def test_dashboard_undo_rebuilds_catchup_scope_from_surviving_action(tmp_path):
+    """Undo must recover the same scope anchor as a cold reopen, not clear it."""
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    dashboard.engine.store.append(kernel_event(
+        "character_created", day=1, scene="s1", turn=0, summary="掌柜在客栈",
+        deltas={"id": "innkeeper", "tier": "tracked", "sketch": "掌柜", "goal": "照看客栈"},
+    ))
+    dashboard.engine.store.append(kernel_event(
+        "entity_moved", day=1, scene="s1", turn=0, summary="掌柜留在客栈",
+        deltas={"who": "innkeeper", "to": "stonebridge_inn"},
+    ))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+
+    class ObserveInPlace:
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="你留在客栈观察。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - valid fixture
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    dashboard.strategy = ObserveInPlace()
+    dashboard.previous_scene = gui._build_scene(dashboard.engine)
+    first = dashboard.action(player_input="第一段观察", action_id="undo-catchup-first",
+                             expected_revision=dashboard.state()["revision"])
+    # Model a host-side time advance between ordinary player actions.  It is
+    # not part of the next undo target and leaves the same NPC stale in scope.
+    dashboard.engine.store.append(kernel_event(
+        "time_advanced", day=5, scene="s1", turn=0, summary="数日过去",
+        deltas={"to_day": 5, "reason": "fixture host time"},
+    ))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+    catchup = FakeLLMProvider(json_responses=[{
+        "changed": True, "predicate": "mood", "value": "不应因撤销而变化",
+    }])
+    dashboard.engine.cascade_provider = catchup
+    second = dashboard.action(player_input="第二段观察", action_id="undo-catchup-second",
+                              expected_revision=dashboard.state()["revision"])
+    assert catchup.calls == []
+
+    dashboard.undo(expected_revision=second["revision"])
+    assert dashboard.previous_scene is not None
+    dashboard.action(player_input="撤销后的观察", action_id="undo-catchup-third",
+                     expected_revision=dashboard.state()["revision"])
+    assert catchup.calls == []
+    assert all(event["type"] != "character_evolved"
+               for event in dashboard.engine.store.iter_events())
+    dashboard.engine.store.close()
+
+
 def test_player_gui_recall_uses_shared_pov_boundary_without_writing(tmp_path):
     """The dashboard gets the same read-only recall behavior as CLI play."""
     campaign = tmp_path / "campaign"

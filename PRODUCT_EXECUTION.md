@@ -84,6 +84,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-41 | P0 | 已验收（GUI 撤销作者缓存） | CLI `/undo`/`/rewind` 会清空多回合作者缓存，但 GUI 撤销只重置上一场景，可能让下一次作者请求携带已撤回的玩家交流 | GUI `undo()` 在成功 rewind 后同样 reset 策略缓存；真实 controller 的多回合 Author 回归确认第二次 prompt 不含已撤回行动，canonical world 仍由 replay 决定 |
 | RCV-42 | P1 | 已验收（GUI 启动模式如实标识） | 正常已保存 campaign 的玩家页也固定写成 `OFFLINE DEMO`／离线试用，容易误导用户把真实 normal author 流程当替身 | HTTP shell 仅按 `dashboard.demo` 渲染 `OFFLINE DEMO` 或 `SAVED CAMPAIGN` 与相应本地说明；不改变 DTO、provider、行动、事件或权限 |
 | RCV-43 | P0 | 已验收（冷重开 catch-up 作用域恢复） | catch-up 的“本回合进入视野”判断只保存在 CLI/GUI controller 内存；重开会把持续同场的 stale NPC 误当新进入，或若粗暴禁用又会丢失真实抵达后的待处理 catch-up | 从最新仍未撤回 action receipt 的首 seq 前，在单一 SQLite 只读 snapshot 重放 action-start scene；CLI 和 GUI 均采用它。回归同时证明持续同场不误演化、真实抵达后重开仍会演化、撤回 receipt 不作锚点 |
+| RCV-44 | P0 | 已验收（撤销／回退 catch-up 作用域恢复） | RCV-43 修复了冷重开，但 CLI `/undo`／`/rewind` 与 GUI undo 在 revision 改变后仍强行清空作用域锚点；下一动作会把持续同场 stale NPC 误作新进入 | 成功 rewind 后 CLI 与 GUI 都从最新存活 action receipt 重建 prior scene；真实 `行动→undo→行动` 回归确认没有额外 catch-up／`character_evolved`，策略缓存 reset 语义不变 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1336,3 +1337,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   相关 GUI／CLI／catch-up 专项为 `83 passed in 1.06s`；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1973 passed, 1 deselected in 22.40s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-44 继续 RCV-43 的同一完整回放准则，检查正常 OOC 撤销而不是再跑已收束的冷重开场景。
+  发现 GUI `PlayerDashboard.undo()` 和 CLI `play_loop` 在 `/undo`／`/rewind` 改变 revision 后都直接置
+  `previous_scene`／`prev_scene=None`。这会丢掉仍存活历史的 action-start scope；下一普通行动若与 stale NPC
+  持续同场，就可能被错误当作“刚进入”并触发后台 catch-up。作者策略 cache 的 `reset()` 仍是必要的，不能以
+  保留旧 prompt 来避免该问题。
+
+  现在两条入口在成功 rewind 后都复用 RCV-43 的 `latest_active_action_prefix()`，只读重放**最新存活** action
+  之前的 scene 作为下一动作的 catch-up anchor，同时保留既有策略 reset、revision 和撤回行为。没有写入补偿事件、
+  放宽权限、改变 undo 的撤回范围或新增模型调用。离线 GUI 与 CLI 都实际走 `行动 → host time advance → 行动 →
+  /undo → 行动`：host time 事件会留下同场 NPC 的 stale 条件，而被撤回的第二玩家行动不会带走第一 action receipt；
+  修复后两个入口均不发出 `实体 id：innkeeper` catch-up 请求，也不写 `character_evolved`。CLI 的便宜后台 provider
+  还会被既有 density hook 使用，断言因此精确识别 catch-up prompt，而不是错误要求该 provider 零调用。
+  相关 GUI／CLI／time／action-integrity 专项为 **`170 passed in 1.49s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1975 passed, 1 deselected in 22.51s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
