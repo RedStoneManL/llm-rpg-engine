@@ -106,6 +106,70 @@ def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(
     reopened.engine.store.close()
 
 
+def test_dashboard_undo_resets_author_conversation_before_next_action(tmp_path):
+    """A GUI rewind must not leave retracted prose in a normal author thread."""
+    from engine import settings
+
+    class RecordingProvider(FakeLLMProvider):
+        def __init__(self):
+            super().__init__(responses=[json.dumps({
+                "narration": "公开的短暂观察。", "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "仍在眼前"}],
+            }, ensure_ascii=False)])
+            self.message_sets = []
+
+        def complete_messages(self, messages, **kwargs):
+            self.message_sets.append(copy.deepcopy(messages))
+            return super().complete_messages(messages, **kwargs)
+
+    class TrackingAuthor(AuthorStrategy):
+        def __init__(self):
+            super().__init__()
+            self.resets = 0
+
+        def reset(self):
+            self.resets += 1
+            super().reset()
+
+    settings.set_conversation_mode("multiturn")
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    provider = RecordingProvider()
+    strategy = TrackingAuthor()
+    dashboard.engine.provider = provider
+    dashboard.strategy = strategy
+    try:
+        first = dashboard.action(
+            player_input="GUI_RETRACTED_ACTION_SENTINEL：先说一句会被撤销的话",
+            action_id="gui-reset-first", expected_revision=dashboard.state()["revision"],
+        )
+        assert first["duplicate"] is False
+        assert "GUI_RETRACTED_ACTION_SENTINEL" in json.dumps(strategy._thread, ensure_ascii=False)
+
+        dashboard.undo(expected_revision=first["revision"])
+        assert strategy.resets == 1
+        assert strategy._thread is None and strategy._messages is None
+
+        calls_before_second = len(provider.message_sets)
+        second = dashboard.action(
+            player_input="GUI_AFTER_UNDO_PUBLIC_ACTION：只观察当前公开地点",
+            action_id="gui-reset-second", expected_revision=dashboard.state()["revision"],
+        )
+        assert second["duplicate"] is False
+        # Background density hooks may use the same fake provider after the
+        # foreground author call.  Select the request that actually contains
+        # this second normal action rather than assuming it was the last call.
+        requests = [json.dumps(messages, ensure_ascii=False)
+                    for messages in provider.message_sets[calls_before_second:]
+                    if "GUI_AFTER_UNDO_PUBLIC_ACTION" in json.dumps(messages, ensure_ascii=False)]
+        assert requests
+        rendered_request = requests[-1]
+        assert "GUI_AFTER_UNDO_PUBLIC_ACTION" in rendered_request
+        assert "GUI_RETRACTED_ACTION_SENTINEL" not in rendered_request
+    finally:
+        settings.set_conversation_mode("stateless")
+        dashboard.engine.store.close()
+
+
 def test_player_gui_recall_uses_shared_pov_boundary_without_writing(tmp_path):
     """The dashboard gets the same read-only recall behavior as CLI play."""
     campaign = tmp_path / "campaign"

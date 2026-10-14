@@ -81,6 +81,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-38 | P0 | 已验收（CLI recall POV 边界） | 玩家 OOC `/recall` 直接把 canonical world 交给系统 fan-out；猜测隐藏 id 可把未发现地点名称和种类当作查询结果输出 | 查询前用当前主角 scene 的 `pov_world(..., redact_facts=True)` 投影；公开资料仍可检索，隐藏地点猜测无结果，命令继续零回合／零写入 |
 | RCV-39 | P0 | 已验收（旧无主事件重开边界） | 兼容读取中无 owner 的旧事件会跳过系统 apply，却仍先推进 `meta.day/scene/timeline`，使恢复后的当前场景与实际投影脱节 | projection 先解析 owner；无 owner 时整条事件仅 debug 记录后忽略，不更新 meta/timeline。真实 SQLite/JSONL 旧 campaign 重开保持只读，已验证当前场景仍来自最后拥有者事件 |
 | RCV-40 | P1 | 已验收（玩家 GUI POV recall） | CLI recall 已有安全投影，但 dashboard 没有等价的长期游玩只读查询；另起实现容易重新把 canonical world 接到浏览器 | 共享 `player_recall` 只接受当前 protagonist 的 redacted POV；GUI `GET /api/recall` 与页面查询只返回受限文本、零事件／receipt／revision 写入，隐藏 id 不命中而公开资料可用 |
+| RCV-41 | P0 | 已验收（GUI 撤销作者缓存） | CLI `/undo`/`/rewind` 会清空多回合作者缓存，但 GUI 撤销只重置上一场景，可能让下一次作者请求携带已撤回的玩家交流 | GUI `undo()` 在成功 rewind 后同样 reset 策略缓存；真实 controller 的多回合 Author 回归确认第二次 prompt 不含已撤回行动，canonical world 仍由 replay 决定 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1293,3 +1294,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   客栈、集市等结果）；捕获的非 GET 请求为空、页面无横向溢出。该服务与临时 campaign 已删除，未保存截图。
   这是本地 Fake/demo 的 HTTP/浏览器边界验证，不是网络或真实模型质量结论。定向 GUI/play/POV/tool 子集、
   组装 JS 的 `node --check -` 与完整离线 gate 的实际结果另记于本提交验证；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-41 的正常流程审计发现 CLI 与 GUI 对撤销后的多回合作者缓存不一致。CLI 在 OOC
+  `/undo`／`/rewind` 改变 revision 后会 reset 策略；GUI 的 `PlayerDashboard.undo()` 只重新投影 world 和清空
+  `previous_scene`。这不会改写持久化历史，但会让随后普通 GUI action 的 `AuthorStrategy` 线程保留已撤回的用户／
+  助手交换，造成 prompt 与当前 replay world 脱节。
+
+  成功 rewind 后 GUI 现同样调用策略 `reset()`，只清除瞬态缓存、不改变 soft direction、EventStore、JSONL 或
+  action-id 规则。真实 `PlayerDashboard.action → AuthorStrategy → undo → action` 离线回归在多回合模式下保存第一
+  个带 sentinel 的行动、撤销后验证 `_thread/_messages` 均为空；第二次真实 Author 请求含新行动且不含已撤回文本。
+  背景 density 会与前台共享 fake provider，测试按第二行动文本选取前台消息而非误把最后一条后台请求当作者消息。
+  定向与完整离线 gate、bundle/fresh-clone 的实际结果另记于本提交验证；无真实模型、embedding、网络或外部服务。
