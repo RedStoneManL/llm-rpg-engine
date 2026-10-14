@@ -73,6 +73,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-30 | P0 | 已验收（普通 Author/Hybrid 发布契约对齐） | RCV-23～27 已收紧普通玩家作者的 world/fact/entity/item/quest 发布边界，但两份实际模型提示仍保留 GM/全局事实示例，Hybrid 甚至声称可见完整世界，容易让正常行动先产出必拒候选 | 两个提示均只说明普通回合可发布的本地公开观察、public fact、人物／物品／任务范围；真实 `PlayerDashboard → HybridStrategy → run_turn` 离线双调用提交公开移动，并验证安全上下文不含私有 sentinel。不是浏览器点击或真实模型质量验收 |
 | RCV-31 | P1 | 已验收（CLI compare 后台 provider 契约） | `/compare on` 的候选生成后会走一次 `PreparedCandidate → run_turn` 持久化，但该最终调用漏传既有 cascade provider 作为 catch-up provider，与普通 CLI/GUI 路径不一致 | compare 最终 apply 显式同时传入 cascade/catch-up provider；真实 CLI compare 的 stale-NPC 场景实际触发专用 catch-up，关闭/重开后 canonical 演化仍在。未做浏览器或真实模型调用 |
 | RCV-32 | P0 | 已验收（普通玩家势力 canonical 边界） | 普通 CLI/GUI/compare 作者仍可输出 `factions`，直接改写长期势力创建、成员、位阶或群组，且当前玩家 DTO 没有可审查的公开势力遭遇／加入 capability | 候选与最终 EventBatch 双校验拒绝任何普通 factions 写入；普通 GUI、compare preview、final-payload 篡改与 action-id mode binding 均零写通过。宿主／导演／native import 保持独立 policy |
+| RCV-33 | P0 | 已验收（普通玩家地点拓扑／人物移动边界） | travel gate 只验证主角目的地，普通作者仍能以 `links` 改写既有地图，或以 `moves` 调度既有人物；`materialize` 也没有普通入口权限 | 候选与最终 EventBatch 双校验仅允许全新 public 前沿地点的一条当前位置直连，以及新建公开人物随主角／留在当前位置；既有拓扑、既有人物移动和 materialize 均零写拒绝，普通公开前沿创建＋移动仍可用 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1179,3 +1180,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   tests/loop/test_compare.py -rA` 为 **`90 passed in 1.17s`**；正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python
   -m pytest -o "addopts=-m 'not slow'" -rA` 为 **`1953 passed, 1 deselected in 22.53s`**，唯一 deselect 是既有
   slow real embedding。RCV-32 的完整恢复包与 fresh-clone 验收在本地 checkpoint 记录中另列；没有调用真实模型、网络或外部服务。
+
+- 2026-10-14：RCV-33 审计补齐 `PlaceSystem` 的普通作者写面。既有 travel 校验只约束 protagonist 的目的地，
+  因而普通 Author/Hybrid 虽看不到 canonical 地图，仍可在 `links` 段改写两处既有地点间的拓扑，或在 `moves`
+  段调度既有人物；`materialize` 也没有玩家 capability。现在普通 CLI、GUI 与 compare 的候选及最终 EventBatch
+  都启用独立 place authority：只允许全新、显式 public 的前沿地点，且每个新地点在同回合恰有一条从 action-start
+  当前位置出发的 public 直连边；普通回合不得改写既有拓扑或实体化地点。非主角移动只允许同回合新建公开人物，
+  且位置限于当前位置或主角的同回合目的地。该模式进入 action-id fingerprint/sidecar，跨 false→true 恢复 fail-closed；
+  native import 保留独立 native policy。
+
+  回归覆盖 ordinary GUI 对既有远方链接的候选零写拒绝、materializer 注入既有人物移动的最终 payload 原子拒绝，
+  并实际经 GUI 创建一个全新 public 前沿、直连当前位置且移动主角成功。专项 `tests/app/test_normal_authoring_safe_context.py`
+  为 **`49 passed`**（其后相关 capabilities/strategy/play/compare 子集为 **`61 passed`**）；正式
+  完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1956 passed, 1 deselected in 22.93s`**，唯一 deselect 是既有 slow real embedding。无真实模型、网络或外部服务。

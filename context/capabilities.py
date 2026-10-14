@@ -551,6 +551,147 @@ def player_turn_faction_event_errors(events: list[dict], world: dict, scene: dic
     return errors
 
 
+def _player_place_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_place_authority_boundary", hint)
+
+
+def player_turn_place_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Constrain ordinary topology and non-protagonist movement writes.
+
+    A normal player turn can extend the immediately visible public frontier,
+    but cannot rewrite pre-existing topology, materialize a hidden place, or
+    simulate arbitrary NPC travel.  A fresh public place needs exactly one
+    direct public edge from the action-start location.  A same-turn new public
+    character may be placed only at that location or alongside the protagonist.
+    """
+    actor = scene.get("protagonist")
+    origin = scene.get("location")
+    if not isinstance(actor, str) or not actor or not isinstance(origin, str) or not origin:
+        return []
+    sections = getattr(commit, "sections", {}) or {}
+    graph = world.get("systems", {}).get("ontology")
+    existing = set(graph.entities) if graph is not None else set()
+    errors: list[ValidationError] = []
+    fresh_places: set[str] = set()
+    for index, item in enumerate(sections.get("places") or []):
+        if not isinstance(item, dict):
+            continue
+        place_id = item.get("id")
+        if not isinstance(place_id, str) or not place_id or place_id in existing:
+            errors.append(_player_place_error("places", f"[{index}].id",
+                "普通玩家回合只能创建全新的公开前沿地点。"))
+            continue
+        fresh_places.add(place_id)
+        if item.get("visibility") != "public":
+            errors.append(_player_place_error("places", f"[{index}].visibility",
+                "普通玩家新地点必须显式为 public。"))
+        if item.get("parent") not in {None, origin}:
+            errors.append(_player_place_error("places", f"[{index}].parent",
+                "普通玩家新地点只能可选地以 action-start 当前位置为 parent。"))
+    link_counts = {place_id: 0 for place_id in fresh_places}
+    for index, item in enumerate(sections.get("links") or []):
+        if not isinstance(item, dict):
+            continue
+        endpoints = {item.get("a"), item.get("b")}
+        new_places = endpoints & fresh_places
+        if len(new_places) != 1 or origin not in endpoints or item.get("visibility") != "public":
+            errors.append(_player_place_error("links", f"[{index}]",
+                "普通玩家只能以一条 public 直连边把一个新地点接到 action-start 当前位置。"))
+            continue
+        link_counts[next(iter(new_places))] += 1
+    for place_id, count in link_counts.items():
+        if count != 1:
+            errors.append(_player_place_error("places", place_id,
+                "每个普通玩家新地点必须在同回合恰有一条直连当前位置的 public 边。"))
+    if sections.get("materialize"):
+        errors.append(_player_place_error("materialize", "",
+            "普通玩家回合不能实体化既有地点。"))
+    fresh_people = {
+        item.get("id") for item in sections.get("cast") or []
+        if isinstance(item, dict) and item.get("op", "create") == "create"
+        and isinstance(item.get("id"), str) and item["id"]
+    }
+    actor_destinations = {
+        item.get("to") for item in sections.get("moves") or []
+        if isinstance(item, dict) and item.get("who") == actor and isinstance(item.get("to"), str)
+    }
+    for index, item in enumerate(sections.get("moves") or []):
+        if not isinstance(item, dict) or item.get("who") == actor:
+            continue
+        if item.get("who") not in fresh_people or item.get("to") not in ({origin} | actor_destinations):
+            errors.append(_player_place_error("moves", f"[{index}]",
+                "普通玩家只能把同回合新建公开人物放在当前位置或主角的同回合目的地。"))
+    return errors
+
+
+def player_turn_place_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_place_errors`."""
+    actor = scene.get("protagonist")
+    origin = scene.get("location")
+    if not isinstance(actor, str) or not actor or not isinstance(origin, str) or not origin:
+        return []
+    active = [event for event in events if isinstance(event, dict) and not event.get("retracted")]
+    graph = world.get("systems", {}).get("ontology")
+    existing = set(graph.entities) if graph is not None else set()
+    errors: list[ValidationError] = []
+    created: set[str] = set()
+    for index, event in enumerate(active):
+        if event.get("type") != "place_created":
+            continue
+        delta = event.get("deltas")
+        place_id = delta.get("id") if isinstance(delta, dict) else None
+        if (not isinstance(place_id, str) or not place_id or place_id in existing
+                or not isinstance(delta, dict) or delta.get("visibility") != "public"
+                or delta.get("parent") not in {None, origin}):
+            errors.append(_player_place_error("places", f"event[{index}]",
+                "普通玩家最终 payload 只能创建新的公开本地前沿地点。"))
+            continue
+        if place_id in created:
+            errors.append(_player_place_error("places", f"event[{index}]",
+                "普通玩家最终 payload 不能重复创建同一地点。"))
+            continue
+        created.add(place_id)
+    link_counts = {place_id: 0 for place_id in created}
+    for index, event in enumerate(active):
+        if event.get("type") == "place_materialized":
+            errors.append(_player_place_error("materialize", f"event[{index}]",
+                "普通玩家最终 payload 不能实体化既有地点。"))
+        if event.get("type") != "place_linked":
+            continue
+        delta = event.get("deltas")
+        endpoints = {delta.get("a"), delta.get("b")} if isinstance(delta, dict) else set()
+        new_places = endpoints & created
+        if (not isinstance(delta, dict) or len(new_places) != 1 or origin not in endpoints
+                or delta.get("visibility") != "public"):
+            errors.append(_player_place_error("links", f"event[{index}]",
+                "普通玩家最终 topology payload 越过了公开本地前沿边界。"))
+            continue
+        link_counts[next(iter(new_places))] += 1
+    for place_id, count in link_counts.items():
+        if count != 1:
+            errors.append(_player_place_error("places", place_id,
+                "普通玩家最终 payload 的每个新地点必须恰有一条公开直连边。"))
+    fresh_people = {
+        event.get("deltas", {}).get("id") for event in active
+        if event.get("type") == "character_created" and isinstance(event.get("deltas"), dict)
+        and isinstance(event["deltas"].get("id"), str) and event["deltas"]["id"]
+    }
+    actor_destinations = {
+        event.get("deltas", {}).get("to") for event in active
+        if event.get("type") == "entity_moved" and isinstance(event.get("deltas"), dict)
+        and event["deltas"].get("who") == actor and isinstance(event["deltas"].get("to"), str)
+    }
+    for index, event in enumerate(active):
+        if event.get("type") != "entity_moved" or not isinstance(event.get("deltas"), dict):
+            continue
+        delta = event["deltas"]
+        if delta.get("who") != actor and (delta.get("who") not in fresh_people
+                or delta.get("to") not in ({origin} | actor_destinations)):
+            errors.append(_player_place_error("moves", f"event[{index}]",
+                "普通玩家最终 payload 不能移动既有人物或把新人物放到场景外。"))
+    return errors
+
+
 def _player_item_error(section: str, field: str, hint: str) -> ValidationError:
     return ValidationError(section, field, "player_item_authority_boundary", hint)
 

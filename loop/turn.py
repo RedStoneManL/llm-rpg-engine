@@ -35,6 +35,7 @@ from context.capabilities import (discovery_grant_errors, player_turn_knowledge_
                                   player_turn_fact_errors, player_turn_fact_event_errors,
                                   player_turn_entity_errors, player_turn_entity_event_errors,
                                   player_turn_faction_errors, player_turn_faction_event_errors,
+                                  player_turn_place_errors, player_turn_place_event_errors,
                                   player_turn_item_errors, player_turn_item_event_errors,
                                   player_turn_quest_errors, player_turn_quest_event_errors,
                                   player_turn_world_errors, player_turn_world_event_errors,
@@ -141,6 +142,7 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
                               enforce_player_fact_authority: bool = False,
                               enforce_player_entity_authority: bool = False,
                               enforce_player_faction_authority: bool = False,
+                              enforce_player_place_authority: bool = False,
                               enforce_player_item_authority: bool = False,
                               enforce_player_quest_authority: bool = False):
     try:
@@ -181,6 +183,8 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         envelope['ordinary_player_entity_authority'] = True
     if enforce_player_faction_authority:
         envelope['ordinary_player_faction_authority'] = True
+    if enforce_player_place_authority:
+        envelope['ordinary_player_place_authority'] = True
     if enforce_player_item_authority:
         envelope['ordinary_player_item_authority'] = True
     if enforce_player_quest_authority:
@@ -333,6 +337,7 @@ def produce_turn(
     enforce_player_fact_authority: bool = False,
     enforce_player_entity_authority: bool = False,
     enforce_player_faction_authority: bool = False,
+    enforce_player_place_authority: bool = False,
     enforce_player_item_authority: bool = False,
     enforce_player_quest_authority: bool = False,
     trusted_discovery_keys=frozenset(),
@@ -419,6 +424,8 @@ def produce_turn(
             candidate_errors.extend(player_turn_entity_errors(commit, world, scene))
         if enforce_player_faction_authority:
             candidate_errors.extend(player_turn_faction_errors(commit, world, scene))
+        if enforce_player_place_authority:
+            candidate_errors.extend(player_turn_place_errors(commit, world, scene))
         if enforce_player_item_authority:
             candidate_errors.extend(player_turn_item_errors(commit, world, scene))
         if enforce_player_quest_authority:
@@ -475,6 +482,10 @@ def produce_turn(
         if any(error.code == "player_faction_authority_boundary" for error in candidate_errors):
             raise TurnRejected("player faction change lies outside the host authority boundary")
 
+    def reject_player_place_authority_errors(candidate_errors):
+        if any(error.code == "player_place_authority_boundary" for error in candidate_errors):
+            raise TurnRejected("player place change lies outside the local public authority boundary")
+
     def reject_player_item_authority_errors(candidate_errors):
         if any(error.code == "player_item_authority_boundary" for error in candidate_errors):
             raise TurnRejected("player item change lies outside the local public authority boundary")
@@ -488,6 +499,7 @@ def produce_turn(
     reject_player_fact_authority_errors(errors)
     reject_player_entity_authority_errors(errors)
     reject_player_faction_authority_errors(errors)
+    reject_player_place_authority_errors(errors)
     reject_player_item_authority_errors(errors)
     reject_player_quest_authority_errors(errors)
 
@@ -524,6 +536,7 @@ def produce_turn(
         reject_player_fact_authority_errors(errors)
         reject_player_entity_authority_errors(errors)
         reject_player_faction_authority_errors(errors)
+        reject_player_place_authority_errors(errors)
         reject_player_item_authority_errors(errors)
         reject_player_quest_authority_errors(errors)
         attempts += 1
@@ -636,6 +649,7 @@ def _run_turn_staged(
     enforce_player_fact_authority: bool = False,
     enforce_player_entity_authority: bool = False,
     enforce_player_faction_authority: bool = False,
+    enforce_player_place_authority: bool = False,
     enforce_player_item_authority: bool = False,
     enforce_player_quest_authority: bool = False,
     trusted_discovery_keys=frozenset(),
@@ -679,6 +693,7 @@ def _run_turn_staged(
             enforce_player_fact_authority=enforce_player_fact_authority,
             enforce_player_entity_authority=enforce_player_entity_authority,
             enforce_player_faction_authority=enforce_player_faction_authority,
+            enforce_player_place_authority=enforce_player_place_authority,
             enforce_player_item_authority=enforce_player_item_authority,
             enforce_player_quest_authority=enforce_player_quest_authority,
             trusted_discovery_keys=trusted_discovery_keys,
@@ -903,6 +918,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              enforce_player_fact_authority: bool = False,
              enforce_player_entity_authority: bool = False,
              enforce_player_faction_authority: bool = False,
+             enforce_player_place_authority: bool = False,
              enforce_player_item_authority: bool = False,
              enforce_player_quest_authority: bool = False,
              trusted_discovery_keys=frozenset(),
@@ -925,6 +941,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         enforce_player_fact_authority=enforce_player_fact_authority,
         enforce_player_entity_authority=enforce_player_entity_authority,
         enforce_player_faction_authority=enforce_player_faction_authority,
+        enforce_player_place_authority=enforce_player_place_authority,
         enforce_player_item_authority=enforce_player_item_authority,
         enforce_player_quest_authority=enforce_player_quest_authority)
         if action_id else None)
@@ -948,6 +965,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       enforce_player_fact_authority=enforce_player_fact_authority,
                       enforce_player_entity_authority=enforce_player_entity_authority,
                       enforce_player_faction_authority=enforce_player_faction_authority,
+                      enforce_player_place_authority=enforce_player_place_authority,
                       enforce_player_item_authority=enforce_player_item_authority,
                       enforce_player_quest_authority=enforce_player_quest_authority)
                            if not trusted_player_statement_receipts else None)
@@ -962,6 +980,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       enforce_player_fact_authority=enforce_player_fact_authority,
                       enforce_player_entity_authority=enforce_player_entity_authority,
                       enforce_player_faction_authority=enforce_player_faction_authority,
+                      enforce_player_place_authority=enforce_player_place_authority,
                       enforce_player_item_authority=enforce_player_item_authority,
                       enforce_player_quest_authority=enforce_player_quest_authority)
                       if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
@@ -974,6 +993,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     and not enforce_player_fact_authority
                     and not enforce_player_entity_authority
                     and not enforce_player_faction_authority
+                    and not enforce_player_place_authority
                     and not enforce_player_item_authority
                     and not enforce_player_quest_authority
                     and not trusted_discovery_keys
@@ -987,6 +1007,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     enforce_player_fact_authority=False,
                     enforce_player_entity_authority=False,
                     enforce_player_faction_authority=False,
+                    enforce_player_place_authority=False,
                     enforce_player_item_authority=False,
                     enforce_player_quest_authority=False,
                 )
@@ -1064,6 +1085,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if errors:
                 raise TurnRejected("final publish violates the player faction authority boundary")
         batch.add_publish_validator(validate_player_faction_payload)
+    if enforce_player_place_authority:
+        def validate_player_place_payload(events):
+            errors = player_turn_place_event_errors(events, travel_world, travel_scene)
+            if errors:
+                raise TurnRejected("final publish violates the player place authority boundary")
+        batch.add_publish_validator(validate_player_place_payload)
     if enforce_player_item_authority:
         def validate_player_item_payload(events):
             errors = player_turn_item_event_errors(events, travel_world, travel_scene)
@@ -1130,6 +1157,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             enforce_player_fact_authority=enforce_player_fact_authority,
             enforce_player_entity_authority=enforce_player_entity_authority,
             enforce_player_faction_authority=enforce_player_faction_authority,
+            enforce_player_place_authority=enforce_player_place_authority,
             enforce_player_item_authority=enforce_player_item_authority,
             enforce_player_quest_authority=enforce_player_quest_authority,
             trusted_discovery_keys=trusted_discovery_keys,
@@ -1165,6 +1193,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     'ordinary_player_fact_authority': bool(enforce_player_fact_authority),
                     'ordinary_player_entity_authority': bool(enforce_player_entity_authority),
                     'ordinary_player_faction_authority': bool(enforce_player_faction_authority),
+                    'ordinary_player_place_authority': bool(enforce_player_place_authority),
                     'ordinary_player_item_authority': bool(enforce_player_item_authority),
                     'ordinary_player_quest_authority': bool(enforce_player_quest_authority),
                 },

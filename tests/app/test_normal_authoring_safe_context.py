@@ -259,6 +259,27 @@ def _faction_member_candidate(person: str, faction: str) -> dict:
     }
 
 
+def _remote_topology_candidate() -> dict:
+    return {
+        "narration": "远方两处旧地点之间忽然多出一条秘密捷径。",
+        "moves": [], "places": [], "cast": [], "facts": [],
+        "links": [{"a": "stonebridge_market", "b": "north_bank_old_tower", "visibility": "public"}],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "越权改写远方地图"}],
+    }
+
+
+def _public_frontier_candidate() -> dict:
+    return {
+        "narration": "你在客栈门外发现一处公开的小石阶，并沿着新近看清的短径走到那里。",
+        "moves": [{"who": "protagonist", "to": "inn_stone_step"}],
+        "places": [{"id": "inn_stone_step", "level": 1, "kind": "venue",
+                    "seed": "客栈门外的小石阶", "visibility": "public"}],
+        "links": [{"a": "stonebridge_inn", "b": "inn_stone_step", "visibility": "public"}],
+        "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "门外短程观察"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
@@ -394,6 +415,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
             "ordinary_player_fact_authority": True,
             "ordinary_player_entity_authority": True,
             "ordinary_player_faction_authority": True,
+                "ordinary_player_place_authority": True,
                 "ordinary_player_item_authority": True,
                 "ordinary_player_quest_authority": True,
         }
@@ -757,6 +779,60 @@ def test_faction_authority_binds_recovery_mode_before_generation(tmp_path):
         assert engine.store.revision == base_revision + 1
     finally:
         engine.store.close()
+
+
+def test_normal_gui_rejects_existing_topology_rewrite_without_writes(tmp_path):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _remote_topology_candidate())
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player place change lies outside"):
+            dashboard.action(player_input="替远方旧塔开一条新路", action_id="remote-topology-rewrite",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-topology-rewrite") is None
+        assert len(dashboard.engine.provider.calls) == 1
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_move_existing_remote_person(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _public_protagonist_fact_candidate())
+    owner = dashboard.engine.registry.owner_of_section("facts")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("entity_moved", day=day, scene=scene, turn=turn,
+            summary="REMOTE_PERSON_MOVE_SENTINEL", deltas={
+                "who": "tower_warden", "to": "stonebridge_market",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player place authority boundary"):
+            dashboard.action(player_input="原地确认", action_id="remote-person-move",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-person-move") is None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_can_create_one_public_frontier_and_move_to_it(tmp_path):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _public_frontier_candidate())
+    initial = dashboard.state()
+    try:
+        result = dashboard.action(player_input="查看客栈门外的小石阶", action_id="public-frontier",
+                                  expected_revision=initial["revision"])
+        assert result["duplicate"] is False
+        graph = dashboard.engine.world["systems"]["ontology"]
+        assert graph.get_entity("inn_stone_step").attrs["visibility"] == "public"
+        assert graph.neighbors("protagonist", "located_in", 1) == ["inn_stone_step"]
+        assert "inn_stone_step" in graph.neighbors("stonebridge_inn", "adjacent_to", 1)
+    finally:
+        dashboard.engine.store.close()
 
 
 def test_normal_gui_rejects_inventory_transfer_to_remote_hidden_person_without_writes(tmp_path):
