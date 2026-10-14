@@ -188,6 +188,7 @@ OOC 指令 (以 / 开头):
   /quit                — 退出游戏
   /recall <关键词>       — 在记忆中搜索
   /codex [关键词]        — 浏览公开世界设定
+  /journal              — 查看最近公开叙事
   /status               — 查看当前公开位置、同场角色、背包与出口
   /memory              — 查看当前主角的离线私有解释（实验功能；须启动时显式启用）
   /speak <显示名或 ID> <原话> — 明确对当前公开同场角色说出原话（显示名有空格时加引号；仅该句可记忆）
@@ -363,6 +364,23 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 已结任务：{'、'.join(completed) if completed else '无'}")
 
 
+def _print_public_journal(engine, out: Callable, *, limit: int = 8) -> None:
+    """Print recent active player narration from the public-history DTO only."""
+    entries: list[tuple[object, str]] = []
+    for event in engine.public_history():
+        if event.get("retracted") or event.get("type") != "narration_recorded":
+            continue
+        deltas = event.get("deltas") if isinstance(event.get("deltas"), dict) else {}
+        text = deltas.get("text")
+        if isinstance(text, str) and text:
+            entries.append((event.get("turn", "?"), text))
+    if not entries:
+        out("[journal] 暂无公开叙事。")
+        return
+    for turn, text in entries[-limit:]:
+        out(f"[journal] 第 {turn} 回合：{text}")
+
+
 def _resolve_public_speech_recipient(engine, scene: dict, remainder: str) -> tuple[str, str] | None:
     """Resolve one exact, current public recipient label or id for ``/speak``.
 
@@ -499,6 +517,13 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
             title = str(entry.get("title") or entry.get("id") or "未命名")
             body = str(entry.get("body") or "")
             out(f"[codex] [{kind}] {title}：{body}")
+        return False
+
+    elif verb == "journal":
+        if arg.strip():
+            out("[journal] 用法：/journal")
+            return False
+        _print_public_journal(engine, out)
         return False
 
     elif verb == "status":

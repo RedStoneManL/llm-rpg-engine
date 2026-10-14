@@ -99,6 +99,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-56 | P1 | 已验收（CLI 显示名明确交流） | `/status` 只显示同场角色的公开显示名，而 `/speak` 过去实际只接受内部 ID，玩家无法直接使用状态页信息发起既有的明确交流流程 | `/speak` 只将唯一的当前公开显示名（空格名可加引号）或既有 ID 解析为 canonical recipient；重名、隐藏或过期名称 fail-closed，既有 host receipt 仍为最终同场授权 |
 | RCV-57 | P1 | 已验收（CLI 主角公共状态） | GUI 已有主角可见事实，终端 `/status` 却无法让玩家查看自身的公开状况 | CLI/GUI 共享 protagonist POV character read-model；只显示非 secret、非 hidden 的当前事实，不读取 canonical/raw history/私有解释，也不写入状态 |
 | RCV-58 | P1 | 已验收（CLI 已结任务） | `/status` 已显示公开进行中任务，却遗漏既有安全任务账本中的公开完成项，长局终端无法确认任务进展 | 复用 `player_objectives.completed_quests`；只显示先前已公开的已结摘要，暗线／仅后台过期项继续排除，命令零写入 |
+| RCV-59 | P1 | 已验收（CLI 公开行动日志） | GUI 有最近公共叙事面板，长运行终端只能依赖滚屏，无法以受限方式回看当前分支的最近行动 | `/journal` 仅消费 `public_history()` 的活动 `narration_recorded` 文本并限至最近 8 条；私有记忆、撤回叙事、raw history 与任何写入路径均不进入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1512,4 +1513,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `state=了结` 且历史上存在整数 `surfaced_turn`，因此后台暗线的 `quest_expired` 不会被提升成玩家完成项。
   回归用一个公开接取→结案任务与一条暗线过期项验证前者可见、后者及 sentinel 不泄露，并比较命令前后 revision／事件。
   正式完整离线 gate 为 **`1988 passed, 1 deselected in 22.22s`**；唯一 deselect 是既有 slow real embedding，
+  无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-59 检查长会话的公开叙事回看。dashboard 已显示最近 public narration，而终端玩家必须依赖
+  已滚出的输出；直接接 raw EventStore 又会破坏私有边界。新增 `/journal`，只枚举 `Engine.public_history()` 中未撤回的
+  `narration_recorded` 正文，保留最近 8 条并标注既有 turn；没有暴露其他 event deltas、私有解释或重写分支的叙事。
+  回归同时写入 public narration、opt-in 私有解释和随后撤回的 narration，确认仅第一者输出且 DB/JSONL revision 完全不变。
+  正式完整离线 gate 为 **`1989 passed, 1 deselected in 24.03s`**；唯一 deselect 是既有 slow real embedding，
   无真实模型、embedding、网络或外部服务。

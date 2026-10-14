@@ -304,6 +304,46 @@ def test_play_loop_status_shows_only_previously_public_completed_quests(tmp_path
         engine.store.close()
 
 
+def test_play_loop_journal_uses_only_active_public_narration_without_writing(tmp_path):
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    engine = build_engine(
+        tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+        enable_interpretive_memory=True,
+    )
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("narration_recorded", day=1, scene="s1", turn=1, summary="public journal", deltas={
+            "text": "PUBLIC_JOURNAL_ENTRY",
+        }),
+        kernel_event("character_interpretation_recorded", day=1, scene="s1", turn=1,
+                     summary="private journal", deltas={
+            "actor": "protagonist", "text": "PRIVATE_JOURNAL_SENTINEL", "memory_id": "private-journal",
+        }),
+        kernel_event("narration_recorded", day=1, scene="s1", turn=2, summary="retracted journal", deltas={
+            "text": "RETRACTED_JOURNAL_ENTRY",
+        }),
+    ])
+    engine.store.retract_from_turn(2)
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/journal", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "PUBLIC_JOURNAL_ENTRY" in rendered
+        assert "PRIVATE_JOURNAL_SENTINEL" not in rendered
+        assert "RETRACTED_JOURNAL_ENTRY" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events(include_retracted=True))) == before
+    finally:
+        engine.store.close()
+
+
 def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
     """A long-running CLI must not query a pre-peer POV projection forever."""
     from app.engine import build_engine
