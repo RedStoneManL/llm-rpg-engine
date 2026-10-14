@@ -692,7 +692,8 @@ def play_loop(
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
                 out("[对比模式]")
-                rec = {"turn": turn_no, "input": player_input, "mode": "compare"}
+                rec = {"turn": turn_no, "revision": engine.store.revision,
+                       "input": player_input, "mode": "compare"}
                 for label, (commit, attempts, dropped) in results.items():
                     # #5 — frame each candidate's narration under its own DM header
                     _print_dm_narration(f"[{label}策略] {commit.narration}", out)
@@ -746,7 +747,8 @@ def play_loop(
                     out(f"[提示：{('、'.join(result.dropped_sections))} 段验证失败，"
                         f"本回合这些世界变更未生效]")
                 _write_transcript(transcript_path, {
-                    "turn": turn_no, "input": player_input, "mode": "single",
+                    "turn": turn_no, "revision": engine.store.revision,
+                    "input": player_input, "mode": "single",
                     **_candidate_record(result.commit, result.repair_attempts,
                                         result.dropped_sections),
                 })

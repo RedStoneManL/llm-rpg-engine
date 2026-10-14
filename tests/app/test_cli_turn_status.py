@@ -142,6 +142,31 @@ def test_cli_transcript_turns_continue_across_cold_reopen(tmp_path):
         reopened.store.close()
 
 
+def test_cli_transcript_revision_distinguishes_replayed_turn_after_undo(tmp_path):
+    """A turn number can be reused after rewind, so transcript rows need a revision."""
+    campaign = tmp_path / "transcript-undo"
+    transcript = tmp_path / "transcript.jsonl"
+    provider = FakeLLMProvider(json_responses=[
+        {"moves": [], "places": [], "cast": [], "facts": [], "narration": "第一版",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "首次"}]},
+        {"moves": [], "places": [], "cast": [], "facts": [], "narration": "重写版",
+         "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "重写"}]},
+    ])
+    engine = build_engine(campaign, provider=FakeLLMProvider())
+    try:
+        new_game(engine)
+        engine.provider = provider
+        play_loop(engine, ["先行动", "/undo", "改写行动", "/quit"],
+                  out=lambda _: None, transcript_path=transcript)
+        records = [json.loads(line) for line in transcript.read_text(encoding="utf-8").splitlines()]
+        assert [record["turn"] for record in records] == [1, 1]
+        assert all(type(record["revision"]) is int for record in records)
+        assert records[0]["revision"] != records[1]["revision"]
+        assert [record["input"] for record in records] == ["先行动", "改写行动"]
+    finally:
+        engine.store.close()
+
+
 def test_cli_output_error_after_publish_never_claims_a_rollback(tmp_path):
     engine = build_engine(tmp_path / "post-publish-output", provider=FakeLLMProvider())
     try:
