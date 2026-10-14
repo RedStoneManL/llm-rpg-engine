@@ -100,6 +100,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-57 | P1 | 已验收（CLI 主角公共状态） | GUI 已有主角可见事实，终端 `/status` 却无法让玩家查看自身的公开状况 | CLI/GUI 共享 protagonist POV character read-model；只显示非 secret、非 hidden 的当前事实，不读取 canonical/raw history/私有解释，也不写入状态 |
 | RCV-58 | P1 | 已验收（CLI 已结任务） | `/status` 已显示公开进行中任务，却遗漏既有安全任务账本中的公开完成项，长局终端无法确认任务进展 | 复用 `player_objectives.completed_quests`；只显示先前已公开的已结摘要，暗线／仅后台过期项继续排除，命令零写入 |
 | RCV-59 | P1 | 已验收（CLI 公开行动日志） | GUI 有最近公共叙事面板，长运行终端只能依赖滚屏，无法以受限方式回看当前分支的最近行动 | `/journal` 仅消费 `public_history()` 的活动 `narration_recorded` 文本并限至最近 8 条；私有记忆、撤回叙事、raw history 与任何写入路径均不进入 |
+| RCV-60 | P0 | 已验收（CLI journal 私有引用 fail-closed） | `public_history()` 会拒绝普通事件显式引用私有记录；未处理的 OOC journal 读取可能中断 REPL | `/journal` 将该 DTO 边界转成无正文的通用不可用提示；不回显私有或相关普通正文，零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1520,4 +1521,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `narration_recorded` 正文，保留最近 8 条并标注既有 turn；没有暴露其他 event deltas、私有解释或重写分支的叙事。
   回归同时写入 public narration、opt-in 私有解释和随后撤回的 narration，确认仅第一者输出且 DB/JSONL revision 完全不变。
   正式完整离线 gate 为 **`1989 passed, 1 deselected in 24.03s`**；唯一 deselect 是既有 slow real embedding，
+  无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-60 复核 RCV-59 依赖的 public-history 边界。该 DTO 对普通事件显式引用私有 memory id 会按设计
+  抛出 fail-closed `ValueError`；若 CLI 直接传播它，单个 OOC 读会终止 REPL。`/journal` 现在捕获这一特定边界，
+  只显示无正文的“当前公开叙事暂不可用”提示，不输出异常、私有内容或相关普通 narration，也不写入任何状态。
+  回归构造私有记录及引用它的普通 narration，确认命令安全返回、两个 sentinel 均不出现且完整事件／revision 不变。
+  正式完整离线 gate 为 **`1990 passed, 1 deselected in 24.57s`**；唯一 deselect 是既有 slow real embedding，
   无真实模型、embedding、网络或外部服务。

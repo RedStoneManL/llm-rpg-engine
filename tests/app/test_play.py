@@ -344,6 +344,42 @@ def test_play_loop_journal_uses_only_active_public_narration_without_writing(tmp
         engine.store.close()
 
 
+def test_play_loop_journal_fails_closed_on_private_reference_without_writing(tmp_path):
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    engine = build_engine(
+        tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None,
+        enable_interpretive_memory=True,
+    )
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("character_interpretation_recorded", day=1, scene="s1", turn=1,
+                     id="private-journal-ref", summary="private", deltas={
+            "actor": "protagonist", "text": "PRIVATE_JOURNAL_REFERENCE_SENTINEL", "memory_id": "private-ref",
+        }),
+        kernel_event("narration_recorded", day=1, scene="s1", turn=1, summary="bad public ref", deltas={
+            "text": "ORDINARY_REFERENCE_SENTINEL",
+        }, thread_refs=["private-journal-ref"]),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/journal", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "当前公开叙事暂不可用" in rendered
+        assert "PRIVATE_JOURNAL_REFERENCE_SENTINEL" not in rendered
+        assert "ORDINARY_REFERENCE_SENTINEL" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events(include_retracted=True))) == before
+    finally:
+        engine.store.close()
+
+
 def test_cli_recall_reprojects_after_peer_dashboard_publish_without_writing(tmp_path):
     """A long-running CLI must not query a pre-peer POV projection forever."""
     from app.engine import build_engine

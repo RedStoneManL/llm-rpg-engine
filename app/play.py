@@ -367,7 +367,15 @@ def _print_player_status(engine, out: Callable) -> None:
 def _print_public_journal(engine, out: Callable, *, limit: int = 8) -> None:
     """Print recent active player narration from the public-history DTO only."""
     entries: list[tuple[object, str]] = []
-    for event in engine.public_history():
+    try:
+        history = engine.public_history()
+    except ValueError:
+        # The DTO intentionally rejects an ordinary row that references a
+        # private memory id.  Preserve that fail-closed boundary without
+        # turning an OOC read into a REPL crash or echoing any stored body.
+        out("[journal] 当前公开叙事暂不可用；请检查当前状态。")
+        return
+    for event in history:
         if event.get("retracted") or event.get("type") != "narration_recorded":
             continue
         deltas = event.get("deltas") if isinstance(event.get("deltas"), dict) else {}
