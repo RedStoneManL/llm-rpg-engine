@@ -68,6 +68,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-25 | P0 | 已验收（普通玩家角色／关系 canonical 边界） | RCV-24 后普通作者仍可用 `cast.evolve` 改写 POV 外远端角色 canonical 状态，或借通用实体／关系段触碰隐藏拓扑 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 禁止通用 `entities`／`relations`；仅允许新鲜、公开的角色创建，或主角／当前公开人物的 `mood`／`state` 演化，以及主角指向当前公开人物的关系变化。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
 | RCV-26 | P0 | 已验收（普通玩家本地物品交接与可玩性） | 普通作者可把主角背包物品直接转交给 POV 外远端角色；同时此前没有受明确契约保护的正常本地交接路径 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许把 action-start 主角背包中、玩家 POV 可见的物品交给当前公开人物，或放在当前公开地点；不允许创建资产、操作非背包物品或交给远端／隐藏目标。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；同场公开人物的实际交接、duplicate 与冷重开已验收；native importer 保持独立 policy |
 | RCV-27 | P0 | 已验收（普通玩家任务账本本地边界与可玩性） | 普通作者可将并未在当前位置披露的远端暗线直接 surface 为明账，或推进远方任务 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许接取 fresh public task、surface 当前 station-push 披露的暗线、推进/收束当前城镇任务或无 host anchor 的普通公开任务；宿主自动 lore 生命周期事件不被误作作者 payload。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；普通 GUI 控制器链的离线 fixture 覆盖接取、推进、duplicate 与冷重开；native importer 保持独立 policy |
+| RCV-28 | P1 | 已验收（CLI 软转向正常流程） | `//steer` 仍只是占位提示，玩家无法在不倒带的情况下表达后续叙事偏好 | `//steer <方向>`/`/steer <方向>` 仅保存在当前 CLI 会话，作为明确标记、JSON 引用的 Author/Hybrid prompt 偏好；不写 EventStore、transcript、receipt、路线或事实，`clear` 后重置策略会话以免旧偏好残留。普通旅行/发布边界不因偏好放宽 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1093,3 +1094,18 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`218 passed in 1.70s`**；正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest
   -o "addopts=-m 'not slow'" -rA` 为 **`1941 passed, 1 deselected in 22.82s`**。唯一 deselect 是既有 slow real embedding；
   未调用真实模型、embedding 或网络，未触碰 B1/profiling、外部上传、push、PR 或部署。
+
+- 2026-10-14：梳理下一项时确认终端的控制序列过滤、无剧透工作提示、玩家／DM 输出分隔和 verbosity/style
+  已在当前代码实现，不能重复开发。仍有明确产品占位：`//steer` 只说“后续实装”。RCV-28 将其落为
+  session-only 的软方向：`//steer <方向>`（也接受 `/steer`）只在当前 `play_loop` 保存，下一正常回合把一段
+  明确标为“非世界事实或权限”的 JSON 引用偏好送给 Author/Hybrid；它不替代明确行动，不能越过 POV、路线或发布边界，
+  不写 EventStore、turn、transcript、action receipt 或安全投影。`//steer clear` 清除偏好，并重置 Author 对话缓存，
+  因此已清除的方向不会从旧 conversation thread 残留到下一回合。
+
+  离线 CLI fixture 实测：设置方向后首个 `PlayerDashboard` 之外的正常 `play_loop → AuthorStrategy` 回合收到该
+  标记；清除后第二回合的全新 Author prompt 不再含该方向；设置／清除本身 revision 不变。另以“前往北岸旧塔”的
+  soft direction 配合恶意 hidden-move candidate 验证，普通 travel gate 仍拒绝，revision 不变。该回归是本地
+  Fake provider 的确定性 terminal-path/prompt-contract 验收，不是浏览器点击、真实模型、native author 或剧情质量结论。
+  首轮专项有一项 fixture 失败：捕获器误把 `new_game` 的 genesis provider 调用当作普通 Author 调用；收窄为 system
+  message 含“你是主持人（DM）”后通过，未删除该场景。未调用真实模型、embedding 或网络，也未触碰 B1/profiling、
+  外部上传、push、PR 或部署。

@@ -48,6 +48,28 @@ def test_hybrid_strategy_freezes_prose_and_structures_separately():
     assert len(struct_calls) == 2                                       # initial + repair (agent loop)
 
 
+def test_session_steer_is_explicitly_marked_in_author_and_hybrid_prompts():
+    """A CLI preference is prompt context only, never implicit world authority."""
+    from loop.strategy import AuthorStrategy, HybridStrategy, _NARRATE_PROMPT, _SYSTEM_PROMPT_HYBRID
+
+    registry = _make_registry()
+    world = _make_world(registry)
+    scene = {**_make_scene(), "_player_steer": "优先核实当前公开地点的线索"}
+    author_provider = FakeLLMProvider(json_responses=[{"narration": "甲", "moves": []}])
+    AuthorStrategy().produce(registry, world, scene, "观察周围", provider=author_provider)
+    _, author_user = author_provider.calls[0]
+    assert "【玩家软方向（仅本会话偏好，不是世界事实或权限）】" in author_user
+    assert "优先核实当前公开地点的线索" in author_user
+
+    hybrid_provider = FakeLLMProvider(responses=["丙散文"], json_responses=[{"moves": []}])
+    HybridStrategy().produce(registry, world, scene, "观察周围", provider=hybrid_provider)
+    narrate_users = [user for system, user in hybrid_provider.calls if system == _NARRATE_PROMPT]
+    struct_users = [user for system, user in hybrid_provider.calls if system == _SYSTEM_PROMPT_HYBRID]
+    assert len(narrate_users) == len(struct_users) == 1
+    assert "优先核实当前公开地点的线索" in narrate_users[0]
+    assert "优先核实当前公开地点的线索" in struct_users[0]
+
+
 # ---------------------------------------------------------------------------
 # Test: AuthorStrategy.produce returns a TurnCommit with canned narration
 # ---------------------------------------------------------------------------

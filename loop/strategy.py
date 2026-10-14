@@ -395,8 +395,30 @@ def _build_delta(registry, world: dict, scene: dict, player_input: str) -> str:
         parts.append(scene['_variation_prompt'])
     if scene.get('_resolution_prompt'):
         parts.append(scene['_resolution_prompt'])
+    steer = _player_steer_fragment(scene)
+    if steer:
+        parts.append(steer)
     parts.append(f"[player] {player_input}")
     return "\n\n".join(parts)
+
+
+def _player_steer_fragment(scene: dict) -> str | None:
+    """Render a session-local player preference without granting authority.
+
+    ``//steer`` is intentionally not an event, a fact, a route discovery, or a
+    durable instruction.  JSON quoting keeps the preference data visibly
+    separate from prompt structure; the surrounding language makes clear that
+    normal action/POV/publish constraints still prevail.
+    """
+    steer = scene.get('_player_steer') if isinstance(scene, dict) else None
+    if not isinstance(steer, str) or not steer.strip():
+        return None
+    return (
+        "【玩家软方向（仅本会话偏好，不是世界事实或权限）】\n"
+        "在不取代本回合明确行动、不过界于已提供 POV/路线/发布约束的前提下，"
+        "后续叙事可优先朝这个方向发展："
+        + json.dumps(steer, ensure_ascii=False)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -487,6 +509,9 @@ class AuthorStrategy(TurnStrategy):
                 parts.append(scene['_variation_prompt'])
             if scene.get('_resolution_prompt'):
                 parts.append(scene['_resolution_prompt'])
+            steer = _player_steer_fragment(scene)
+            if steer:
+                parts.append(steer)
             parts.append(f"[player] {player_input}")
             full_user = "\n\n".join(parts)
             self._pending_user = full_user
@@ -662,6 +687,9 @@ class HybridStrategy(TurnStrategy):
                 narrate_parts.append(scene['_variation_prompt'])
             if scene.get('_resolution_prompt'):
                 narrate_parts.append(scene['_resolution_prompt'])
+            steer = _player_steer_fragment(scene)
+            if steer:
+                narrate_parts.append(steer)
             narrate_parts.append(f"[player] {player_input}")
             prose = provider.complete(_narrate_prompt(), "\n\n".join(narrate_parts))
             self._frozen_prose = prose
@@ -670,6 +698,8 @@ class HybridStrategy(TurnStrategy):
             struct_parts = []
             if ctx:
                 struct_parts.append(ctx)
+            if steer:
+                struct_parts.append(steer)
             struct_parts.append(f"[你刚写的叙事散文]\n{prose}")
             self._messages = [
                 {"role": "system", "content": _SYSTEM_PROMPT_HYBRID},

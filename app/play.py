@@ -187,6 +187,7 @@ OOC 指令 (以 / 开头):
   /undo                — 撤销最后一回合（别名：/oops, //veto）
   //retcon <N>         — 同 /rewind <N>（OOC 别名）
   //veto               — 同 /undo（OOC 别名）
+  //steer <方向>        — 软转向后续叙事；//steer clear 清除（不改写世界）
   /verbosity [级别]    — 查询或设置叙事详细程度（concise|medium|rich）
   /style [文风]        — 查询或设置叙事文风/笔调（如「日式轻小说」；/style clear 清空）
   /help                — 显示此帮助
@@ -244,7 +245,8 @@ def _build_scene(engine) -> dict:
     }
 
 
-def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool:
+def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
+                 steering: list[str | None] | None = None) -> bool:
     """Dispatch an OOC command. Returns True if the loop should stop.
 
     compare_mode is a mutable list[bool] used as a flag so the caller can
@@ -271,9 +273,10 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool
             # //veto is an alias for /undo
             rest = "undo"
         elif inner_verb == "steer":
-            # //steer: placeholder for v1 — inform the user it's not yet implemented
-            out("[//steer] 方向引导功能将在后续版本实装，本回合已记录您的意图。")
-            return False
+            # A soft direction is deliberately a session-only player preference,
+            # not a world event or a durable host instruction.  Let the normal
+            # branch handle both //steer and the convenient /steer spelling.
+            rest = f"steer {inner_arg}".strip()
         else:
             out(f"[未知指令] //{inner_verb} — 输入 /help 查看可用指令")
             return False
@@ -350,6 +353,26 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list) -> bool
         t = _last_turn(engine)
         result = _rewind(engine, t)
         out(f"[倒带] 已撤销第 {t} 回合，撤回 {result['retracted']} 个事件。")
+        return False
+
+    elif verb == "steer":
+        if steering is None:
+            out("[steer] 此入口未提供会话方向状态。")
+            return False
+        requested = _sanitize_input(arg)
+        if not requested:
+            current = steering[0]
+            out(f"[steer] 当前软方向：{current or '（未设置）'}")
+            return False
+        if requested.lower() in {"clear", "off", "none", "清除", "关闭"}:
+            steering[0] = None
+            out("[steer] 已清除软方向；后续回合只按你的行动和已保存世界推进。")
+            return False
+        if len(requested) > 500:
+            out("[steer] 方向请控制在 500 个字符内。")
+            return False
+        steering[0] = requested
+        out("[steer] 已设置软方向；它只作为后续叙事偏好，不改写世界、路线或权限。")
         return False
 
     elif verb == "verbosity":
@@ -438,6 +461,9 @@ def play_loop(
         strategy = AuthorStrategy()
 
     compare_mode = [bool(compare)]  # mutable flag
+    # Session-local, non-event preference.  It is never written to the store,
+    # transcript, action receipt, or safe world projection.
+    steering: list[str | None] = [None]
     turn_no = 0
     prev_scene = None  # track previous turn's scene for catch-up enter-scope detection
 
@@ -485,7 +511,14 @@ def play_loop(
 
         if line.startswith("/"):
             revision_before = engine.store.revision
-            stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode)
+            steer_before = steering[0]
+            stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode,
+                                steering=steering)
+            # The conversational cache contains prior user messages.  Reset it
+            # when the soft direction changes so clearing it cannot leave an old
+            # steering instruction active merely through model conversation history.
+            if steering[0] != steer_before and hasattr(strategy, 'reset'):
+                strategy.reset()
             if engine.store.revision != revision_before:
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
@@ -496,6 +529,8 @@ def play_loop(
 
         # Normal player input — run a turn
         scene = _build_scene(engine)
+        if steering[0]:
+            scene = {**scene, "_player_steer": steering[0]}
         player_input = line
         turn_no += 1
 

@@ -74,6 +74,93 @@ def test_play_loop_one_turn_outputs_narration(tmp_path):
     assert "你环顾四周" in combined, f"Expected narration in output, got: {combined!r}"
 
 
+def test_play_loop_steer_is_session_only_and_reaches_only_the_next_author_prompt(tmp_path):
+    """A soft direction guides a normal CLI turn but neither writes nor lingers after clear."""
+    from app.play import play_loop
+
+    class CapturingProvider(FakeLLMProvider):
+        def __init__(self):
+            super().__init__(json_responses=[
+                {"narration": "你先观察集市的公开动静。", "moves": [], "places": [], "cast": [], "facts": [],
+                 "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+                {"narration": "你按眼前线索继续观察。", "moves": [], "places": [], "cast": [], "facts": [],
+                 "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "近处观察"}]},
+            ])
+            self.author_messages = []
+
+        def complete_messages(self, messages, **kwargs):
+            snapshot = copy.deepcopy(messages)
+            if any(message.get("role") == "system" and "你是主持人（DM）" in message.get("content", "")
+                   for message in snapshot):
+                self.author_messages.append(snapshot)
+            return super().complete_messages(messages, **kwargs)
+
+    provider = CapturingProvider()
+    engine = _build_engine_with_game(tmp_path, provider=provider)
+    before = engine.store.revision
+    output: list[str] = []
+    try:
+        play_loop(engine, inputs=[
+            "//steer 优先调查当前公开地点的线索，不预设远方结论",
+            "看看四周",
+            "//steer clear",
+            "再看看四周",
+            "/quit",
+        ], out=output.append, max_repairs=0)
+
+        assert engine.store.revision == before + 2
+        assert "已设置软方向" in "\n".join(output)
+        assert "已清除软方向" in "\n".join(output)
+        assert len(provider.author_messages) == 2
+        first = "\n".join(message["content"] for message in provider.author_messages[0])
+        second = "\n".join(message["content"] for message in provider.author_messages[1])
+        assert "【玩家软方向（仅本会话偏好，不是世界事实或权限）】" in first
+        assert "优先调查当前公开地点的线索" in first
+        assert "优先调查当前公开地点的线索" not in second
+    finally:
+        engine.store.close()
+
+
+def test_steer_command_alone_does_not_write_world_or_turn(tmp_path):
+    """Changing or clearing a preference cannot consume a turn or append events."""
+    from app.play import play_loop
+
+    engine = _build_engine_with_game(tmp_path)
+    before = engine.store.revision
+    output: list[str] = []
+    try:
+        play_loop(engine, inputs=["//steer 往公开线索方向推进", "//steer clear", "/quit"], out=output.append)
+        assert engine.store.revision == before
+        assert "已设置软方向" in "\n".join(output)
+        assert "已清除软方向" in "\n".join(output)
+    finally:
+        engine.store.close()
+
+
+def test_steer_cannot_grant_hidden_travel_authority(tmp_path):
+    """A preference reaches the author but does not widen the normal travel boundary."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+
+    proposal = {
+        "narration": "你循着方向直接抵达隐藏旧塔。",
+        "moves": [{"who": "protagonist", "to": "north_bank_old_tower"}],
+        "places": [], "cast": [], "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "非法方向"}],
+    }
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(json_responses=[proposal]), embedder=None)
+    _seed_demo_campaign(engine)
+    before = engine.store.revision
+    output: list[str] = []
+    try:
+        play_loop(engine, inputs=["//steer 前往北岸旧塔", "立刻出发", "/quit"], out=output.append, max_repairs=0)
+        assert engine.store.revision == before
+        assert "世界保持原状" in "\n".join(output)
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_quit_stops_loop(tmp_path):
     """'/quit' stops the loop without processing more inputs."""
     from app.play import play_loop
