@@ -32,9 +32,15 @@ def test_project_skips_retracted_and_ignores_unowned_types():
     r = _reg()
     e1 = kernel_event("note_added", day=1, scene="s1", summary="留")
     e2 = kernel_event("note_added", day=1, scene="s1", summary="撤"); e2["retracted"] = True
-    e3 = kernel_event("orphan_type", day=1, scene="s1", summary="无主")  # no owner
+    # A legacy event with no currently registered owner must be ignored as a
+    # whole.  In particular it must not masquerade as the current scene/day
+    # merely because it is later than the last owned event.
+    e3 = kernel_event("orphan_type", day=9, scene="orphan_scene", summary="无主")  # no owner
     w = project(r, [e1, e2, e3])
     assert w["systems"]["notes"]["notes"] == ["留"]
+    assert w["meta"]["day"] == 1
+    assert w["meta"]["scene"] == "s1"
+    assert w["meta"]["timeline"] == [{"day": 1, "scene": "s1", "summary": "留"}]
 
 
 def test_apply_receives_full_world_so_systems_can_reach_meta():

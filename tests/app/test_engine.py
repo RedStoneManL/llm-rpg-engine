@@ -67,6 +67,39 @@ def test_build_engine_world_is_dict(tmp_path):
     assert "systems" in engine.world
 
 
+def test_reopen_ignores_legacy_unowned_event_without_advancing_current_scene(tmp_path):
+    """An old plugin event may remain stored but cannot skew recovered meta state."""
+    from engine.store import EventStore
+    from kernel.events import kernel_event
+
+    db_path = tmp_path / "events.db"
+    jsonl_path = tmp_path / "events.jsonl"
+    # This simulates a campaign written before a plugin was removed.  The old
+    # store has no current allow-list, while reopening through build_engine does.
+    legacy = EventStore(db_path, jsonl_path, {"entity_created", "removed_plugin_event"})
+    legacy.append_many([
+        kernel_event("entity_created", day=1, scene="owned_scene", summary="主角", deltas={
+            "id": "protagonist", "etype": "Person", "tier": "tracked",
+        }),
+        kernel_event("removed_plugin_event", day=9, scene="orphan_scene", summary="遗留插件事件"),
+    ])
+    legacy.close()
+    db_before = db_path.read_bytes()
+    jsonl_before = jsonl_path.read_bytes()
+
+    engine = build_engine(tmp_path, provider=FakeLLMProvider(), embedder=None)
+    try:
+        assert engine.world["meta"]["day"] == 1
+        assert engine.world["meta"]["scene"] == "owned_scene"
+        assert engine.world["meta"]["timeline"] == [
+            {"day": 1, "scene": "owned_scene", "summary": "主角"},
+        ]
+    finally:
+        engine.store.close()
+    assert db_path.read_bytes() == db_before
+    assert jsonl_path.read_bytes() == jsonl_before
+
+
 def test_new_game_creates_protagonist_and_place(tmp_path):
     """new_game seeds a bootstrapped world: protagonist + start town (town_0) + NPCs.
 

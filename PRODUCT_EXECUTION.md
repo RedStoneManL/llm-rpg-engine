@@ -79,6 +79,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-36 | P1 | 已验收（当前严格 POV 地图浏览器复验） | RCV-11/20/21 已实现 POV 关系图、出口成本和仅填入行动，但之后多轮 GUI 组合变更缺少当前执行环境的完整浏览器证据 | loopback Chromium 实测隐藏地点不进 player API/DOM，图为仅 POV 节点/边；选点与“填入行动”零写入，390px 无溢出 |
 | RCV-37 | P1 | 已验收（GUI 会话软方向） | CLI 已有非持久 `//steer`，但 GUI 玩家不能表达后续叙事偏好；不能把偏好误写成世界事实或 action-id 恢复输入 | GUI `/api/steer` 只更新 controller 会话、变更/清除重置策略缓存；实际行动才将其传入 prompt。偏好不进入 EventStore、transcript、host envelope 或 request fingerprint，冷重开 duplicate 仍恢复已提交结果 |
 | RCV-38 | P0 | 已验收（CLI recall POV 边界） | 玩家 OOC `/recall` 直接把 canonical world 交给系统 fan-out；猜测隐藏 id 可把未发现地点名称和种类当作查询结果输出 | 查询前用当前主角 scene 的 `pov_world(..., redact_facts=True)` 投影；公开资料仍可检索，隐藏地点猜测无结果，命令继续零回合／零写入 |
+| RCV-39 | P0 | 已验收（旧无主事件重开边界） | 兼容读取中无 owner 的旧事件会跳过系统 apply，却仍先推进 `meta.day/scene/timeline`，使恢复后的当前场景与实际投影脱节 | projection 先解析 owner；无 owner 时整条事件仅 debug 记录后忽略，不更新 meta/timeline。真实 SQLite/JSONL 旧 campaign 重开保持只读，已验证当前场景仍来自最后拥有者事件 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1265,3 +1266,17 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   定向 `tests/app/test_play.py tests/context/test_viewpoint.py tests/llm/test_tools.py tests/app/test_offline_private_memory_cli.py -rA`
   为 **`71 passed in 0.82s`**；随后补充的已发现地点回归与 POV/tool 子集为 **`43 passed in 0.26s`**。完整离线 gate、
   完整 bundle/fresh-clone 与哈希另记于该提交的恢复验证；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-39 接续台账中“旧无 owner event 的兼容读取”开放风险，先复核而非假定现有 debug-ignore
+  已是完整忽略。红例证明 `project()` 过去会先把无 owner 的 `day=9, scene=orphan_scene` 写进
+  `meta.day/scene/timeline`，才发现没有 owner 并跳过系统 apply；因此 world slice 仍是 day 1，恢复界面却可能
+  自称在 day 9 orphan scene。该类记录只能来自旧插件/旧版本数据库，当前 `append_many` 的 allow-list 不会接受它，
+  但重开时仍必须保守兼容。
+
+  现在 projection 在触碰 meta 前先查 event owner：无 owner 的历史记录仅留下原有 debug log，完全不参与当前
+  投影。新增单元回归覆盖跨日无主事件不改 notes/day/scene/timeline；另用旧 allow-list 写入 SQLite+JSONL，再由
+  当前 `build_engine` 实际重开，确认 meta 仍取最后拥有者事件且两个持久化文件字节完全不变。没有删除或迁移旧记录、
+  改写 JSONL、放宽新写入校验，也没有改变已注册 owner 的 replay 行为。
+
+  定向 `tests/kernel/test_projection.py tests/app/test_engine.py -rA` 为 **`34 passed in 0.24s`**。完整离线 gate、
+  bundle/fresh-clone 与哈希另记于该提交的恢复验证；无真实模型、embedding、网络或外部服务。

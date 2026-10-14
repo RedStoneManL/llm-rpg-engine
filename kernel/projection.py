@@ -20,6 +20,15 @@ def project(registry: Registry, events) -> dict:
     for ev in events:
         if ev.get("retracted"):
             continue
+        owner = registry.owner_of_event(ev["type"])
+        if owner is None:
+            # Compatibility reads may contain an event type whose old plugin is
+            # no longer installed.  It has no projection owner, so it cannot
+            # contribute *any* current-state metadata either: otherwise a
+            # later orphan could move the recovered scene/day while its own
+            # state change was ignored.
+            log.debug("no owner for event type=%s id=%s (ignored)", ev["type"], ev.get("id"))
+            continue
         # Late historical annotations must not move the current scene/clock back.
         # System projections still receive every event and enforce their own
         # temporal invariants; a corrupt state transition is never skipped.
@@ -29,10 +38,6 @@ def project(registry: Registry, events) -> dict:
             world["meta"]["scene"] = ev["scene"]
         world["meta"]["timeline"].append(
             {"day": ev["day"], "scene": ev["scene"], "summary": ev["summary"]})
-        owner = registry.owner_of_event(ev["type"])
-        if owner is None:
-            log.debug("no owner for event type=%s id=%s (ignored)", ev["type"], ev.get("id"))
-            continue
         owner.apply(world, ev)
         n += 1
     log.debug("project folded %d events across %d systems", n, len(registry.systems))
