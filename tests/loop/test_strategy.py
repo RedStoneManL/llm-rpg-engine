@@ -164,21 +164,29 @@ def test_author_strategy_abc_cannot_be_instantiated_directly():
 
 
 # ---------------------------------------------------------------------------
-# P1 Task 7: `world` section exposed in 甲 + 丙 prompts (optional)
+# Normal player-author contract: both strategies must describe the same
+# publishable local-observation boundary rather than an obsolete GM contract.
 # ---------------------------------------------------------------------------
 
-def test_world_section_in_author_prompt():
+def test_world_section_in_author_prompt_is_local_public_observation_only():
     from loop.strategy import _SYSTEM_PROMPT
     assert "world:" in _SYSTEM_PROMPT
     assert "areas" in _SYSTEM_PROMPT
-    assert "世界事件" in _SYSTEM_PROMPT
+    assert "本地公开观察" in _SYSTEM_PROMPT
+    assert '"level":1' in _SYSTEM_PROMPT
+    assert '"public_observation":true' in _SYSTEM_PROMPT
+    assert '"secrecy":"secret"' not in _SYSTEM_PROMPT
 
 
-def test_world_section_in_hybrid_prompt():
+def test_world_section_in_hybrid_prompt_is_not_an_omniscient_author_contract():
     from loop.strategy import _SYSTEM_PROMPT_HYBRID
     assert "world:" in _SYSTEM_PROMPT_HYBRID
     assert "areas" in _SYSTEM_PROMPT_HYBRID
-    assert "世界事件" in _SYSTEM_PROMPT_HYBRID
+    assert "本地公开观察" in _SYSTEM_PROMPT_HYBRID
+    assert "完整世界视野" not in _SYSTEM_PROMPT_HYBRID
+    assert "可点名任意位置" not in _SYSTEM_PROMPT_HYBRID
+    assert '"secrecy":"public"' in _SYSTEM_PROMPT_HYBRID
+    assert '"secrecy":"secret"' not in _SYSTEM_PROMPT_HYBRID
 
 
 def test_world_section_is_optional_not_required():

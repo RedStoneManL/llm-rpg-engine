@@ -336,8 +336,10 @@ def test_cli_author_prompt_binds_goal_scope_and_public_observation(tmp_path):
         assert "stonebridge_market(1日)" not in user
         assert "门外石阶潮湿。" in user
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in user
-        assert "普通玩家回合不拥有完整世界视野" in system
-        assert "未提供的远方、隐藏或未发现地点" in system
+        assert "普通玩家回合没有区域／全局 world 权限" in system
+        assert '"public_observation":true' in system
+        assert "完整世界视野" not in system
+        assert "不得点名远方、隐藏或未发现地点" in system
     finally:
         engine.store.close()
 

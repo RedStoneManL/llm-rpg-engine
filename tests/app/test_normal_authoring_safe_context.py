@@ -13,7 +13,7 @@ from engine.store import RevisionConflict
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
-from loop.strategy import AuthorStrategy
+from loop.strategy import AuthorStrategy, HybridStrategy, _NARRATE_PROMPT, _SYSTEM_PROMPT_HYBRID
 from loop.turn import TurnRejected, run_turn
 from loop.compare import run_compare
 from systems.knowledge import player_statement_fact_key
@@ -102,6 +102,37 @@ def test_normal_gui_author_strategy_uses_same_safe_projection_without_serializin
         assert PRIVATE_SENTINEL not in prompt and "hidden_arrival_person" not in prompt
         metadata = engine.store.get_action_result_metadata("normal-safe-context")
         assert "_trusted_authoring_events" not in json.dumps(metadata, ensure_ascii=False)
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_hybrid_strategy_uses_publishable_player_contract(tmp_path):
+    """The alternate normal strategy must not be prompted as a GM/director.
+
+    This is the full player-controller path, with the local fake standing in
+    for both of HybridStrategy's provider calls.  It verifies a normal move
+    still publishes, while the structural call receives the same redacted
+    context and the ordinary-player rather than omniscient contract.
+    """
+    provider = FakeLLMProvider(
+        responses=["你沿公开道路抵达集市，晨雾在脚边散开。"],
+        json_responses=[_move_proposal()],
+    )
+    engine = _engine_with_safe_arrival(tmp_path, provider)
+    dashboard = PlayerDashboard(engine, strategy=HybridStrategy(), demo=False)
+    try:
+        initial = dashboard.state()
+        response = dashboard.action(player_input="去集市看看", action_id="normal-hybrid-contract",
+                                    expected_revision=initial["revision"])
+        assert response["state"]["scene"]["location"]["id"] == "stonebridge_market"
+        assert response["state"]["narration"][-1].startswith("你沿公开道路抵达集市")
+        narrate_calls = [user for system, user in provider.calls if system == _NARRATE_PROMPT]
+        structural_calls = [user for system, user in provider.calls if system == _SYSTEM_PROMPT_HYBRID]
+        assert len(narrate_calls) == len(structural_calls) == 1
+        assert "【条件化抵达材料】" in structural_calls[0]
+        assert PRIVATE_SENTINEL not in "\n".join(narrate_calls + structural_calls)
+        assert "完整世界视野" not in _SYSTEM_PROMPT_HYBRID
+        assert "ordinary player" not in _SYSTEM_PROMPT_HYBRID.lower()
     finally:
         engine.store.close()
 

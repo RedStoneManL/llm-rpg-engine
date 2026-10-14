@@ -70,6 +70,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-27 | P0 | 已验收（普通玩家任务账本本地边界与可玩性） | 普通作者可将并未在当前位置披露的远端暗线直接 surface 为明账，或推进远方任务 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许接取 fresh public task、surface 当前 station-push 披露的暗线、推进/收束当前城镇任务或无 host anchor 的普通公开任务；宿主自动 lore 生命周期事件不被误作作者 payload。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；普通 GUI 控制器链的离线 fixture 覆盖接取、推进、duplicate 与冷重开；native importer 保持独立 policy |
 | RCV-28 | P1 | 已验收（CLI 软转向正常流程） | `//steer` 仍只是占位提示，玩家无法在不倒带的情况下表达后续叙事偏好 | `//steer <方向>`/`/steer <方向>` 仅保存在当前 CLI 会话，作为明确标记、JSON 引用的 Author/Hybrid prompt 偏好；不写 EventStore、transcript、receipt、路线或事实，`clear` 后重置策略会话以免旧偏好残留。普通旅行/发布边界不因偏好放宽 |
 | RCV-29 | P1 | 已验收（玩家 GUI 公开时间方位） | 引擎已维护公开 day/band，CLI/Author 可见，但玩家仪表盘只有回合与版本，长局无法从页面判断游戏内时间 | DTO 只读取已有 `meta.day/band` 并显示在 player status；真实 dashboard 回合、undo、WSGI 刷新和冷重开均从 EventStore replay 同一时钟。无新时间事件、写路由、权限或后台时钟 |
+| RCV-30 | P0 | 已验收（普通 Author/Hybrid 发布契约对齐） | RCV-23～27 已收紧普通玩家作者的 world/fact/entity/item/quest 发布边界，但两份实际模型提示仍保留 GM/全局事实示例，Hybrid 甚至声称可见完整世界，容易让正常行动先产出必拒候选 | 两个提示均只说明普通回合可发布的本地公开观察、public fact、人物／物品／任务范围；真实 `PlayerDashboard → HybridStrategy → run_turn` 离线双调用提交公开移动，并验证安全上下文不含私有 sentinel。不是浏览器点击或真实模型质量验收 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1122,3 +1123,22 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   进程替换，Node 无法读取匿名管道路径；改用 stdin 后成功，该工具调用失败不是 JS 语法失败。此证据是本地
   dashboard/controller + WSGI DTO 回归，不是浏览器点击或真实模型质量结论。未调用真实模型、embedding 或网络，
   未触碰 B1/profiling、外部上传、push、PR 或部署。
+
+- 2026-10-14：在用户要求继续修复正常流程而非再叠加只读面板后，短审计发现一个会真实制造无效候选的提示契约错位：
+  普通 `AuthorStrategy` 的完整范例仍要求 `secrecy:"secret"` 的 NPC 真相；`HybridStrategy` 的结构提示仍把普通
+  玩家回合说成可见“完整世界视野”，允许任意 `facts` secrecy、`entities`／`relations` 和 level 1–3 的全局 `world`。
+  这些都已经与 RCV-23～27 的 candidate/final EventBatch 发布校验冲突，会令正常模型先生成必修复或必拒的结构。
+
+  RCV-30 将两份提示对齐为同一普通玩家可发布契约：`world` 仅允许 action-start 或合法同回合目的地的一项
+  public、level 1、有范围的局部观察；facts 仅允许主角 public 自事实或当前公开人物的 `reported:*` 来源陈述；
+  角色、物品、任务和 knowledge 都明确沿用既有本地／公开边界。Author 完整范例也改为 public `reported:*` 加
+  protagonist `told`，不再以 secret canonical 真相作示范。没有放宽任何 validator、native import、权限模式或
+  action-id 行为。
+
+  验收先暴露一条旧 CLI 提示文本断言失配（原句“完整世界视野”已删除）；更新为检查新 local-public 形状后，定向
+  `tests/loop/test_strategy.py tests/app/test_normal_authoring_safe_context.py tests/app/test_play.py tests/loop/test_compare.py -rA`
+  为 **`85 passed in 1.26s`**。新增真实 Python GUI 控制器链 `PlayerDashboard → HybridStrategy → run_turn` 回归：固定本地 Fake provider
+  先产生散文、再产生结构化 commit，普通公开移动成功发布；两条 provider prompt 都保持 redacted 安全上下文，私有
+  sentinel 未出现。正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest
+  -o "addopts=-m 'not slow'" -rA` 为 **`1947 passed, 1 deselected in 22.36s`**；唯一 deselect 是既有 slow real embedding。
+  该证据是离线 fixture 的完整策略/发布链，不是浏览器点击、真实模型或剧情质量结论。

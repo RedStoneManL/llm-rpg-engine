@@ -179,7 +179,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - 【可选】entities / relations：普通玩家回合不要输出这两段（省略即可）；通用实体和关系图属于宿主/导演或已受约束的地点、物品系统，不能借此改写远方或隐藏拓扑。
 - 【可选】items：普通玩家回合只可用 `[{"op":"transfer","item":"主角当前背包物品 id","to":"当前公开人物 id 或当前位置 id"}]` 交接已持有物品；没有物品交接就省略。不能创建物品，不能移动不在主角背包中的物品，更不能交给远方、隐藏或未出现的目标。
 - 【可选】knowledge：记录"谁知道了什么"——详见下【信息视野】
-- 【可选】world：区域/世界级事件波及的地点——详见下【世界事件】
+- 【可选】world：主角本回合在本地公开范围内的地点观察——详见下【本地公开观察】
 - 【可选】quests：任务的开启/浮现/推进/收束——详见下【任务系统】
 
 
@@ -190,15 +190,10 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - heard_player: 仅在宿主明确提供 receipt 时才可写给该 receipt 的唯一收件人；无 receipt 时省略 knowledge。
 fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商队首领.真实身份"），与世界事实同名——系统据此判断主角是否已知、并在叙事中对其未知之事保密。无人获得新信息时本段可省略（不必写 reason）。
 
-【世界事件·world（可选段）】当本回合发生区域级或世界级的大事——灾难、战争、瘟疫、政权更替、重大变故——用 world 段点名所有受影响的地点，引擎据此向下波及这些地点的子地点：
-- world: [{"areas":[受影响地点id, ...], "level":1|2|3, "summary":"一句话事件"}]
+【本地公开观察·world（可选段）】普通玩家回合没有区域／全局 world 权限。只有主角在当前地点，或本回合以合法 moves 抵达的公开地点，实际看见一项可公开、局部且有范围的事物时才写本段；否则省略。唯一可发布形状是：
+- world: [{"areas":["当前或合法同回合到达的单一公开地点 id"],"level":1,"summary":"一句话本地观察","public_observation":true,"visibility":"public","observation_kind":"stable_layout"|"single_observation","observation_range":"实际可见范围"}]
 
-普通玩家回合不拥有完整世界视野：只可点名【行动能力】列出的当前/相邻公开地点，或本回合新建且从当前位置直连的公开地点。不得把未提供的远方、隐藏或未发现地点写成已发生的 world 变化；需要越出该范围的世界推进，交给宿主/导演系统而非普通作者臆造。
-
-若只是主角在已知地点作出公开、局部的观察（而非区域事件），可显式标记为可复用的地点观察：
-``public_observation:true, visibility:"public", observation_kind:"stable_layout"|"single_observation", observation_range:"实际可见范围"``。
-这类记录只描述该地点和该范围内所见；它不是地图发现、路线结论、全局真相，也不会触发世界级级联。
-areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最轻、3 最重）；summary 一句话描述这件事。寻常的个人回合（赶路、对话、独自行动）不必给本段，省略即可（无需写 reason）。
+它不是地图发现、路线结论、全局真相或级联事件。不得点名远方、隐藏或未发现地点；不得使用 level 2/3；不得把 NPC 的旧证言改写为世界事实。需要超出此范围的世界推进，交给宿主／导演系统。寻常赶路、对话或没有新观察的行动直接省略 world。
 
 【任务系统·quests（可选段）】本回合若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]
 - open: 玩家刚接取了一条全新的公开任务（NPC 托付/玩家决定追查）；id 必须是全新的，必须提供 summary
@@ -207,13 +202,13 @@ areas 用已存在或本回合刚创建的地点 id；level 表示烈度（1 最
 - resolve: 收束同样范围内的本地明态任务；不能收束远方账目
 无任务变化时省略本段。
 
-【完整范例】一个"对话中得知一个秘密、没移动、没新地点"的回合长这样——照抄这个结构（注意：空的必填段就给 []）：
-{"narration":"你压低声音问起那场大火。老者的手停在药罐上，半晌才道：「纵火的，是镖局的人。」",
+【完整范例】一个“向当前公开在场人物听到其来源陈述、没移动、没新地点”的回合长这样——只复用当前上下文实际提供的 id，照抄其结构（注意：空的必填段就给 []）：
+{"narration":"你压低声音问起那场大火。老者的手停在药罐上，半晌才道：「我只听说镖局的人那天出现在附近。」",
  "moves":[],
  "places":[],
  "cast":[],
- "facts":[{"subject":"npc_laozhe","predicate":"火灾真凶","value":"镖局所为","secrecy":"secret"}],
- "knowledge":[{"op":"told","knower":"protagonist","fact_key":"npc_laozhe.火灾真凶","value":"镖局所为","via":"老者亲口"}],
+ "facts":[{"subject":"npc_laozhe","predicate":"reported:火灾传闻","value":"我只听说镖局的人那天出现在附近","secrecy":"public"}],
+ "knowledge":[{"op":"told","knower":"protagonist","fact_key":"npc_laozhe.reported:火灾传闻","value":"我只听说镖局的人那天出现在附近","via":"老者亲口"}],
  "clock":[{"advance":false,"days":0,"bands":0,"reason":"同一段对话，时间未实质推进"}]}
 ——若主角移动了：moves 给 [{"who":"protagonist","to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
 
@@ -289,19 +284,19 @@ _SYSTEM_PROMPT_HYBRID = """\
 3. 每个段落都是对象数组，下面标了【必填】/【可选】：
    - 【必填】moves: [{"who":实体id, "to":地点id}]——散文里谁移动了；**没有就给 []**
    - 【必填】places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——散文里**新出现**的地点；**没有就给 []**；kind 只能取列出五值之一
-   - 【必填】cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——散文里**新登场且有戏**的 NPC（create 须 id+sketch+goal 齐全；name 便于后续引用）或既有角色变化（evolve）；**没有就给 []**；纯路人可不写，引擎按名字自动占位
-   - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":可选}]——散文确立的客观事实（subject/predicate/value 必填）；**没有就给 []**。secrecy 可选 "public"|"restricted"|"secret"：街坊常识标 public（路人可转述），秘密/真相标 secret，拿不准不写（默认不公开）
+   - 【必填】cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——可 create 新鲜公开 NPC（id 不得复用既有角色，且不写 past/hidden）；evolve 只可改主角或当前公开在场人物可观察的 ``mood``/``state``。主角对当前公开人物的关系可用 op=relationship；**没有就给 []**。不得改远方、隐藏或未发现角色，不能写其秘密、目标或全局关系。
+   - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":"public"}]——只可写主角自身的公开事实，或当前公开在场人物的 ``reported:主题`` 来源陈述；**没有就给 []**。不得为远方、隐藏地点、物品或 NPC 断言 canonical 真相，更不得写 restricted/secret。局部地形／物理所见使用第 7 条的 world 观察。
    - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
-   - 【可选】entities: [{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填）
-   - 【可选】relations: [{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+   - 【可选】entities / relations：普通玩家回合不要输出这两段；它们属于宿主／导演或已受约束的地点、物品系统，不能借此改写远方或隐藏拓扑。
+   - 【可选】items：只可用 [{"op":"transfer","item":"主角当前背包物品 id","to":"当前公开人物 id 或当前位置 id"}] 交接已持有物品；没有就省略。不能创建物品，不能移动非背包物品，也不能交给远方、隐藏或未出现目标。
    - 【可选】knowledge: 记录"谁知道了什么"——见第 5 条
-   - 【可选】world: 区域/世界级事件波及的地点——见第 7 条
+   - 【可选】world: 本地公开观察——见第 7 条
    - 【可选】quests: 记录"任务的开启/浮现/推进/收束"——见第 8 条
 4. 【铁律】上面 5 个【必填】段（moves/places/cast/facts/clock）每回合都必须出现：clock 给恰好一个元素，moves/places/cast/facts **散文里没有该类变化就给 [](空数组)**。条目要么字段齐全、要么根本别放——宁可 [] 也别塞缺字段的半成品。尤其：散文里主角移动了就必须有 moves、出现新地点就必须有 places，写了却漏记不行。【可选】段没有就直接省略。
 5. 【信息视野·knowledge（可选段）】这是普通玩家回合：通用 told 只可把本回合主角合法得知/亲历的信息写给 protagonist，形如 {"op":"told","knower":"protagonist","fact_key":"实体.属性","value":其所知,"via":途径(可选)}。NPC 听到主角原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由文字写成 NPC 的 told/endowment/broadcast，也不得用 facts 的 knows: 谓词代替。NPC 独立来源知识交由宿主/导演/导入历史，不在这里补写。散文未提及主角获得信息时省略本段。
 6. 只输出合法 JSON（不含 narration），不附任何 markdown 代码块或其他包装。
-7. 【世界事件·world（可选段）】散文中若描写了区域级或世界级的大事（灾难、战争、瘟疫、政权更替、重大变故），用 world 段点名所有受影响地点：world: [{"areas":[受影响地点id,...],"level":1|2|3,"summary":"一句话事件"}]。areas 用已存在或本回合刚创建的地点 id；你有完整世界视野，可点名任意位置。寻常个人场景省略本段。
-8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新明线任务（id必须全新，必须提供summary）；surface=暗线浮现进入明账（id须与上文【本地暗线】中 [id] 标签一致，切勿 open 新 id——暗线每条都标有 [id]，散文中玩家触碰了哪条就 surface 该 id）；advance=推进已有明线任务；resolve=收束已有明线任务。id 须与上文【任务·明账】中已列的 id 保持一致（open 除外）。寻常个人场景无任务变化时省略本段。
+7. 【本地公开观察·world（可选段）】普通玩家回合没有区域／全局 world 权限。仅当散文描写主角在当前地点，或本回合合法抵达的公开地点，实际看见一项可公开、局部且有范围的事物时才写：world: [{"areas":["当前或合法同回合到达的单一公开地点 id"],"level":1,"summary":"一句话本地观察","public_observation":true,"visibility":"public","observation_kind":"stable_layout"|"single_observation","observation_range":"实际可见范围"}]。它不是地图发现、路线结论、全局真相或级联事件；不能点名远方、隐藏或未发现地点，不能使用 level 2/3，也不能把 NPC 的旧证言改写为世界事实。寻常场景没有新观察就省略。
+8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新公开任务（id 必须全新，必须提供 summary）；surface 只能让上文【本地暗线】中的 [id] 浮现；advance/resolve 只能处理当前城镇任务或无地点锚定的普通公开任务。不能 surface、推进或收束远方账目。无任务变化时省略本段。
 """
 
 
