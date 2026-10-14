@@ -545,6 +545,7 @@ def play_loop(
                         enforce_player_travel=True,
                         enforce_player_knowledge_authority=True,
                         enforce_player_world_authority=True,
+                        enforce_player_fact_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:
@@ -567,6 +568,7 @@ def play_loop(
                     enforce_player_travel=True,
                     enforce_player_knowledge_authority=True,
                     enforce_player_world_authority=True,
+                    enforce_player_fact_authority=True,
                     trusted_player_statement_receipts=trusted_player_statement_receipts)
                 turn_published = True
                 engine.world = applied.world
@@ -607,6 +609,7 @@ def play_loop(
                         enforce_player_travel=True,
                         enforce_player_knowledge_authority=True,
                         enforce_player_world_authority=True,
+                        enforce_player_fact_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
                     )
                 finally:

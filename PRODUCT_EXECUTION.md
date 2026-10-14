@@ -64,6 +64,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-20 | P1 | 已验收（出口行动建议） | 玩家地图列出了严格 POV 的可达出口，却不能把它变成可编辑的行动起点 | 每个现有 `scene.exits` 只生成浏览器本地的“填入行动”建议；空框填入、已有输入追加而不覆盖，点击不提交/不移动/不建 action-id，仍由既有回合验证决定移动是否合法 |
 | RCV-21 | P1 | 已验收（出口成本提示） | 玩家可选择已知出口，但无法看见同一 POV 路由已有的移动成本 | DTO 仅把 `SceneCapabilities.routes` 中当前地点的公开 cost 写入 GUI 专用平行 `exit_costs`，保持 native `available_exits` 形状不变；浏览器只读显示，不改移动、路线、发现、提交或权限 |
 | RCV-23 | P0 | 已验收（普通玩家本地世界观察边界） | 普通 CLI/GUI/compare 作者拿到的是 POV 安全材料，却仍可用 `world` 段改写任意 canonical 地点 | 候选与 final `EventBatch` 双校验仅允许 action-start 或合法同回合到达地点的 `level=1`、显式 public、有范围的观察；world 模式写入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 继续由独立 native policy 管理 |
+| RCV-24 | P0 | 已验收（普通玩家 canonical fact 边界） | RCV-23 后普通作者仍可用 `facts` 段为远端/隐藏 canonical 实体写入事实 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许主角的 public 自事实，或当前公开人物的 public `reported:*` 来源陈述；局部地形改用 RCV-23 world observation；模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1001,3 +1002,24 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   为 seq `111..116`、revision `15→16`。同 action ID 关闭重开后恢复 `duplicate=true`、provider 零调用。固定 recap 替身未能生成
   摘要，结果诚实为 `recap_status=pending`，不影响已保存的前台回合；该证据只是本地确定性候选的产品链路/边界验收，不代表外部模型
   或长局剧情质量。原 campaign DB/JSONL 哈希保持不变，未导入或改写原存档。
+
+- 2026-10-14：RCV-24 在 RCV-23 后的独立权限审计中关闭普通作者的 canonical fact 越权。一次性 normal
+  `PlayerDashboard → run_turn → AuthorStrategy` campaign 证实：即使主角未移动，候选仍能以
+  `facts=[{"subject":"north_bank_old_tower",...}]` 对主角 POV 外的隐藏旧塔写入公开事实，旧实现实际 revision
+  `1→2`。该一次性 campaign 已删除；这不是模型质量或剧情结论。
+
+  新的 `enforce_player_fact_authority` 在普通 CLI、GUI 和 compare 中显式开启。候选与 materialized final
+  `fact_asserted` 双层校验只允许主角的显式 `public` 自事实，或 action-start 当前公开人物的 `public reported:*`
+  来源陈述；局部地形/物理所见必须使用 RCV-23 的有界 `world` observation，其他地点、物品、隐藏实体和未经归因的
+  NPC 真相都拒绝。候选边界失败不会只删 facts 后保留可能宣称未见真相的 narration；最终 owner hook 追加的远端
+  `fact_asserted` 同样在 publish 前整批拒绝。该独立模式进入 request fingerprint 与 sidecar 的
+  `authority_modes`，从 false 到 true 的同 action-id 重试在生成前 `RevisionConflict`，不静默恢复较弱边界的结果；
+  native importer 继续受其独立 native policy 管理。
+
+  回归覆盖远端隐藏 candidate 零写拒绝、materializer 追加远端事实的最终零写拒绝、主角 public fact 的提交/duplicate/
+  冷重开零生成恢复，以及 `travel=False` 时独立模式绑定。`tests/app/test_normal_authoring_safe_context.py -rA`
+  为 **`28 passed in 0.46s`**；联动 `tests/app/test_gui.py tests/app/test_play.py tests/context/test_capabilities.py
+  tests/test_action_integrity.py -rA` 为 **`153 passed in 1.28s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1928 passed, 1 deselected in 21.77s`**。唯一 deselect 仍是既有 slow real embedding；未调用真实模型、
+  embedding 或网络，也没有触碰 B1/profiling、push、PR、部署或 Drive/email。

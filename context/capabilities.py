@@ -311,6 +311,101 @@ def player_turn_knowledge_event_errors(
     return errors
 
 
+def _ordinary_fact_subjects(world: dict, scene: dict) -> tuple[str | None, frozenset[str]]:
+    """Return the narrow fact subjects an ordinary player author can address.
+
+    A player turn may always record a public fact about the protagonist.  It
+    may also preserve a *current, public* person's attributable ``reported:``
+    statement.  Other canonical facts (including local geography, objects,
+    remote places and hidden entities) need an owner/host path instead.  Local
+    physical observations use the separately bounded ``world`` section.
+    """
+    actor = scene.get("protagonist")
+    if not isinstance(actor, str) or not actor:
+        return None, frozenset()
+    view = pov_world(world, scene, pov=actor, redact_facts=True)
+    graph = view.get("systems", {}).get("ontology")
+    people: set[str] = set()
+    if graph is not None:
+        for person_id in scene.get("present") or []:
+            entity = graph.get_entity(person_id) if isinstance(person_id, str) else None
+            if entity is not None and entity.etype == "Person":
+                people.add(person_id)
+    return actor, frozenset(people)
+
+
+def _player_fact_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_fact_authority_boundary", hint)
+
+
+def player_turn_fact_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Constrain ordinary player fact declarations to public, local authority.
+
+    The normal author receives a redacted player POV, not authority to assert
+    truth about every entity in the canonical graph.  Facts about a present
+    person are deliberately limited to public, attributable ``reported:``
+    statements; world observations have their own bounded section.  This keeps
+    useful player/provenance writes while rejecting remote or hidden facts.
+    """
+    actor, people = _ordinary_fact_subjects(world, scene)
+    if actor is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("facts") or []):
+        if not isinstance(item, dict):
+            errors.append(_player_fact_error("facts", f"[{index}]",
+                                              "普通玩家回合的 facts 段只能写公开、局部的允许事实。"))
+            continue
+        subject, predicate = item.get("subject"), item.get("predicate")
+        if subject == actor:
+            if item.get("secrecy") != "public":
+                errors.append(_player_fact_error("facts", f"[{index}].secrecy",
+                                                  "普通玩家回合的主角事实必须显式为 public。"))
+        elif subject in people:
+            if not (isinstance(predicate, str) and predicate.startswith("reported:")
+                    and item.get("secrecy") == "public"):
+                errors.append(_player_fact_error(
+                    "facts", f"[{index}]",
+                    "当前公开人物只能记录 public 的 reported: 来源陈述；不能由普通作者断言其余世界真相。",
+                ))
+        else:
+            errors.append(_player_fact_error(
+                "facts", f"[{index}].subject",
+                "普通玩家回合不能为远端、隐藏或非当前公开人物写入 canonical 事实。",
+            ))
+    return errors
+
+
+def player_turn_fact_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_fact_errors`."""
+    actor, people = _ordinary_fact_subjects(world, scene)
+    if actor is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted") or event.get("type") != "fact_asserted":
+            continue
+        delta = event.get("deltas")
+        if not isinstance(delta, dict):
+            errors.append(_player_fact_error("facts", f"event[{index}]",
+                                              "普通玩家回合的最终事实 payload 无效。"))
+            continue
+        subject, predicate = delta.get("subject"), delta.get("predicate")
+        if subject == actor:
+            valid = delta.get("secrecy") == "public"
+        elif subject in people:
+            valid = (isinstance(predicate, str) and predicate.startswith("reported:")
+                     and delta.get("secrecy") == "public")
+        else:
+            valid = False
+        if not valid:
+            errors.append(_player_fact_error(
+                "facts", f"event[{index}]",
+                "普通玩家回合的最终 facts 事件越过了本地公开事实边界。",
+            ))
+    return errors
+
+
 def _declared_discovery_keys(commit, actor: str | None) -> frozenset[str]:
     """Return truthy discovery keys declared for this exact candidate.
 

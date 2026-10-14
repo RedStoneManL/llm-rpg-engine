@@ -180,6 +180,15 @@ def _public_observation_candidate(place: str, summary: str) -> dict:
     }
 
 
+def _public_protagonist_fact_candidate(*, subject: str = "protagonist", value: str = "公开状态稳定") -> dict:
+    return {
+        "narration": "你停在原地，只记录此刻可公开确认的自身状态。",
+        "moves": [], "places": [], "cast": [],
+        "facts": [{"subject": subject, "predicate": "state", "value": value, "secrecy": "public"}],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地确认状态"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
@@ -264,6 +273,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
         assert metadata["authority_modes"] == {
             "ordinary_player_knowledge_authority": True,
             "ordinary_player_world_authority": True,
+            "ordinary_player_fact_authority": True,
         }
         calls_after_first = len(dashboard.engine.provider.calls)
         duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
@@ -301,6 +311,127 @@ def test_world_observation_authority_does_not_depend_on_travel_mode(tmp_path):
                 enforce_player_world_authority=True,
             )
         assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_rejects_remote_hidden_fact_without_writes(tmp_path):
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path,
+        _public_protagonist_fact_candidate(
+            subject="north_bank_old_tower", value="REMOTE_FACT_SENTINEL",
+        ),
+    )
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player fact lies outside"):
+            dashboard.action(player_input="原地观察", action_id="remote-hidden-fact",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-hidden-fact") is None
+        assert len(dashboard.engine.provider.calls) == 1
+        assert "REMOTE_FACT_SENTINEL" not in json.dumps(
+            list(dashboard.engine.store.iter_events()), ensure_ascii=False,
+        )
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_add_remote_fact(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _public_protagonist_fact_candidate())
+    owner = dashboard.engine.registry.owner_of_section("facts")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("fact_asserted", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_FACT_SENTINEL", deltas={
+                "subject": "north_bank_old_tower", "predicate": "condition",
+                "value": "REMOTE_FINAL_FACT_SENTINEL", "secrecy": "public",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player fact authority boundary"):
+            dashboard.action(player_input="原地确认", action_id="remote-final-fact",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-fact") is None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_persists_public_protagonist_fact_and_recovers_without_generation(tmp_path):
+    campaign = tmp_path / "campaign"
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path, _public_protagonist_fact_candidate(value="本回合确认的公开状态"),
+    )
+    initial = dashboard.state()
+    try:
+        first = dashboard.action(player_input="原地确认状态", action_id="local-public-self-fact",
+                                 expected_revision=initial["revision"])
+        assert first["duplicate"] is False
+        assert dashboard.engine.world["systems"]["ontology"].value_at(
+            "protagonist", "state", 1,
+        ) == "本回合确认的公开状态"
+        metadata = dashboard.engine.store.get_action_result_metadata("local-public-self-fact")
+        assert metadata["authority_modes"]["ordinary_player_fact_authority"] is True
+        calls_after_first = len(dashboard.engine.provider.calls)
+        duplicate = dashboard.action(player_input="原地确认状态", action_id="local-public-self-fact",
+                                     expected_revision=initial["revision"])
+        assert duplicate["duplicate"] is True
+        assert len(dashboard.engine.provider.calls) == calls_after_first
+    finally:
+        dashboard.engine.store.close()
+
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    dashboard = PlayerDashboard(reopened, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+    try:
+        duplicate = dashboard.action(player_input="原地确认状态", action_id="local-public-self-fact",
+                                     expected_revision=initial["revision"])
+        assert duplicate["duplicate"] is True
+        assert reopened.world["systems"]["ontology"].value_at(
+            "protagonist", "state", 1,
+        ) == "本回合确认的公开状态"
+        assert not reopened.provider.calls
+    finally:
+        reopened.store.close()
+
+
+def test_fact_authority_does_not_depend_on_travel_and_binds_recovery_mode(tmp_path):
+    campaign = tmp_path / "campaign"
+    candidate = _public_protagonist_fact_candidate(value="模式绑定的公开状态")
+    provider = FakeLLMProvider(json_responses=[candidate])
+    engine = build_engine(campaign, provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("fact-authority conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "原地确认",
+            strategy=AuthorStrategy(), provider=provider, action_id="fact-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_knowledge_authority=False,
+            enforce_player_world_authority=False,
+            enforce_player_fact_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "原地确认",
+                strategy=MustNotRun(), provider=provider, action_id="fact-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_knowledge_authority=False,
+                enforce_player_world_authority=False,
+                enforce_player_fact_authority=True,
+            )
+        assert engine.store.revision == base_revision + 1
     finally:
         engine.store.close()
 
