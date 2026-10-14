@@ -903,6 +903,25 @@ def test_dispatch_ooc_undo_retracts_last_turn(tmp_path):
     assert g.value_at("protagonist", "mood", 2) == "excited"
 
 
+def test_cli_undo_and_nonpositive_rewind_do_not_retract_genesis(tmp_path):
+    """A first-session undo must never turn a player command into world deletion."""
+    from app.gui import build_dashboard
+    from app.play import play_loop
+
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    engine = dashboard.engine
+    before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/undo", "/rewind 0", "/rewind -1", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "当前没有可撤销的玩家回合" in rendered
+        assert rendered.count("创世世界不能通过玩家倒带撤销") == 2
+        assert (engine.store.revision, list(engine.store.iter_events(include_retracted=True))) == before
+    finally:
+        engine.store.close()
+
+
 def test_dispatch_ooc_oops_same_as_undo(tmp_path):
     """/oops is an alias for /undo."""
     from app.play import dispatch_ooc

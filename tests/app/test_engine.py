@@ -410,6 +410,23 @@ def test_rewind_to_genesis_keeps_turn0_events(tmp_path):
     assert surviving == genesis_count  # turn=0 events intact, turn=1 gone
 
 
+def test_rewind_rejects_nonpositive_turns_before_touching_genesis(tmp_path):
+    """The engine API itself must protect callers beyond the CLI parser."""
+    import pytest
+    from app.engine import build_engine, new_game, rewind
+
+    eng = build_engine(tmp_path, provider=FakeLLMProvider())
+    new_game(eng)
+    before = (eng.store.revision, list(eng.store.iter_events(include_retracted=True)))
+    try:
+        for turn in (0, -1, False):
+            with pytest.raises(ValueError, match="positive player turn"):
+                rewind(eng, turn)
+        assert (eng.store.revision, list(eng.store.iter_events(include_retracted=True))) == before
+    finally:
+        eng.store.close()
+
+
 # ---------------------------------------------------------------------------
 # Task 9 — new_game(spec=) + resolve_genesis_spec
 # ---------------------------------------------------------------------------

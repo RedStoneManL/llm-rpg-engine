@@ -584,12 +584,18 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         except (ValueError, TypeError):
             out(f"[倒带] 用法：/rewind <回合数>  例如：/rewind 3")
             return False
+        if turn_n < 1:
+            out("[倒带] 回合数必须从 1 开始；创世世界不能通过玩家倒带撤销。")
+            return False
         result = _rewind(engine, turn_n)
         out(f"[倒带] 已回退到第 {turn_n} 回合之前，撤回 {result['retracted']} 个事件。")
         return False
 
     elif verb in ("undo", "oops"):
         t = _last_turn(engine)
+        if t < 1:
+            out("[倒带] 当前没有可撤销的玩家回合。")
+            return False
         result = _rewind(engine, t)
         out(f"[倒带] 已撤销第 {t} 回合，撤回 {result['retracted']} 个事件。")
         return False

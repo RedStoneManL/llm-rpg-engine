@@ -209,6 +209,8 @@ def rewind(engine: Engine, turn: int) -> dict:
 
     Returns {"retracted": N, "turn": T} where N = number of events retracted.
     """
+    if type(turn) is not int or turn < 1:
+        raise ValueError("rewind turn must be a positive player turn")
     n = engine.store.retract_from_turn(turn)
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world['_revision'] = engine.store.revision
