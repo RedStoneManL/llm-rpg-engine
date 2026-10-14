@@ -14,6 +14,7 @@ from app.gui import (GuiRequestError, PlayerDashboard, _seed_demo_campaign,
                      build_player_state, make_app)
 from kernel.events import kernel_event
 from kernel.projection import project
+from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.strategy import AuthorStrategy
 from loop.turn import TurnRejected
@@ -63,6 +64,44 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     assert reopened.state()["scene"]["location"]["id"] == "stonebridge_inn"
     assert reopened.state()["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
     assert saved["narration"] not in reopened.state()["narration"]
+    reopened.engine.store.close()
+
+
+def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(tmp_path):
+    """The player sees the already-public engine clock, never a new time authority."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+
+    class AdvanceTime:
+        def produce(self, *args, **kwargs):
+            return TurnCommit(narration="你在公开道路上走过半日。", sections={
+                "moves": [], "places": [], "cast": [], "facts": [],
+                "clock": [{"advance": True, "days": 1, "bands": 1, "reason": "测试公开时间显示"}],
+            })
+
+        def repair_sections(self, *args, **kwargs):  # pragma: no cover - already valid
+            return {}
+
+        def commit_to_thread(self, narration):
+            return None
+
+    dashboard.strategy = AdvanceTime()
+    initial = dashboard.state()
+    assert initial["scene"]["time"] == {"day": 1, "band": "晨"}
+
+    saved = dashboard.action(player_input="沿公开道路前进", action_id="clock-dashboard",
+                             expected_revision=initial["revision"])
+    assert saved["state"]["scene"]["time"] == {"day": 2, "band": "中午"}
+    status, body = _get_wsgi(make_app(dashboard), "/api/state")
+    assert status.startswith("200")
+    assert json.loads(body.decode("utf-8"))["scene"]["time"] == {"day": 2, "band": "中午"}
+
+    dashboard.undo(expected_revision=saved["revision"])
+    assert dashboard.state()["scene"]["time"] == {"day": 1, "band": "晨"}
+    dashboard.engine.store.close()
+
+    reopened = build_dashboard(campaign, demo=True)
+    assert reopened.state()["scene"]["time"] == {"day": 1, "band": "晨"}
     reopened.engine.store.close()
 
 

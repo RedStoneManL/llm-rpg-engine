@@ -30,6 +30,7 @@ from app.play import _build_scene
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from context.native_authoring import host_player_statement_receipt, native_authoring_context
+from kernel.clock import band_name
 from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
@@ -218,6 +219,7 @@ def build_player_state(engine) -> dict[str, Any]:
     view = pov_world(engine.world, scene, pov=scene.get("protagonist"), redact_facts=True)
     graph = view.get("systems", {}).get("ontology")
     day = scene.get("day") or 1
+    band = int((engine.world.get("meta", {}) or {}).get("band") or 0)
     protagonist = scene.get("protagonist")
 
     character_facts: list[dict[str, str]] = []
@@ -269,7 +271,8 @@ def build_player_state(engine) -> dict[str, Any]:
     return {
         "revision": int(engine.world.get("_revision") or engine.store.revision),
         "turn": last_turn(engine),
-        "scene": {"day": day, "location": places.get(scene.get("location")),
+        "scene": {"day": day, "time": {"day": day, "band": band_name(band)},
+                  "location": places.get(scene.get("location")),
                   "exits": exits, "exit_costs": exit_costs},
         "map": map_data,
         "character": {"id": protagonist, "facts": character_facts},
@@ -612,6 +615,10 @@ function render(s){state=s;""",
 _JS = _JS.replace(
     "clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);",
     "renderMap(s.map,s.scene.location);",
+)
+_JS = _JS.replace(
+    "setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)",
+    "const time=s.scene&&s.scene.time;const clock=time&&typeof time.day==='number'&&typeof time.band==='string'?`第 ${time.day} 天 · ${time.band} · `:'';setStatus(`${clock}第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)",
 )
 _JS = _JS.replace(
     "function renderMap(data,location){",

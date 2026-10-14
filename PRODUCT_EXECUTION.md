@@ -69,6 +69,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-26 | P0 | 已验收（普通玩家本地物品交接与可玩性） | 普通作者可把主角背包物品直接转交给 POV 外远端角色；同时此前没有受明确契约保护的正常本地交接路径 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许把 action-start 主角背包中、玩家 POV 可见的物品交给当前公开人物，或放在当前公开地点；不允许创建资产、操作非背包物品或交给远端／隐藏目标。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；同场公开人物的实际交接、duplicate 与冷重开已验收；native importer 保持独立 policy |
 | RCV-27 | P0 | 已验收（普通玩家任务账本本地边界与可玩性） | 普通作者可将并未在当前位置披露的远端暗线直接 surface 为明账，或推进远方任务 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许接取 fresh public task、surface 当前 station-push 披露的暗线、推进/收束当前城镇任务或无 host anchor 的普通公开任务；宿主自动 lore 生命周期事件不被误作作者 payload。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；普通 GUI 控制器链的离线 fixture 覆盖接取、推进、duplicate 与冷重开；native importer 保持独立 policy |
 | RCV-28 | P1 | 已验收（CLI 软转向正常流程） | `//steer` 仍只是占位提示，玩家无法在不倒带的情况下表达后续叙事偏好 | `//steer <方向>`/`/steer <方向>` 仅保存在当前 CLI 会话，作为明确标记、JSON 引用的 Author/Hybrid prompt 偏好；不写 EventStore、transcript、receipt、路线或事实，`clear` 后重置策略会话以免旧偏好残留。普通旅行/发布边界不因偏好放宽 |
+| RCV-29 | P1 | 已验收（玩家 GUI 公开时间方位） | 引擎已维护公开 day/band，CLI/Author 可见，但玩家仪表盘只有回合与版本，长局无法从页面判断游戏内时间 | DTO 只读取已有 `meta.day/band` 并显示在 player status；真实 dashboard 回合、undo、WSGI 刷新和冷重开均从 EventStore replay 同一时钟。无新时间事件、写路由、权限或后台时钟 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1109,3 +1110,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   首轮专项有一项 fixture 失败：捕获器误把 `new_game` 的 genesis provider 调用当作普通 Author 调用；收窄为 system
   message 含“你是主持人（DM）”后通过，未删除该场景。未调用真实模型、embedding 或网络，也未触碰 B1/profiling、
   外部上传、push、PR 或部署。
+
+- 2026-10-14：RCV-29 关闭玩家网页长局方向感的一处具体缺口：内核已有公开 `meta.day/band`，且它已经进入
+  CLI/作者上下文，但 player dashboard 之前只显示回合和存储 revision。现在 `build_player_state` 只从既有公开
+  meta 派生 `{day, band}`，浏览器状态行显示“第 N 天 · 时段 · 第 M 回合”。它不读取 EventStore/raw history、
+  private memory、GM state 或新世界字段，也不增加时间写入、自动推进或作者权限。
+
+  真实 dashboard controller fixture 以普通 `action → run_turn` 提交一个合法 `clock` 推进，随后验证 WSGI
+  `/api/state`、revision-bound undo 和关闭重开都准确从同一事件重放 Day/Band（第 1 天晨 → 第 2 天中午 →
+  第 1 天晨）。GUI 专项为 30 passed；同一 `_JS` 已由 Node 标准输入编译检查。首次 Node 检查曾错误使用
+  进程替换，Node 无法读取匿名管道路径；改用 stdin 后成功，该工具调用失败不是 JS 语法失败。此证据是本地
+  dashboard/controller + WSGI DTO 回归，不是浏览器点击或真实模型质量结论。未调用真实模型、embedding 或网络，
+  未触碰 B1/profiling、外部上传、push、PR 或部署。
