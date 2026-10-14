@@ -162,6 +162,8 @@ def test_cli_transcript_revision_distinguishes_replayed_turn_after_undo(tmp_path
         assert [record["turn"] for record in records] == [1, 1]
         assert all(type(record["revision"]) is int for record in records)
         assert records[0]["revision"] != records[1]["revision"]
+        assert all(isinstance(record["action_id"], str) and record["action_id"] for record in records)
+        assert records[0]["action_id"] != records[1]["action_id"]
         assert [record["input"] for record in records] == ["先行动", "改写行动"]
     finally:
         engine.store.close()

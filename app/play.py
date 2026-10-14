@@ -693,6 +693,7 @@ def play_loop(
                     strategy.reset()
                 out("[对比模式]")
                 rec = {"turn": turn_no, "revision": engine.store.revision,
+                       "action_id": applied.receipt["action_id"],
                        "input": player_input, "mode": "compare"}
                 for label, (commit, attempts, dropped) in results.items():
                     # #5 — frame each candidate's narration under its own DM header
@@ -748,6 +749,7 @@ def play_loop(
                         f"本回合这些世界变更未生效]")
                 _write_transcript(transcript_path, {
                     "turn": turn_no, "revision": engine.store.revision,
+                    "action_id": result.receipt["action_id"],
                     "input": player_input, "mode": "single",
                     **_candidate_record(result.commit, result.repair_attempts,
                                         result.dropped_sections),

@@ -92,6 +92,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-49 | P0 | 已验收（CLI 被动读路径跨会话同步） | 长运行 CLI 在两条输入之间可被另一 CLI／dashboard 写入；`/recall`、`/speak` 和下一普通行动原先都从旧 projection 构建 scene | 每条有效输入前比较缓存 revision 与 SQLite；仅不同时只读重投影、恢复最新存活 action-start scope、reset 策略缓存。被动 OOC 读取不写事件、receipt 或 transcript |
 | RCV-50 | P1 | 已验收（CLI transcript canonical turn） | 可选 `transcript.jsonl` 以 REPL 本地计数写 `turn`，冷重开、rewind 或 peer publish 后可与 durable campaign 回合脱节甚至重复编号 | 每个普通行动以 `store.next_turn()` 标识当前 canonical 回合；冷重开追加记录、rewind、peer publish 和失败后重试不再凭本会话计数伪造编号 |
 | RCV-51 | P1 | 已验收（CLI transcript revision identity） | canonical turn 在 rewind 后会被新分支复用；仅有 `turn` 仍无法区分已撤回分支与重写后的同回合记录 | 每个成功 transcript row 同时记录 publish 后的 store revision；不改 EventStore、回合语义或 transcript 的非权威定位 |
+| RCV-52 | P1 | 已验收（CLI transcript receipt linkage） | 普通 CLI 回合实际有自动持久化 action receipt，但 transcript 未记录其 action ID，无法精确映射到 receipt／recovery evidence | 每个成功 single/compare transcript row 记录既有 receipt action_id；不新增 CLI 自动重试、读取接口或持久化协议 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1456,3 +1457,10 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   可追溯标签，不改写 store、事件、receipt、回合编号或权限。真实 `行动 → /undo → 改写行动` 回归确认两条记录都可为
   canonical turn 1，但 revision 必为不同整数，输入顺序保持。正式完整离线 gate 为
   **`1983 passed, 1 deselected in 23.09s`**，唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-52 核对 transcript 与现有 action receipt 的最后一段可追溯性。普通 CLI 虽未把 action ID
+  交给玩家作为自动重试功能，`run_turn` 仍为每次成功 publish 分配 durable UUID receipt；旧 transcript 却不含该值，
+  不能精确关联同 turn/revision 的恢复证据。现成功的 single/compare row 只复制既有 `result.receipt.action_id`，不新增
+  retry 入口、读取 API、权限或写入。undo→重写回归断言两个同 turn 的记录同时拥有不同非空 action ID 与 revision。
+  正式完整离线 gate 为 **`1983 passed, 1 deselected in 23.55s`**；唯一 deselect 是既有 slow real embedding，未调用
+  真实模型、embedding、网络或外部服务。
