@@ -30,6 +30,7 @@ from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
 from app.player_objectives import player_objectives
+from app.player_character import player_character_facts
 from engine.store import RevisionConflict
 from context.access import pov_world
 from context.capabilities import scene_capabilities
@@ -193,7 +194,7 @@ def build_player_state(engine) -> dict[str, Any]:
     band = int((engine.world.get("meta", {}) or {}).get("band") or 0)
     protagonist = scene.get("protagonist")
 
-    character_facts: list[dict[str, str]] = []
+    character_facts: list[dict[str, str]] = player_character_facts(view, protagonist)
     inventory: list[dict[str, str]] = []
     places: dict[str, dict[str, str]] = {}
     exits: list[dict[str, str]] = []
@@ -206,9 +207,6 @@ def build_player_state(engine) -> dict[str, Any]:
         elif route.destination == scene.get("location"):
             exit_costs[route.source] = route.cost
     if graph is not None:
-        for fact in graph.current_facts(protagonist):
-            if fact.predicate != "hidden" and fact.secrecy != "secret":
-                character_facts.append({"name": str(fact.predicate), "value": _safe_value(fact.value)})
         for entity_id, entity in graph.entities.items():
             if entity.etype == "Object" and protagonist in graph.neighbors(entity_id, "held_by", day):
                 inventory.append({"id": entity_id, "label": str(entity.attrs.get("label") or entity_id)})

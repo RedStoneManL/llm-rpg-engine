@@ -209,9 +209,21 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
     from app.engine import build_engine
     from app.gui import _seed_demo_campaign
     from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
 
     engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
     _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="public condition", deltas={
+            "subject": "protagonist", "predicate": "状态", "value": "精神饱满", "secrecy": "public",
+        }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="secret condition", deltas={
+            "subject": "protagonist", "predicate": "hidden", "value": "CLI_STATUS_PRIVATE_SENTINEL", "secrecy": "secret",
+        }),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
     before_revision = engine.store.revision
     before_events = list(engine.store.iter_events())
     output: list[str] = []
@@ -219,6 +231,7 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         play_loop(engine, ["/status", "/quit"], out=output.append)
         rendered = "\n".join(output)
         assert "当前位置：石桥客栈" in rendered
+        assert "状态=精神饱满" in rendered
         assert "背包：旧铜灯" in rendered
         assert "已知出口：石桥集市（成本 1）" in rendered
         assert "长期目标：在黎明前找到旧塔的线索" in rendered
@@ -226,6 +239,7 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         assert "north_bank_old_tower" not in rendered
         assert "北岸旧塔" not in rendered
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
+        assert "CLI_STATUS_PRIVATE_SENTINEL" not in rendered
         assert engine.store.revision == before_revision
         assert list(engine.store.iter_events()) == before_events
     finally:

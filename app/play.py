@@ -27,6 +27,7 @@ from typing import Callable, Iterable, Any
 
 from app.player_recall import player_recall
 from app.player_objectives import player_objectives
+from app.player_character import player_character_facts
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from kernel.clock import band_name
@@ -335,6 +336,10 @@ def _print_player_status(engine, out: Callable) -> None:
     location = next((place for place in capability.places if place.id == capability.location), None)
     out(f"[状态] 第 {day} 天 · {band} · 版本 {engine.store.revision}")
     out(f"[状态] 当前位置：{location.label if location else '未确定'}")
+
+    character_facts = player_character_facts(view, protagonist)
+    rendered_facts = [f"{fact['name']}={fact['value']}" for fact in character_facts]
+    out(f"[状态] 角色状态：{'、'.join(rendered_facts) if rendered_facts else '无公开状态'}")
 
     people = [person["label"] for person in _public_speech_recipients(engine, scene)]
     out(f"[状态] 同场角色：{'、'.join(people) if people else '无'}")
