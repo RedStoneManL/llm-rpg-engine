@@ -208,6 +208,17 @@ def _inventory_transfer_candidate(to: str) -> dict:
     }
 
 
+def _quest_candidate(op: str, quest_id: str, summary: str | None = None) -> dict:
+    quest = {"op": op, "id": quest_id}
+    if summary is not None:
+        quest["summary"] = summary
+    return {
+        "narration": "你把眼前的线索整理成一条明确、可回看的任务。",
+        "moves": [], "places": [], "cast": [], "facts": [], "quests": [quest],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "整理当前线索"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
@@ -230,6 +241,37 @@ def _add_public_local_recipient(dashboard: PlayerDashboard, person_id: str = "in
     ], preflight=lambda history: project(dashboard.engine.registry, history))
     dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
     dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+
+
+def _add_local_active_quest(dashboard: PlayerDashboard, quest_id: str = "inn_delivery") -> None:
+    """Seed a host-owned, public task at the current location for normal play."""
+    scene = _build_scene(dashboard.engine)
+    dashboard.engine.store.append_many([
+        kernel_event("quest_opened", day=scene["day"], scene=scene["id"], turn=0,
+                     summary="public local quest", deltas={
+                         "id": quest_id, "summary": "把给客栈的补给交到柜台", "anchor": scene["location"],
+                     }),
+    ], preflight=lambda history: project(dashboard.engine.registry, history))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+
+
+class _InputKeyedAuthorProvider(FakeLLMProvider):
+    """Offline AuthorStrategy fixture that ignores unrelated backstage calls."""
+
+    def __init__(self, by_player_input: dict[str, dict]):
+        super().__init__()
+        self._by_player_input = by_player_input
+
+    def complete_messages(self, messages, *, model=None, max_tokens=None):
+        system = next((m.get("content", "") for m in messages if m.get("role") == "system"), "")
+        user = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+        self.calls.append((system, user))
+        for player_input, proposal in self._by_player_input.items():
+            if f"[player] {player_input}" in user:
+                return json.dumps(proposal, ensure_ascii=False)
+        # Backstage density/recap calls receive an inert local JSON object.
+        return "{}"
 
 
 def test_normal_gui_rejects_remote_hidden_world_observation_without_writes(tmp_path):
@@ -312,6 +354,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
             "ordinary_player_fact_authority": True,
             "ordinary_player_entity_authority": True,
                 "ordinary_player_item_authority": True,
+                "ordinary_player_quest_authority": True,
         }
         calls_after_first = len(dashboard.engine.provider.calls)
         duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
@@ -692,6 +735,147 @@ def test_item_authority_binds_recovery_mode_before_generation(tmp_path):
                 strategy=MustNotRun(), provider=provider, action_id="item-mode-bound-action",
                 expected_revision=base_revision, enforce_player_travel=False,
                 enforce_player_item_authority=True,
+            )
+        assert engine.store.revision == base_revision + 1
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_rejects_remote_dark_quest_surface_without_writes(tmp_path):
+    candidate = _quest_candidate("surface", "remote_dark_tower")
+    dashboard = _ordinary_demo_dashboard(tmp_path, candidate)
+    dashboard.engine.store.append_many([
+        kernel_event("lore_created", day=1, scene="s1", turn=0, summary="remote dark lore", deltas={
+            "id": "remote_dark_tower", "complexity": "simple", "about": "REMOTE_QUEST_SENTINEL",
+            "secret": "REMOTE_QUEST_SECRET", "anchor": "north_bank_old_tower",
+            "l3_anchor": "north_bank_old_tower", "stages": [], "threshold": 50,
+            "description": "REMOTE_QUEST_SENTINEL", "trigger": "远端触发",
+        }),
+    ], preflight=lambda history: project(dashboard.engine.registry, history))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player quest change lies outside"):
+            dashboard.action(player_input="原地观察", action_id="remote-quest-surface",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-quest-surface") is None
+        assert dashboard.engine.world["systems"]["lore"]["lines"]["remote_dark_tower"]["state"] == "暗"
+        assert "REMOTE_QUEST_SENTINEL" not in _prompt(dashboard.engine.provider)
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_advance_remote_quest(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _quest_candidate("open", "player_note", "整理客栈线索"))
+    _add_local_active_quest(dashboard)
+    dashboard.engine.store.append_many([
+        kernel_event("quest_opened", day=1, scene="s1", turn=0, summary="remote quest", deltas={
+            "id": "remote_tower_task", "summary": "远端旧塔任务", "anchor": "north_bank_old_tower",
+        }),
+    ], preflight=lambda history: project(dashboard.engine.registry, history))
+    dashboard.engine.world = project(dashboard.engine.registry, dashboard.engine.store.iter_events())
+    dashboard.engine.world["_revision"] = dashboard.engine.store.revision
+    owner = dashboard.engine.registry.owner_of_section("quests")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("quest_advanced", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_QUEST_SENTINEL", deltas={
+                "id": "remote_tower_task", "summary": "REMOTE_FINAL_QUEST_SENTINEL",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player quest authority boundary"):
+            dashboard.action(player_input="记录新的本地线索", action_id="remote-final-quest",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-quest") is None
+        assert dashboard.engine.world["systems"]["lore"]["lines"]["remote_tower_task"]["summary"] == "远端旧塔任务"
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_opens_and_advances_local_quest_with_recovery(tmp_path):
+    campaign = tmp_path / "campaign"
+    provider = _InputKeyedAuthorProvider({
+        "我决定记下这条集市补给线索": _quest_candidate(
+            "open", "player_market_note", "在客栈核对集市的补给线索",
+        ),
+        "把补给交到客栈柜台": _quest_candidate(
+            "advance", "inn_delivery", "补给已经交到客栈柜台",
+        ),
+    })
+    engine = build_engine(campaign, provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    dashboard = PlayerDashboard(engine, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+    _add_local_active_quest(dashboard)
+    opening = dashboard.state()
+    try:
+        opened = dashboard.action(player_input="我决定记下这条集市补给线索", action_id="open-public-quest",
+                                  expected_revision=opening["revision"])
+        assert opened["duplicate"] is False
+        assert {entry["id"] for entry in opened["state"]["objectives"]["active_quests"]} >= {
+            "inn_delivery", "player_market_note",
+        }
+        advanced = dashboard.action(player_input="把补给交到客栈柜台", action_id="advance-local-quest",
+                                    expected_revision=opened["revision"])
+        assert advanced["duplicate"] is False
+        assert advanced["state"]["objectives"]["active_quests"] == [
+            {"id": "inn_delivery", "summary": "补给已经交到客栈柜台"},
+            {"id": "player_market_note", "summary": "在客栈核对集市的补给线索"},
+        ]
+        metadata = dashboard.engine.store.get_action_result_metadata("advance-local-quest")
+        assert metadata["authority_modes"]["ordinary_player_quest_authority"] is True
+        calls_after_first = len(provider.calls)
+        duplicate = dashboard.action(player_input="把补给交到客栈柜台", action_id="advance-local-quest",
+                                     expected_revision=opened["revision"])
+        assert duplicate["duplicate"] is True
+        assert len(provider.calls) == calls_after_first
+    finally:
+        dashboard.engine.store.close()
+
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    dashboard = PlayerDashboard(reopened, strategy=AuthorStrategy(), demo=False, max_repairs=0)
+    try:
+        duplicate = dashboard.action(player_input="把补给交到客栈柜台", action_id="advance-local-quest",
+                                     expected_revision=opened["revision"])
+        assert duplicate["duplicate"] is True
+        assert reopened.world["systems"]["lore"]["lines"]["inn_delivery"]["summary"] == "补给已经交到客栈柜台"
+        assert not reopened.provider.calls
+    finally:
+        reopened.store.close()
+
+
+def test_quest_authority_binds_recovery_mode_before_generation(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_quest_candidate("open", "mode_bound_quest", "模式绑定任务")])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("quest-authority conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "记下任务",
+            strategy=AuthorStrategy(), provider=provider, action_id="quest-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_quest_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "记下任务",
+                strategy=MustNotRun(), provider=provider, action_id="quest-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_quest_authority=True,
             )
         assert engine.store.revision == base_revision + 1
     finally:

@@ -67,6 +67,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-24 | P0 | 已验收（普通玩家 canonical fact 边界） | RCV-23 后普通作者仍可用 `facts` 段为远端/隐藏 canonical 实体写入事实 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许主角的 public 自事实，或当前公开人物的 public `reported:*` 来源陈述；局部地形改用 RCV-23 world observation；模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
 | RCV-25 | P0 | 已验收（普通玩家角色／关系 canonical 边界） | RCV-24 后普通作者仍可用 `cast.evolve` 改写 POV 外远端角色 canonical 状态，或借通用实体／关系段触碰隐藏拓扑 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 禁止通用 `entities`／`relations`；仅允许新鲜、公开的角色创建，或主角／当前公开人物的 `mood`／`state` 演化，以及主角指向当前公开人物的关系变化。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
 | RCV-26 | P0 | 已验收（普通玩家本地物品交接与可玩性） | 普通作者可把主角背包物品直接转交给 POV 外远端角色；同时此前没有受明确契约保护的正常本地交接路径 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许把 action-start 主角背包中、玩家 POV 可见的物品交给当前公开人物，或放在当前公开地点；不允许创建资产、操作非背包物品或交给远端／隐藏目标。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；同场公开人物的实际交接、duplicate 与冷重开已验收；native importer 保持独立 policy |
+| RCV-27 | P0 | 已验收（普通玩家任务账本本地边界与可玩性） | 普通作者可将并未在当前位置披露的远端暗线直接 surface 为明账，或推进远方任务 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许接取 fresh public task、surface 当前 station-push 披露的暗线、推进/收束当前城镇任务或无 host anchor 的普通公开任务；宿主自动 lore 生命周期事件不被误作作者 payload。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；普通 GUI 控制器链的离线 fixture 覆盖接取、推进、duplicate 与冷重开；native importer 保持独立 policy |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1056,14 +1057,39 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   与任意其他来源／目标的 `item_transferred` 均拒绝。因此普通作者不能凭 prose 创建资产、转移远端物品或交给隐藏／远端
   角色。`items` 契约已直接写入普通 Author prompt，明确这是可选的交接机制，不再让模型猜测。
 
-  正常路径验收不是 mock-only：向当前场景加入公开旅人后，真实普通 GUI 作者将主角旧铜灯交给该旅人；持有关系保存，
+  正常路径验收走真实 `PlayerDashboard.action → run_turn → AuthorStrategy` 控制器链，但作者响应是本地
+  `FakeLLMProvider` fixture：向当前场景加入公开旅人后，该离线路径将主角旧铜灯交给该旅人；持有关系保存，
   玩家 `inventory` 变为空，同 action-id duplicate 零再生成，关闭重开后仍恢复同一持有者。反例覆盖远端隐藏 recipient
   的候选零写拒绝、materializer 在候选后追加远端 `item_transferred` 的 final 零写拒绝，以及跨 item-authority mode
-  的生成前冲突。第一轮专项曾有 1 项失败，因为既有 metadata 精确映射没有预期新 `ordinary_player_item_authority=true`；
-  该断言已按新持久化契约修正，未删除失败场景。
+  的生成前冲突。它不是浏览器点击、native author 或真实／外部模型玩法测试。第一轮专项曾有 1 项失败，因为既有 metadata
+  精确映射没有预期新 `ordinary_player_item_authority=true`；该断言已按新持久化契约修正，未删除失败场景。
 
   定向 `tests/app/test_normal_authoring_safe_context.py tests/systems/test_object.py tests/app/test_gui.py tests/app/test_play.py
   tests/context/test_capabilities.py tests/test_action_integrity.py -rA` 为 **`229 passed in 1.68s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1937 passed, 1 deselected in 22.33s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型、embedding 或网络，
   未触碰 B1/profiling、外部上传、push、PR 或部署。
+
+- 2026-10-14：RCV-27 审计普通任务账本的既有系统性缺口。一次性 normal
+  `PlayerDashboard → run_turn → AuthorStrategy` campaign 中，离线 fixture 候选在主角留在客栈时把锚定
+  `north_bank_old_tower` 的远端暗线 `surface`；旧实现实际从 revision `2→3`，将未在当前 station-push 披露的线写进明账。
+  该 disposable campaign 没有保留，也不是浏览器、native author 或真实模型玩法结论。
+
+  新 `enforce_player_quest_authority` 在普通 CLI、GUI 和 compare 中同时进行候选与 final `EventBatch` 校验。普通作者可
+  `open` 一个 fresh public task；只能 `surface` 当前 station-push 会提供 id 的本地暗线；只能 `advance`/`resolve` 当前城镇
+  的明态任务或没有 host anchor 的普通公开任务。自动 density/lore 生命周期事件虽可出现在同一 publish batch，但不属于普通
+  `quests` section 的 materialization，因此明确不被误拒；final validator 只审查 `quest_opened/surfaced/advanced/resolved`。
+  模式写入 action-id fingerprint 与 sidecar，跨 false→true 恢复在生成前 fail-closed；native importer 不受此普通入口开关影响。
+
+  正常路径用真实 Python GUI 控制器链 `PlayerDashboard.action → run_turn → AuthorStrategy`，但 provider 是本地、按玩家输入
+  返回固定 JSON 的 `_InputKeyedAuthorProvider` fixture：先接取 fresh public task，再推进宿主锚定在当前客栈的明态任务；
+  dashboard 账本更新，duplicate 零生成，冷重开恢复相同摘要。它不是浏览器点击、真实模型或 native author 验收。反例覆盖远端
+  暗线 surface 的候选零写拒绝、final materializer 追加远端 `quest_advanced` 的零写拒绝及 mode conflict。首轮专项还暴露
+  新 metadata key 与 host lore lifecycle 同批事件的集成问题；前者改为断言新标记，后者缩小为只校验普通作者可 materialize 的
+  事件类型，未删除失败场景。
+
+  定向 `tests/app/test_normal_authoring_safe_context.py tests/systems/test_quest_active.py tests/app/test_gui.py tests/app/test_play.py
+  tests/context/test_capabilities.py tests/test_action_integrity.py tests/loop/test_compare.py -rA` 为
+  **`218 passed in 1.70s`**；正式完整离线 gate `/tmp/llm-rpg-engine-testenv/bin/python -m pytest
+  -o "addopts=-m 'not slow'" -rA` 为 **`1941 passed, 1 deselected in 22.82s`**。唯一 deselect 是既有 slow real embedding；
+  未调用真实模型、embedding 或网络，未触碰 B1/profiling、外部上传、push、PR 或部署。

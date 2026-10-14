@@ -509,6 +509,7 @@ class PlayerDashboard:
                 enforce_player_fact_authority=True,
                 enforce_player_entity_authority=True,
                 enforce_player_item_authority=True,
+                enforce_player_quest_authority=True,
                 trusted_player_statement_receipts=context.trusted_player_statement_receipts,
             )
             self.engine.world = result.world

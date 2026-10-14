@@ -19,6 +19,7 @@ from typing import Any
 from context.access import pov_world
 from systems.knowledge import place_discovery_key, route_discovery_key
 from kernel.contextsystem import ValidationError
+from loop.graph_utils import ancestor_of_level
 
 
 @dataclass(frozen=True)
@@ -587,6 +588,109 @@ def player_turn_item_event_errors(events: list[dict], world: dict, scene: dict) 
             errors.append(_player_item_error(
                 "items", f"event[{index}]",
                 "普通玩家回合的最终物品事件越过了本地公开背包边界。",
+            ))
+    return errors
+
+
+def _player_quest_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_quest_authority_boundary", hint)
+
+
+def _ordinary_quest_authority(world: dict, scene: dict) -> tuple[set[str], set[str], set[str]]:
+    """Return fresh-id, locally disclosed dark, and local active quest authority.
+
+    A normal author may always open a fresh public task: this records a player
+    decision or a present encounter and creates no hidden-line authority.  An
+    existing dark line is different: only an id actually disclosed by the
+    local station-push rule may surface.  Likewise an existing public task can
+    advance or resolve only at its local town; unanchored ordinary open tasks
+    remain usable because their creator did not attach a hidden world anchor.
+    """
+    actor = scene.get("protagonist")
+    if not isinstance(actor, str) or not actor:
+        return set(), set(), set()
+    view = pov_world(world, scene, pov=actor, redact_facts=True)
+    graph = view.get("systems", {}).get("ontology")
+    location = scene.get("location")
+    day = scene.get("day") or view.get("meta", {}).get("day") or 1
+    town = (ancestor_of_level(graph, location, day, 2)
+            if graph is not None and isinstance(location, str) else None)
+    lines = (world.get("systems", {}).get("lore") or {}).get("lines", {})
+    if not isinstance(lines, dict):
+        return set(), set(), set()
+    fresh = {line_id for line_id in lines if isinstance(line_id, str)}
+    local_dark: set[str] = set()
+    local_active: set[str] = set()
+    for line_id, line in lines.items():
+        if not isinstance(line_id, str) or not isinstance(line, dict):
+            continue
+        anchor = line.get("anchor")
+        if line.get("state") == "暗" and (line.get("l3_anchor") == location or anchor == town):
+            local_dark.add(line_id)
+        if line.get("state") == "明" and (anchor is None or anchor == town):
+            local_active.add(line_id)
+    return fresh, local_dark, local_active
+
+
+def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Keep ordinary task-ledger changes tied to public local play."""
+    existing, local_dark, local_active = _ordinary_quest_authority(world, scene)
+    if scene.get("protagonist") is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("quests") or []):
+        if not isinstance(item, dict):
+            errors.append(_player_quest_error("quests", f"[{index}]",
+                                              "普通玩家回合的任务操作必须是本地公开任务操作。"))
+            continue
+        op, line_id = item.get("op"), item.get("id")
+        if op == "open":
+            valid = isinstance(line_id, str) and bool(line_id) and line_id not in existing
+        elif op == "surface":
+            valid = line_id in local_dark
+        elif op in {"advance", "resolve"}:
+            valid = line_id in local_active
+        else:
+            # LoreSystem owns structural diagnostics for unsupported/malformed
+            # ops; this boundary only needs to prevent authority laundering.
+            valid = True
+        if not valid:
+            errors.append(_player_quest_error(
+                "quests", f"[{index}]",
+                "普通玩家回合只能接取新公开任务，或变更当前地点已披露的暗线／本地明态任务。",
+            ))
+    return errors
+
+
+def player_turn_quest_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_quest_errors`."""
+    existing, local_dark, local_active = _ordinary_quest_authority(world, scene)
+    if scene.get("protagonist") is None:
+        return []
+    errors: list[ValidationError] = []
+    # This publish batch may also contain host-owned density/lore lifecycle
+    # events generated after the ordinary candidate has been accepted.  The
+    # ordinary ``quests`` section itself can only materialize these four event
+    # types, so validate that surface rather than blocking unrelated host work.
+    quest_events = {"quest_opened", "quest_surfaced", "quest_advanced", "quest_resolved"}
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted") or event.get("type") not in quest_events:
+            continue
+        delta = event.get("deltas")
+        line_id = delta.get("id") if isinstance(delta, dict) else None
+        event_type = event.get("type")
+        valid = False
+        if event_type == "quest_opened":
+            valid = (isinstance(line_id, str) and bool(line_id) and line_id not in existing
+                     and isinstance(delta.get("summary"), str) and bool(delta.get("summary")))
+        elif event_type == "quest_surfaced":
+            valid = line_id in local_dark
+        elif event_type in {"quest_advanced", "quest_resolved"}:
+            valid = line_id in local_active
+        if not valid:
+            errors.append(_player_quest_error(
+                "quests", f"event[{index}]",
+                "普通玩家回合的最终任务事件越过了本地公开任务边界。",
             ))
     return errors
 

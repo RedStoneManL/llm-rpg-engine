@@ -33,6 +33,7 @@ def run_compare(
     enforce_player_fact_authority: bool = False,
     enforce_player_entity_authority: bool = False,
     enforce_player_item_authority: bool = False,
+    enforce_player_quest_authority: bool = False,
     trusted_player_statement_receipts=(),
 ) -> dict:
     """Run both 甲 (AuthorStrategy) and 丙 (HybridStrategy) on the same snapshot.
@@ -66,6 +67,7 @@ def run_compare(
         enforce_player_fact_authority=enforce_player_fact_authority,
         enforce_player_entity_authority=enforce_player_entity_authority,
         enforce_player_item_authority=enforce_player_item_authority,
+        enforce_player_quest_authority=enforce_player_quest_authority,
         trusted_player_statement_receipts=trusted_player_statement_receipts,
     )
     log.debug("run_compare: 甲 done narration=%r attempts=%d dropped=%s",
@@ -85,6 +87,7 @@ def run_compare(
         enforce_player_fact_authority=enforce_player_fact_authority,
         enforce_player_entity_authority=enforce_player_entity_authority,
         enforce_player_item_authority=enforce_player_item_authority,
+        enforce_player_quest_authority=enforce_player_quest_authority,
         trusted_player_statement_receipts=trusted_player_statement_receipts,
     )
     log.debug("run_compare: 丙 done narration=%r attempts=%d dropped=%s",
