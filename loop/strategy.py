@@ -173,11 +173,10 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 - 【必填】narration：字符串，本回合面向玩家的叙事散文。
 - 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪；**没人移动 → 给 []**。
 - 【必填】places：[{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述}]——本回合**新出现**的地点；**没有 → 给 []**；kind 只能取列出的五个值，别自造（如 ruin/forest）。
-- 【必填】cast：[{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——**新登场且有戏**的 NPC（op=create，必须 id+sketch+goal 三者齐全；给 name 便于后续引用）或既有角色的变化（op=evolve）；**没有 → 给 []**；只是路过的纯路人可不写，引擎会按名字自动建轻量占位。**若 characters_query 显示某 NPC 已在场（co_present），就用它返回的那个 id 以 op=evolve 推进，切勿为同一个已在场的人另起新 id（会造成重复实体）。**
+- 【必填】cast：[{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——可创建全新的公开 NPC（不得复用任何既有 id，也不写 past/hidden）；对既有角色只可更新主角或当前公开在场人物的可观察 ``mood``/``state``。主角对当前公开人物的关系变化可用 op=relationship；**没有 → 给 []**。不得演化远方、隐藏或未发现角色，不能为普通玩家回合直接写其秘密、目标或全局关系。
 - 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":"public"}]——普通玩家回合只可写主角自身的公开事实，或当前公开在场人物的 ``reported:主题`` 来源陈述；**没有 → 给 []**。局部地形/物理所见请用下方带 public_observation 的 world 段；不得为远方、隐藏地点、物品或 NPC 断言 canonical 真相，更不能写 restricted/secret。**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。
 - 【必填】clock：[{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。诀窍：先想清动作结束时落在哪个时段，再据此给 days/bands。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {"advance":false,"days":0,"bands":0,"reason":"..."}。
-- 【可选】entities：[{"id":..., "etype":"Person"|"Place"|"Object"等}]（etype 必填；仅在需要凭空声明实体时用）
-- 【可选】relations：[{"src":实体id, "rel":关系名, "dst":实体id}]（三者必填）
+- 【可选】entities / relations：普通玩家回合不要输出这两段（省略即可）；通用实体和关系图属于宿主/导演或已受约束的地点、物品系统，不能借此改写远方或隐藏拓扑。
 - 【可选】knowledge：记录"谁知道了什么"——详见下【信息视野】
 - 【可选】world：区域/世界级事件波及的地点——详见下【世界事件】
 - 【可选】quests：任务的开启/浮现/推进/收束——详见下【任务系统】

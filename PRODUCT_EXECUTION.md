@@ -65,6 +65,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-21 | P1 | 已验收（出口成本提示） | 玩家可选择已知出口，但无法看见同一 POV 路由已有的移动成本 | DTO 仅把 `SceneCapabilities.routes` 中当前地点的公开 cost 写入 GUI 专用平行 `exit_costs`，保持 native `available_exits` 形状不变；浏览器只读显示，不改移动、路线、发现、提交或权限 |
 | RCV-23 | P0 | 已验收（普通玩家本地世界观察边界） | 普通 CLI/GUI/compare 作者拿到的是 POV 安全材料，却仍可用 `world` 段改写任意 canonical 地点 | 候选与 final `EventBatch` 双校验仅允许 action-start 或合法同回合到达地点的 `level=1`、显式 public、有范围的观察；world 模式写入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 继续由独立 native policy 管理 |
 | RCV-24 | P0 | 已验收（普通玩家 canonical fact 边界） | RCV-23 后普通作者仍可用 `facts` 段为远端/隐藏 canonical 实体写入事实 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 只允许主角的 public 自事实，或当前公开人物的 public `reported:*` 来源陈述；局部地形改用 RCV-23 world observation；模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
+| RCV-25 | P0 | 已验收（普通玩家角色／关系 canonical 边界） | RCV-24 后普通作者仍可用 `cast.evolve` 改写 POV 外远端角色 canonical 状态，或借通用实体／关系段触碰隐藏拓扑 | 普通 CLI/GUI/compare 的候选与 final `EventBatch` 禁止通用 `entities`／`relations`；仅允许新鲜、公开的角色创建，或主角／当前公开人物的 `mood`／`state` 演化，以及主角指向当前公开人物的关系变化。模式进入 action-id 指纹/sidecar，跨模式恢复 fail-closed；native importer 保持独立 policy |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1023,3 +1024,24 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1928 passed, 1 deselected in 21.77s`**。唯一 deselect 仍是既有 slow real embedding；未调用真实模型、
   embedding 或网络，也没有触碰 B1/profiling、push、PR、部署或 Drive/email。
+
+- 2026-10-14：RCV-25 继续收紧普通玩家作者对 canonical 角色和关系的权限。一次性 normal
+  `PlayerDashboard → run_turn → AuthorStrategy` campaign 先复现：候选以
+  `cast=[{"id":"tower_warden","op":"evolve","predicate":"mood",...}]` 改写主角 POV 外远端角色，旧实现
+  实际从 revision `1→2` 发布。该 campaign 只是隔离复现，未作为剧情写入或模型质量结论。
+
+  普通 CLI、GUI 和 compare 现在显式开启 `enforce_player_entity_authority`。候选和 materialized final payload
+  双层拒绝通用 `entities`／`relations`；`cast.create` 只接受不存在于 action-start canonical graph、且没有
+  `past`／`hidden` 的新公开人物；`cast.evolve` 仅可更新主角或当前公开人物的可观察 `mood`／`state`；
+  `cast.relationship` 仅可由主角指向当前公开人物。远端／隐藏角色演化、隐藏关系和 owner hook 在候选之后添加的
+  `character_evolved` 都会整批拒绝、零 revision／receipt 写入。该授权模式写入 action-id request fingerprint 和
+  sidecar `authority_modes`；从旧 false 模式到当前 true 的相同 action-id 会在生成前 `RevisionConflict`，不会恢复
+  更弱边界的历史结果。native importer 没有被普通入口开关影响，仍由独立 native policy 审查。
+
+  回归覆盖远端隐藏角色 candidate 的零写拒绝、final payload 篡改的零写拒绝、通用 hidden relation 拒绝、本地公开
+  `mood` 演化与新公开人物创建的提交，以及跨 entity-authority mode 的零生成恢复冲突。定向
+  `tests/app/test_normal_authoring_safe_context.py tests/app/test_gui.py tests/app/test_play.py tests/context/test_capabilities.py
+  tests/test_action_integrity.py -rA` 为 **`186 passed in 1.52s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1933 passed, 1 deselected in 22.09s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型、embedding
+  或网络，也没有外部上传、push、PR、部署、B1 或 profiling 操作。

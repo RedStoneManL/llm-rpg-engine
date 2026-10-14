@@ -189,6 +189,16 @@ def _public_protagonist_fact_candidate(*, subject: str = "protagonist", value: s
     }
 
 
+def _local_protagonist_cast_candidate(*, person_id: str = "protagonist", value: str = "平静") -> dict:
+    return {
+        "narration": "你停在原地，神色渐渐安定下来。",
+        "moves": [], "places": [],
+        "cast": [{"id": person_id, "op": "evolve", "predicate": "mood", "value": value}],
+        "facts": [],
+        "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "原地整理心绪"}],
+    }
+
+
 def _ordinary_demo_dashboard(tmp_path, candidate: dict) -> PlayerDashboard:
     provider = FakeLLMProvider(json_responses=[candidate])
     engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
@@ -274,6 +284,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
             "ordinary_player_knowledge_authority": True,
             "ordinary_player_world_authority": True,
             "ordinary_player_fact_authority": True,
+            "ordinary_player_entity_authority": True,
         }
         calls_after_first = len(dashboard.engine.provider.calls)
         duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",
@@ -430,6 +441,117 @@ def test_fact_authority_does_not_depend_on_travel_and_binds_recovery_mode(tmp_pa
                 enforce_player_knowledge_authority=False,
                 enforce_player_world_authority=False,
                 enforce_player_fact_authority=True,
+            )
+        assert engine.store.revision == base_revision + 1
+    finally:
+        engine.store.close()
+
+
+def test_normal_gui_rejects_remote_hidden_character_evolution_without_writes(tmp_path):
+    dashboard = _ordinary_demo_dashboard(
+        tmp_path,
+        _local_protagonist_cast_candidate(person_id="tower_warden", value="REMOTE_CAST_SENTINEL"),
+    )
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player entity change lies outside"):
+            dashboard.action(player_input="原地观察", action_id="remote-hidden-cast",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-hidden-cast") is None
+        assert len(dashboard.engine.provider.calls) == 1
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_final_payload_cannot_add_remote_character_evolution(tmp_path, monkeypatch):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _local_protagonist_cast_candidate())
+    owner = dashboard.engine.registry.owner_of_section("cast")
+    original = owner.to_events
+
+    def tampered(section, decl, *, turn, day, scene):
+        events = original(section, decl, turn=turn, day=day, scene=scene)
+        events.append(kernel_event("character_evolved", day=day, scene=scene, turn=turn,
+            summary="REMOTE_FINAL_CAST_SENTINEL", deltas={
+                "id": "tower_warden", "predicate": "mood", "value": "REMOTE_FINAL_CAST_SENTINEL",
+            }))
+        return events
+
+    monkeypatch.setattr(owner, "to_events", tampered)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="final publish violates the player entity authority boundary"):
+            dashboard.action(player_input="原地整理心绪", action_id="remote-final-cast",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("remote-final-cast") is None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_rejects_generic_relation_to_hidden_entity_without_writes(tmp_path):
+    candidate = _public_protagonist_fact_candidate()
+    candidate["relations"] = [{"src": "protagonist", "rel": "observes", "dst": "tower_warden"}]
+    dashboard = _ordinary_demo_dashboard(tmp_path, candidate)
+    before = dashboard.state()["revision"]
+    try:
+        with pytest.raises(TurnRejected, match="player entity change lies outside"):
+            dashboard.action(player_input="原地观察", action_id="hidden-generic-relation",
+                             expected_revision=before)
+        assert dashboard.engine.store.revision == before
+        assert dashboard.engine.store.get_action_receipt("hidden-generic-relation") is None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_normal_gui_persists_local_cast_and_public_new_character(tmp_path):
+    dashboard = _ordinary_demo_dashboard(tmp_path, _local_protagonist_cast_candidate(value="安定"))
+    initial = dashboard.state()
+    try:
+        result = dashboard.action(player_input="原地整理心绪", action_id="local-cast-evolution",
+                                  expected_revision=initial["revision"])
+        assert result["duplicate"] is False
+        assert dashboard.engine.world["systems"]["ontology"].value_at("protagonist", "mood", 1) == "安定"
+    finally:
+        dashboard.engine.store.close()
+
+    candidate = _public_protagonist_fact_candidate()
+    candidate["cast"] = [{"id": "new_public_witness", "op": "create", "sketch": "公开的路边见证人", "goal": "寻找失物"}]
+    dashboard = _ordinary_demo_dashboard(tmp_path / "new", candidate)
+    initial = dashboard.state()
+    try:
+        result = dashboard.action(player_input="向路人问好", action_id="new-public-character",
+                                  expected_revision=initial["revision"])
+        assert result["duplicate"] is False
+        assert dashboard.engine.world["systems"]["ontology"].get_entity("new_public_witness") is not None
+    finally:
+        dashboard.engine.store.close()
+
+
+def test_entity_authority_binds_recovery_mode_before_generation(tmp_path):
+    provider = FakeLLMProvider(json_responses=[_local_protagonist_cast_candidate()])
+    engine = build_engine(tmp_path / "campaign", provider=provider, embedder=None)
+    _seed_demo_campaign(engine)
+    scene = _build_scene(engine)
+    base_revision = engine.store.revision
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("entity-authority conflict must reject before generation")
+
+    try:
+        run_turn(
+            engine.registry, engine.store, engine.world, scene, "原地整理心绪",
+            strategy=AuthorStrategy(), provider=provider, action_id="entity-mode-bound-action",
+            expected_revision=base_revision, enforce_player_travel=False,
+            enforce_player_entity_authority=False,
+        )
+        with pytest.raises(RevisionConflict):
+            run_turn(
+                engine.registry, engine.store, engine.world, scene, "原地整理心绪",
+                strategy=MustNotRun(), provider=provider, action_id="entity-mode-bound-action",
+                expected_revision=base_revision, enforce_player_travel=False,
+                enforce_player_entity_authority=True,
             )
         assert engine.store.revision == base_revision + 1
     finally:

@@ -406,6 +406,109 @@ def player_turn_fact_event_errors(events: list[dict], world: dict, scene: dict) 
     return errors
 
 
+def _player_entity_error(section: str, field: str, hint: str) -> ValidationError:
+    return ValidationError(section, field, "player_entity_authority_boundary", hint)
+
+
+def _ordinary_character_ids(world: dict, scene: dict) -> tuple[str | None, frozenset[str], object | None]:
+    """Return ordinary local character authority plus the action-start graph."""
+    actor, people = _ordinary_fact_subjects(world, scene)
+    graph = world.get("systems", {}).get("ontology")
+    return actor, people, graph
+
+
+def player_turn_entity_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
+    """Keep ordinary authors from mutating canonical people/topology remotely.
+
+    New public characters remain a normal storytelling capability, but may not
+    reuse an existing (possibly hidden) id or smuggle ``past``/``hidden``
+    material.  Evolutions are restricted to directly observable state/mood of
+    the protagonist or a current public person.  Generic ontology entities and
+    relations are host/native authority: they can otherwise alter remote
+    topology or bind arbitrary hidden ids with no scene-local evidence.
+    """
+    actor, people, graph = _ordinary_character_ids(world, scene)
+    if actor is None:
+        return []
+    sections = getattr(commit, "sections", {}) or {}
+    errors: list[ValidationError] = []
+    for section in ("entities", "relations"):
+        for index, _item in enumerate(sections.get(section) or []):
+            errors.append(_player_entity_error(
+                section, f"[{index}]",
+                "普通玩家回合不能直接写通用实体或关系；请使用受约束的地点、物品或角色机制。",
+            ))
+    for index, item in enumerate(sections.get("cast") or []):
+        if not isinstance(item, dict):
+            errors.append(_player_entity_error("cast", f"[{index}]",
+                                              "普通玩家回合的角色声明必须是受约束的本地公开操作。"))
+            continue
+        op = item.get("op", "create")
+        person_id = item.get("id")
+        if op == "create":
+            exists = isinstance(person_id, str) and graph is not None and graph.get_entity(person_id) is not None
+            if exists or "past" in item or "hidden" in item:
+                errors.append(_player_entity_error(
+                    "cast", f"[{index}]",
+                    "普通玩家回合只能创建全新的公开人物，不能复用既有 id 或写入 past/hidden。",
+                ))
+        elif op == "evolve":
+            if (person_id not in ({actor} | set(people))
+                    or item.get("predicate") not in {"mood", "state"}):
+                errors.append(_player_entity_error(
+                    "cast", f"[{index}]",
+                    "普通玩家回合只能演化主角或当前公开人物可观察的 mood/state。",
+                ))
+        elif op == "relationship":
+            if person_id != actor or item.get("toward") not in people:
+                errors.append(_player_entity_error(
+                    "cast", f"[{index}]",
+                    "普通玩家回合的关系变化只能由主角指向当前公开人物。",
+                ))
+        else:
+            errors.append(_player_entity_error("cast", f"[{index}].op",
+                                              "普通玩家回合不支持该角色 canonical 写入操作。"))
+    return errors
+
+
+def player_turn_entity_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
+    """Final-payload companion for :func:`player_turn_entity_errors`."""
+    actor, people, graph = _ordinary_character_ids(world, scene)
+    if actor is None:
+        return []
+    errors: list[ValidationError] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) or event.get("retracted"):
+            continue
+        event_type = event.get("type")
+        if event_type not in {"entity_created", "relation_added", "character_created",
+                              "character_evolved", "relationship_changed"}:
+            continue
+        delta = event.get("deltas")
+        if not isinstance(delta, dict):
+            errors.append(_player_entity_error("entity", f"event[{index}]",
+                                              "普通玩家回合的最终实体 payload 无效。"))
+            continue
+        if event_type in {"entity_created", "relation_added"}:
+            valid = False
+        elif event_type == "character_created":
+            person_id = delta.get("id")
+            valid = (isinstance(person_id, str)
+                     and (graph is None or graph.get_entity(person_id) is None)
+                     and "past" not in delta and "hidden" not in delta)
+        elif event_type == "character_evolved":
+            valid = (delta.get("id") in ({actor} | set(people))
+                     and delta.get("predicate") in {"mood", "state"})
+        else:  # relationship_changed
+            valid = delta.get("id") == actor and delta.get("toward") in people
+        if not valid:
+            errors.append(_player_entity_error(
+                "entity", f"event[{index}]",
+                "普通玩家回合的最终实体或关系事件越过了本地公开角色边界。",
+            ))
+    return errors
+
+
 def _declared_discovery_keys(commit, actor: str | None) -> frozenset[str]:
     """Return truthy discovery keys declared for this exact candidate.
 
