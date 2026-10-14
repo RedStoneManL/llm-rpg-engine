@@ -106,6 +106,37 @@ def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(
     reopened.engine.store.close()
 
 
+def test_player_gui_recall_uses_shared_pov_boundary_without_writing(tmp_path):
+    """The dashboard gets the same read-only recall behavior as CLI play."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    app = make_app(dashboard)
+    before = dashboard.state()["revision"]
+    db_before = (campaign / "events.db").read_bytes()
+    jsonl_before = (campaign / "events.jsonl").read_bytes()
+
+    status, raw = _get_wsgi(app, "/api/recall", query="q=north_bank_old_tower")
+    hidden = json.loads(raw.decode("utf-8"))
+    assert status.startswith("200")
+    assert hidden == {"hits": [], "revision": before}
+    assert "north_bank_old_tower" not in raw.decode("utf-8")
+
+    status, raw = _get_wsgi(app, "/api/recall", query="q=%E7%9F%B3%E6%A1%A5")
+    public = json.loads(raw.decode("utf-8"))
+    assert status.startswith("200")
+    assert public["revision"] == before
+    assert any("石桥" in hit for hit in public["hits"])
+    assert dashboard.engine.store.revision == before
+    assert (campaign / "events.db").read_bytes() == db_before
+    assert (campaign / "events.jsonl").read_bytes() == jsonl_before
+
+    status, raw = _get_wsgi(app, "/api/recall")
+    malformed = json.loads(raw.decode("utf-8"))
+    assert status.startswith("400")
+    assert malformed["confirmed_rejection"] is True
+    dashboard.engine.store.close()
+
+
 def test_gui_soft_direction_is_session_only_and_action_recovery_is_steer_independent(tmp_path):
     """The GUI mirrors CLI steer without persisting a preference as world input."""
     campaign = tmp_path / "campaign"
@@ -373,11 +404,11 @@ def _post_wsgi(app, path, payload, *, host="127.0.0.1:8765", origin="http://127.
     return captured[0][0], json.loads(response.decode("utf-8"))
 
 
-def _get_wsgi(app, path):
+def _get_wsgi(app, path, *, query=""):
     captured = []
     response = b"".join(app({
         "REQUEST_METHOD": "GET", "PATH_INFO": path, "SERVER_NAME": "127.0.0.1", "SERVER_PORT": "8765",
-        "HTTP_HOST": "127.0.0.1:8765", "wsgi.input": io.BytesIO(),
+        "HTTP_HOST": "127.0.0.1:8765", "QUERY_STRING": query, "wsgi.input": io.BytesIO(),
     }, lambda status, headers: captured.append((status, headers))))
     return captured[0][0], response
 

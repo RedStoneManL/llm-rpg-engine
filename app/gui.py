@@ -22,11 +22,13 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs
 from uuid import uuid4
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 from app.engine import build_engine, last_turn, rewind
 from app.play import _build_scene
+from app.player_recall import player_recall
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from context.native_authoring import host_player_statement_receipt, native_authoring_context
@@ -40,6 +42,7 @@ from loop.strategy import AuthorStrategy
 
 log = logging.getLogger(__name__)
 _MAX_ACTION_BYTES = 2_000
+_MAX_RECALL_QUERY_BYTES = 320
 
 
 class GuiRequestError(ValueError):
@@ -425,6 +428,20 @@ class PlayerDashboard:
             state["session"] = {"soft_direction": self.steering}
             return state
 
+    def recall(self, query: str) -> dict[str, Any]:
+        """Run the shared, read-only player POV recall query for this session."""
+        if not isinstance(query, str) or not query.strip():
+            raise GuiRequestError("请输入要回忆的关键词。")
+        cleaned = query.strip()
+        if len(cleaned.encode("utf-8")) > _MAX_RECALL_QUERY_BYTES:
+            raise GuiRequestError("回忆关键词过长，请缩短后重试。")
+        with self.lock:
+            scene = _build_scene(self.engine)
+            return {
+                "hits": player_recall(self.engine.registry, self.engine.world, scene, cleaned),
+                "revision": int(self.engine.world.get("_revision") or self.engine.store.revision),
+            }
+
     def set_steering(self, text: str | None) -> dict[str, Any]:
         """Set a local authoring preference without changing the campaign.
 
@@ -601,6 +618,10 @@ _INDEX = _INDEX.replace(
 )
 _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
+_INDEX = _INDEX.replace(
+    '<article class="panel codex">',
+    '<article class="panel recall"><h2>回忆已知线索</h2><form id="recall-form"><label for="recall-query">只搜索当前主角已知的公开资料</label><input id="recall-query" type="search" maxlength="320" placeholder="例如：石桥、封门"><button id="search-recall" type="submit" class="subtle">查询回忆</button></form><ul id="recall-results"><li>输入关键词以查询已知线索。</li></ul></article><article class="panel codex">',
+)
 _INDEX = _INDEX.replace('<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article>', '<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article><article class="panel"><h2>目标与任务</h2><p id="long-term-goal"></p><h3>进行中</h3><ul id="active-quests"></ul><h3>已完成</h3><ul id="completed-quests"></ul></article>')
 _INDEX = _INDEX.replace('<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article>', '<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article><article class="panel"><h2>当前可交谈角色</h2><ul id="present-people"></ul></article>')
 _INDEX = _INDEX.replace(
@@ -642,7 +663,7 @@ _JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请
 # still deserves a first-class visual instead of a hand-written exit list.  All
 # labels come from the already-redacted DTO and are assigned through
 # ``textContent``; SVG nodes are read-only selectors, never navigation writes.
-_CSS += ".panel{min-width:0}.speech,.steer{border:1px solid #405469;border-radius:8px;margin:12px 0;padding:10px}.speech label,.speech select,.steer label{display:block;width:100%;margin:5px 0}.speech select{background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit;padding:8px}.steer-actions{display:flex;gap:8px;margin-top:8px}.hint{color:#9eb1c5;font-size:.9rem}.player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}.steer-actions{flex-direction:column}}"
+_CSS += ".panel{min-width:0}.speech,.steer{border:1px solid #405469;border-radius:8px;margin:12px 0;padding:10px}.speech label,.speech select,.steer label{display:block;width:100%;margin:5px 0}.speech select{background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit;padding:8px}.steer-actions{display:flex;gap:8px;margin-top:8px}.hint{color:#9eb1c5;font-size:.9rem}.recall form{display:grid;gap:8px}.recall input{width:100%;min-width:0;padding:8px;background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit}.recall button{justify-self:start}.recall li{overflow-wrap:anywhere}.player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}.steer-actions{flex-direction:column}.recall button{width:100%}}"
 _INDEX = _INDEX.replace('<div id="map"></div>', '<div id="map" class="player-map"></div>')
 _JS = _JS.replace(
     "function render(s){state=s;",
@@ -676,6 +697,14 @@ _JS = _JS.replace(
 _JS = _JS.replace(
     "function renderMap(data,location){",
     r"""function suggestExit(label){const input=$('action-input');if(!input)return;const suggestion=`前往${label}。`,existing=input.value.trim();input.value=existing?`${input.value.replace(/\s*$/,'')}\n${suggestion}`:suggestion;input.focus();setStatus(`已填入前往 ${label} 的建议；仍需编辑并保存行动。`)}function renderMap(data,location){""",
+)
+_JS = _JS.replace(
+    "async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}",
+    "function renderRecall(hits){const list=$('recall-results');clear(list);const items=Array.isArray(hits)?hits:[];if(!items.length){list.append(el('li','没有匹配的已知线索。'));return}items.forEach(text=>list.append(el('li',text)))}async function submitRecall(){const query=$('recall-query').value.trim(),button=$('search-recall');if(!query){renderRecall([]);setStatus('请输入要回忆的关键词。',true);return}button.disabled=true;try{const data=await api(`/api/recall?q=${encodeURIComponent(query)}`);renderRecall(data.hits);setStatus(data.hits&&data.hits.length?'已查询当前主角已知线索。':'没有匹配的已知线索。')}catch(e){setStatus(e.message,true)}finally{button.disabled=false}}async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}",
+)
+_JS = _JS.replace(
+    "$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));load()",
+    "$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));$('recall-form').addEventListener('submit',event=>{event.preventDefault();submitRecall()});load()",
 )
 _JS = _JS.replace(
     "visible.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));host.append(exits)}",
@@ -798,6 +827,11 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 body = _JS.encode("utf-8"); start_response("200 OK", [("Content-Type", "application/javascript; charset=utf-8"), ("Content-Length", str(len(body))), ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff")]); return [body]
             if method == "GET" and path == "/api/state":
                 return _json_response(start_response, "200 OK", dashboard.state())
+            if method == "GET" and path == "/api/recall":
+                query = parse_qs(environ.get("QUERY_STRING") or "", keep_blank_values=True).get("q", [])
+                if len(query) != 1:
+                    raise GuiRequestError("请输入要回忆的关键词。")
+                return _json_response(start_response, "200 OK", dashboard.recall(query[0]))
             if method == "POST" and path == "/api/action":
                 _require_same_origin_json(environ)
                 data = _read_json_request(environ, minimum=0, maximum=(_MAX_ACTION_BYTES * 2) + 1024,

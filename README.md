@@ -97,7 +97,8 @@ provider, embedder, network service, or API key. On an empty campaign, `--demo`
 seeds a replayable Stonebridge town with a protagonist, a held item, two
 adjacent places, one public codex entry, and opening narration. The page can
 save an action, show its narration/status, show the current character,
-inventory, an interactive read-only map of the current POV-visible places and
+inventory, query recall only across the current protagonist's known POV-visible
+material, show an interactive read-only map of the current POV-visible places and
 routes (with the current place highlighted), visible adjacent exits, browse public world-setting
 entries, and undo the latest turn. Refreshing or restarting the local server
 reads the same saved campaign; action submission uses the existing explicit
