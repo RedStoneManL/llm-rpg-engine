@@ -412,12 +412,40 @@ class PlayerDashboard:
         self.max_repairs = max_repairs
         self.demo = demo
         self.previous_scene: dict[str, Any] | None = None
+        # This is deliberately controller-session state, not world state.  It
+        # may guide the next author prompt, but must never become part of a
+        # player action receipt or its recovery envelope.
+        self.steering: str | None = None
         self.requests: dict[str, _RequestContext] = {}
         self.lock = threading.RLock()
 
     def state(self) -> dict[str, Any]:
         with self.lock:
-            return build_player_state(self.engine)
+            state = build_player_state(self.engine)
+            state["session"] = {"soft_direction": self.steering}
+            return state
+
+    def set_steering(self, text: str | None) -> dict[str, Any]:
+        """Set a local authoring preference without changing the campaign.
+
+        The CLI has the same intentionally non-durable ``//steer`` facility.
+        Resetting a conversational strategy is essential here: otherwise a
+        cleared preference could survive in its provider-side conversation
+        cache even though it is no longer present in the next scene.
+        """
+        if text is not None and not isinstance(text, str):
+            raise GuiRequestError("软方向格式无效，请重新填写。")
+        requested = text.strip() if isinstance(text, str) else None
+        if not requested:
+            requested = None
+        if requested is not None and len(requested) > 500:
+            raise GuiRequestError("软方向请控制在 500 个字符内。")
+        with self.lock:
+            if requested != self.steering:
+                self.steering = requested
+                if hasattr(self.strategy, "reset"):
+                    self.strategy.reset()
+            return {"ok": True, "soft_direction": self.steering}
 
     def _stored_context(self, action_id: str) -> _RequestContext | None:
         """Recover only the host-written original GUI envelope; never trust client scene data."""
@@ -495,8 +523,11 @@ class PlayerDashboard:
                                               recipient, statement, receipts)
                 if existing is None:
                     self.requests[action_id] = context
+            scene_for_turn = context.scene
+            if self.steering:
+                scene_for_turn = {**context.scene, "_player_steer": self.steering}
             result = run_turn(
-                self.engine.registry, self.engine.store, self.engine.world, context.scene, player_input,
+                self.engine.registry, self.engine.store, self.engine.world, scene_for_turn, player_input,
                 strategy=self.strategy, provider=self.engine.provider, embedder=self.engine.embedder,
                 max_repairs=self.max_repairs, required_sections=REQUIRED_SECTIONS, cascade_provider=self.engine.cascade_provider,
                 catchup_provider=self.engine.cascade_provider,
@@ -526,7 +557,7 @@ class PlayerDashboard:
                 "narration": result.narration,
                 "revision": result.receipt.get("revision"),
                 "recap_status": result.recap_status,
-                "state": build_player_state(self.engine),
+                "state": self.state(),
             }
 
     def undo(self, *, expected_revision: int | None) -> dict[str, Any]:
@@ -540,7 +571,7 @@ class PlayerDashboard:
                 raise GuiRequestError("当前没有可撤销的玩家回合。")
             rewind(self.engine, turn)
             self.previous_scene = None
-            return {"ok": True, "message": "已撤销最后一回合。", "state": build_player_state(self.engine)}
+            return {"ok": True, "message": "已撤销最后一回合。", "state": self.state()}
 
 
 class GmDashboard:
@@ -576,6 +607,10 @@ _INDEX = _INDEX.replace(
     '</textarea><div class="actions">',
     '</textarea><fieldset class="speech"><legend>明确说出原话（可选）</legend><label for="speech-recipient">当前公开同场收件人</label><select id="speech-recipient"><option value="">不记录对话</option></select><label for="speech-statement">逐字原话</label><textarea id="speech-statement" maxlength="2000" placeholder="只填写愿意让所选角色准确记住的一句话。"></textarea><p class="hint">只有同时明确选择收件人和原话时，宿主才会签发本回合的单一通信收据；普通行动文字不会自动变成对话。</p></fieldset><div class="actions">',
 )
+_INDEX = _INDEX.replace(
+    '<p class="hint">只有同时明确选择收件人和原话时，宿主才会签发本回合的单一通信收据；普通行动文字不会自动变成对话。</p></fieldset><div class="actions">',
+    '<p class="hint">只有同时明确选择收件人和原话时，宿主才会签发本回合的单一通信收据；普通行动文字不会自动变成对话。</p></fieldset><fieldset class="steer"><legend>后续叙事方向（可选）</legend><label for="soft-direction">只影响本地会话中的后续叙事偏好</label><textarea id="soft-direction" maxlength="500" placeholder="例如：优先核实眼前公开线索，不预设远方结论。"></textarea><div class="steer-actions"><button id="save-steer" type="button" class="subtle">保存方向</button><button id="clear-steer" type="button" class="subtle">清除方向</button></div><p class="hint">它不是世界事实、路线或权限，也不会写入回合记录；清除后后续回合不再使用它。</p></fieldset><div class="actions">',
+)
 _JS = r"""(() => {
 let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-action.v1';
 const $=id=>document.getElementById(id); const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
@@ -607,12 +642,28 @@ _JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请
 # still deserves a first-class visual instead of a hand-written exit list.  All
 # labels come from the already-redacted DTO and are assigned through
 # ``textContent``; SVG nodes are read-only selectors, never navigation writes.
-_CSS += ".panel{min-width:0}.speech{border:1px solid #405469;border-radius:8px;margin:12px 0;padding:10px}.speech label,.speech select{display:block;width:100%;margin:5px 0}.speech select{background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit;padding:8px}.hint{color:#9eb1c5;font-size:.9rem}.player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}}"
+_CSS += ".panel{min-width:0}.speech,.steer{border:1px solid #405469;border-radius:8px;margin:12px 0;padding:10px}.speech label,.speech select,.steer label{display:block;width:100%;margin:5px 0}.speech select{background:#0d131b;border:1px solid #405469;border-radius:6px;color:inherit;padding:8px}.steer-actions{display:flex;gap:8px;margin-top:8px}.hint{color:#9eb1c5;font-size:.9rem}.player-map{min-height:232px;overflow:auto}.player-map svg{width:100%;min-width:420px;height:230px;background:#101820;border:1px solid #304052;border-radius:8px}.player-map .map-edge{stroke:#8094a8;stroke-width:2}.player-map .map-node{fill:#315779;stroke:#a6d4f5;stroke-width:1.5;cursor:pointer}.player-map .map-node.current{fill:#5c9c67;stroke:#d9f6bd;stroke-width:3}.player-map .map-node.selected{stroke:#ffcf74;stroke-width:4}.player-map .map-label{fill:#e9edf2;font-size:13px}.map-detail{color:#b7dcfb;font-size:.9rem}@media(max-width:700px){.player-map svg{min-width:360px;height:250px}.steer-actions{flex-direction:column}}"
 _INDEX = _INDEX.replace('<div id="map"></div>', '<div id="map" class="player-map"></div>')
 _JS = _JS.replace(
     "function render(s){state=s;",
     r"""function renderMap(data,location){const host=$('map');clear(host);const nodes=data&&Array.isArray(data.nodes)?data.nodes:[],edges=data&&Array.isArray(data.edges)?data.edges:[];host.append(el('p',location?`当前位置：${location.label}`:'当前位置尚未确定。'));if(!nodes.length){host.append(el('p','尚无已知地点。'));return}const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),count=nodes.length,positions={};nodes.forEach((node,i)=>{const angle=(Math.PI*2*i/count)-Math.PI/2;positions[node.id]={x:220+Math.cos(angle)*Math.min(86,36*count),y:112+Math.sin(angle)*76}});edges.forEach(edge=>{const a=positions[edge.from],b=positions[edge.to];if(!a||!b)return;const line=document.createElementNS(ns,'line');line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.setAttribute('class','map-edge');svg.append(line)});nodes.forEach(node=>{const p=positions[node.id],g=document.createElementNS(ns,'g'),circle=document.createElementNS(ns,'circle'),label=document.createElementNS(ns,'text');g.setAttribute('role','button');g.setAttribute('tabindex','0');g.setAttribute('aria-label',`查看地点：${node.label}`);circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r','19');circle.setAttribute('class',`map-node${location&&node.id===location.id?' current':''}${selectedMapId===node.id?' selected':''}`);label.setAttribute('x',p.x);label.setAttribute('y',p.y+35);label.setAttribute('text-anchor','middle');label.setAttribute('class','map-label');label.textContent=node.label;const select=()=>{selectedMapId=node.id;renderMap(data,location)};g.addEventListener('click',select);g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();select()}});g.append(circle,label);svg.append(g)});host.append(svg);const selected=nodes.find(node=>node.id===selectedMapId);if(selected){const detail=el('p',`${selected.label} · ${selected.kind}`);detail.className='map-detail';host.append(detail)}const exits=el('ul');const visible=state&&state.scene&&Array.isArray(state.scene.exits)?state.scene.exits:[];if(!visible.length)exits.append(el('li','没有已知相邻地点。'));visible.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));host.append(exits)}
 function render(s){state=s;""",
+)
+_JS = _JS.replace(
+    "function render(s){state=s;",
+    "function render(s){state=s;const savedSteer=s.session&&typeof s.session.soft_direction==='string'?s.session.soft_direction:'';if(document.activeElement!==$('soft-direction'))$('soft-direction').value=savedSteer;",
+)
+_JS = _JS.replace(
+    "function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}",
+    "function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next;$('save-steer').disabled=next;$('clear-steer').disabled=next}",
+)
+_JS = _JS.replace(
+    "async function sendAction(envelope,recovering){",
+    "async function saveSteering(clear){if(busy)return;try{const text=clear?null:$('soft-direction').value;const d=await api('/api/steer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(state)state.session={soft_direction:d.soft_direction};$('soft-direction').value=d.soft_direction||'';setStatus(d.soft_direction?'已保存会话软方向；它不改写世界、路线或权限。':'已清除软方向；后续回合只按行动和已保存世界推进。')}catch(e){setStatus(e.message,true)}}\nasync function sendAction(envelope,recovering){",
+)
+_JS = _JS.replace(
+    "$('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()",
+    "$('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));load()",
 )
 _JS = _JS.replace(
     "clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);",
@@ -754,6 +805,11 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 return _json_response(start_response, "200 OK", dashboard.action(
                     player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision"),
                     recipient=data.get("recipient"), statement=data.get("statement")))
+            if method == "POST" and path == "/api/steer":
+                _require_same_origin_json(environ)
+                data = _read_json_request(environ, minimum=2, maximum=4096,
+                                          error_message="软方向格式无效，请重新填写。")
+                return _json_response(start_response, "200 OK", dashboard.set_steering(data.get("text")))
             if method == "POST" and path == "/api/undo":
                 _require_same_origin_json(environ)
                 data = _read_json_request(environ, minimum=2, maximum=256,

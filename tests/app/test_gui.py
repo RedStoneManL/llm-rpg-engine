@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import copy
 
 import pytest
 
@@ -103,6 +104,79 @@ def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(
     reopened = build_dashboard(campaign, demo=True)
     assert reopened.state()["scene"]["time"] == {"day": 1, "band": "晨"}
     reopened.engine.store.close()
+
+
+def test_gui_soft_direction_is_session_only_and_action_recovery_is_steer_independent(tmp_path):
+    """The GUI mirrors CLI steer without persisting a preference as world input."""
+    campaign = tmp_path / "campaign"
+
+    class CapturingDemo(gui.OfflineDemoStrategy):
+        def __init__(self):
+            self.scenes = []
+            self.resets = 0
+
+        def produce(self, registry, world, scene, player_input, **kwargs):
+            self.scenes.append(copy.deepcopy(scene))
+            return super().produce(registry, world, scene, player_input, **kwargs)
+
+        def reset(self):
+            self.resets += 1
+
+    dashboard = build_dashboard(campaign, demo=True)
+    strategy = CapturingDemo()
+    dashboard.strategy = strategy
+    app = make_app(dashboard)
+    before = dashboard.state()["revision"]
+    db_before = (campaign / "events.db").read_bytes()
+    jsonl_before = (campaign / "events.jsonl").read_bytes()
+
+    status, changed = _post_wsgi(app, "/api/steer", {"text": "优先核实眼前公开线索"})
+    assert status.startswith("200")
+    assert changed == {"ok": True, "soft_direction": "优先核实眼前公开线索"}
+    assert dashboard.state()["session"] == {"soft_direction": "优先核实眼前公开线索"}
+    assert dashboard.engine.store.revision == before
+    assert (campaign / "events.db").read_bytes() == db_before
+    assert (campaign / "events.jsonl").read_bytes() == jsonl_before
+
+    saved = dashboard.action(player_input="先在眼前观察", action_id="gui-session-steer",
+                             expected_revision=before)
+    assert saved["duplicate"] is False
+    assert strategy.scenes[0]["_player_steer"] == "优先核实眼前公开线索"
+    metadata = dashboard.engine.store.get_action_result_metadata("gui-session-steer")
+    assert "_player_steer" not in metadata["host_envelope"]["scene"]
+    assert "优先核实眼前公开线索" not in json.dumps(metadata, ensure_ascii=False)
+
+    status, cleared = _post_wsgi(app, "/api/steer", {"text": None})
+    assert status.startswith("200")
+    assert cleared == {"ok": True, "soft_direction": None}
+    assert strategy.resets == 2  # set and clear both invalidate conversation cache
+    assert dashboard.engine.store.revision == saved["revision"]
+    dashboard.engine.store.close()
+
+    # A cold response-loss retry needs no old steering state: it restores the
+    # committed result and does not run a strategy again.
+    reopened = build_dashboard(campaign, demo=True)
+    assert reopened.state()["session"] == {"soft_direction": None}
+    duplicate = reopened.action(player_input="先在眼前观察", action_id="gui-session-steer",
+                                expected_revision=before)
+    assert duplicate["duplicate"] is True
+    assert duplicate["revision"] == saved["revision"]
+    reopened.engine.store.close()
+
+
+def test_gui_soft_direction_wsgi_validation_has_no_campaign_write(tmp_path):
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    app = make_app(dashboard)
+    before = dashboard.state()["revision"]
+    status, payload = _post_wsgi(app, "/api/steer", {"text": "x" * 501})
+    assert status.startswith("400")
+    assert "500" in payload["message"]
+    assert payload["confirmed_rejection"] is True
+    status, payload = _post_wsgi(app, "/api/steer", {"text": "不能跨站"}, origin="http://attacker.invalid")
+    assert status.startswith("400")
+    assert "跨站" in payload["message"]
+    assert dashboard.engine.store.revision == before
+    dashboard.engine.store.close()
 
 
 def test_dashboard_does_not_serialize_secret_or_private_memory(tmp_path):

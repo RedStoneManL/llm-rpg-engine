@@ -111,6 +111,13 @@ receipt is retained in the action-id recovery envelope so a cold retry cannot si
 change who heard what. Leaving the section empty keeps the previous behavior: ordinary
 action text, thoughts, and narration never become NPC memory automatically.
 
+The dashboard also offers an optional **后续叙事方向** field, equivalent to the CLI's
+`//steer`. It is a local server-session preference for the next Author/Hybrid prompts,
+not a fact, route, permission, event, transcript item, action receipt, or recovery
+parameter. Saving or clearing it never consumes a turn; clearing it resets the author
+conversation cache so an old preference cannot linger. A server restart clears it, and
+an action-response retry restores the committed result without needing the old direction.
+
 If a browser loses an action response after the engine has published it, the
 page retains the original action-id, input, and revision in that browser's
 session storage. After a refresh, **恢复上次请求** retries that same envelope

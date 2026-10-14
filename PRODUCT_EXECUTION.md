@@ -77,6 +77,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-34 | P0 | 已验收（后台钩子局部原子性／冷重开） | 台账只对 digest/memory 明确验证过“写入后异常”局部回滚；director、cascade、catch-up、lore、demote、density 的同类风险没有统一 SQLite/JSONL 回放证据 | 七个 post-foreground hook 均实测先写 sentinel 再异常时只回滚自身，前台回合保持；SQLite 与 JSONL 重开一致。维持既有“后台非致命、前台不回滚”语义 |
 | RCV-35 | P1 | 已验收（debug trace 私有解释隔离） | Debug trace 是本地 operator 原始 prompt/output 产物；已有 CLI/GUI/GM 记忆隔离，却未以实际 `--debug` 回合验证私有解释不进入 trace/viewer | 真实 opt-in memory + `--debug` 回合写入私有记录后，trace 原文与 viewer 全记录均不含私有正文；trace 继续只作为本地 operator 诊断，不是玩家 API |
 | RCV-36 | P1 | 已验收（当前严格 POV 地图浏览器复验） | RCV-11/20/21 已实现 POV 关系图、出口成本和仅填入行动，但之后多轮 GUI 组合变更缺少当前执行环境的完整浏览器证据 | loopback Chromium 实测隐藏地点不进 player API/DOM，图为仅 POV 节点/边；选点与“填入行动”零写入，390px 无溢出 |
+| RCV-37 | P1 | 已验收（GUI 会话软方向） | CLI 已有非持久 `//steer`，但 GUI 玩家不能表达后续叙事偏好；不能把偏好误写成世界事实或 action-id 恢复输入 | GUI `/api/steer` 只更新 controller 会话、变更/清除重置策略缓存；实际行动才将其传入 prompt。偏好不进入 EventStore、transcript、host envelope 或 request fingerprint，冷重开 duplicate 仍恢复已提交结果 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1232,3 +1233,19 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   随后 `tests/app/test_gui.py -rA` 为 **`30 passed in 0.50s`**，组装后的 `_JS` 经 `node --check -` 通过。RCV-35 的
   正式完整离线 gate 仍是当前功能代码的最近全量证明：**`1964 passed, 1 deselected in 22.69s`**；RCV-36 仅更新验收文档，
   未运行真实模型、网络、外传或新写入路径。外部备份上传仍需单独批准；本地恢复包继续保留。
+
+- 2026-10-14：RCV-37 补齐 CLI 已有、GUI 缺失的会话内软方向入口。这个方向不是新的剧情或权限输入：
+  `PlayerDashboard` 仅在内存保存最多 500 字的文本，正常行动开始前才把它作为既有、明示“非世界事实或权限”的
+  `_player_steer` prompt fragment 交给 Author/Hybrid。保存或清除不写 EventStore、JSONL、transcript、路线、
+  facts、receipt 或 host recovery envelope；方向改变会 `reset()` 有会话缓存的策略，避免清除后旧 prompt 留在对话中。
+
+  action-id 的稳定 request fingerprint 也显式剔除该会话偏好：它不是可恢复的 canonical 参数，响应丢失后的冷重开
+  应恢复已发布结果而非要求旧本地偏好仍存在。回归经真实 GUI controller 的 `/api/steer → action → run_turn` 链确认：
+  设置方向零 SQLite/JSONL 字节变化、作者 scene 能收到该 fragment、sidecar/host envelope 不含方向；清除后策略缓存
+  已重置，同 action-id 的冷重开 duplicate 仍零生成恢复。另覆盖长度和跨站 JSON guard。浏览器 loopback 390px 实测
+  保存/清除方向均可用；保存方向仅 POST `/api/steer`，行动保存才 POST `/api/action` 并从版本 1 到 2，无横向溢出。
+  定向 `tests/app/test_gui.py tests/app/test_play.py tests/loop/test_strategy.py -rA` 为 **`71 passed in 1.01s`**；
+  组装后的 JS 经 `node --check -` 通过。正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1966 passed, 1 deselected in 22.69s`**；唯一 deselect 是既有 slow real embedding。该项未调用真实模型、
+  embedding、网络或外部服务；这是本地 Fake/demo 的产品交互与恢复边界验收，不是网络/真实模型质量证明。

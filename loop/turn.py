@@ -153,9 +153,17 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
         raise TurnRejected('required_sections must be stable strings')
     if type(max_repairs) is not int or max_repairs < 0:
         raise TurnRejected('max_repairs must be a non-negative integer')
+    # A player soft-direction is intentionally an ephemeral prompt preference.
+    # It is neither a world input nor a recoverable action parameter: a lost
+    # response must recover the already-published result after the GUI/CLI
+    # session has been cleared or restarted.  Do not let it leak into result
+    # metadata through this otherwise durable request fingerprint.
+    fingerprint_scene = copy.deepcopy(scene)
+    if isinstance(fingerprint_scene, dict):
+        fingerprint_scene.pop('_player_steer', None)
     envelope = {
         'version': 2,
-        'scene': copy.deepcopy(scene),
+        'scene': fingerprint_scene,
         'player_input': player_input,
         'expected_revision': expected_revision,
         'prev_scene': copy.deepcopy(prev_scene),
