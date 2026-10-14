@@ -112,6 +112,36 @@ def test_cli_does_not_echo_untrusted_exception_text(tmp_path, monkeypatch, caplo
         engine.store.close()
 
 
+def test_cli_transcript_turns_continue_across_cold_reopen(tmp_path):
+    """The optional player transcript must use canonical turns, not REPL-local counters."""
+    campaign = tmp_path / "transcript-resume"
+    transcript = tmp_path / "transcript.jsonl"
+
+    def turn_provider(narration):
+        return FakeLLMProvider(json_responses=[{
+            "moves": [], "places": [], "cast": [], "facts": [],
+            "narration": narration,
+            "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "转录编号测试"}],
+        }])
+
+    first = build_engine(campaign, provider=FakeLLMProvider())
+    try:
+        new_game(first)
+        first.provider = turn_provider("第一段已保存叙事")
+        play_loop(first, ["记录第一回合", "/quit"], out=lambda _: None, transcript_path=transcript)
+    finally:
+        first.store.close()
+
+    reopened = build_engine(campaign, provider=turn_provider("第二段已保存叙事"))
+    try:
+        play_loop(reopened, ["记录续玩回合", "/quit"], out=lambda _: None, transcript_path=transcript)
+        records = [json.loads(line) for line in transcript.read_text(encoding="utf-8").splitlines()]
+        assert [record["turn"] for record in records] == [1, 2]
+        assert [record["input"] for record in records] == ["记录第一回合", "记录续玩回合"]
+    finally:
+        reopened.store.close()
+
+
 def test_cli_output_error_after_publish_never_claims_a_rollback(tmp_path):
     engine = build_engine(tmp_path / "post-publish-output", provider=FakeLLMProvider())
     try:

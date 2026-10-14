@@ -517,7 +517,12 @@ def play_loop(
     # Session-local, non-event preference.  It is never written to the store,
     # transcript, action receipt, or safe world projection.
     steering: list[str | None] = [None]
-    turn_no = 0
+    # Transcript and trace rows identify canonical campaign turns, not a
+    # counter that happens to start over whenever a terminal process reopens.
+    # It is refreshed again immediately before each normal action so rewind,
+    # peer publication, and a failed attempt cannot leave the next saved row
+    # with a made-up session-local number.
+    turn_no = _last_turn(engine)
     # Rebuild the previous durable action-start scene on cold CLI reopen.  It
     # keeps catch-up's enter-scope rule stable across process boundaries.
     prev_scene = _previous_scene_before_latest_action(engine)
@@ -597,7 +602,7 @@ def play_loop(
         if steering[0]:
             scene = {**scene, "_player_steer": steering[0]}
         player_input = line
-        turn_no += 1
+        turn_no = engine.store.next_turn()
 
         get_tracer().event("player_input", text=player_input, turn=turn_no)
 

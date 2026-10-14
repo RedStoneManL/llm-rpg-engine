@@ -90,6 +90,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-47 | P0 | 已验收（GUI 被动读路径跨实例同步） | RCV-46 只在过期写请求被拒绝时刷新；另一实例已发布而玩家只请求 state/recall 时，dashboard 仍可能展示旧 projection | state、recall、action 入口先比较缓存 revision 与 SQLite；仅不同时只读重投影、重建 scope、reset 一次。被动 GET/recall 不写事件、receipt 或 transcript |
 | RCV-48 | P0 | 已验收（GM 只读跨实例同步） | 独立 GM dashboard 也缓存启动时 projection，却没有玩家写入口或 revision-bound 拒绝路径；另一玩家实例发布后，GM 的普通 GET 会永久停在旧世界 | GM `state()` 先比较缓存 revision 与 SQLite；仅不同时只读重投影后再构建 canonical、私有解释仍过滤的 DTO。GM GET 不写事件、receipt 或 transcript |
 | RCV-49 | P0 | 已验收（CLI 被动读路径跨会话同步） | 长运行 CLI 在两条输入之间可被另一 CLI／dashboard 写入；`/recall`、`/speak` 和下一普通行动原先都从旧 projection 构建 scene | 每条有效输入前比较缓存 revision 与 SQLite；仅不同时只读重投影、恢复最新存活 action-start scope、reset 策略缓存。被动 OOC 读取不写事件、receipt 或 transcript |
+| RCV-50 | P1 | 已验收（CLI transcript canonical turn） | 可选 `transcript.jsonl` 以 REPL 本地计数写 `turn`，冷重开、rewind 或 peer publish 后可与 durable campaign 回合脱节甚至重复编号 | 每个普通行动以 `store.next_turn()` 标识当前 canonical 回合；冷重开追加记录、rewind、peer publish 和失败后重试不再凭本会话计数伪造编号 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1435,3 +1436,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   验证，不是浏览器点击、真实模型或网络验收。GUI／CLI 子集为 **`72 passed in 1.31s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`1981 passed, 1 deselected in 23.23s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-50 转查正常续玩可追溯性，而非继续增加同一同步回归。`--transcript` 是 CLI 明确提示的逐回合
+  JSONL 记录，但旧实现的 `turn_no` 从每个 REPL 进程的 0 开始；实际 `行动→关闭→重开→行动` 红例把两条 durable
+  玩家回合都写成 `turn: 1`，即 `[1, 1]`，尽管第二次 publish 已是 canonical 第 2 回合。这样 transcript 不能与
+  action receipt／事件历史可靠对照。
+
+  现在每条普通行动在生成前用既有 `store.next_turn()` 取得 canonical next turn；这也自然覆盖本会话 rewind、peer
+  publish 及失败后重试，而不为 transcript 新建持久化来源或改动 EventStore。冷重开回归实际追加同一 transcript，断言
+  记录为 `[1, 2]`、输入次序不变。该编号继续是 player transcript／trace 的标签，不授予任何恢复、权限或事实权威。
+  CLI 状态与游玩子集为 **`34 passed in 1.19s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`1982 passed, 1 deselected in 23.34s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
