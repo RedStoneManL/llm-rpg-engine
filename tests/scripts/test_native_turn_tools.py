@@ -93,6 +93,41 @@ def test_exporter_creates_rich_safe_native_brief_from_real_campaign(tmp_path):
     assert "north_bank_old_tower" not in rendered
 
 
+def test_exporter_withholds_history_when_ordinary_rows_reference_private_memory(tmp_path):
+    campaign = _native_campaign(tmp_path)
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None,
+                          enable_interpretive_memory=True)
+    try:
+        engine.store.append_many([
+            kernel_event("character_interpretation_recorded", day=1, scene="s1", turn=0,
+                         id="native-private-history-ref", summary="private", deltas={
+                "actor": "protagonist", "text": "NATIVE_PRIVATE_BODY_SENTINEL", "memory_id": "native-ref",
+            }),
+            kernel_event("narration_recorded", day=1, scene="s1", turn=0,
+                         summary="ordinary private ref", deltas={
+                "scene": "s1", "text": "NATIVE_ORDINARY_REFERENCE_SENTINEL",
+            }, thread_refs=["native-private-history-ref"]),
+        ])
+    finally:
+        engine.store.close()
+
+    output = tmp_path / "native-private-history-brief.json"
+    completed = subprocess.run([
+        sys.executable, str(EXPORTER), str(campaign),
+        "--goal", "只核验当前公开状态。",
+        "--output", str(output),
+    ], cwd=tmp_path, env=_offline_env(), check=True, capture_output=True, text=True)
+
+    brief = json.loads(output.read_text(encoding="utf-8"))
+    context = brief["player_context"]
+    assert context["history_unavailable"] is True
+    assert context["known_events"] == []
+    assert context["public_narrative"] == []
+    rendered = json.dumps(brief, ensure_ascii=False) + completed.stdout + completed.stderr
+    assert "NATIVE_PRIVATE_BODY_SENTINEL" not in rendered
+    assert "NATIVE_ORDINARY_REFERENCE_SENTINEL" not in rendered
+
+
 def test_authoring_context_exposes_only_public_attributed_npc_knowledge(tmp_path):
     campaign = _native_campaign(tmp_path)
     engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)

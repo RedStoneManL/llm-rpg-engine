@@ -107,6 +107,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-64 | P0 | 已验收（维护 CLI 创世保护） | 独立 `engine.rewind`／`bin/rpg rewind` 仍接受 0，可绕过 RCV-63 的 app 层保护并撤回 turn-0 事件 | legacy rewind API 与维护 CLI 同样只接受正 player turn；`--last` 正常回退保留，非正输入零写入 |
 | RCV-65 | P0 | 已验收（后台取消全回合原子性） | RCV-34 覆盖七钩子异常的局部 rollback，但除 digest 外取消仅隐含依赖运行时继承关系，未以写入后取消证明所有入口都不会半发布 | director、cascade、catch-up、lore、demote、density 显式将 `asyncio.CancelledError` 上抛；七钩子均实测 partial write 后取消，前台、receipt、revision、SQLite/JSONL 与冷重开完全不变 |
 | RCV-66 | P0 | 已验收（GM 历史局部 fail-closed） | 普通事件引用私有记忆时，GM 虽不应显示任何相关正文，却会因 `public_history()` 拒绝而使整个只读 canonical dashboard 变为 500 | GM 将时间线与 recap 作为同一公开历史切片压制，显式 `history_unavailable`；canonical 地图、实体与事实继续只读返回 200，零事件／receipt／revision 写入 |
+| RCV-67 | P0 | 已验收（native brief 历史局部 fail-closed） | 安全 native-author 导出先构造 player DTO，却再次直接读取 `public_history()` 填充已知事件；私有引用会让导出失败，且调用方可能记录异常 | 只压制 `known_events`／`public_narrative` 并标记 `history_unavailable`；其余已有的 POV、背包、出口与授权安全 brief 保持离线、零 campaign 写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1583,3 +1584,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`52 passed in 1.11s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`2003 passed, 1 deselected in 27.16s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-14：RCV-67 补齐 native-author 离线导出的相同边界。`build_native_turn_brief()` 已复用 player DTO，
+  但其 `known_events` 又直接读 `public_history()`，导致 ordinary row 引用私有 memory 时安全导出中断。现在该单一历史
+  切片 fail-closed：`known_events` 和 `public_narrative` 为空，`history_unavailable=true`；玩家 POV、可见人物、背包、出口
+  与既有 host-authoring 安全材料继续正常导出。真实 subprocess 回归从 campaign 写入 active private record 与引用它的
+  ordinary narration，再调用 exporter，确认 JSON、stdout/stderr 均不含两个 sentinel，且 exporter 使用固定 Fake provider，
+  不写 campaign。定向 native tools／GUI／public-history 回归为 **`59 passed in 3.35s`**；正式完整离线 gate 为
+  **`2004 passed, 1 deselected in 25.72s`**，唯一 deselect 是既有 slow real embedding。未调用真实模型、embedding、网络或外部服务。

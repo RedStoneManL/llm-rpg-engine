@@ -42,16 +42,23 @@ def _public_people(engine, scene: dict) -> list[dict[str, str]]:
     return people
 
 
-def _public_narrative(engine) -> list[str]:
-    """Use the public-history boundary, then expose only active narration text."""
+def _public_narrative(engine) -> tuple[list[str], bool]:
+    """Return active public narration, or a fail-closed unavailable marker."""
+    try:
+        history = engine.public_history()
+    except ValueError:
+        # A public row that refers to a private-memory event is deliberately
+        # rejected by the DTO.  Native authoring must not bypass that boundary
+        # or turn a local export into an exception which callers may log.
+        return [], True
     lines = []
-    for event in engine.public_history():
+    for event in history:
         if event.get("retracted") or event.get("type") != "narration_recorded":
             continue
         text = (event.get("deltas") or {}).get("text")
         if isinstance(text, str):
             lines.append(text)
-    return lines[-8:]
+    return lines[-8:], False
 
 
 def build_native_turn_brief(engine, *, goal: str, player_input: str | None = None,
@@ -61,6 +68,7 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
     """Return public player state plus bounded author-only grounding."""
     scene = _build_scene(engine)
     player = build_player_state(engine)
+    known_events, history_unavailable = _public_narrative(engine)
     route_options = [host_route_discovery_grant(engine.world, scene, destination)
                      for destination in host_authorize_routes]
     statement_receipts = [
@@ -86,8 +94,9 @@ def build_native_turn_brief(engine, *, goal: str, player_input: str | None = Non
             "protagonist": {"id": player["character"]["id"], "public_background": protagonist_facts},
             "known_people": _public_people(engine, scene),
             "known_items": player["inventory"],
-            "known_events": _public_narrative(engine),
+            "known_events": known_events,
             "public_narrative": player["narration"],
+            "history_unavailable": bool(player.get("narration_unavailable")) or history_unavailable,
             "available_exits": player["scene"]["exits"],
             "map": player["map"],
         },
