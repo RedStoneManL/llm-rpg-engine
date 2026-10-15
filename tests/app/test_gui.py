@@ -711,6 +711,8 @@ def test_gui_campaign_key_scopes_pending_recovery_to_one_saved_world(tmp_path):
     assert "pending-action.v1" not in gui._JS
     assert "期间不可提交或撤销" in gui._JS
     assert "const blocked=!!p" in gui._JS
+    assert "已结束恢复；已刷新当前保存的世界状态。" in gui._JS
+    assert "render(await api('/api/state'))" in gui._JS
     second.engine.store.close()
 
 
