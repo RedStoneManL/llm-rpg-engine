@@ -708,6 +708,47 @@ def test_gui_stale_undo_refreshes_authoritative_world_before_confirmed_rejection
         dashboard.engine.store.close()
 
 
+def test_gui_undo_rejects_peer_publish_inside_retraction_window(tmp_path, monkeypatch):
+    """The GUI keeps its version guard through the store retraction transaction."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    saved = dashboard.action(
+        player_input="先去集市", action_id="gui-race-turn",
+        expected_revision=dashboard.state()["revision"],
+    )
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    original_rewind = gui.rewind
+    snapshots = {}
+
+    def peer_wins_rewind(engine, turn, *, expected_revision=None):
+        peer.store.append_many([kernel_event(
+            "narration_recorded", day=1, scene="s1", turn=2,
+            summary="peer wins gui undo race", deltas={"text": "GUI_PEER_UNDO_RACE"},
+        )])
+        snapshots["before"] = (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        )
+        return original_rewind(engine, turn, expected_revision=expected_revision)
+
+    monkeypatch.setattr(gui, "rewind", peer_wins_rewind)
+    try:
+        with pytest.raises(GuiRequestError, match="世界已变化"):
+            dashboard.undo(expected_revision=saved["revision"])
+        snapshots["after"] = (
+            dashboard.engine.store.db_path.read_bytes(),
+            dashboard.engine.store.jsonl_path.read_bytes(),
+            dashboard.engine.store.revision,
+        )
+        assert snapshots["after"] == snapshots["before"]
+        assert any(event.get("turn") == 1 for event in dashboard.engine.store.iter_events())
+        assert dashboard.state()["revision"] == peer.store.revision
+    finally:
+        peer.store.close()
+        dashboard.engine.store.close()
+
+
 def test_gui_read_endpoints_reproject_after_peer_publish_without_a_write_request(tmp_path):
     """Passive state/recall reads must not need a rejected mutation to catch up.
 

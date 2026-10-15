@@ -1,7 +1,7 @@
 import json
 import sqlite3
 import pytest
-from engine.store import EventStore
+from engine.store import EventStore, RevisionConflict
 from engine.schema import make_event
 
 
@@ -95,3 +95,20 @@ def test_retract_from_turn(campaign):
     assert n == 2
     kept = [e["summary"] for e in s.iter_events()]
     assert kept == ["甲", "无turn旧事件"]  # turn=None 不受影响
+
+
+def test_retract_from_turn_rejects_stale_revision_without_touching_mirror(campaign):
+    """A stale optimistic rewind cannot retract a peer's newer branch."""
+    s = _store(campaign)
+    s.append(make_event("action", 1, "s1", ["雷德"], "甲", turn=1))
+    expected_revision = s.revision
+    s.append(make_event("action", 1, "s2", ["雷德"], "乙", turn=2))
+    before = ((campaign / "events.db").read_bytes(),
+              (campaign / "events.jsonl").read_bytes(), s.revision)
+
+    with pytest.raises(RevisionConflict, match="retraction was being prepared"):
+        s.retract_from_turn(1, expected_revision=expected_revision)
+
+    assert ((campaign / "events.db").read_bytes(),
+            (campaign / "events.jsonl").read_bytes(), s.revision) == before
+    assert [event["summary"] for event in s.iter_events()] == ["甲", "乙"]

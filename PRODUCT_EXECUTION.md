@@ -111,6 +111,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-68 | P1 | 已验收（CLI 严格 POV 地图） | GUI 有严格 POV 关系图，CLI 只有当前出口文本；终端长局无法查看已知地点与路径，又不能接 canonical 图补齐 | `/map` 仅消费既有 `scene_capabilities` POV contract，显示节点、路径和成本；无发现、移动、receipt、transcript 或 revision 写入 |
 | RCV-69 | P0 | 已验收（journal 跨入口活动分支回归） | CLI journal 已有单实例私有引用边界，但缺少 peer publish→undo 与冷重开组合证据 | 纯回归覆盖公开 peer narration 及时出现、撤回后消失、冷重开不复活；私有引用在冷重开后继续 fail-closed、零写入 |
 | RCV-70 | P0 | 已验收（status 跨入口任务账本回归） | CLI `/status` 已有 POV 公开任务 read-model，但缺少 peer publish→撤回、暗线隔离、冷重开及 OOC 零写入的组合证据 | 纯回归覆盖 peer 公开任务即时出现、同回合暗线不泄漏、撤回后隐藏、冷重开不复活，并逐字比较 SQLite/JSONL 与 revision，确认 CLI 读取零写入 |
+| RCV-71 | P0 | 已验收（撤销 optimistic revision 原子性） | CLI/GUI 撤销先读当前 turn、再软撤回；peer 若在其间发布，旧请求可能撤掉新分支 | `EventStore` 在同一 SQLite 写事务内复核可选 expected revision；CLI/GUI 都携带该版本，冲突时只读重投影、清策略缓存并确认“未撤销”，不改 peer 分支 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1609,3 +1610,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   reproject，任务立即消失；对该次 OOC 读取逐字比较 SQLite、JSONL 和 revision 均不变。随后关闭重开，`/status` 继续不显示
   已撤回任务或暗线，且冷重开读取同样零写入。定向 CLI/GUI/POV 组合为 **`107 passed in 1.46s`**；正式完整离线 gate 为
   **`2007 passed, 1 deselected in 22.73s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding 或外部服务调用。
+
+- 2026-10-15：RCV-71 审计撤销的共享写边界时发现，CLI 与 GUI 虽都在请求开始时比较 revision，却在读取可撤回 turn
+  和 `retract_from_turn()` 的短窗口内没有把该版本带入 SQLite 事务；另一实例在此窗口发布时，旧撤销可能软撤回对方刚写的
+  分支。`EventStore.retract_from_turn()`／`retract_from_seq()` 现在支持 optional `expected_revision` 并在 `BEGIN IMMEDIATE`
+  后、任何更新前复核；不匹配即 rollback、JSONL mirror 不触碰。`app.engine.rewind` 透传该参数，CLI `/undo`／`/rewind`
+  与 GUI undo 都传入其已确认版本。冲突时 GUI 刷新后返回既有安全 400，CLI 重投影、重建 action-start scope、reset 策略并明确
+  输出“未执行撤销”，不会假装回退成功。直接 store 字节回归、真实 CLI `play_loop` 竞态和 dashboard 竞态都验证 player turn
+  和 peer branch 保留、SQLite/JSONL 不被失败撤销改变。开发中的首轮专项曾因 `play_loop` 函数内旧局部 import 遮蔽新 exception
+  handler 而一例失败；移除两处重复局部 import 后三项专项为 **`3 passed in 0.20s`**，相关 store／CLI／GUI／action-integrity
+  集合为 **`180 passed in 1.65s`**，正式完整离线 gate 为 **`2010 passed, 1 deselected in 23.43s`**。唯一 deselect 是既有
+  slow real embedding；无真实模型、embedding 或外部服务调用。

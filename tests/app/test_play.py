@@ -1077,6 +1077,55 @@ def test_cli_undo_and_nonpositive_rewind_do_not_retract_genesis(tmp_path):
         engine.store.close()
 
 
+def test_cli_undo_rejects_peer_publish_between_turn_lookup_and_retraction(tmp_path, monkeypatch):
+    """An optimistic CLI undo must not retract a branch a peer just extended."""
+    import app.play as play
+    from app.engine import build_engine
+    from app.gui import build_dashboard
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    engine = dashboard.engine
+    saved = dashboard.action(
+        player_input="先去集市", action_id="cli-race-turn",
+        expected_revision=dashboard.state()["revision"],
+    )
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    original_rewind = play._rewind
+    snapshots = {}
+
+    def peer_wins_rewind(engine_arg, turn, *, expected_revision=None):
+        peer.store.append_many([kernel_event(
+            "narration_recorded", day=1, scene="s1", turn=2,
+            summary="peer wins undo race", deltas={"text": "PEER_UNDO_RACE"},
+        )])
+        snapshots["before"] = (
+            engine_arg.store.db_path.read_bytes(),
+            engine_arg.store.jsonl_path.read_bytes(),
+            engine_arg.store.revision,
+        )
+        return original_rewind(engine_arg, turn, expected_revision=expected_revision)
+
+    monkeypatch.setattr(play, "_rewind", peer_wins_rewind)
+    output: list[str] = []
+    try:
+        play.play_loop(engine, ["/undo", "/quit"], out=output.append)
+        snapshots["after"] = (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        )
+        assert "未执行撤销" in "\n".join(output)
+        assert snapshots["after"] == snapshots["before"]
+        assert any(event.get("turn") == 1 for event in engine.store.iter_events())
+        assert engine.world["_revision"] == peer.store.revision
+        assert saved["revision"] < engine.store.revision
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
 def test_dispatch_ooc_oops_same_as_undo(tmp_path):
     """/oops is an alias for /undo."""
     from app.play import dispatch_ooc

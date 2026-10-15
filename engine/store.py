@@ -300,15 +300,18 @@ class EventStore:
         for r in self._conn.execute(q):
             yield self._row_to_event(r)
 
-    def retract_from_seq(self, seq) -> int:
-        return self._retract('seq>=?', seq)
+    def retract_from_seq(self, seq, *, expected_revision=None) -> int:
+        return self._retract('seq>=?', seq, expected_revision=expected_revision)
 
-    def retract_from_turn(self, turn) -> int:
-        return self._retract('turn IS NOT NULL AND turn>=?', turn)
+    def retract_from_turn(self, turn, *, expected_revision=None) -> int:
+        return self._retract('turn IS NOT NULL AND turn>=?', turn,
+                             expected_revision=expected_revision)
 
-    def _retract(self, condition, value):
+    def _retract(self, condition, value, *, expected_revision=None):
         self._conn.execute('BEGIN IMMEDIATE')
         try:
+            if expected_revision is not None and self.revision != expected_revision:
+                raise RevisionConflict('world changed while the retraction was being prepared')
             cur = self._conn.execute('UPDATE events SET retracted=1 WHERE retracted=0 AND ' + condition, (value,))
             if cur.rowcount:
                 self._conn.execute('UPDATE store_revision SET revision=revision+1 WHERE singleton=1')

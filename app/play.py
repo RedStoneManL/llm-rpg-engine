@@ -30,6 +30,7 @@ from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from context.access import pov_world
 from context.capabilities import scene_capabilities
+from engine.store import RevisionConflict
 from kernel.clock import band_name
 
 # ---------------------------------------------------------------------------
@@ -623,7 +624,7 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         if turn_n < 1:
             out("[倒带] 回合数必须从 1 开始；创世世界不能通过玩家倒带撤销。")
             return False
-        result = _rewind(engine, turn_n)
+        result = _rewind(engine, turn_n, expected_revision=engine.store.revision)
         out(f"[倒带] 已回退到第 {turn_n} 回合之前，撤回 {result['retracted']} 个事件。")
         return False
 
@@ -632,7 +633,7 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         if t < 1:
             out("[倒带] 当前没有可撤销的玩家回合。")
             return False
-        result = _rewind(engine, t)
+        result = _rewind(engine, t, expected_revision=engine.store.revision)
         out(f"[倒带] 已撤销第 {t} 回合，撤回 {result['retracted']} 个事件。")
         return False
 
@@ -807,8 +808,20 @@ def play_loop(
         if line.startswith("/"):
             revision_before = engine.store.revision
             steer_before = steering[0]
-            stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode,
-                                steering=steering)
+            try:
+                stop = dispatch_ooc(line, engine, out=out, compare_mode=compare_mode,
+                                    steering=steering)
+            except RevisionConflict:
+                # `/undo` and `/rewind` are optimistic mutations too.  A peer
+                # may publish after this loop refreshed but before SQLite takes
+                # the retraction lock; never retract that newer branch.
+                engine.world = project(engine.registry, engine.store.iter_events())
+                engine.world['_revision'] = engine.store.revision
+                prev_scene = _previous_scene_before_latest_action(engine)
+                if hasattr(strategy, 'reset'):
+                    strategy.reset()
+                out('[世界状态已更新；未执行撤销，请重新决定是否撤销。]')
+                continue
             # The conversational cache contains prior user messages.  Reset it
             # when the soft direction changes so clearing it cannot leave an old
             # steering instruction active merely through model conversation history.
@@ -990,11 +1003,9 @@ def play_loop(
             # content.  Keep normal CLI and stderr diagnostics body-free.
             log.error("play_loop: turn failed")
             from loop.turn import TurnRejected
-            from engine.store import RevisionConflict
             if isinstance(exc, TurnRejected):
                 out('[这一行动尚未完成，世界保持原状。请重试或换一种行动描述。]')
             elif isinstance(exc, RevisionConflict):
-                from kernel.projection import project
                 engine.world = project(engine.registry, engine.store.iter_events())
                 engine.world['_revision'] = engine.store.revision
                 # A rejected optimistic turn never becomes the previous action

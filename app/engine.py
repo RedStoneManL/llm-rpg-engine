@@ -201,7 +201,7 @@ def last_turn(engine: Engine) -> int:
     return max_t
 
 
-def rewind(engine: Engine, turn: int) -> dict:
+def rewind(engine: Engine, turn: int, *, expected_revision: int | None = None) -> dict:
     """Retract all events with turn >= `turn` and re-project the world.
 
     Uses engine.store.retract_from_turn (soft-retracts, SQLite authoritative).
@@ -211,7 +211,7 @@ def rewind(engine: Engine, turn: int) -> dict:
     """
     if type(turn) is not int or turn < 1:
         raise ValueError("rewind turn must be a positive player turn")
-    n = engine.store.retract_from_turn(turn)
+    n = engine.store.retract_from_turn(turn, expected_revision=expected_revision)
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world['_revision'] = engine.store.revision
     log.debug("rewind: turn=%d retracted=%d", turn, n)

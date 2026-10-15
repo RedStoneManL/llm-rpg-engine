@@ -617,7 +617,11 @@ class PlayerDashboard:
             turn = last_turn(self.engine)
             if turn <= 0:
                 raise GuiRequestError("当前没有可撤销的玩家回合。")
-            rewind(self.engine, turn)
+            try:
+                rewind(self.engine, turn, expected_revision=expected_revision)
+            except RevisionConflict as exc:
+                self._refresh_authoritative_world()
+                raise GuiRequestError("世界已变化；已刷新本地状态，请重新决定是否撤销。") from exc
             # The remaining durable history still has an action-start scope.
             # Rebuild it exactly as a cold reopen would, rather than making
             # the next action treat every stale co-located entity as newly
