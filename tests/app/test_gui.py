@@ -876,6 +876,29 @@ def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp
     reopened.engine.store.close()
 
 
+def test_player_gui_utf8_byte_preflight_matches_server_action_limit_without_writing(tmp_path):
+    """Multibyte browser input needs the same preflight limit as the controller."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    before = dashboard.state()["revision"]
+    db_before = (campaign / "events.db").read_bytes()
+    jsonl_before = (campaign / "events.jsonl").read_bytes()
+    too_many_bytes = "你" * 667  # 2,001 UTF-8 bytes, below maxlength=2,000 chars.
+
+    with pytest.raises(GuiRequestError, match="行动过长"):
+        dashboard.action(player_input=too_many_bytes, action_id="multibyte-over-limit",
+                         expected_revision=before)
+    assert dashboard.engine.store.revision == before
+    assert (campaign / "events.db").read_bytes() == db_before
+    assert (campaign / "events.jsonl").read_bytes() == jsonl_before
+    assert "function utf8Bytes" in gui._JS
+    assert "action-byte-count" in gui._INDEX
+    assert "speech-byte-count" in gui._INDEX
+    assert "行动超过 2000 字节" in gui._JS
+    assert "逐字原话超过 2000 字节" in gui._JS
+    dashboard.engine.store.close()
+
+
 @pytest.mark.parametrize("kwargs", [
     {"player_input": "", "action_id": "x", "expected_revision": 1},
     {"player_input": "ok", "action_id": "", "expected_revision": 1},

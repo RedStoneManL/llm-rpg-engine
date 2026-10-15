@@ -127,6 +127,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-84 | P0 | 已验收（GUI action 临时上下文释放） | 长运行 dashboard 把每个 action 的输入、场景和逐字交流缓存到 `requests`，即使成功回合已有 host envelope 可做冷恢复，也会随回合永久累积 | 仅在同步 `run_turn` 调用期间保留 context；成功、拒绝或异常后释放。duplicate 继续从 durable receipt/host envelope 恢复，绝不回退为内存权威 |
 | RCV-85 | P0 | 已验收（正常／GM GUI 缺失 campaign 零写入） | 正常 player 与非 demo GM 都会先调用 `build_engine`；给错不存在路径时它会创建空 SQLite campaign，随后才报没有世界，与只读启动预期不符 | 在 SQLite 打开前要求已有 `events.db`；GM 还拒绝已有但空的 store。CLI 和直接构造均验证失败后路径、SQLite、JSONL 不出现 |
 | RCV-86 | P1 | 已验收（GUI 公开任务→可编辑行动建议） | 玩家能看见已公开的进行中任务，却要手工重输摘要来形成下一步行动；不能把任务列表误做成自动推进或新的写路由 | 每条既有 `objectives.active_quests` 只提供浏览器本地“填入行动”，追加公开 summary 到文本框；不提交、不创建 action-id、不推进任务或写 EventStore，仍由既有回合发布边界决定是否可推进 |
+| RCV-87 | P1 | 已验收（GUI UTF-8 行动输入预检） | 浏览器的 `maxlength=2000` 按字符而服务端按 UTF-8 bytes 限制 action／逐字原话；多字节文本可看似可填却在提交后才收到可避免的 400 | 页面显示与服务端同值的 2,000-byte 计数，并在提交前拦截超限 action／逐字原话；不替代服务端验证、不创建 pending/action-id 或写入任何状态 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1790,3 +1791,14 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `scrollWidth == clientWidth == 390`；server/campaign 已删除。浏览器首轮仅因验证脚本把 demo 种子 revision 错假定为 1
   而失败，比较点击前后 revision 后复跑通过；这不是产品写入失败。正式完整离线 gate 为
   **`2023 passed, 1 deselected in 26.20s`**；唯一 deselect 是既有 slow real embedding。没有真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-87 修复 GUI 的多字节输入预期与服务端约束不一致。`textarea maxlength=2000` 是字符上限，
+  而 controller 对实际 action 与 explicit speech 都以 UTF-8 字节限定 2,000；例如 667 个“你”只有 667 个字符，却是
+  2,001 bytes，旧页面会让玩家提交后才得到 confirmed 400。现在 action（按既有提交前 trim）与逐字原话（按既有原样
+  payload）均显示同一 byte count，超限标红，提交前显示明确提示并返回，不创建 pending envelope、action-id 或任何请求。
+  Python 回归实际将 2,001-byte action 送进现有 controller，确认仍由服务端拒绝且 SQLite/JSONL/revision 不变，同时锁定
+  浏览器 helper、两个 counter 和两种预检文案；`tests/app/test_gui.py -rA` 为 **`51 passed in 1.09s`**，最终 `_JS`
+  Node 语法检查通过。系统 Chromium + Playwright 在临时 loopback demo 的 390px 页面实测 count=`2001 / 2000 字节`、
+  标红、状态为“行动超过 2000 字节”、`writes=[]`、pending 为 null、revision 不变且无横向溢出；server/campaign 已删除。
+  正式完整离线 gate 为 **`2024 passed, 1 deselected in 26.01s`**；唯一 deselect 是既有 slow real embedding。没有真实模型、
+  embedding、网络或外部服务调用。
