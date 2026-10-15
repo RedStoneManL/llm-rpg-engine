@@ -180,6 +180,7 @@ from loop.turn import run_turn, apply_turn, advanced_day, REQUIRED_SECTIONS
 from loop.compare import run_compare
 from loop.strategy import AuthorStrategy
 from app.engine import (rewind as _rewind, last_turn as _last_turn,
+                        last_turn_and_revision as _last_turn_and_revision,
                         reproject_engine_world)
 from engine.log import get_logger
 
@@ -629,11 +630,11 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         return False
 
     elif verb in ("undo", "oops"):
-        t = _last_turn(engine)
+        t, revision = _last_turn_and_revision(engine)
         if t < 1:
             out("[倒带] 当前没有可撤销的玩家回合。")
             return False
-        result = _rewind(engine, t, expected_revision=engine.store.revision)
+        result = _rewind(engine, t, expected_revision=revision)
         out(f"[倒带] 已撤销第 {t} 回合，撤回 {result['retracted']} 个事件。")
         return False
 

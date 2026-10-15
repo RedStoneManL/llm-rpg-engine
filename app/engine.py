@@ -204,6 +204,23 @@ def last_turn(engine: Engine) -> int:
     return max_t
 
 
+def last_turn_and_revision(engine: Engine) -> tuple[int, int]:
+    """Return the active player-turn frontier and its store revision together.
+
+    An optimistic undo needs both values to describe the same durable branch.
+    Reading the last turn first and revision later lets a peer publish in the
+    gap, which can make the stale turn look approved for the peer's revision.
+    ``snapshot`` includes retracted history, so filter it here exactly as
+    ``last_turn`` filters EventStore's default active iterator.
+    """
+    revision, history = engine.store.snapshot()
+    max_turn = max(
+        (event.get("turn") or 0 for event in history if not event.get("retracted")),
+        default=0,
+    )
+    return max_turn, revision
+
+
 def reproject_engine_world(engine: Engine) -> int:
     """Replace ``engine.world`` from one read-only store snapshot.
 

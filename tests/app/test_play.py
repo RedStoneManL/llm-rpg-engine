@@ -1126,6 +1126,68 @@ def test_cli_undo_rejects_peer_publish_between_turn_lookup_and_retraction(tmp_pa
         engine.store.close()
 
 
+def test_cli_undo_rejects_peer_publish_between_turn_snapshot_and_retraction(tmp_path, monkeypatch):
+    """`/undo` must bind its selected turn to the same branch revision.
+
+    This differs from the retraction-window race above: the peer publishes
+    after the CLI has selected its active-turn frontier but before the undo
+    takes its write lock.  A second standalone revision read would otherwise
+    approve the stale frontier against the peer's newer branch.
+    """
+    import app.play as play
+    from app.engine import build_engine
+    from app.gui import build_dashboard
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    engine = dashboard.engine
+    saved = dashboard.action(
+        player_input="先去集市", action_id="cli-snapshot-race-turn",
+        expected_revision=dashboard.state()["revision"],
+    )
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    original_snapshot = engine.store.snapshot
+    snapshots = {}
+
+    def snapshot_then_peer_publish():
+        revision, history = original_snapshot()
+        # The conflict handler deliberately reprojects after rejecting the
+        # stale undo.  Inject the peer publish once, at the frontier snapshot
+        # under test, rather than manufacturing a second race during recovery.
+        if not snapshots.get("injected"):
+            snapshots["injected"] = True
+            peer.store.append_many([kernel_event(
+                "narration_recorded", day=1, scene="s1", turn=2,
+                summary="peer wins snapshot undo race", deltas={"text": "PEER_UNDO_SNAPSHOT_RACE"},
+            )])
+            snapshots["before"] = (
+                engine.store.db_path.read_bytes(),
+                engine.store.jsonl_path.read_bytes(),
+                engine.store.revision,
+            )
+        return revision, history
+
+    monkeypatch.setattr(engine.store, "snapshot", snapshot_then_peer_publish)
+    output: list[str] = []
+    try:
+        play.play_loop(engine, ["/undo", "/quit"], out=output.append)
+        snapshots["after"] = (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        )
+        assert "未执行撤销" in "\n".join(output)
+        assert snapshots["after"] == snapshots["before"]
+        assert any(event.get("turn") == 1 for event in engine.store.iter_events())
+        assert any(event.get("turn") == 2 for event in engine.store.iter_events())
+        assert engine.world["_revision"] == peer.store.revision
+        assert saved["revision"] < engine.store.revision
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
 def test_dispatch_ooc_oops_same_as_undo(tmp_path):
     """/oops is an alias for /undo."""
     from app.play import dispatch_ooc

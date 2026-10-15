@@ -113,6 +113,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-70 | P0 | 已验收（status 跨入口任务账本回归） | CLI `/status` 已有 POV 公开任务 read-model，但缺少 peer publish→撤回、暗线隔离、冷重开及 OOC 零写入的组合证据 | 纯回归覆盖 peer 公开任务即时出现、同回合暗线不泄漏、撤回后隐藏、冷重开不复活，并逐字比较 SQLite/JSONL 与 revision，确认 CLI 读取零写入 |
 | RCV-71 | P0 | 已验收（撤销 optimistic revision 原子性） | CLI/GUI 撤销先读当前 turn、再软撤回；peer 若在其间发布，旧请求可能撤掉新分支 | `EventStore` 在同一 SQLite 写事务内复核可选 expected revision；CLI/GUI 都携带该版本，冲突时只读重投影、清策略缓存并确认“未撤销”，不改 peer 分支 |
 | RCV-72 | P0 | 已验收（跨实例投影快照一致性） | CLI、玩家与 GM 被动刷新分别读取 revision 与 events；peer 在两读之间发布时，旧投影可能被错标为新版本 | 共享重投影 helper 从同一 `EventStore.snapshot()` 获取 revision 与 history；启动、CLI、玩家、GM 与 rewind 均复用，下一次刷新才推进到 peer 版本 |
+| RCV-73 | P0 | 已验收（CLI undo 选回合／版本绑定） | `/undo` 的最后活动回合与 expected revision 仍是两次读取；peer 夹在中间发布会让旧回合被错误地按 peer 新版本批准 | 从同一 `EventStore.snapshot()` 取得活动回合 frontier 和 revision；后续 retraction 仍在 SQLite 写事务复核，冲突只读刷新且不撤回 peer 分支 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1631,3 +1632,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   **`200 passed in 2.05s`**；正式完整离线 gate
   `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
   **`2011 passed, 1 deselected in 23.34s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-73 继续 RCV-71 的撤销原子性审计，发现 CLI `/undo` 仍先以一次读取找最后活动回合、再以另一
+  `store.revision` 作为 optimistic guard。peer 若精确夹在这两步之间，旧回合会错误地携带 peer 的新版本进入 SQLite
+  retraction，进而撤回 peer 分支。新增 `last_turn_and_revision()` 从单一 `EventStore.snapshot()` 同时取活动回合 frontier
+  与 revision；`/undo` 继续将这份 revision 带入既有 `BEGIN IMMEDIATE` 终检。真实 `play_loop` 双连接回归在 snapshot
+  返回后插入 peer narration，确认 CLI 输出未执行撤销、原玩家及 peer 两个回合仍 active、SQLite/JSONL 字节未因失败撤销改变，
+  且控制器只读重投影到 peer revision。开发中首轮测试 mock 会在冲突后的故意 recovery snapshot 再次插入 peer 事件，造成
+  断言的测试装置错误；改为仅在被测 frontier 注入一次后，定向集合为 **`44 passed in 0.53s`**。正式完整离线 gate 为
+  **`2012 passed, 1 deselected in 24.90s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务调用。
