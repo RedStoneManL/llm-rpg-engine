@@ -831,6 +831,12 @@ def test_player_objectives_are_public_replayable_and_do_not_expose_dark_lore(tmp
     status, refreshed = _get_wsgi(make_app(dashboard), "/api/state")
     assert status.startswith("200")
     assert json.loads(refreshed.decode("utf-8"))["objectives"] == opened["objectives"]
+    # Active public task summaries are a local action-writing aid only.  They
+    # do not create a task API or turn a click into an advancement/write.
+    assert "function suggestQuest" in gui._JS
+    assert "quest-suggestion" in gui._JS
+    assert "尝试推进任务：${summary}" in gui._JS
+    assert "/api/quest" not in gui._JS
 
     engine.store.append_many([
         kernel_event("quest_advanced", day=1, scene="s1", turn=2, summary="推进任务",

@@ -126,6 +126,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-83 | P0 | 已验收（离线 demo 存档归属保护） | `--demo` 的帮助承诺只初始化空 campaign，但原实现会把任意已有存档交给固定离线策略，容易在普通世界上误运行演示行动 | 空 campaign 在 seed 后写入一个小型本地 provenance marker；`--demo`/`--gm --demo` 只接受空 campaign 或该 marker，未标记已有存档在任何 action 前拒绝并保持 SQLite/JSONL 字节不变 |
 | RCV-84 | P0 | 已验收（GUI action 临时上下文释放） | 长运行 dashboard 把每个 action 的输入、场景和逐字交流缓存到 `requests`，即使成功回合已有 host envelope 可做冷恢复，也会随回合永久累积 | 仅在同步 `run_turn` 调用期间保留 context；成功、拒绝或异常后释放。duplicate 继续从 durable receipt/host envelope 恢复，绝不回退为内存权威 |
 | RCV-85 | P0 | 已验收（正常／GM GUI 缺失 campaign 零写入） | 正常 player 与非 demo GM 都会先调用 `build_engine`；给错不存在路径时它会创建空 SQLite campaign，随后才报没有世界，与只读启动预期不符 | 在 SQLite 打开前要求已有 `events.db`；GM 还拒绝已有但空的 store。CLI 和直接构造均验证失败后路径、SQLite、JSONL 不出现 |
+| RCV-86 | P1 | 已验收（GUI 公开任务→可编辑行动建议） | 玩家能看见已公开的进行中任务，却要手工重输摘要来形成下一步行动；不能把任务列表误做成自动推进或新的写路由 | 每条既有 `objectives.active_quests` 只提供浏览器本地“填入行动”，追加公开 summary 到文本框；不提交、不创建 action-id、不推进任务或写 EventStore，仍由既有回合发布边界决定是否可推进 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1777,3 +1778,15 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   “尚无已保存世界”，以及 existing-empty 分支仍用旧提示；统一常量后专项 `tests/app/test_gui.py -rA` 为 **`50 passed in 0.91s`**。
   正式完整离线 gate 为 **`2023 passed, 1 deselected in 23.92s`**，唯一 deselect 是既有 slow real embedding。无 UI
   改动、浏览器结论、真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-86 衔接既有玩家“目标与任务”只读账本与可编辑行动。进行中任务已通过 protagonist POV 的
+  `objectives.active_quests` DTO 公开给页面；此前玩家看得到 summary 却无法把它变成行动草稿。每条公开任务现在只有
+  浏览器本地“填入行动”按钮：空框填入、已有文本按换行追加“尝试推进任务：〈公开 summary〉。”，聚焦输入框并明确提示
+  仍须编辑、保存。它不查询 LoreSystem/原始事件、不包含暗线、secret 或 task lifecycle，不创建 action-id，也没有
+  `/api/quest` 或其他任务写路由；真正推进仍要经过既有 `PlayerDashboard.action → run_turn` 的所有权限与发布校验。
+  单元回归继续只接受公开任务 DTO，并断言不存在新任务 API；`tests/app/test_gui.py -rA` 为 **`50 passed in 0.94s`**，
+  最终 `_JS` 经 Node 语法检查。系统 Chromium + Playwright 在临时、可删除的 loopback demo（另写入一条公开 fixture task）
+  以 390px 实测：原输入“我先观察周围。”保留并追加任务建议，revision 维持 2、非 GET 请求为空、DOM 不含私有 sentinel，
+  `scrollWidth == clientWidth == 390`；server/campaign 已删除。浏览器首轮仅因验证脚本把 demo 种子 revision 错假定为 1
+  而失败，比较点击前后 revision 后复跑通过；这不是产品写入失败。正式完整离线 gate 为
+  **`2023 passed, 1 deselected in 26.20s`**；唯一 deselect 是既有 slow real embedding。没有真实模型、embedding、网络或外部服务调用。
