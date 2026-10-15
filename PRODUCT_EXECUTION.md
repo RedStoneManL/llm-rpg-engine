@@ -122,6 +122,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-79 | P0 | 已验收（观察跨实例 active-history 回放） | RCV-77/78 新的玩家观察 read-model 仅覆盖单实例状态，尚未证明 peer 发布、撤回和关闭重开时不会停留在已撤回观察 | 真实双 dashboard 回归覆盖 peer 发布→被动 state 刷新→revision-bound 撤回→刷新→冷重开；观察严格跟随 active durable history，读取不新增 player 写入 |
 | RCV-80 | P0 | 已验收（CLI 观察跨会话 active-history 回放） | RCV-79 覆盖 dashboard，但长运行 CLI `/status` 仍未验证 peer 的公开观察在发布、撤回和冷重开后是否同步 | 真实 CLI + peer Engine 回归覆盖三态 status 输出、只读 byte 不变与冷重开；不改生产逻辑或用户界面 |
 | RCV-81 | P1 | 已验收（GUI 同场角色→明确交流衔接） | 玩家已可看到同场公开角色与其状态，却仍需手动在另一个下拉框中再次定位收件人，容易把“可交谈”误作已选中对话对象 | 每个公开角色行只提供浏览器本地“选择为收件人”；它只选择既有同源 dropdown 并聚焦逐字原话，绝不预填原话、签发 receipt、提交 action 或写入状态 |
+| RCV-82 | P1 | 已验收（GUI 背包→可编辑行动建议） | 玩家可看见背包物品，但没有像地图出口一样把已知物品转为可编辑行动起点，必须手动重输名称 | 每个既有 player inventory DTO 项只提供浏览器本地“填入行动”，追加“使用〈公开标签〉。”到输入框；不自动使用/转移物品，不创建 action-id 或写入任何持久化状态 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1739,3 +1740,10 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   JS；系统 Chromium + Playwright 在 390px loopback demo 实测点击公开角色后 select 值为其现有 id、焦点在原话输入、
   无非 GET 请求、hidden sentinel 不在 DOM、无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
   **`2019 passed, 1 deselected in 24.15s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-82 接续地图出口与同场角色的既有“可见→可编辑”衔接，补齐背包的同类玩家动作起点。每个已经通过
+  player inventory DTO 的标签只有浏览器本地“填入行动”按钮：空输入填入、已有输入以换行追加“使用〈标签〉。”，焦点回到行动框；
+  这不是使用、转移或提交物品，不创建 action-id、不写 EventStore/JSONL/receipt/transcript，也不放宽 RCV-26 物品权限。
+  单元回归确认只消费已有 inventory DTO、没有新增 inventory API；系统 Chromium + Playwright 在 390px loopback demo 实测
+  “我先观察周围。”保留并追加“使用旧铜灯。”，非 GET 请求为空、无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
+  **`2020 passed, 1 deselected in 24.72s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。

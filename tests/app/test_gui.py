@@ -90,6 +90,21 @@ def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_sta
         normal.engine.store.close()
 
 
+def test_inventory_action_suggestion_uses_only_existing_player_inventory_dto(tmp_path):
+    """The browser affordance must not add an item lookup or a write endpoint."""
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    try:
+        before = dashboard.state()
+        assert before["inventory"] == [{"id": "old_brass_lantern", "label": "旧铜灯"}]
+        assert "function suggestInventoryItem" in gui._JS
+        assert "inventory-suggestion" in gui._JS
+        assert "使用${label}" in gui._JS
+        assert "/api/inventory" not in gui._JS
+        assert dashboard.state()["revision"] == before["revision"]
+    finally:
+        dashboard.engine.store.close()
+
+
 def test_player_state_shows_only_bounded_public_local_observations(tmp_path):
     """The dashboard may show durable local observations, never event provenance."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
