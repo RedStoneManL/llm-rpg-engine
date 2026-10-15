@@ -647,7 +647,10 @@ def test_gui_soft_direction_is_session_only_and_action_recovery_is_steer_indepen
     status, changed = _post_wsgi(app, "/api/steer", {"text": "优先核实眼前公开线索"})
     assert status.startswith("200")
     assert changed == {"ok": True, "soft_direction": "优先核实眼前公开线索"}
-    assert dashboard.state()["session"] == {"soft_direction": "优先核实眼前公开线索"}
+    session = dashboard.state()["session"]
+    assert session["soft_direction"] == "优先核实眼前公开线索"
+    assert len(session["campaign_key"]) == 24
+    assert set(session["campaign_key"]) <= set("0123456789abcdef")
     assert dashboard.engine.store.revision == before
     assert (campaign / "events.db").read_bytes() == db_before
     assert (campaign / "events.jsonl").read_bytes() == jsonl_before
@@ -670,12 +673,43 @@ def test_gui_soft_direction_is_session_only_and_action_recovery_is_steer_indepen
     # A cold response-loss retry needs no old steering state: it restores the
     # committed result and does not run a strategy again.
     reopened = build_dashboard(campaign, demo=True)
-    assert reopened.state()["session"] == {"soft_direction": None}
+    assert reopened.state()["session"] == {
+        "soft_direction": None,
+        "campaign_key": session["campaign_key"],
+    }
     duplicate = reopened.action(player_input="先在眼前观察", action_id="gui-session-steer",
                                 expected_revision=before)
     assert duplicate["duplicate"] is True
     assert duplicate["revision"] == saved["revision"]
     reopened.engine.store.close()
+
+
+def test_gui_campaign_key_scopes_pending_recovery_to_one_saved_world(tmp_path):
+    """A same-origin browser must not offer campaign A's pending action in B."""
+    campaign_a = tmp_path / "campaign-a"
+    first = build_dashboard(campaign_a, demo=True)
+    first_state = first.state()
+    first_key = first_state["session"]["campaign_key"]
+    first_event_id = first.engine.store.snapshot()[1][0]["id"]
+    first.engine.store.close()
+
+    reopened = build_dashboard(campaign_a, demo=True)
+    assert reopened.state()["session"]["campaign_key"] == first_key
+    reopened.engine.store.close()
+
+    campaign_b = tmp_path / "campaign-b"
+    second = build_dashboard(campaign_b, demo=True)
+    second_state = second.state()
+    assert second_state["session"]["campaign_key"] != first_key
+    rendered = json.dumps(second_state, ensure_ascii=False)
+    assert str(campaign_a.resolve()) not in rendered
+    assert str(campaign_b.resolve()) not in rendered
+    assert first_event_id not in rendered
+    assert "pending-action.v2" not in rendered
+    assert "pending-action.v2" in gui._JS
+    assert "campaign_key" in gui._JS
+    assert "pending-action.v1" not in gui._JS
+    second.engine.store.close()
 
 
 def test_gui_soft_direction_wsgi_validation_has_no_campaign_write(tmp_path):

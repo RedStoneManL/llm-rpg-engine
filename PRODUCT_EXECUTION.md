@@ -128,6 +128,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-85 | P0 | 已验收（正常／GM GUI 缺失 campaign 零写入） | 正常 player 与非 demo GM 都会先调用 `build_engine`；给错不存在路径时它会创建空 SQLite campaign，随后才报没有世界，与只读启动预期不符 | 在 SQLite 打开前要求已有 `events.db`；GM 还拒绝已有但空的 store。CLI 和直接构造均验证失败后路径、SQLite、JSONL 不出现 |
 | RCV-86 | P1 | 已验收（GUI 公开任务→可编辑行动建议） | 玩家能看见已公开的进行中任务，却要手工重输摘要来形成下一步行动；不能把任务列表误做成自动推进或新的写路由 | 每条既有 `objectives.active_quests` 只提供浏览器本地“填入行动”，追加公开 summary 到文本框；不提交、不创建 action-id、不推进任务或写 EventStore，仍由既有回合发布边界决定是否可推进 |
 | RCV-87 | P1 | 已验收（GUI UTF-8 行动输入预检） | 浏览器的 `maxlength=2000` 按字符而服务端按 UTF-8 bytes 限制 action／逐字原话；多字节文本可看似可填却在提交后才收到可避免的 400 | 页面显示与服务端同值的 2,000-byte 计数，并在提交前拦截超限 action／逐字原话；不替代服务端验证、不创建 pending/action-id 或写入任何状态 |
+| RCV-88 | P0 | 已验收（GUI pending recovery campaign 隔离） | 浏览器 `sessionStorage` 曾以全局 pending key 保存 response-loss 行动；同一 loopback origin 改开另一 campaign 时，旧世界的恢复请求可能被显示或提交给新世界 | 安全 DTO 仅提供稳定、匿名的 campaign key；v2 pending key 按该 key 分区，旧 v1 fail-closed 忽略。同 campaign 冷重开稳定、不同保存世界隔离；不写 EventStore/receipt/transcript，不进入作者上下文 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1802,3 +1803,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   标红、状态为“行动超过 2000 字节”、`writes=[]`、pending 为 null、revision 不变且无横向溢出；server/campaign 已删除。
   正式完整离线 gate 为 **`2024 passed, 1 deselected in 26.01s`**；唯一 deselect 是既有 slow real embedding。没有真实模型、
   embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-88 关闭 GUI response-loss pending action 的跨 campaign 命名空间混淆。旧页面把未确认的行动信封
+  放在一个全局 `sessionStorage` key；同一浏览器同一 loopback origin 若先服务 campaign A、再以同端口打开 campaign B，
+  A 的恢复控件可能错误地出现在 B。现在 dashboard 仅向安全 player state 输出一个 24 位十六进制的匿名 campaign key：它由
+  本地已解析 DB 路径及首条 durable event id 哈希而来，不序列化原路径或 event id，同一保存世界冷重开稳定、不同世界不同。
+  浏览器的 v2 pending key 必须包含该 key，旧 v1 key 直接忽略；保存软方向时也保留该 session identity。它不进入 Author／Hybrid
+  prompt，不写 EventStore、JSONL、receipt、transcript 或 action fingerprint。
+
+  Python 回归覆盖同一 campaign 冷重开 key 稳定、不同 campaign key 不同、state 不泄露本地路径，且最终 JS 只含 v2 namespace；
+  `tests/app/test_gui.py -rA` 为 **`52 passed in 1.00s`**，Node 对最终 assembled JS 的语法检查通过。系统 Chromium +
+  Playwright 以同一浏览器 session 和同一个 `127.0.0.1:18788` origin 顺序服务两个临时 demo：A 中的 stale pending 仍可显示，
+  切到 B 后恢复控件消失、A key 仍仅留在 sessionStorage、`writes=[]`，且 390px `scrollWidth=clientWidth=390`。临时
+  server/campaign 已删除。正式完整离线 gate 为 **`2025 passed, 1 deselected in 27.08s`**；唯一 deselect 是既有 slow real
+  embedding，无真实模型、embedding、网络或外部服务调用。

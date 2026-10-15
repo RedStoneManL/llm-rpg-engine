@@ -16,6 +16,7 @@ strategy and FakeLLMProvider; it makes no network or model request.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import threading
@@ -166,6 +167,21 @@ def _seed_demo_campaign(engine) -> None:
 def _offline_demo_marker_path(engine) -> Path:
     """Return the campaign-local provenance marker for the fixed demo world."""
     return engine.store.db_path.parent / _OFFLINE_DEMO_MARKER
+
+
+def _campaign_session_key(engine) -> str:
+    """Return a stable opaque browser-recovery namespace for one campaign.
+
+    A pending GUI envelope lives in browser ``sessionStorage`` so a lost response
+    can be retried after a local reload.  Its key must not be shared by a later
+    dashboard opened at the same loopback origin for a different campaign.  The
+    resolved local DB path and first durable event id identify this particular
+    saved world without serializing either value to the browser.
+    """
+    _, history = engine.store.snapshot()
+    first_id = next((event.get("id") for event in history if isinstance(event.get("id"), str)), "")
+    material = f"v1\0{engine.store.db_path.resolve()}\0{first_id}".encode("utf-8")
+    return hashlib.sha256(material).hexdigest()[:24]
 
 
 def _write_offline_demo_marker(engine) -> None:
@@ -456,6 +472,7 @@ class PlayerDashboard:
         self.strategy = strategy if strategy is not None else OfflineDemoStrategy()
         self.max_repairs = max_repairs
         self.demo = demo
+        self.campaign_session_key = _campaign_session_key(engine)
         # Unlike a fresh genesis, an existing campaign may have just been
         # reopened between two player actions.  Recover the prior durable
         # action-start scene so catch-up preserves its enter-scope semantics
@@ -472,7 +489,10 @@ class PlayerDashboard:
         with self.lock:
             self._refresh_if_store_advanced()
             state = build_player_state(self.engine)
-            state["session"] = {"soft_direction": self.steering}
+            state["session"] = {
+                "soft_direction": self.steering,
+                "campaign_key": self.campaign_session_key,
+            }
             return state
 
     def _refresh_authoritative_world(self) -> None:
@@ -811,7 +831,7 @@ _JS = _JS.replace(
 )
 _JS = _JS.replace(
     "async function sendAction(envelope,recovering){",
-    "async function saveSteering(clear){if(busy)return;try{const text=clear?null:$('soft-direction').value;const d=await api('/api/steer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(state)state.session={soft_direction:d.soft_direction};$('soft-direction').value=d.soft_direction||'';setStatus(d.soft_direction?'已保存会话软方向；它不改写世界、路线或权限。':'已清除软方向；后续回合只按行动和已保存世界推进。')}catch(e){setStatus(e.message,true)}}\nasync function sendAction(envelope,recovering){",
+    "async function saveSteering(clear){if(busy)return;try{const text=clear?null:$('soft-direction').value;const d=await api('/api/steer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(state)state.session={...(state.session||{}),soft_direction:d.soft_direction};$('soft-direction').value=d.soft_direction||'';setStatus(d.soft_direction?'已保存会话软方向；它不改写世界、路线或权限。':'已清除软方向；后续回合只按行动和已保存世界推进。')}catch(e){setStatus(e.message,true)}}\nasync function sendAction(envelope,recovering){",
 )
 _JS = _JS.replace(
     "$('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()",
@@ -848,6 +868,22 @@ _JS = _JS.replace(
 _JS = _JS.replace(
     "active.forEach(x=>quests.append(el('li',`${x.summary}（${x.id}）`)));",
     r"""active.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='quest-suggestion';button.addEventListener('click',()=>suggestQuest(x.summary));item.append(document.createTextNode(`${x.summary}（${x.id}） `),button);quests.append(item)});""",
+)
+_JS = _JS.replace(
+    "const pendingKey='llm-rpg.offline-player.pending-action.v1';",
+    "const pendingPrefix='llm-rpg.offline-player.pending-action.v2';function pendingKey(){const key=state&&state.session&&state.session.campaign_key;return typeof key==='string'&&/^[a-f0-9]{24}$/.test(key)?`${pendingPrefix}.${key}`:null}",
+)
+_JS = _JS.replace(
+    "function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(pendingKey);return null}}",
+    "function pending(){const key=pendingKey();if(!key)return null;try{const p=JSON.parse(sessionStorage.getItem(key)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(key);return null}}",
+)
+_JS = _JS.replace(
+    "sessionStorage.removeItem(pendingKey)",
+    "{const key=pendingKey();if(key)sessionStorage.removeItem(key)}",
+)
+_JS = _JS.replace(
+    "sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)",
+    "const key=pendingKey();if(!key){setStatus('当前 campaign 身份不可用；请刷新后再保存行动。',true);return}sessionStorage.setItem(key,JSON.stringify(envelope));sendAction(envelope,false)",
 )
 _JS = _JS.replace(
     "$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));$('recall-form').addEventListener('submit',event=>{event.preventDefault();submitRecall()});load()",
