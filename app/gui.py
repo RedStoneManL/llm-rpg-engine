@@ -886,6 +886,14 @@ _JS = _JS.replace(
     "const key=pendingKey();if(!key){setStatus('当前 campaign 身份不可用；请刷新后再保存行动。',true);return}sessionStorage.setItem(key,JSON.stringify(envelope));sendAction(envelope,false)",
 )
 _JS = _JS.replace(
+    "function syncPending(){const p=pending();$('resume-action').hidden=!p||recoveryUnavailable;$('end-recovery').hidden=!p||!recoveryUnavailable;if(p&&!busy&&!recoveryUnavailable)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}",
+    "function syncPending(){const p=pending(),blocked=!!p;$('submit-action').disabled=busy||blocked;$('undo').disabled=busy||blocked;$('resume-action').hidden=!p||recoveryUnavailable;$('end-recovery').hidden=!p||!recoveryUnavailable;if(p&&!busy&&!recoveryUnavailable)setStatus('上次行动尚未得到确认；请先恢复或查看状态，期间不可提交或撤销。',true)}",
+)
+_JS = _JS.replace(
+    "function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next;$('save-steer').disabled=next;$('clear-steer').disabled=next}",
+    "function setBusy(next){busy=next;const blocked=!!pending();$('submit-action').disabled=next||blocked;$('undo').disabled=next||blocked;$('resume-action').disabled=next;$('save-steer').disabled=next;$('clear-steer').disabled=next}",
+)
+_JS = _JS.replace(
     "$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));$('recall-form').addEventListener('submit',event=>{event.preventDefault();submitRecall()});load()",
     "$('save-steer').addEventListener('click',()=>saveSteering(false));$('clear-steer').addEventListener('click',()=>saveSteering(true));$('recall-form').addEventListener('submit',event=>{event.preventDefault();submitRecall()});$('action-input').addEventListener('input',updateActionByteCount);$('speech-statement').addEventListener('input',updateSpeechByteCount);updateActionByteCount();updateSpeechByteCount();load()",
 )

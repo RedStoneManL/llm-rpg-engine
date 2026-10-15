@@ -129,6 +129,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-86 | P1 | 已验收（GUI 公开任务→可编辑行动建议） | 玩家能看见已公开的进行中任务，却要手工重输摘要来形成下一步行动；不能把任务列表误做成自动推进或新的写路由 | 每条既有 `objectives.active_quests` 只提供浏览器本地“填入行动”，追加公开 summary 到文本框；不提交、不创建 action-id、不推进任务或写 EventStore，仍由既有回合发布边界决定是否可推进 |
 | RCV-87 | P1 | 已验收（GUI UTF-8 行动输入预检） | 浏览器的 `maxlength=2000` 按字符而服务端按 UTF-8 bytes 限制 action／逐字原话；多字节文本可看似可填却在提交后才收到可避免的 400 | 页面显示与服务端同值的 2,000-byte 计数，并在提交前拦截超限 action／逐字原话；不替代服务端验证、不创建 pending/action-id 或写入任何状态 |
 | RCV-88 | P0 | 已验收（GUI pending recovery campaign 隔离） | 浏览器 `sessionStorage` 曾以全局 pending key 保存 response-loss 行动；同一 loopback origin 改开另一 campaign 时，旧世界的恢复请求可能被显示或提交给新世界 | 安全 DTO 仅提供稳定、匿名的 campaign key；v2 pending key 按该 key 分区，旧 v1 fail-closed 忽略。同 campaign 冷重开稳定、不同保存世界隔离；不写 EventStore/receipt/transcript，不进入作者上下文 |
+| RCV-89 | P0 | 已验收（pending recovery 操作保护） | 浏览器检测到未确认 action 后仍允许点击撤销；若该 action 实际已保存但响应丢失，玩家可能误撤回刚提交的回合 | pending 存在时统一禁用新提交与撤销，只保留恢复／查看并明确结束恢复；服务端既有 revision/receipt 终检不变，零新写路由 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1817,3 +1818,14 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   切到 B 后恢复控件消失、A key 仍仅留在 sessionStorage、`writes=[]`，且 390px `scrollWidth=clientWidth=390`。临时
   server/campaign 已删除。正式完整离线 gate 为 **`2025 passed, 1 deselected in 27.08s`**；唯一 deselect 是既有 slow real
   embedding，无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-89 接续 RCV-88 的 response-loss 真实操作边界。浏览器在发现 pending envelope 后原先只隐藏／显示
+  恢复控件；新提交会在 handler 内拒绝，但“撤销上一回合”仍可点击。若原 action 已经 durable publish 而响应丢失，玩家可能
+  在恢复前撤回刚保存的回合，造成不必要的分支改写。现在 `syncPending` 与 busy-state 都把 pending 作为操作保护：只要 pending
+  存在，保存行动和撤销都禁用，恢复请求或显式“查看状态后结束恢复”才解除。没有改变 EventStore、action receipt、revision
+  终检或服务器写路由。
+
+  GUI 回归固定最终 JS 含 pending blocking 与明确状态文本，`tests/app/test_gui.py -q` 为 **`52 passed`**，Node 语法检查通过。
+  系统 Chromium + Playwright 在临时 demo 注入同 campaign 的 v2 pending 后实测恢复按钮可见、提交与撤销均 disabled、状态说明
+  不可提交/撤销、`writes=[]`，且 390px `scrollWidth=clientWidth=390`；临时 campaign/server 已删除。正式完整离线 gate 为
+  **`2025 passed, 1 deselected in 24.72s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务调用。
