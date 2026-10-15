@@ -119,6 +119,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-76 | P1 | 已验收（同场角色公开观察闭环） | GUI/CLI 只显示可交谈人物的 sketch/名称；已经被当前公开场景授权的心情／状态没有共用玩家 read-model，玩家与作者/交流 selector 易发生展示漂移 | 新共享 DTO 仅剥离既有 receipt-safe current-scene projection 的 id、sketch、公开 mood/state；GUI 面板显示详情、CLI `/status` 同步显示，选择器仍用同一人集。NPC 知识、传闻、arrival preview、路线授权与私有/隐藏人物均不进 DTO |
 | RCV-77 | P1 | 已验收（玩家近处公开观察） | 已有 durable `public_place_observations` 只供作者 prompt；玩家 GUI/CLI 无法查看这些受限、本地的现场观察，只能从叙事滚屏回忆 | GUI/CLI 共享只读 DTO，只保留当前地点或当前公开出口的显示名、观察类型、范围与摘要；剥离 raw place id、event id、author/source、历史 scene/day/turn。hidden、非本地和未显式 public 的观察不进入玩家出口，零写入 |
 | RCV-78 | P1 | 已验收（近处／出口观察语义区分） | RCV-77 的安全投影允许当前位置和已知出口观察，但界面把两类行都平铺，邻近地点的已知观察会被误读成主角眼前所见 | GUI/CLI 只根据既有 `is_current` 标记为当前项显示“这里”，其他项显示“已知出口：地点”；不改变 DTO 范围、观察来源、路线、发现、提交或权限 |
+| RCV-79 | P0 | 已验收（观察跨实例 active-history 回放） | RCV-77/78 新的玩家观察 read-model 仅覆盖单实例状态，尚未证明 peer 发布、撤回和关闭重开时不会停留在已撤回观察 | 真实双 dashboard 回归覆盖 peer 发布→被动 state 刷新→revision-bound 撤回→刷新→冷重开；观察严格跟随 active durable history，读取不新增 player 写入 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1713,3 +1714,11 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   “这里……”与“已知出口：石桥集市……”，无非 GET 请求和横向溢出；临时 server/campaign 已删除。JS 通过
   `node --check`，正式完整离线 gate 为 **`2017 passed, 1 deselected in 23.98s`**；唯一 deselect 是既有 slow real
   embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-79 没有新增展示或生产写逻辑，而是补足 RCV-77/78 进入多实例 durable replay 后的 P0 验收。
+  两个真实 dashboard 打开同一 SQLite/JSONL campaign：peer 以既有 `append_many` 事务发布当前地点的公开观察，旧 reader
+  只通过 `state()` 被动重投影并显示它；peer 再以 revision-bound `retract_from_turn()` 撤回，reader 的下一次 state 和随后
+  冷重开均不再显示该观察。首次测试装置误用单事件 `append(..., preflight=...)`（API 不支持该参数）而失败；改为产品已有
+  的 `append_many` 后固定回归。专项为 **`3 passed in 0.31s`**，正式完整离线 gate 为
+  **`2018 passed, 1 deselected in 26.37s`**；唯一 deselect 是既有 slow real embedding。此项无 UI 生产改动，未另作浏览器
+  行为结论，也无真实模型、embedding、网络或外部服务调用。

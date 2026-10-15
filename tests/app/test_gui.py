@@ -139,6 +139,45 @@ def test_player_state_shows_only_bounded_public_local_observations(tmp_path):
         engine.store.close()
 
 
+def test_player_observations_follow_peer_publish_rewind_and_cold_reopen(tmp_path):
+    """Observation DTOs are active-history projections, not a local browser cache."""
+    campaign = tmp_path / "campaign"
+    reader = build_dashboard(campaign, demo=True)
+    peer = build_dashboard(campaign, demo=True)
+    try:
+        assert reader.state()["observations"] == []
+        peer.engine.store.append_many([
+            kernel_event("world_change", day=1, scene="s1", turn=1, summary="门前石阶潮湿。", deltas={
+                "place": "stonebridge_inn", "level": 1, "summary": "门前石阶潮湿。",
+                "source": "author_world", "visibility": "public", "public_observation": True,
+                "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+            }),
+        ], preflight=lambda history: project(peer.engine.registry, history))
+        published_revision = peer.engine.store.revision
+
+        # The reader begins with an older projection.  GET state must adopt
+        # the peer's active observation without creating a player write.
+        assert reader.state()["revision"] == published_revision
+        assert reader.state()["observations"] == [{
+            "place": "这里", "is_current": True, "kind": "现场观察",
+            "range": "客栈门前两步内", "summary": "门前石阶潮湿。",
+        }]
+
+        peer.engine.store.retract_from_turn(1, expected_revision=published_revision)
+        retracted_revision = peer.engine.store.revision
+        assert reader.state()["revision"] == retracted_revision
+        assert reader.state()["observations"] == []
+    finally:
+        peer.engine.store.close()
+        reader.engine.store.close()
+
+    reopened = build_dashboard(campaign, demo=True)
+    try:
+        assert reopened.state()["observations"] == []
+    finally:
+        reopened.engine.store.close()
+
+
 def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(tmp_path):
     """The player sees the already-public engine clock, never a new time authority."""
     campaign = tmp_path / "campaign"
