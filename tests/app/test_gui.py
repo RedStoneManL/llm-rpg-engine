@@ -1290,7 +1290,15 @@ def test_gui_old_duplicate_without_host_envelope_fails_closed(tmp_path):
     status, payload = _post_wsgi(make_app(dashboard), "/api/action", {
         "text": "旧记录", "action_id": "legacy-gui", "expected_revision": state["revision"],
     })
-    assert status.startswith("409") and payload == {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"}
+    assert status.startswith("409")
+    assert payload["message"] == "已保存行动无法安全恢复；请刷新查看当前世界状态。"
+    # The original result remains unavailable, but the response supplies only
+    # the ordinary player DTO so the browser does not keep displaying the
+    # pre-commit world while recovery is pending.
+    current = payload["state"]
+    assert current["revision"] == dashboard.engine.store.revision
+    assert current["scene"]["location"]["id"] == "stonebridge_market"
+    assert "GUI_DEMO_PRIVATE_SENTINEL" not in json.dumps(current, ensure_ascii=False)
     assert "confirmed_rejection" not in payload
     dashboard.engine.store.close()
 

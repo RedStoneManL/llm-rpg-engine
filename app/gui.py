@@ -730,8 +730,8 @@ _JS = _JS.replace("if(!s.codex.length)$('codex').append(el('p','暂无公开设�
 _JS = _JS.replace("$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});",
                   "$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});$('end-recovery').addEventListener('click',()=>{sessionStorage.removeItem(pendingKey);recoveryUnavailable=false;syncPending();setStatus('已结束恢复；当前显示的是已保存世界状态。')});$('codex-search').addEventListener('input',e=>{codexQuery=e.target.value.trim().toLowerCase();if(state)render(state)});")
 _JS = _JS.replace("function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}", "function syncPending(){const p=pending();$('resume-action').hidden=!p||recoveryUnavailable;$('end-recovery').hidden=!p||!recoveryUnavailable;if(p&&!busy&&!recoveryUnavailable)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}")
-_JS = _JS.replace("if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}", "if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.status=r.status;e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}")
-_JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally", "}else if(err.status===409){recoveryUnavailable=true;syncPending();setStatus('该行动已提交但无法安全恢复结果；请查看当前状态后明确结束恢复。',true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally")
+_JS = _JS.replace("if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}", "if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.status=r.status;e.state=data&&data.state&&typeof data.state==='object'?data.state:null;e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}")
+_JS = _JS.replace("}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally", "}else if(err.status===409){if(err.state)render(err.state);recoveryUnavailable=true;syncPending();setStatus('该行动已提交但无法安全恢复结果；已同步当前已保存状态后可结束恢复。',true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally")
 
 # Player and GM deliberately receive different map DTOs, but the player graph
 # still deserves a first-class visual instead of a hand-written exit list.  All
@@ -930,7 +930,22 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 "message": str(exc), "confirmed_rejection": True,
             })
         except GuiRecoveryError:
-            return _json_response(start_response, "409 Conflict", {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"})
+            # A durable action may exist even though its stored result cannot
+            # be reconstructed safely.  Do not return the original response,
+            # metadata, or exception detail.  The browser may nevertheless
+            # render the ordinary current player DTO, which lets the player
+            # see the committed world before explicitly ending its pending
+            # recovery state instead of continuing to display a stale page.
+            payload: dict[str, Any] = {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"}
+            if mode == "player":
+                try:
+                    payload["state"] = dashboard.state()
+                except Exception:
+                    # Keeping the conservative 409 is safer than converting
+                    # a known committed receipt into a misleading confirmed
+                    # rejection merely because the optional display DTO fails.
+                    log.error("player recovery state display failed")
+            return _json_response(start_response, "409 Conflict", payload)
         except Exception:
             # The failure can occur after a turn committed.  Do not emit the
             # exception text/trace here: it may contain private input or an

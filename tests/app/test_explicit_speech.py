@@ -177,7 +177,9 @@ def test_gui_explicit_speech_is_visible_only_to_current_recipient_and_cold_recov
         "statement": "被改写的话",
     })
     assert status.startswith("409")
-    assert payload == {"message": "已保存行动无法安全恢复；请刷新查看当前世界状态。"}
+    assert payload["message"] == "已保存行动无法安全恢复；请刷新查看当前世界状态。"
+    assert payload["state"] == reopened.state()
+    assert "PRIVATE_SPEECH_SENTINEL" not in json.dumps(payload["state"], ensure_ascii=False)
     assert "confirmed_rejection" not in payload
     with pytest.raises(GuiRequestError, match="当前公开同场"):
         reopened.action(player_input="试图选择隐藏人物", action_id="hidden-speech",
