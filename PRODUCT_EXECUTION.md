@@ -124,6 +124,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-81 | P1 | 已验收（GUI 同场角色→明确交流衔接） | 玩家已可看到同场公开角色与其状态，却仍需手动在另一个下拉框中再次定位收件人，容易把“可交谈”误作已选中对话对象 | 每个公开角色行只提供浏览器本地“选择为收件人”；它只选择既有同源 dropdown 并聚焦逐字原话，绝不预填原话、签发 receipt、提交 action 或写入状态 |
 | RCV-82 | P1 | 已验收（GUI 背包→可编辑行动建议） | 玩家可看见背包物品，但没有像地图出口一样把已知物品转为可编辑行动起点，必须手动重输名称 | 每个既有 player inventory DTO 项只提供浏览器本地“填入行动”，追加“使用〈公开标签〉。”到输入框；不自动使用/转移物品，不创建 action-id 或写入任何持久化状态 |
 | RCV-83 | P0 | 已验收（离线 demo 存档归属保护） | `--demo` 的帮助承诺只初始化空 campaign，但原实现会把任意已有存档交给固定离线策略，容易在普通世界上误运行演示行动 | 空 campaign 在 seed 后写入一个小型本地 provenance marker；`--demo`/`--gm --demo` 只接受空 campaign 或该 marker，未标记已有存档在任何 action 前拒绝并保持 SQLite/JSONL 字节不变 |
+| RCV-84 | P0 | 已验收（GUI action 临时上下文释放） | 长运行 dashboard 把每个 action 的输入、场景和逐字交流缓存到 `requests`，即使成功回合已有 host envelope 可做冷恢复，也会随回合永久累积 | 仅在同步 `run_turn` 调用期间保留 context；成功、拒绝或异常后释放。duplicate 继续从 durable receipt/host envelope 恢复，绝不回退为内存权威 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1757,3 +1758,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   CLI `main` 入口确认拒绝、无 traceback，并逐字比较两份持久化文件不变；另确认新 demo 有 marker 且能冷重开。此项无浏览器 UI
   改动或真实模型适用面。专项 `tests/app/test_gui.py -rA` 为 **`48 passed in 1.03s`**；正式完整离线 gate 为
   **`2021 passed, 1 deselected in 25.19s`**，唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-84 关闭长运行 GUI controller 的 action 上下文滞留。此前每次 action 都把输入、action-start scene、
+  明确交流收件人与逐字原话留在 `requests`，即使成功时同一 publish 已把最小 host envelope 写入 action-result sidecar，
+  也不会回收。现在 context 只在同步 `run_turn` 调用期间保留，`finally` 对成功、RevisionConflict、普通异常和取消路径统一释放；
+  已提交 action 的 duplicate 始终重新读取 durable receipt/host envelope，因此内存不再是恢复权威。真实 controller 回归先让
+  strategy 在发布前异常，再以同 action-id 成功提交、替换成禁止执行的 strategy 后 duplicate 恢复；三阶段 `requests` 都为空，
+  且 duplicate 不调用策略。专项 `tests/app/test_gui.py -rA` 为 **`49 passed in 1.04s`**；正式完整离线 gate 为
+  **`2022 passed, 1 deselected in 25.23s`**，唯一 deselect 是既有 slow real embedding。无 UI 修改、浏览器结论、真实模型、
+  embedding、网络或外部服务调用。

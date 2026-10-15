@@ -570,37 +570,34 @@ class PlayerDashboard:
                 raise GuiRequestError("收件人或逐字原话无效，请重新选择当前同场角色。")
         with self.lock:
             self._refresh_if_store_advanced()
-            existing = self.requests.get(action_id)
-            if (existing is not None and existing.player_input == player_input
-                    and existing.expected_revision == expected_revision
-                    and existing.recipient == recipient and existing.statement == statement):
-                context = existing
+            stored = self._stored_context(action_id)
+            if stored is not None:
+                if stored.recipient != recipient or stored.statement != statement:
+                    # A receipt already exists, so this is not a request that
+                    # the browser can safely reject and discard.  The original
+                    # committed turn may be recoverable only with its original
+                    # envelope; keep the client in its explicit recovery path.
+                    raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
+                context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene,
+                                          stored.recipient, stored.statement,
+                                          stored.trusted_player_statement_receipts)
             else:
-                stored = self._stored_context(action_id)
-                if stored is not None:
-                    if stored.recipient != recipient or stored.statement != statement:
-                        # A receipt already exists, so this is not a request that
-                        # the browser can safely reject and discard.  The original
-                        # committed turn may be recoverable only with its original
-                        # envelope; keep the client in its explicit recovery path.
-                        raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
-                    context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene,
-                                              stored.recipient, stored.statement,
-                                              stored.trusted_player_statement_receipts)
-                else:
-                    scene = _build_scene(self.engine)
-                    try:
-                        receipts = (() if recipient is None else (
-                            host_player_statement_receipt(
-                                self.engine.world, scene, recipient=recipient, statement=statement,
-                            ),
-                        ))
-                    except ValueError as exc:
-                        raise GuiRequestError("收件人必须是当前公开同场角色，且原话不能为空。") from exc
-                    context = _RequestContext(player_input, expected_revision, scene, self.previous_scene,
-                                              recipient, statement, receipts)
-                if existing is None:
-                    self.requests[action_id] = context
+                scene = _build_scene(self.engine)
+                try:
+                    receipts = (() if recipient is None else (
+                        host_player_statement_receipt(
+                            self.engine.world, scene, recipient=recipient, statement=statement,
+                        ),
+                    ))
+                except ValueError as exc:
+                    raise GuiRequestError("收件人必须是当前公开同场角色，且原话不能为空。") from exc
+                context = _RequestContext(player_input, expected_revision, scene, self.previous_scene,
+                                          recipient, statement, receipts)
+            # The durable host envelope, not this controller cache, is the
+            # recovery authority after publication.  Keep an entry only while
+            # this synchronous controller call is in flight so a long-lived
+            # dashboard cannot accumulate player inputs or exact statements.
+            self.requests[action_id] = context
             scene_for_turn = context.scene
             if self.steering:
                 scene_for_turn = {**context.scene, "_player_steer": self.steering}
@@ -640,8 +637,9 @@ class PlayerDashboard:
                 # rejected in-memory envelope before giving the browser a
                 # confirmed rejection it can safely discard.
                 self._refresh_authoritative_world()
-                self.requests.pop(action_id, None)
                 raise GuiRequestError("世界状态已更新；此行动未提交。请刷新后重试。") from exc
+            finally:
+                self.requests.pop(action_id, None)
             self.engine.world = result.world
             if not bool(getattr(result, "receipt", {}).get("duplicate")):
                 self.previous_scene = context.scene

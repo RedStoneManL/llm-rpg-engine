@@ -128,6 +128,51 @@ def test_offline_demo_never_opens_an_unmarked_saved_campaign(tmp_path, capsys):
         reopened.engine.store.close()
 
 
+def test_gui_request_context_is_ephemeral_and_duplicate_uses_durable_envelope(tmp_path):
+    """Completed and pre-publish-failed actions must not grow controller memory."""
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    initial = dashboard.state()
+
+    class FailingBeforePublish:
+        def produce(self, *args, **kwargs):
+            raise RuntimeError("test-only pre-publish failure")
+
+    dashboard.strategy = FailingBeforePublish()
+    with pytest.raises(RuntimeError, match="pre-publish"):
+        dashboard.action(player_input="先试着观察", action_id="ephemeral-action",
+                         expected_revision=initial["revision"])
+    assert dashboard.requests == {}
+    assert dashboard.engine.store.get_action_receipt("ephemeral-action") is None
+    assert dashboard.state()["revision"] == initial["revision"]
+
+    class CountingOffline(gui.OfflineDemoStrategy):
+        def __init__(self):
+            self.calls = 0
+
+        def produce(self, *args, **kwargs):
+            self.calls += 1
+            return super().produce(*args, **kwargs)
+
+    published = CountingOffline()
+    dashboard.strategy = published
+    saved = dashboard.action(player_input="先试着观察", action_id="ephemeral-action",
+                             expected_revision=initial["revision"])
+    assert saved["duplicate"] is False and published.calls == 1
+    assert dashboard.requests == {}
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):  # pragma: no cover - assertion is the call itself
+            raise AssertionError("durable action recovery must run before strategy")
+
+    dashboard.strategy = MustNotRun()
+    recovered = dashboard.action(player_input="先试着观察", action_id="ephemeral-action",
+                                 expected_revision=initial["revision"])
+    assert recovered["duplicate"] is True
+    assert recovered["revision"] == saved["revision"]
+    assert dashboard.requests == {}
+    dashboard.engine.store.close()
+
+
 def test_inventory_action_suggestion_uses_only_existing_player_inventory_dto(tmp_path):
     """The browser affordance must not add an item lookup or a write endpoint."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
