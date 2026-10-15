@@ -116,6 +116,61 @@ def test_cli_status_shows_only_bounded_public_local_observations(tmp_path):
         engine.store.close()
 
 
+def test_cli_status_reprojects_peer_observations_and_hides_retracted_branch(tmp_path):
+    """Long-running CLI observation output follows the active peer branch."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    campaign = tmp_path / "campaign"
+    seed = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(seed)
+    seed.store.close()
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    snapshots: dict[str, tuple[bytes, bytes, int]] = {}
+    try:
+        def inputs():
+            yield "/status"
+            peer.store.append_many([
+                kernel_event("world_change", day=1, scene="s1", turn=1, summary="PEER_OBSERVATION_SENTINEL", deltas={
+                    "place": "stonebridge_inn", "level": 1, "summary": "PEER_OBSERVATION_SENTINEL",
+                    "source": "author_world", "visibility": "public", "public_observation": True,
+                    "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+                }),
+            ], preflight=lambda history: project(peer.registry, history))
+            yield "/status"
+            peer.store.retract_from_turn(1, expected_revision=peer.store.revision)
+            snapshots["before"] = (
+                engine.store.db_path.read_bytes(), engine.store.jsonl_path.read_bytes(), engine.store.revision,
+            )
+            yield "/status"
+            snapshots["after"] = (
+                engine.store.db_path.read_bytes(), engine.store.jsonl_path.read_bytes(), engine.store.revision,
+            )
+            yield "/quit"
+
+        out: list[str] = []
+        play_loop(engine, inputs(), out=out.append)
+        rows = [line for line in out if line.startswith("[状态] 近处观察")]
+        assert len(rows) == 3
+        assert "PEER_OBSERVATION_SENTINEL" not in rows[0]
+        assert "PEER_OBSERVATION_SENTINEL" in rows[1]
+        assert "PEER_OBSERVATION_SENTINEL" not in rows[2]
+        assert snapshots["after"] == snapshots["before"]
+
+        engine.store.close()
+        engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+        reopened: list[str] = []
+        play_loop(engine, ["/status", "/quit"], out=reopened.append)
+        assert "PEER_OBSERVATION_SENTINEL" not in "\n".join(reopened)
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
 def test_play_loop_steer_is_session_only_and_reaches_only_the_next_author_prompt(tmp_path):
     """A soft direction guides a normal CLI turn but neither writes nor lingers after clear."""
     from app.play import play_loop

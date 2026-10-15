@@ -120,6 +120,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-77 | P1 | 已验收（玩家近处公开观察） | 已有 durable `public_place_observations` 只供作者 prompt；玩家 GUI/CLI 无法查看这些受限、本地的现场观察，只能从叙事滚屏回忆 | GUI/CLI 共享只读 DTO，只保留当前地点或当前公开出口的显示名、观察类型、范围与摘要；剥离 raw place id、event id、author/source、历史 scene/day/turn。hidden、非本地和未显式 public 的观察不进入玩家出口，零写入 |
 | RCV-78 | P1 | 已验收（近处／出口观察语义区分） | RCV-77 的安全投影允许当前位置和已知出口观察，但界面把两类行都平铺，邻近地点的已知观察会被误读成主角眼前所见 | GUI/CLI 只根据既有 `is_current` 标记为当前项显示“这里”，其他项显示“已知出口：地点”；不改变 DTO 范围、观察来源、路线、发现、提交或权限 |
 | RCV-79 | P0 | 已验收（观察跨实例 active-history 回放） | RCV-77/78 新的玩家观察 read-model 仅覆盖单实例状态，尚未证明 peer 发布、撤回和关闭重开时不会停留在已撤回观察 | 真实双 dashboard 回归覆盖 peer 发布→被动 state 刷新→revision-bound 撤回→刷新→冷重开；观察严格跟随 active durable history，读取不新增 player 写入 |
+| RCV-80 | P0 | 已验收（CLI 观察跨会话 active-history 回放） | RCV-79 覆盖 dashboard，但长运行 CLI `/status` 仍未验证 peer 的公开观察在发布、撤回和冷重开后是否同步 | 真实 CLI + peer Engine 回归覆盖三态 status 输出、只读 byte 不变与冷重开；不改生产逻辑或用户界面 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1722,3 +1723,10 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   的 `append_many` 后固定回归。专项为 **`3 passed in 0.31s`**，正式完整离线 gate 为
   **`2018 passed, 1 deselected in 26.37s`**；唯一 deselect 是既有 slow real embedding。此项无 UI 生产改动，未另作浏览器
   行为结论，也无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-80 将同一 active-history 验收扩展到长运行终端 `/status`，不改变生产逻辑。独立 peer 事务发布一条
+  当前地点公开观察，CLI 下一个 status 显示它；peer 用其当前 revision 撤回该 turn 后，下一次 status 与冷重开都不再显示。
+  读取前后 SQLite/JSONL/revision 字节一致。首轮 fixture 误把 `world_change` 的显示摘要写在 delta 副本而非 durable event
+  `summary`，因此期待的 sentinel 未出现；按 projection 的真实输入形状修正后通过。专项为 **`4 passed in 0.30s`**，正式完整
+  离线 gate 为 **`2019 passed, 1 deselected in 25.14s`**；唯一 deselect 是既有 slow real embedding。此项无 UI 生产改动，
+  无新增浏览器结论，也无真实模型、embedding、网络或外部服务调用。
