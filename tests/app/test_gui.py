@@ -646,6 +646,11 @@ def test_player_talkable_people_reuse_public_current_scene_recipients_and_refres
     status, body = _get_wsgi(make_app(dashboard), "/api/state")
     assert status.startswith("200")
     assert json.loads(body.decode("utf-8"))["present_people"] == populated["present_people"]
+    # The panel is a local affordance for this same recipient list, not a
+    # second character lookup or a request-writing route.
+    assert "function chooseSpeechRecipient" in gui._JS
+    assert "recipient-pick" in gui._JS
+    assert "speech-statement" in gui._JS
     rendered = json.dumps(populated, ensure_ascii=False)
     assert "HIDDEN_GUI_TALKABLE_SENTINEL" not in rendered
     assert "PRIVATE_GUI_TALKABLE_SENTINEL" not in rendered

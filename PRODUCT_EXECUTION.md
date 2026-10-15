@@ -121,6 +121,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-78 | P1 | 已验收（近处／出口观察语义区分） | RCV-77 的安全投影允许当前位置和已知出口观察，但界面把两类行都平铺，邻近地点的已知观察会被误读成主角眼前所见 | GUI/CLI 只根据既有 `is_current` 标记为当前项显示“这里”，其他项显示“已知出口：地点”；不改变 DTO 范围、观察来源、路线、发现、提交或权限 |
 | RCV-79 | P0 | 已验收（观察跨实例 active-history 回放） | RCV-77/78 新的玩家观察 read-model 仅覆盖单实例状态，尚未证明 peer 发布、撤回和关闭重开时不会停留在已撤回观察 | 真实双 dashboard 回归覆盖 peer 发布→被动 state 刷新→revision-bound 撤回→刷新→冷重开；观察严格跟随 active durable history，读取不新增 player 写入 |
 | RCV-80 | P0 | 已验收（CLI 观察跨会话 active-history 回放） | RCV-79 覆盖 dashboard，但长运行 CLI `/status` 仍未验证 peer 的公开观察在发布、撤回和冷重开后是否同步 | 真实 CLI + peer Engine 回归覆盖三态 status 输出、只读 byte 不变与冷重开；不改生产逻辑或用户界面 |
+| RCV-81 | P1 | 已验收（GUI 同场角色→明确交流衔接） | 玩家已可看到同场公开角色与其状态，却仍需手动在另一个下拉框中再次定位收件人，容易把“可交谈”误作已选中对话对象 | 每个公开角色行只提供浏览器本地“选择为收件人”；它只选择既有同源 dropdown 并聚焦逐字原话，绝不预填原话、签发 receipt、提交 action 或写入状态 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1730,3 +1731,11 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `summary`，因此期待的 sentinel 未出现；按 projection 的真实输入形状修正后通过。专项为 **`4 passed in 0.30s`**，正式完整
   离线 gate 为 **`2019 passed, 1 deselected in 25.14s`**；唯一 deselect 是既有 slow real embedding。此项无 UI 生产改动，
   无新增浏览器结论，也无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：重新以玩家完整动作评估剩余缺口后，RCV-81 选择了当前“同场人物可见→明确交流”的小而实际断点，而非继续
+  围绕观察回放堆回归。公开人物行现在只有一个浏览器内“选择为收件人”按钮：它验证 id 仍存在于同一既有
+  `speech_recipients` dropdown，选择后聚焦逐字原话输入并提示玩家自行填写；无 statement、receipt、action-id、POST、
+  EventStore、transcript 或 revision 写入。hidden 人物仍不具按钮或 DOM 内容。单元回归保持 DTO/selector 同源并检查生成
+  JS；系统 Chromium + Playwright 在 390px loopback demo 实测点击公开角色后 select 值为其现有 id、焦点在原话输入、
+  无非 GET 请求、hidden sentinel 不在 DOM、无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
+  **`2019 passed, 1 deselected in 24.15s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
