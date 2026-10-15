@@ -115,7 +115,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-72 | P0 | 已验收（跨实例投影快照一致性） | CLI、玩家与 GM 被动刷新分别读取 revision 与 events；peer 在两读之间发布时，旧投影可能被错标为新版本 | 共享重投影 helper 从同一 `EventStore.snapshot()` 获取 revision 与 history；启动、CLI、玩家、GM 与 rewind 均复用，下一次刷新才推进到 peer 版本 |
 | RCV-73 | P0 | 已验收（CLI undo 选回合／版本绑定） | `/undo` 的最后活动回合与 expected revision 仍是两次读取；peer 夹在中间发布会让旧回合被错误地按 peer 新版本批准 | 从同一 `EventStore.snapshot()` 取得活动回合 frontier 和 revision；后续 retraction 仍在 SQLite 写事务复核，冲突只读刷新且不撤回 peer 分支 |
 | RCV-74 | P0 | 已验收（被动同步比较／显示版本原子性） | CLI、玩家和 GM 仍先独读 revision 决定是否 refresh；peer 紧随该比较发布时，旧投影可被显示为新版本，CLI transcript 也可能记录错误 revision | 比较与重投影统一使用同一 snapshot；投影 DTO 只标记自身 revision，CLI transcript 改记 durable receipt revision。快照后 peer publish 留给下一次读取，不错标当前世界 |
-| RCV-75 | P1 | 已验收（GUI 不可恢复 action 的当前状态回显） | 已提交 action 的 sidecar／信封损坏或不匹配时，409 只给通用提示；浏览器保留 pending，但仍显示提交前投影，玩家必须手动刷新才能判断当前世界 | 409 仍不恢复原 narration、metadata 或异常；仅尽力附带既有安全 player DTO，前端立即渲染它并保留明确结束恢复。DTO 构建失败仍保守 409；不新增重试、写入或权限 |
+| RCV-75 | P1 | 已验收（GUI 不可恢复 action 的当前状态回显） | 已提交 action 的 sidecar／信封损坏或不匹配时，409 只给通用提示；浏览器保留 pending，但仍显示提交前投影，玩家必须手动刷新才能判断当前世界 | 409 仍不恢复原 narration、metadata 或异常；仅尽力附带既有安全 player DTO，前端立即渲染它并保留明确结束恢复。DTO 构建失败仍保守 409；WSGI 与真实 loopback 浏览器均验证当前状态同步；不新增重试、写入或权限 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1663,3 +1663,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   仍缺失。开发中首轮全量 gate 只暴露另一份同一 409 payload 的旧精确断言，已按同一安全 DTO 契约更新，而非删除测试。
   GUI／explicit-speech 专项为 **`48 passed in 0.84s`**，生成后的 JS 已通过 `node --check`；正式完整离线 gate 为
   **`2014 passed, 1 deselected in 23.68s`**。唯一 deselect 是既有 slow real embedding；未调用真实模型、embedding、网络或外部服务。
+  随后用系统 Chromium + Playwright 做了实际 loopback 浏览器验收：390px 页面先由原生 click 发起一条 demo action（200），
+  再让浏览器 sessionStorage 保留同一 action ID 但改写 action 文本并点击“恢复上次请求”。真实第二次 POST 收到 409，响应含
+  safe state 且没有 `confirmed_rejection`；页面立即显示集市当前位置、隐藏 id／私有 sentinel 不在 DOM，“结束恢复”按钮可见，
+  宽度 `scrollWidth=clientWidth=390`。该浏览器流程只写两次预期 `/api/action`，临时服务和 campaign 已删除；它验证恢复 UI，
+  不代表真实模型或长期剧情质量。
