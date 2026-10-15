@@ -49,6 +49,8 @@ from loop.strategy import AuthorStrategy
 log = logging.getLogger(__name__)
 _MAX_ACTION_BYTES = 2_000
 _MAX_RECALL_QUERY_BYTES = 320
+_OFFLINE_DEMO_MARKER = ".llm-rpg-offline-demo.json"
+_OFFLINE_DEMO_FORMAT = 1
 
 
 class GuiRequestError(ValueError):
@@ -155,6 +157,50 @@ def _seed_demo_campaign(engine) -> None:
     from kernel.projection import project
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
+    _write_offline_demo_marker(engine)
+
+
+def _offline_demo_marker_path(engine) -> Path:
+    """Return the campaign-local provenance marker for the fixed demo world."""
+    return engine.store.db_path.parent / _OFFLINE_DEMO_MARKER
+
+
+def _write_offline_demo_marker(engine) -> None:
+    """Atomically mark a freshly seeded offline-demo campaign for safe reopening."""
+    marker = _offline_demo_marker_path(engine)
+    temporary = marker.with_name(f".{marker.name}.{uuid4().hex}.tmp")
+    payload = {"format": _OFFLINE_DEMO_FORMAT, "kind": "offline-demo"}
+    try:
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+        temporary.replace(marker)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _is_offline_demo_campaign(engine) -> bool:
+    """Recognize only the small explicit marker created with the local demo seed."""
+    try:
+        marker = json.loads(_offline_demo_marker_path(engine).read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return False
+    return marker == {"format": _OFFLINE_DEMO_FORMAT, "kind": "offline-demo"}
+
+
+def _build_offline_demo_engine(campaign_dir: str | Path):
+    """Open a new or explicitly marked demo campaign without touching normal saves."""
+    engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
+                          enable_interpretive_memory=False)
+    if any(engine.store.iter_events()):
+        if _is_offline_demo_campaign(engine):
+            return engine
+        engine.store.close()
+        raise GuiRequestError(
+            "--demo 只能初始化空 campaign，或重开先前由 --demo 创建的离线演示；"
+            "为避免固定演示策略改动已保存世界，本 campaign 未被打开。"
+        )
+    _seed_demo_campaign(engine)
+    return engine
 
 
 def _safe_value(value: Any) -> str:
@@ -971,9 +1017,7 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
     initialized through the existing ``python -m app`` genesis workflow.
     """
     if demo:
-        engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
-                              enable_interpretive_memory=False)
-        _seed_demo_campaign(engine)
+        engine = _build_offline_demo_engine(campaign_dir)
         return PlayerDashboard(engine, strategy=OfflineDemoStrategy(), max_repairs=max_repairs, demo=True)
     if provider is None:
         raise GuiRequestError("正常 GUI 模式需要已配置的 provider；请传 --provider，或显式使用 --demo。")
@@ -986,10 +1030,11 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
 
 def build_gm_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> GmDashboard:
     """Open the same local campaign for a canonical-world, read-only GM view."""
-    engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
-                          enable_interpretive_memory=False)
     if demo:
-        _seed_demo_campaign(engine)
+        engine = _build_offline_demo_engine(campaign_dir)
+    else:
+        engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
+                              enable_interpretive_memory=False)
     return GmDashboard(engine)
 
 
@@ -1012,19 +1057,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.max_repairs < 0:
         parser.error("--max-repairs 必须为非负整数")
     mode = "gm" if args.gm else "player"
-    if args.gm:
-        dashboard = build_gm_dashboard(args.campaign, demo=args.demo)
-    elif args.demo:
-        dashboard = build_dashboard(args.campaign, demo=True, max_repairs=args.max_repairs)
-    else:
-        try:
+    try:
+        if args.gm:
+            dashboard = build_gm_dashboard(args.campaign, demo=args.demo)
+        elif args.demo:
+            dashboard = build_dashboard(args.campaign, demo=True, max_repairs=args.max_repairs)
+        else:
             from llm.provider import make_provider
             provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)
             dashboard = build_dashboard(args.campaign, provider=provider, max_repairs=args.max_repairs)
-        except GuiRequestError as exc:
-            parser.error(str(exc))
-        except Exception:
-            parser.error("无法初始化所选 provider；请检查本机既有 provider 配置，或显式使用 --demo。")
+    except GuiRequestError as exc:
+        parser.error(str(exc))
+    except Exception:
+        parser.error("无法初始化所选 provider 或 campaign；请检查本机配置，或使用空目录启动 --demo。")
     server = make_server("127.0.0.1", args.port, make_app(dashboard, mode=mode), handler_class=_QuietHandler)
     label = "GM 只读世界总览" if args.gm else "玩家仪表盘"
     print(f"{label}已在 http://127.0.0.1:{server.server_port} 启动（Ctrl-C 退出；切换模式需重启）。", flush=True)

@@ -90,6 +90,44 @@ def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_sta
         normal.engine.store.close()
 
 
+def test_offline_demo_never_opens_an_unmarked_saved_campaign(tmp_path, capsys):
+    """``--demo`` must not run its deterministic strategy against a normal save."""
+    campaign = tmp_path / "normal-campaign"
+    engine = build_engine(campaign, provider=FakeLLMProvider(responses=["unused"]), embedder=None)
+    engine.store.append_many([kernel_event(
+        "narration_recorded", day=1, scene="s1", turn=0, summary="已有普通存档",
+        deltas={"scene": "s1", "text": "NORMAL_CAMPAIGN_SENTINEL"},
+    )])
+    engine.store.close()
+    db_before = (campaign / "events.db").read_bytes()
+    jsonl_before = (campaign / "events.jsonl").read_bytes()
+
+    with pytest.raises(GuiRequestError, match="只能初始化空 campaign"):
+        build_dashboard(campaign, demo=True)
+    with pytest.raises(GuiRequestError, match="只能初始化空 campaign"):
+        build_gm_dashboard(campaign, demo=True)
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main(["--campaign", str(campaign), "--demo", "--port", "0"])
+    assert exit_status.value.code == 2
+    assert "只能初始化空 campaign" in capsys.readouterr().err
+
+    assert (campaign / "events.db").read_bytes() == db_before
+    assert (campaign / "events.jsonl").read_bytes() == jsonl_before
+    assert not (campaign / gui._OFFLINE_DEMO_MARKER).exists()
+
+    demo_campaign = tmp_path / "offline-demo"
+    first = build_dashboard(demo_campaign, demo=True)
+    first.engine.store.close()
+    assert json.loads((demo_campaign / gui._OFFLINE_DEMO_MARKER).read_text(encoding="utf-8")) == {
+        "format": 1, "kind": "offline-demo",
+    }
+    reopened = build_dashboard(demo_campaign, demo=True)
+    try:
+        assert reopened.state()["scene"]["location"]["id"] == "stonebridge_inn"
+    finally:
+        reopened.engine.store.close()
+
+
 def test_inventory_action_suggestion_uses_only_existing_player_inventory_dto(tmp_path):
     """The browser affordance must not add an item lookup or a write endpoint."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)

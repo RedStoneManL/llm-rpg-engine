@@ -95,7 +95,11 @@ python scripts/demo_offline_gui.py --port 8765
 It uses a fixed local demo strategy plus `FakeLLMProvider`, not a configured
 provider, embedder, network service, or API key. On an empty campaign, `--demo`
 seeds a replayable Stonebridge town with a protagonist, a held item, two
-adjacent places, one public codex entry, and opening narration. The page can
+adjacent places, one public codex entry, and opening narration. That first seed
+also writes a small campaign-local offline-demo marker: later `--demo` starts
+may reopen only that marked demo, while an existing unmarked campaign is
+rejected before any player action so the fixed demo strategy cannot run against
+an ordinary saved world. The page can
 save an action, show its narration/status, show the current character,
 inventory, query recall only across the current protagonist's known POV-visible
 material, show an interactive read-only map of the current POV-visible places and

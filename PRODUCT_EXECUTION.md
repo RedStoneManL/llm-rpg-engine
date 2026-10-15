@@ -123,6 +123,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-80 | P0 | 已验收（CLI 观察跨会话 active-history 回放） | RCV-79 覆盖 dashboard，但长运行 CLI `/status` 仍未验证 peer 的公开观察在发布、撤回和冷重开后是否同步 | 真实 CLI + peer Engine 回归覆盖三态 status 输出、只读 byte 不变与冷重开；不改生产逻辑或用户界面 |
 | RCV-81 | P1 | 已验收（GUI 同场角色→明确交流衔接） | 玩家已可看到同场公开角色与其状态，却仍需手动在另一个下拉框中再次定位收件人，容易把“可交谈”误作已选中对话对象 | 每个公开角色行只提供浏览器本地“选择为收件人”；它只选择既有同源 dropdown 并聚焦逐字原话，绝不预填原话、签发 receipt、提交 action 或写入状态 |
 | RCV-82 | P1 | 已验收（GUI 背包→可编辑行动建议） | 玩家可看见背包物品，但没有像地图出口一样把已知物品转为可编辑行动起点，必须手动重输名称 | 每个既有 player inventory DTO 项只提供浏览器本地“填入行动”，追加“使用〈公开标签〉。”到输入框；不自动使用/转移物品，不创建 action-id 或写入任何持久化状态 |
+| RCV-83 | P0 | 已验收（离线 demo 存档归属保护） | `--demo` 的帮助承诺只初始化空 campaign，但原实现会把任意已有存档交给固定离线策略，容易在普通世界上误运行演示行动 | 空 campaign 在 seed 后写入一个小型本地 provenance marker；`--demo`/`--gm --demo` 只接受空 campaign 或该 marker，未标记已有存档在任何 action 前拒绝并保持 SQLite/JSONL 字节不变 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1747,3 +1748,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   单元回归确认只消费已有 inventory DTO、没有新增 inventory API；系统 Chromium + Playwright 在 390px loopback demo 实测
   “我先观察周围。”保留并追加“使用旧铜灯。”，非 GET 请求为空、无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
   **`2020 passed, 1 deselected in 24.72s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-83 修复离线 demo 的 campaign 归属偏差。原 `--demo` 帮助写明只向空 campaign 写入固定世界，但构造路径
+  实际会对任何已有 SQLite/JSONL campaign 选择 `OfflineDemoStrategy`；这不是静态展示问题，后续一次玩家 action 就可能把固定演示
+  行为发布到普通存档。现在仅在空 campaign seed 成功后原子写入小型、版本化的本地 demo marker；已有事件时，player `--demo` 和
+  `--gm --demo` 都只接受该 marker，否则关闭 store 并在任何 action/server 启动前安全拒绝。普通 GUI 仍必须显式 provider，未改变
+  provider、浏览器凭据、事件格式、世界投影或 demo 的可冷重开性。回归实际创建未标记普通 SQLite/JSONL，分别经过 player、GM 和
+  CLI `main` 入口确认拒绝、无 traceback，并逐字比较两份持久化文件不变；另确认新 demo 有 marker 且能冷重开。此项无浏览器 UI
+  改动或真实模型适用面。专项 `tests/app/test_gui.py -rA` 为 **`48 passed in 1.03s`**；正式完整离线 gate 为
+  **`2021 passed, 1 deselected in 25.19s`**，唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
