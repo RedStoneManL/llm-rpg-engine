@@ -130,6 +130,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-87 | P1 | 已验收（GUI UTF-8 行动输入预检） | 浏览器的 `maxlength=2000` 按字符而服务端按 UTF-8 bytes 限制 action／逐字原话；多字节文本可看似可填却在提交后才收到可避免的 400 | 页面显示与服务端同值的 2,000-byte 计数，并在提交前拦截超限 action／逐字原话；不替代服务端验证、不创建 pending/action-id 或写入任何状态 |
 | RCV-88 | P0 | 已验收（GUI pending recovery campaign 隔离） | 浏览器 `sessionStorage` 曾以全局 pending key 保存 response-loss 行动；同一 loopback origin 改开另一 campaign 时，旧世界的恢复请求可能被显示或提交给新世界 | 安全 DTO 仅提供稳定、匿名的 campaign key；v2 pending key 按该 key 分区，旧 v1 fail-closed 忽略。同 campaign 冷重开稳定、不同保存世界隔离；不写 EventStore/receipt/transcript，不进入作者上下文 |
 | RCV-89 | P0 | 已验收（pending recovery 操作保护） | 浏览器检测到未确认 action 后仍允许点击撤销；若该 action 实际已保存但响应丢失，玩家可能误撤回刚提交的回合 | pending 存在时统一禁用新提交与撤销，只保留恢复／查看并明确结束恢复；服务端既有 revision/receipt 终检不变，零新写路由 |
+| RCV-90 | P0 | WIP（已提交，浏览器验收未确认） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 已提交只读 `/api/state` 刷新；完整测试已通过，但浏览器脚本无输出，尚不得视为 UI 验收 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1829,3 +1830,8 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   系统 Chromium + Playwright 在临时 demo 注入同 campaign 的 v2 pending 后实测恢复按钮可见、提交与撤销均 disabled、状态说明
   不可提交/撤销、`writes=[]`，且 390px `scrollWidth=clientWidth=390`；临时 campaign/server 已删除。正式完整离线 gate 为
   **`2025 passed, 1 deselected in 24.72s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-90 已提交 `fccaa3c`，但尚未验收完成。结束恢复现在会移除当前 campaign 的 pending key 后只读请求
+  `/api/state` 再渲染，避免把缓存投影称为当前保存世界；GUI 与完整离线 gate 均通过。首次 Chromium/Playwright 脚本只确认
+  临时 loopback 服务和 `/api/state` 200，却没有返回浏览器评估结果，故浏览器成功、读取失败和重复点击边界仍待确认；不得把本项
+  标为验收通过。
