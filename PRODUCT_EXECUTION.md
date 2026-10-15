@@ -114,6 +114,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-71 | P0 | 已验收（撤销 optimistic revision 原子性） | CLI/GUI 撤销先读当前 turn、再软撤回；peer 若在其间发布，旧请求可能撤掉新分支 | `EventStore` 在同一 SQLite 写事务内复核可选 expected revision；CLI/GUI 都携带该版本，冲突时只读重投影、清策略缓存并确认“未撤销”，不改 peer 分支 |
 | RCV-72 | P0 | 已验收（跨实例投影快照一致性） | CLI、玩家与 GM 被动刷新分别读取 revision 与 events；peer 在两读之间发布时，旧投影可能被错标为新版本 | 共享重投影 helper 从同一 `EventStore.snapshot()` 获取 revision 与 history；启动、CLI、玩家、GM 与 rewind 均复用，下一次刷新才推进到 peer 版本 |
 | RCV-73 | P0 | 已验收（CLI undo 选回合／版本绑定） | `/undo` 的最后活动回合与 expected revision 仍是两次读取；peer 夹在中间发布会让旧回合被错误地按 peer 新版本批准 | 从同一 `EventStore.snapshot()` 取得活动回合 frontier 和 revision；后续 retraction 仍在 SQLite 写事务复核，冲突只读刷新且不撤回 peer 分支 |
+| RCV-74 | P0 | 已验收（被动同步比较／显示版本原子性） | CLI、玩家和 GM 仍先独读 revision 决定是否 refresh；peer 紧随该比较发布时，旧投影可被显示为新版本，CLI transcript 也可能记录错误 revision | 比较与重投影统一使用同一 snapshot；投影 DTO 只标记自身 revision，CLI transcript 改记 durable receipt revision。快照后 peer publish 留给下一次读取，不错标当前世界 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1641,3 +1642,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   且控制器只读重投影到 peer revision。开发中首轮测试 mock 会在冲突后的故意 recovery snapshot 再次插入 peer 事件，造成
   断言的测试装置错误；改为仅在被测 frontier 注入一次后，定向集合为 **`44 passed in 0.53s`**。正式完整离线 gate 为
   **`2012 passed, 1 deselected in 24.90s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-74 关闭 RCV-72 尚余的被动比较 TOCTOU。此前 CLI、player dashboard 和 GM dashboard 先单读
+  `store.revision` 决定是否 reproject；peer 若紧随该比较发布，旧 world 会被当成最新，且 CLI `/status` 又直接打印新的
+  store revision。现在 `refresh_engine_world_if_advanced()` 以一个 snapshot 同时完成比较与必要替换；若 peer 在 snapshot
+  后发布，本次保留正确标记的旧投影并由下一读获取完整新快照。玩家/GM DTO 和 CLI status 只显示已投影 revision，CLI single／compare
+  transcript 直接记录其 durable receipt revision，避免 peer 夹入时误归属。双 SQLite 连接回归覆盖 snapshot 后 publish 与真实
+  CLI `/status` 输出；既有 RCV-73 undo race 的注入移到 selected-frontier helper 后，避免被新的被动 snapshot 正确提前消费。
+  定向 engine／CLI／GUI／store 集合为 **`47 passed in 0.88s`**；正式完整离线 gate 为
+  **`2014 passed, 1 deselected in 24.35s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务调用。

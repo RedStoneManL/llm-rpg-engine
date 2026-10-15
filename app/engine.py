@@ -221,6 +221,24 @@ def last_turn_and_revision(engine: Engine) -> tuple[int, int]:
     return max_turn, revision
 
 
+def projected_revision(engine: Engine) -> int:
+    """Return the revision that labels ``engine.world`` without a fresh read.
+
+    Player-facing DTOs must not pair an existing projection with a newer store
+    revision that a peer committed immediately afterwards.  Engines built by
+    this module always carry an integer marker; retain a defensive fallback
+    for narrow test doubles and legacy callers that construct an Engine by
+    hand.
+    """
+    revision = engine.world.get("_revision")
+    return revision if type(revision) is int else engine.store.revision
+
+
+def _replace_world_from_snapshot(engine: Engine, revision: int, history) -> None:
+    engine.world = project(engine.registry, history)
+    engine.world["_revision"] = revision
+
+
 def reproject_engine_world(engine: Engine) -> int:
     """Replace ``engine.world`` from one read-only store snapshot.
 
@@ -231,9 +249,24 @@ def reproject_engine_world(engine: Engine) -> int:
     in the history for deterministic replay and ignored by projection as usual.
     """
     revision, history = engine.store.snapshot()
-    engine.world = project(engine.registry, history)
-    engine.world['_revision'] = revision
+    _replace_world_from_snapshot(engine, revision, history)
     return revision
+
+
+def refresh_engine_world_if_advanced(engine: Engine) -> bool:
+    """Refresh only when one store snapshot is newer than this projection.
+
+    The comparison must use the same snapshot as any replacement world.  A
+    separate revision read can race with a peer publish and incorrectly claim
+    that an older projection is already current.  If a peer publishes after
+    this snapshot, retaining the older, correctly labelled projection is safe;
+    the next read will observe the newer complete snapshot.
+    """
+    revision, history = engine.store.snapshot()
+    if projected_revision(engine) == revision:
+        return False
+    _replace_world_from_snapshot(engine, revision, history)
+    return True
 
 
 def rewind(engine: Engine, turn: int, *, expected_revision: int | None = None) -> dict:

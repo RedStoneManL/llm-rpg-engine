@@ -26,7 +26,8 @@ from urllib.parse import parse_qs
 from uuid import uuid4
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
-from app.engine import build_engine, last_turn, reproject_engine_world, rewind
+from app.engine import (build_engine, last_turn, projected_revision,
+                        refresh_engine_world_if_advanced, reproject_engine_world, rewind)
 from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
 from app.player_objectives import player_objectives
@@ -247,7 +248,7 @@ def build_player_state(engine) -> dict[str, Any]:
         label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
         speech_recipients.append({"id": person["id"], "label": label})
     return {
-        "revision": int(engine.world.get("_revision") or engine.store.revision),
+        "revision": projected_revision(engine),
         "turn": last_turn(engine),
         "scene": {"day": day, "time": {"day": day, "band": band_name(band)},
                   "location": places.get(scene.get("location")),
@@ -366,7 +367,7 @@ def build_gm_state(engine) -> dict[str, Any]:
             recaps.insert(0, {"scene": "总览", "summary": narrative["super_summary"]})
     return {
         "mode": "gm_read_only",
-        "revision": int(engine.world.get("_revision") or engine.store.revision),
+        "revision": projected_revision(engine),
         "day": int(day),
         "turn": last_turn(engine),
         "people": people,
@@ -428,15 +429,18 @@ class PlayerDashboard:
         the authoritative history that the player is told to refresh.
         """
         reproject_engine_world(self.engine)
+        self._rebuild_controller_after_refresh()
+
+    def _rebuild_controller_after_refresh(self) -> None:
+        """Refresh controller-only caches after ``engine.world`` changed."""
         self.previous_scene = _previous_scene_before_latest_action(self.engine)
         if hasattr(self.strategy, "reset"):
             self.strategy.reset()
 
     def _refresh_if_store_advanced(self) -> None:
         """Observe peer publishes before serving another player operation."""
-        cached_revision = self.engine.world.get("_revision")
-        if type(cached_revision) is not int or cached_revision != self.engine.store.revision:
-            self._refresh_authoritative_world()
+        if refresh_engine_world_if_advanced(self.engine):
+            self._rebuild_controller_after_refresh()
 
     def recall(self, query: str) -> dict[str, Any]:
         """Run the shared, read-only player POV recall query for this session."""
@@ -450,7 +454,7 @@ class PlayerDashboard:
             scene = _build_scene(self.engine)
             return {
                 "hits": player_recall(self.engine.registry, self.engine.world, scene, cleaned),
-                "revision": int(self.engine.world.get("_revision") or self.engine.store.revision),
+                "revision": projected_revision(self.engine),
             }
 
     def set_steering(self, text: str | None) -> dict[str, Any]:
@@ -656,10 +660,7 @@ class GmDashboard:
         create player actions, and still leave ``build_gm_state`` responsible
         for excluding private interpretation records from its DTO.
         """
-        cached_revision = self.engine.world.get("_revision")
-        if type(cached_revision) is int and cached_revision == self.engine.store.revision:
-            return
-        reproject_engine_world(self.engine)
+        refresh_engine_world_if_advanced(self.engine)
 
 
 _INDEX = """<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>LLM RPG · 离线玩家仪表盘</title><link rel=\"stylesheet\" href=\"/app.css\"></head><body><main><header><p class=\"eyebrow\">LOCAL · PLAYER VIEW · OFFLINE DEMO</p><h1>石桥镇冒险</h1><p id=\"status\" role=\"status\">正在读取已保存的世界…</p></header><section class=\"panel story\"><h2>叙事</h2><div id=\"narration\" class=\"narration\"></div><form id=\"action-form\"><label for=\"action-input\">你的行动</label><textarea id=\"action-input\" maxlength=\"2000\" placeholder=\"例如：走向集市，向路人打听旧塔。\" required></textarea><div class=\"actions\"><button id=\"submit-action\" type=\"submit\">保存行动</button><button id=\"undo\" type=\"button\" class=\"subtle\">撤销上一回合</button></div></form></section><section class=\"grid\"><article class=\"panel\"><h2>角色状态</h2><dl id=\"character\"></dl></article><article class=\"panel\"><h2>背包</h2><ul id=\"inventory\"></ul></article><article class=\"panel\"><h2>当前位置与地图</h2><div id=\"map\"></div></article><article class=\"panel codex\"><h2>公开世界设定典</h2><div id=\"codex\"></div></article></section><footer>这是离线玩家试用界面：不会显示 GM、原始事件、其他角色私有解释或编辑功能。</footer></main><script src=\"/app.js\"></script></body></html>"""

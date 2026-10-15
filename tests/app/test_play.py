@@ -1147,28 +1147,23 @@ def test_cli_undo_rejects_peer_publish_between_turn_snapshot_and_retraction(tmp_
         expected_revision=dashboard.state()["revision"],
     )
     peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
-    original_snapshot = engine.store.snapshot
+    original_frontier = play._last_turn_and_revision
     snapshots = {}
 
-    def snapshot_then_peer_publish():
-        revision, history = original_snapshot()
-        # The conflict handler deliberately reprojects after rejecting the
-        # stale undo.  Inject the peer publish once, at the frontier snapshot
-        # under test, rather than manufacturing a second race during recovery.
-        if not snapshots.get("injected"):
-            snapshots["injected"] = True
-            peer.store.append_many([kernel_event(
-                "narration_recorded", day=1, scene="s1", turn=2,
-                summary="peer wins snapshot undo race", deltas={"text": "PEER_UNDO_SNAPSHOT_RACE"},
-            )])
-            snapshots["before"] = (
-                engine.store.db_path.read_bytes(),
-                engine.store.jsonl_path.read_bytes(),
-                engine.store.revision,
-            )
-        return revision, history
+    def frontier_then_peer_publish(engine_arg):
+        frontier = original_frontier(engine_arg)
+        peer.store.append_many([kernel_event(
+            "narration_recorded", day=1, scene="s1", turn=2,
+            summary="peer wins snapshot undo race", deltas={"text": "PEER_UNDO_SNAPSHOT_RACE"},
+        )])
+        snapshots["before"] = (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        )
+        return frontier
 
-    monkeypatch.setattr(engine.store, "snapshot", snapshot_then_peer_publish)
+    monkeypatch.setattr(play, "_last_turn_and_revision", frontier_then_peer_publish)
     output: list[str] = []
     try:
         play.play_loop(engine, ["/undo", "/quit"], out=output.append)
@@ -1183,6 +1178,46 @@ def test_cli_undo_rejects_peer_publish_between_turn_snapshot_and_retraction(tmp_
         assert any(event.get("turn") == 2 for event in engine.store.iter_events())
         assert engine.world["_revision"] == peer.store.revision
         assert saved["revision"] < engine.store.revision
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
+def test_cli_status_keeps_snapshot_revision_when_peer_publishes_after_passive_read(tmp_path, monkeypatch):
+    """A status line never labels its current projection with a later peer revision."""
+    import app.play as play
+    from app.engine import build_engine
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "campaign"
+    engine = _build_engine_with_game(campaign)
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    original_snapshot = engine.store.snapshot
+    before = engine.world["_revision"]
+    injected = False
+
+    def snapshot_then_peer_publish():
+        nonlocal injected
+        revision, history = original_snapshot()
+        if not injected:
+            injected = True
+            peer.store.append_many([kernel_event(
+                "narration_recorded", day=1, scene="s1", turn=1,
+                summary="peer after CLI passive read", deltas={"text": "PEER_STATUS_SNAPSHOT_RACE"},
+            )])
+        return revision, history
+
+    monkeypatch.setattr(engine.store, "snapshot", snapshot_then_peer_publish)
+    output: list[str] = []
+    try:
+        # End the input stream after the read so a second loop iteration does
+        # not intentionally observe the peer's already-published revision.
+        play.play_loop(engine, ["/status"], out=output.append)
+        status = next(line for line in output if line.startswith("[状态] 第 "))
+        assert f"版本 {before}" in status
+        assert f"版本 {peer.store.revision}" not in status
+        assert engine.world["_revision"] == before
+        assert peer.store.revision == before + 1
     finally:
         peer.store.close()
         engine.store.close()

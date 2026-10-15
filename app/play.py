@@ -181,7 +181,8 @@ from loop.compare import run_compare
 from loop.strategy import AuthorStrategy
 from app.engine import (rewind as _rewind, last_turn as _last_turn,
                         last_turn_and_revision as _last_turn_and_revision,
-                        reproject_engine_world)
+                        projected_revision, reproject_engine_world,
+                        refresh_engine_world_if_advanced)
 from engine.log import get_logger
 
 log = get_logger("app.play")
@@ -296,10 +297,8 @@ def _refresh_if_store_advanced(engine, previous_scene: dict | None, strategy) ->
     dashboard's passive synchronization and stays strictly read-only: no event,
     receipt, transcript, or retry is created by observing the peer history.
     """
-    cached_revision = engine.world.get("_revision")
-    if type(cached_revision) is int and cached_revision == engine.store.revision:
+    if not refresh_engine_world_if_advanced(engine):
         return previous_scene
-    reproject_engine_world(engine)
     if hasattr(strategy, "reset"):
         strategy.reset()
     return _previous_scene_before_latest_action(engine)
@@ -338,7 +337,7 @@ def _print_player_status(engine, out: Callable) -> None:
     day = scene.get("day") or 1
     band = band_name((view.get("meta", {}) or {}).get("band", 0))
     location = next((place for place in capability.places if place.id == capability.location), None)
-    out(f"[状态] 第 {day} 天 · {band} · 版本 {engine.store.revision}")
+    out(f"[状态] 第 {day} 天 · {band} · 版本 {projected_revision(engine)}")
     out(f"[状态] 当前位置：{location.label if location else '未确定'}")
 
     character_facts = player_character_facts(view, protagonist)
@@ -934,7 +933,7 @@ def play_loop(
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
                 out("[对比模式]")
-                rec = {"turn": turn_no, "revision": engine.store.revision,
+                rec = {"turn": turn_no, "revision": applied.receipt["revision"],
                        "action_id": applied.receipt["action_id"],
                        "input": player_input, "mode": "compare"}
                 for label, (commit, attempts, dropped) in results.items():
@@ -990,7 +989,7 @@ def play_loop(
                     out(f"[提示：{('、'.join(result.dropped_sections))} 段验证失败，"
                         f"本回合这些世界变更未生效]")
                 _write_transcript(transcript_path, {
-                    "turn": turn_no, "revision": engine.store.revision,
+                    "turn": turn_no, "revision": result.receipt["revision"],
                     "action_id": result.receipt["action_id"],
                     "input": player_input, "mode": "single",
                     **_candidate_record(result.commit, result.repair_attempts,
