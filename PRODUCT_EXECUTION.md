@@ -118,6 +118,13 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-75 | P1 | 已验收（GUI 不可恢复 action 的当前状态回显） | 已提交 action 的 sidecar／信封损坏或不匹配时，409 只给通用提示；浏览器保留 pending，但仍显示提交前投影，玩家必须手动刷新才能判断当前世界 | 409 仍不恢复原 narration、metadata 或异常；仅尽力附带既有安全 player DTO，前端立即渲染它并保留明确结束恢复。DTO 构建失败仍保守 409；WSGI 与真实 loopback 浏览器均验证当前状态同步；不新增重试、写入或权限 |
 | RCV-76 | P1 | 已验收（同场角色公开观察闭环） | GUI/CLI 只显示可交谈人物的 sketch/名称；已经被当前公开场景授权的心情／状态没有共用玩家 read-model，玩家与作者/交流 selector 易发生展示漂移 | 新共享 DTO 仅剥离既有 receipt-safe current-scene projection 的 id、sketch、公开 mood/state；GUI 面板显示详情、CLI `/status` 同步显示，选择器仍用同一人集。NPC 知识、传闻、arrival preview、路线授权与私有/隐藏人物均不进 DTO |
 | RCV-77 | P1 | 已验收（玩家近处公开观察） | 已有 durable `public_place_observations` 只供作者 prompt；玩家 GUI/CLI 无法查看这些受限、本地的现场观察，只能从叙事滚屏回忆 | GUI/CLI 共享只读 DTO，只保留当前地点或当前公开出口的显示名、观察类型、范围与摘要；剥离 raw place id、event id、author/source、历史 scene/day/turn。hidden、非本地和未显式 public 的观察不进入玩家出口，零写入 |
+| RCV-78 | P1 | 已验收（近处／出口观察语义区分） | RCV-77 的安全投影允许当前位置和已知出口观察，但界面把两类行都平铺，邻近地点的已知观察会被误读成主角眼前所见 | GUI/CLI 只根据既有 `is_current` 标记为当前项显示“这里”，其他项显示“已知出口：地点”；不改变 DTO 范围、观察来源、路线、发现、提交或权限 |
+
+RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
+
+- RCV-75 生产修复：`18798c1ea399ab653a9a9b4798017fc487733b01`；随后浏览器证据文档检查点：`860e96d5d8f94afdf23bb2532aa819d5f33e81f2`。
+- RCV-76：`e7b5de4be191102b32e2cb0dd55f65e4f7d78001`。已确认 GUI/WSGI、CLI、冷重开和 390px loopback 浏览器均只显示公开同场人物的 sketch／mood／state；明确交流下拉框仍是同一人集的 id/label 投影，hidden id、private sketch/mood、NPC evidence、reported knowledge、arrival preview 与路线授权均未进入玩家 DTO 或 DOM。
+- RCV-77：`96f1ff76970b3631f0cc1030940d0984cfb600a3`。
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1695,3 +1702,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   在 390px loopback demo 实测显示“这里·客栈门前两步内（现场观察）：门前石阶潮湿。”，private sentinel 不在 DOM，
   非 GET 请求为空且无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
   **`2017 passed, 1 deselected in 26.15s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-78 复核 RCV-77 的真实玩家语义时发现，其来源契约有意允许“当前位置或当前公开出口”的观察，
+  但两种范围原先在 GUI/CLI 的同一平铺文字中没有显式区别，可能令玩家把邻近地点的历史公开观察当作立即所见。
+  现在只消费已有 `is_current`：当前位置继续标为“这里”，合法出口的观察明确标为“已知出口：地点”。这不扩展
+  `player_place_observations` 的字段、地点范围或权限，也不写 EventStore、路线发现、receipt 或 transcript。
+
+  GUI/WSGI 和 CLI 回归同时写入客栈本地与石桥集市（既有公开出口）的观察，以及 hidden/未标记反例；前两类只按
+  正确范围显示，后两类不出现且读取零写入。系统 Chromium + Playwright 在 390px loopback demo 实测两行文字明确为
+  “这里……”与“已知出口：石桥集市……”，无非 GET 请求和横向溢出；临时 server/campaign 已删除。JS 通过
+  `node --check`，正式完整离线 gate 为 **`2017 passed, 1 deselected in 23.98s`**；唯一 deselect 是既有 slow real
+  embedding，无真实模型、embedding、网络或外部服务。

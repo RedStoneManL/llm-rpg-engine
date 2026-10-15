@@ -90,6 +90,11 @@ def test_cli_status_shows_only_bounded_public_local_observations(tmp_path):
             "source": "author_world", "visibility": "public", "public_observation": True,
             "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
         }),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="集市入口有一盏未点亮的灯。", deltas={
+            "place": "stonebridge_market", "level": 1, "summary": "集市入口有一盏未点亮的灯。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "stable_layout", "observation_range": "集市入口近处",
+        }),
         kernel_event("world_change", day=1, scene="s1", turn=0, summary="PRIVATE_CLI_OBSERVATION_SENTINEL", deltas={
             "place": "north_bank_old_tower", "level": 1, "summary": "PRIVATE_CLI_OBSERVATION_SENTINEL",
             "source": "author_world", "visibility": "public", "public_observation": True,
@@ -104,6 +109,7 @@ def test_cli_status_shows_only_bounded_public_local_observations(tmp_path):
         play_loop(engine, inputs=["/status", "/quit"], out=output.append)
         rendered = "\n".join(output)
         assert "[状态] 近处观察：这里·客栈门前两步内：门前石阶潮湿。" in rendered
+        assert "已知出口：石桥集市·集市入口近处：集市入口有一盏未点亮的灯。" in rendered
         assert "PRIVATE_CLI_OBSERVATION_SENTINEL" not in rendered
         assert engine.store.revision == before
     finally:

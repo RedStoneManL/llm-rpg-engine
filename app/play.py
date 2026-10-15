@@ -347,7 +347,7 @@ def _print_player_status(engine, out: Callable) -> None:
     observations = player_place_observations(engine.world, scene)
     if observations:
         rendered_observations = "；".join(
-            f"{item['place']}·{item['range']}：{item['summary']}" for item in observations
+            f"{_observation_scope(item)}·{item['range']}：{item['summary']}" for item in observations
         )
         out(f"[状态] 近处观察：{rendered_observations}")
     else:
@@ -370,6 +370,11 @@ def _print_player_status(engine, out: Callable) -> None:
     out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
     completed = [item['summary'] for item in objectives['completed_quests']]
     out(f"[状态] 已结任务：{'、'.join(completed) if completed else '无'}")
+
+
+def _observation_scope(item: dict[str, Any]) -> str:
+    """Label an observation without implying an adjacent place is current."""
+    return "这里" if item.get("is_current") is True else f"已知出口：{item.get('place', '未知地点')}"
 
 
 def _print_player_map(engine, out: Callable) -> None:

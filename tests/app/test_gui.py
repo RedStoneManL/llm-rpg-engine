@@ -100,6 +100,11 @@ def test_player_state_shows_only_bounded_public_local_observations(tmp_path):
             "source": "author_world", "visibility": "public", "public_observation": True,
             "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
         }),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="集市入口有一盏未点亮的灯。", deltas={
+            "place": "stonebridge_market", "level": 1, "summary": "集市入口有一盏未点亮的灯。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "stable_layout", "observation_range": "集市入口近处",
+        }),
         kernel_event("world_change", day=1, scene="s1", turn=0, summary="PRIVATE_OBSERVATION_SENTINEL", deltas={
             "place": "north_bank_old_tower", "level": 1, "summary": "PRIVATE_OBSERVATION_SENTINEL",
             "source": "author_world", "visibility": "public", "public_observation": True,
@@ -116,6 +121,9 @@ def test_player_state_shows_only_bounded_public_local_observations(tmp_path):
         expected = [{
             "place": "这里", "is_current": True, "kind": "现场观察",
             "range": "客栈门前两步内", "summary": "门前石阶潮湿。",
+        }, {
+            "place": "石桥集市", "is_current": False, "kind": "稳定布局",
+            "range": "集市入口近处", "summary": "集市入口有一盏未点亮的灯。",
         }]
         state = dashboard.state()
         assert state["observations"] == expected
