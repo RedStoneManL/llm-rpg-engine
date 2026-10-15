@@ -100,6 +100,41 @@ def test_reopen_ignores_legacy_unowned_event_without_advancing_current_scene(tmp
     assert jsonl_path.read_bytes() == jsonl_before
 
 
+def test_reproject_engine_world_keeps_the_snapshot_revision_when_peer_writes_after_read(tmp_path, monkeypatch):
+    """A refresh must not label an old event snapshot as a newer peer revision."""
+    from app.engine import reproject_engine_world
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "campaign"
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    original_snapshot = engine.store.snapshot
+    seen = {}
+
+    def snapshot_then_peer_publish():
+        revision, history = original_snapshot()
+        seen["snapshot_revision"] = revision
+        peer.store.append_many([kernel_event(
+            "narration_recorded", day=1, scene="s1", turn=1,
+            summary="peer published after snapshot", deltas={"text": "PEER_SNAPSHOT_RACE"},
+        )])
+        return revision, history
+
+    monkeypatch.setattr(engine.store, "snapshot", snapshot_then_peer_publish)
+    try:
+        refreshed_revision = reproject_engine_world(engine)
+        assert refreshed_revision == seen["snapshot_revision"]
+        assert engine.world["_revision"] == seen["snapshot_revision"]
+        assert engine.store.revision == seen["snapshot_revision"] + 1
+
+        monkeypatch.setattr(engine.store, "snapshot", original_snapshot)
+        assert reproject_engine_world(engine) == peer.store.revision
+        assert engine.world["_revision"] == peer.store.revision
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
 def test_new_game_creates_protagonist_and_place(tmp_path):
     """new_game seeds a bootstrapped world: protagonist + start town (town_0) + NPCs.
 

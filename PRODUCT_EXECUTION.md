@@ -112,6 +112,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-69 | P0 | 已验收（journal 跨入口活动分支回归） | CLI journal 已有单实例私有引用边界，但缺少 peer publish→undo 与冷重开组合证据 | 纯回归覆盖公开 peer narration 及时出现、撤回后消失、冷重开不复活；私有引用在冷重开后继续 fail-closed、零写入 |
 | RCV-70 | P0 | 已验收（status 跨入口任务账本回归） | CLI `/status` 已有 POV 公开任务 read-model，但缺少 peer publish→撤回、暗线隔离、冷重开及 OOC 零写入的组合证据 | 纯回归覆盖 peer 公开任务即时出现、同回合暗线不泄漏、撤回后隐藏、冷重开不复活，并逐字比较 SQLite/JSONL 与 revision，确认 CLI 读取零写入 |
 | RCV-71 | P0 | 已验收（撤销 optimistic revision 原子性） | CLI/GUI 撤销先读当前 turn、再软撤回；peer 若在其间发布，旧请求可能撤掉新分支 | `EventStore` 在同一 SQLite 写事务内复核可选 expected revision；CLI/GUI 都携带该版本，冲突时只读重投影、清策略缓存并确认“未撤销”，不改 peer 分支 |
+| RCV-72 | P0 | 已验收（跨实例投影快照一致性） | CLI、玩家与 GM 被动刷新分别读取 revision 与 events；peer 在两读之间发布时，旧投影可能被错标为新版本 | 共享重投影 helper 从同一 `EventStore.snapshot()` 获取 revision 与 history；启动、CLI、玩家、GM 与 rewind 均复用，下一次刷新才推进到 peer 版本 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1621,3 +1622,12 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   handler 而一例失败；移除两处重复局部 import 后三项专项为 **`3 passed in 0.20s`**，相关 store／CLI／GUI／action-integrity
   集合为 **`180 passed in 1.65s`**，正式完整离线 gate 为 **`2010 passed, 1 deselected in 23.43s`**。唯一 deselect 是既有
   slow real embedding；无真实模型、embedding 或外部服务调用。
+
+- 2026-10-15：RCV-72 继续跨实例一致性审计，发现启动与被动刷新会分别读取 `store.revision`、完整 event history，
+  再把前者标给后者；peer 恰在两读之间发布时，旧投影会被误标为新 revision，下一次 GET 因缓存“已最新”而跳过重放。
+  现在 `build_engine` 与共享 `reproject_engine_world()` 都只消费一次 `EventStore.snapshot()`；CLI、玩家 dashboard、GM
+  dashboard、成功 rewind 与 revision-conflict 恢复均复用该 helper。双 SQLite 连接回归在 snapshot 返回后立即由 peer 写入，确认
+  当前 engine 保持 snapshot 的 revision，下一次 refresh 才投影 peer publish。定向 engine／CLI／GUI／action-integrity 集合为
+  **`200 passed in 2.05s`**；正式完整离线 gate
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -rA` 为
+  **`2011 passed, 1 deselected in 23.34s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding、网络或外部服务调用。

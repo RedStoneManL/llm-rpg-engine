@@ -169,9 +169,12 @@ def build_engine(
             log.debug("build_engine: cascade_provider construction failed; falling back to main")
             cascade_provider = None
 
-    # Project world from existing events
-    world = project(registry, store.iter_events())
-    world['_revision'] = store.revision
+    # Project one consistent opening snapshot.  A campaign may also be open
+    # in another local controller, so never label a projection with a revision
+    # read from a different point in the event stream.
+    revision, history = store.snapshot()
+    world = project(registry, history)
+    world['_revision'] = revision
 
     campaign_seed = world.get('meta', {}).get('campaign_seed')
     if campaign_seed is None:
@@ -201,6 +204,21 @@ def last_turn(engine: Engine) -> int:
     return max_t
 
 
+def reproject_engine_world(engine: Engine) -> int:
+    """Replace ``engine.world`` from one read-only store snapshot.
+
+    Controllers use the projected revision as their cache identity.  Reading
+    that revision separately from the event iterator can otherwise label an
+    older projection as a peer's newer commit.  ``EventStore.snapshot`` keeps
+    both values in one short SQLite read transaction; retracted rows are kept
+    in the history for deterministic replay and ignored by projection as usual.
+    """
+    revision, history = engine.store.snapshot()
+    engine.world = project(engine.registry, history)
+    engine.world['_revision'] = revision
+    return revision
+
+
 def rewind(engine: Engine, turn: int, *, expected_revision: int | None = None) -> dict:
     """Retract all events with turn >= `turn` and re-project the world.
 
@@ -212,8 +230,7 @@ def rewind(engine: Engine, turn: int, *, expected_revision: int | None = None) -
     if type(turn) is not int or turn < 1:
         raise ValueError("rewind turn must be a positive player turn")
     n = engine.store.retract_from_turn(turn, expected_revision=expected_revision)
-    engine.world = project(engine.registry, engine.store.iter_events())
-    engine.world['_revision'] = engine.store.revision
+    reproject_engine_world(engine)
     log.debug("rewind: turn=%d retracted=%d", turn, n)
     return {"retracted": n, "turn": turn}
 

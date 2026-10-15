@@ -179,7 +179,8 @@ from kernel.projection import project
 from loop.turn import run_turn, apply_turn, advanced_day, REQUIRED_SECTIONS
 from loop.compare import run_compare
 from loop.strategy import AuthorStrategy
-from app.engine import rewind as _rewind, last_turn as _last_turn
+from app.engine import (rewind as _rewind, last_turn as _last_turn,
+                        reproject_engine_world)
 from engine.log import get_logger
 
 log = get_logger("app.play")
@@ -297,8 +298,7 @@ def _refresh_if_store_advanced(engine, previous_scene: dict | None, strategy) ->
     cached_revision = engine.world.get("_revision")
     if type(cached_revision) is int and cached_revision == engine.store.revision:
         return previous_scene
-    engine.world = project(engine.registry, engine.store.iter_events())
-    engine.world["_revision"] = engine.store.revision
+    reproject_engine_world(engine)
     if hasattr(strategy, "reset"):
         strategy.reset()
     return _previous_scene_before_latest_action(engine)
@@ -815,8 +815,7 @@ def play_loop(
                 # `/undo` and `/rewind` are optimistic mutations too.  A peer
                 # may publish after this loop refreshed but before SQLite takes
                 # the retraction lock; never retract that newer branch.
-                engine.world = project(engine.registry, engine.store.iter_events())
-                engine.world['_revision'] = engine.store.revision
+                reproject_engine_world(engine)
                 prev_scene = _previous_scene_before_latest_action(engine)
                 if hasattr(strategy, 'reset'):
                     strategy.reset()
@@ -1006,8 +1005,7 @@ def play_loop(
             if isinstance(exc, TurnRejected):
                 out('[这一行动尚未完成，世界保持原状。请重试或换一种行动描述。]')
             elif isinstance(exc, RevisionConflict):
-                engine.world = project(engine.registry, engine.store.iter_events())
-                engine.world['_revision'] = engine.store.revision
+                reproject_engine_world(engine)
                 # A rejected optimistic turn never becomes the previous action
                 # for catch-up.  Another durable action may have won the race,
                 # so recover its action-start scene from the same receipt prefix
