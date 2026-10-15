@@ -28,6 +28,7 @@ from typing import Callable, Iterable, Any
 from app.player_recall import player_recall
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
+from app.player_people import player_present_people
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from engine.store import RevisionConflict
@@ -315,16 +316,8 @@ def _player_label(graph, entity_id: str) -> str:
 
 def _public_speech_recipients(engine, scene: dict) -> list[dict[str, str]]:
     """Return the same safe recipient choices used by the player dashboard."""
-    from context.native_authoring import native_authoring_context
-
-    choices: list[dict[str, str]] = []
-    for person in native_authoring_context(engine.world, scene).get("present_people", []):
-        if not isinstance(person, dict) or not isinstance(person.get("id"), str):
-            continue
-        observable = person.get("observable") if isinstance(person.get("observable"), dict) else {}
-        label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
-        choices.append({"id": person["id"], "label": label})
-    return choices
+    return [{"id": person["id"], "label": person["label"]}
+            for person in player_present_people(engine.world, scene)]
 
 
 def _print_player_status(engine, out: Callable) -> None:
@@ -344,7 +337,10 @@ def _print_player_status(engine, out: Callable) -> None:
     rendered_facts = [f"{fact['name']}={fact['value']}" for fact in character_facts]
     out(f"[状态] 角色状态：{'、'.join(rendered_facts) if rendered_facts else '无公开状态'}")
 
-    people = [person["label"] for person in _public_speech_recipients(engine, scene)]
+    people = []
+    for person in player_present_people(engine.world, scene):
+        details = "、".join(f"{item['name']}：{item['value']}" for item in person["observables"])
+        people.append(f"{person['label']}（{details}）" if details else person["label"])
     out(f"[状态] 同场角色：{'、'.join(people) if people else '无'}")
 
     inventory = []

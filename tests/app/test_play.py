@@ -331,6 +331,54 @@ def test_play_loop_status_shows_only_previously_public_completed_quests(tmp_path
         engine.store.close()
 
 
+def test_cli_status_shows_only_current_public_people_and_observable_state(tmp_path):
+    """CLI orientation reuses the dashboard's receipt-safe people projection."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("character_created", day=1, scene="s1", turn=0, summary="public listener", deltas={
+            "id": "public_listener", "sketch": "公开同场的旅人", "goal": "交谈", "tier": "tracked",
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="public listener at inn", deltas={
+            "who": "public_listener", "to": "stonebridge_inn",
+        }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="public listener mood", deltas={
+            "subject": "public_listener", "predicate": "mood", "value": "谨慎", "secrecy": "public",
+        }),
+        kernel_event("entity_created", day=1, scene="s1", turn=0, summary="hidden listener", deltas={
+            "id": "HIDDEN_CLI_PEOPLE_SENTINEL", "etype": "Person", "tier": "tracked",
+            "attrs": {"visibility": "hidden", "sketch": "PRIVATE_CLI_PEOPLE_SENTINEL"},
+        }),
+        kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="hidden listener at inn", deltas={
+            "who": "HIDDEN_CLI_PEOPLE_SENTINEL", "to": "stonebridge_inn",
+        }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="hidden listener mood", deltas={
+            "subject": "HIDDEN_CLI_PEOPLE_SENTINEL", "predicate": "mood",
+            "value": "PRIVATE_CLI_PEOPLE_MOOD_SENTINEL", "secrecy": "public",
+        }),
+    ])
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = (engine.store.revision, list(engine.store.iter_events(include_retracted=True)))
+    output: list[str] = []
+    try:
+        play_loop(engine, ["/status", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "公开同场的旅人（心情：谨慎）" in rendered
+        assert "HIDDEN_CLI_PEOPLE_SENTINEL" not in rendered
+        assert "PRIVATE_CLI_PEOPLE_SENTINEL" not in rendered
+        assert "PRIVATE_CLI_PEOPLE_MOOD_SENTINEL" not in rendered
+        assert (engine.store.revision, list(engine.store.iter_events(include_retracted=True))) == before
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_journal_uses_only_active_public_narration_without_writing(tmp_path):
     from app.engine import build_engine
     from app.gui import _seed_demo_campaign

@@ -523,12 +523,22 @@ def test_player_talkable_people_reuse_public_current_scene_recipients_and_refres
         kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="public b at inn", deltas={
             "who": "b_public_listener", "to": "stonebridge_inn",
         }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="public a mood", deltas={
+            "subject": "a_public_listener", "predicate": "mood", "value": "平静", "secrecy": "public",
+        }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="public b state", deltas={
+            "subject": "b_public_listener", "predicate": "state", "value": "警觉", "secrecy": "public",
+        }),
         kernel_event("entity_created", day=1, scene="s1", turn=0, summary="hidden listener", deltas={
             "id": "HIDDEN_GUI_TALKABLE_SENTINEL", "etype": "Person", "tier": "tracked",
             "attrs": {"visibility": "hidden", "sketch": "PRIVATE_GUI_TALKABLE_SENTINEL"},
         }),
         kernel_event("entity_moved", day=1, scene="s1", turn=0, summary="hidden listener at inn", deltas={
             "who": "HIDDEN_GUI_TALKABLE_SENTINEL", "to": "stonebridge_inn",
+        }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="hidden mood", deltas={
+            "subject": "HIDDEN_GUI_TALKABLE_SENTINEL", "predicate": "mood",
+            "value": "PRIVATE_GUI_TALKABLE_MOOD_SENTINEL", "secrecy": "public",
         }),
     ], preflight=lambda history: project(engine.registry, history))
     engine.world = project(engine.registry, engine.store.iter_events())
@@ -539,9 +549,19 @@ def test_player_talkable_people_reuse_public_current_scene_recipients_and_refres
         {"id": "a_public_listener", "label": "公开同场的艾"},
         {"id": "b_public_listener", "label": "公开同场的贝"},
     ]
+    assert populated["present_people"] == [
+        {"id": "a_public_listener", "label": "公开同场的艾",
+         "observables": [{"name": "心情", "value": "平静"}]},
+        {"id": "b_public_listener", "label": "公开同场的贝",
+         "observables": [{"name": "状态", "value": "警觉"}]},
+    ]
+    status, body = _get_wsgi(make_app(dashboard), "/api/state")
+    assert status.startswith("200")
+    assert json.loads(body.decode("utf-8"))["present_people"] == populated["present_people"]
     rendered = json.dumps(populated, ensure_ascii=False)
     assert "HIDDEN_GUI_TALKABLE_SENTINEL" not in rendered
     assert "PRIVATE_GUI_TALKABLE_SENTINEL" not in rendered
+    assert "PRIVATE_GUI_TALKABLE_MOOD_SENTINEL" not in rendered
 
     # The offline demo takes the existing public exit.  Its resulting state is
     # also the refresh source for both the recipient select and the new panel.
@@ -549,12 +569,14 @@ def test_player_talkable_people_reuse_public_current_scene_recipients_and_refres
                              expected_revision=populated["revision"])
     assert moved["state"]["scene"]["location"]["id"] == "stonebridge_market"
     assert moved["state"]["speech_recipients"] == []
+    assert moved["state"]["present_people"] == []
     dashboard.engine.store.close()
 
     reopened = build_dashboard(campaign, demo=True)
     reopened_state = reopened.state()
     assert reopened_state["scene"]["location"]["id"] == "stonebridge_market"
     assert reopened_state["speech_recipients"] == []
+    assert reopened_state["present_people"] == []
     assert "HIDDEN_GUI_TALKABLE_SENTINEL" not in json.dumps(reopened_state, ensure_ascii=False)
     reopened.engine.store.close()
 

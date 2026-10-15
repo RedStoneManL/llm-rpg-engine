@@ -32,6 +32,7 @@ from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
+from app.player_people import player_present_people
 from engine.store import RevisionConflict
 from context.access import pov_world
 from context.capabilities import scene_capabilities
@@ -239,14 +240,8 @@ def build_player_state(engine) -> dict[str, Any]:
     # This is deliberately the same redacted current-scene projection used to
     # decide whether a host may issue a ``heard_player`` receipt.  It exposes
     # no arbitrary NPC beliefs and never includes arrival-only recipients.
-    authoring = native_authoring_context(engine.world, scene)
-    speech_recipients = []
-    for person in authoring.get("present_people", []):
-        if not isinstance(person, dict) or not isinstance(person.get("id"), str):
-            continue
-        observable = person.get("observable") if isinstance(person.get("observable"), dict) else {}
-        label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
-        speech_recipients.append({"id": person["id"], "label": label})
+    present_people = player_present_people(engine.world, scene)
+    speech_recipients = [{"id": person["id"], "label": person["label"]} for person in present_people]
     return {
         "revision": projected_revision(engine),
         "turn": last_turn(engine),
@@ -260,6 +255,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "narration": narrations[-8:],
         "narration_unavailable": narration_unavailable,
         "codex": codex,
+        "present_people": present_people,
         "speech_recipients": speech_recipients,
     }
 
@@ -711,11 +707,11 @@ let state=null,busy=false; const pendingKey='llm-rpg.offline-player.pending-acti
 const $=id=>document.getElementById(id); const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
 function clear(n){n.replaceChildren()} function setStatus(t,err=false){const n=$('status');n.textContent=t;n.style.color=err?'#ffadb0':'#e9edf2'}
 function renderSpeechRecipients(items){const select=$('speech-recipient'),old=select.value;clear(select);select.append(el('option','不记录对话'));select.lastChild.value='';(items||[]).forEach(x=>{const option=el('option',x.label||x.id);option.value=x.id;select.append(option)});select.value=[...select.options].some(x=>x.value===old)?old:''}
-function renderPresentPeople(items){const list=$('present-people');clear(list);const people=Array.isArray(items)?items:[];if(!people.length){list.append(el('li','当前没有可交谈角色。'));return}people.forEach(x=>list.append(el('li',x.label||x.id)))}
+function renderPresentPeople(items){const list=$('present-people');clear(list);const people=Array.isArray(items)?items:[];if(!people.length){list.append(el('li','当前没有可交谈角色。'));return}people.forEach(x=>{const row=el('li'),details=Array.isArray(x.observables)?x.observables:[];row.append(el('strong',x.label||x.id));if(details.length)row.append(el('span',`（${details.map(item=>`${item.name}：${item.value}`).join('；')}）`));list.append(row)})}
 function pending(){try{const p=JSON.parse(sessionStorage.getItem(pendingKey)||'null');return p&&typeof p.text==='string'&&typeof p.action_id==='string'&&Number.isInteger(p.expected_revision)?p:null}catch(_){sessionStorage.removeItem(pendingKey);return null}}
 function syncPending(){const p=pending();$('resume-action').hidden=!p;if(p&&!busy)setStatus('上次行动尚未得到确认；可恢复原请求，或先刷新查看当前状态。',true)}
 function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}
-function render(s){state=s;renderSpeechRecipients(s.speech_recipients);renderPresentPeople(s.speech_recipients);clear($('narration'));const narration=Array.isArray(s.narration)?s.narration:[];(narration.length?narration:[s.narration_unavailable?'公开叙事暂不可用；请刷新查看当前状态。':'尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));const objectives=s.objectives||{},goal=$('long-term-goal'),quests=$('active-quests'),completed=$('completed-quests');goal.textContent=objectives.long_term_goal?`长期目标：${objectives.long_term_goal}`:'长期目标尚未记录。';clear(quests);const active=Array.isArray(objectives.active_quests)?objectives.active_quests:[];if(!active.length)quests.append(el('li','当前没有公开进行中的任务。'));active.forEach(x=>quests.append(el('li',`${x.summary}（${x.id}）`)));clear(completed);const done=Array.isArray(objectives.completed_quests)?objectives.completed_quests:[];if(!done.length)completed.append(el('li','尚无公开已完成任务。'));done.forEach(x=>completed.append(el('li',`${x.summary}（${x.id}）`)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
+function render(s){state=s;renderSpeechRecipients(s.speech_recipients);renderPresentPeople(s.present_people);clear($('narration'));const narration=Array.isArray(s.narration)?s.narration:[];(narration.length?narration:[s.narration_unavailable?'公开叙事暂不可用；请刷新查看当前状态。':'尚无公开叙事。']).forEach(t=>$('narration').append(el('p',t)));clear($('character'));if(!s.character.facts.length)$('character').append(el('p','暂无可展示的角色状态。'));s.character.facts.forEach(f=>$('character').append(el('dt',f.name),el('dd',f.value)));clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));const objectives=s.objectives||{},goal=$('long-term-goal'),quests=$('active-quests'),completed=$('completed-quests');goal.textContent=objectives.long_term_goal?`长期目标：${objectives.long_term_goal}`:'长期目标尚未记录。';clear(quests);const active=Array.isArray(objectives.active_quests)?objectives.active_quests:[];if(!active.length)quests.append(el('li','当前没有公开进行中的任务。'));active.forEach(x=>quests.append(el('li',`${x.summary}（${x.id}）`)));clear(completed);const done=Array.isArray(objectives.completed_quests)?objectives.completed_quests:[];if(!done.length)completed.append(el('li','尚无公开已完成任务。'));done.forEach(x=>completed.append(el('li',`${x.summary}（${x.id}）`)));clear($('map'));const loc=s.scene.location;$('map').append(el('p',loc?`当前位置：${loc.label}`:'当前位置尚未确定。'));const exits=el('ul');if(!s.scene.exits.length)exits.append(el('li','没有已知相邻地点。'));s.scene.exits.forEach(x=>exits.append(el('li',`→ ${x.label}（${x.kind}）`)));$('map').append(exits);clear($('codex'));if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.forEach(x=>{const d=el('details');d.append(el('summary',`${x.kind?`[${x.kind}] `:''}${x.title}`),el('p',x.body));$('codex').append(d)});setStatus(`第 ${s.turn} 回合 · 版本 ${s.revision} · 已从本地保存读取。`)}
 async function api(url,options){const r=await fetch(url,options);let data;try{data=await r.json()}catch(_){const e=new Error('响应格式错误，请刷新页面。');e.confirmedRejection=false;throw e}if(!r.ok){const e=new Error(data&&typeof data.message==='string'?data.message:'请求未完成，请刷新后重试。');e.confirmedRejection=r.status===400&&data&&data.confirmed_rejection===true;throw e}return data}
 async function sendAction(envelope,recovering){if(busy)return;setBusy(true);setStatus(recovering?'正在恢复上次请求…':'正在保存行动…');try{const d=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(envelope)});if(!d||d.ok!==true||!d.state||!Number.isInteger(d.revision))throw new Error('响应未确认，请刷新页面后恢复上次请求。');render(d.state);sessionStorage.removeItem(pendingKey);syncPending();$('action-input').value='';$('speech-statement').value='';$('speech-recipient').value='';setStatus(d.duplicate?'已恢复此前保存的行动。':`行动已保存（版本 ${d.revision}）。`)}catch(err){if(err.confirmedRejection){sessionStorage.removeItem(pendingKey);syncPending();setStatus(`请求已被服务器拒绝，未提交。请修改后再试。${err.message}`,true)}else{syncPending();setStatus(`请求尚未得到确认；请刷新查看当前状态或恢复上次请求。${err.message}`,true)}}finally{setBusy(false)}}
 async function load(){try{render(await api('/api/state'));syncPending()}catch(e){setStatus(e.message,true)}}
