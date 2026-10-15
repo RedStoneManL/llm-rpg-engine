@@ -110,6 +110,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-67 | P0 | 已验收（native brief 历史局部 fail-closed） | 安全 native-author 导出先构造 player DTO，却再次直接读取 `public_history()` 填充已知事件；私有引用会让导出失败，且调用方可能记录异常 | 只压制 `known_events`／`public_narrative` 并标记 `history_unavailable`；其余已有的 POV、背包、出口与授权安全 brief 保持离线、零 campaign 写入 |
 | RCV-68 | P1 | 已验收（CLI 严格 POV 地图） | GUI 有严格 POV 关系图，CLI 只有当前出口文本；终端长局无法查看已知地点与路径，又不能接 canonical 图补齐 | `/map` 仅消费既有 `scene_capabilities` POV contract，显示节点、路径和成本；无发现、移动、receipt、transcript 或 revision 写入 |
 | RCV-69 | P0 | 已验收（journal 跨入口活动分支回归） | CLI journal 已有单实例私有引用边界，但缺少 peer publish→undo 与冷重开组合证据 | 纯回归覆盖公开 peer narration 及时出现、撤回后消失、冷重开不复活；私有引用在冷重开后继续 fail-closed、零写入 |
+| RCV-70 | P0 | 已验收（status 跨入口任务账本回归） | CLI `/status` 已有 POV 公开任务 read-model，但缺少 peer publish→撤回、暗线隔离、冷重开及 OOC 零写入的组合证据 | 纯回归覆盖 peer 公开任务即时出现、同回合暗线不泄漏、撤回后隐藏、冷重开不复活，并逐字比较 SQLite/JSONL 与 revision，确认 CLI 读取零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1602,3 +1603,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   的 `/map` 明确给出用法。专项 `tests/app/test_play.py tests/context/test_capabilities.py -rA` 为
   **`54 passed in 0.98s`**；正式完整离线 gate 为 **`2005 passed, 1 deselected in 28.02s`**，唯一 deselect 是既有
   slow real embedding。未调用真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-70 只补任务账本的跨入口回归，不改变生产逻辑。长运行 CLI 在另一本地客户端写入公开任务及同回合暗线后，
+  下一次 `/status` 实测只显示公开任务；暗线的 about／secret sentinel 均不进入终端输出。peer 撤回该回合后，CLI 被动
+  reproject，任务立即消失；对该次 OOC 读取逐字比较 SQLite、JSONL 和 revision 均不变。随后关闭重开，`/status` 继续不显示
+  已撤回任务或暗线，且冷重开读取同样零写入。定向 CLI/GUI/POV 组合为 **`107 passed in 1.46s`**；正式完整离线 gate 为
+  **`2007 passed, 1 deselected in 22.73s`**。唯一 deselect 是既有 slow real embedding；无真实模型、embedding 或外部服务调用。

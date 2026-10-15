@@ -488,6 +488,95 @@ def test_cli_journal_reprojects_peer_publish_and_hides_peer_undo(tmp_path):
         engine.store.close()
 
 
+def test_cli_status_reprojects_peer_quest_and_hides_retracted_branch(tmp_path):
+    """Status follows a peer's active public task without exposing dark lore.
+
+    A long-running CLI has no write conflict when another local client changes
+    the campaign, so this specifically exercises the passive refresh path:
+    a public task becomes visible, its simultaneous dark lore never does, and
+    both disappear after the peer retracts that turn.  The final OOC read and
+    a cold reopen must remain strictly read-only.
+    """
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    campaign = tmp_path / "campaign"
+    seed = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(seed)
+    seed.store.close()
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    read_snapshots = {}
+    try:
+        def inputs():
+            yield "/status"
+            peer.store.append_many([
+                kernel_event("quest_opened", day=1, scene="s1", turn=1,
+                             summary="公开任务", deltas={
+                                 "id": "peer_task",
+                                 "summary": "PEER_QUEST_SENTINEL",
+                             }),
+                kernel_event("lore_created", day=1, scene="s1", turn=1,
+                             summary="暗线", deltas={
+                                 "id": "peer_dark_task",
+                                 "about": "CLI_STATUS_DARK_SENTINEL",
+                                 "secret": "CLI_STATUS_PRIVATE_SENTINEL",
+                                 "state": "暗",
+                             }),
+            ])
+            peer.world = project(peer.registry, peer.store.iter_events())
+            peer.world["_revision"] = peer.store.revision
+            yield "/status"
+            peer.store.retract_from_turn(1)
+            read_snapshots["before"] = (
+                engine.store.db_path.read_bytes(),
+                engine.store.jsonl_path.read_bytes(),
+                engine.store.revision,
+            )
+            yield "/status"
+            read_snapshots["after"] = (
+                engine.store.db_path.read_bytes(),
+                engine.store.jsonl_path.read_bytes(),
+                engine.store.revision,
+            )
+            yield "/quit"
+
+        out: list[str] = []
+        play_loop(engine, inputs(), out=out.append)
+        quest_rows = [line for line in out if line.startswith("[状态] 公开任务")]
+        assert len(quest_rows) == 3
+        assert "PEER_QUEST_SENTINEL" not in quest_rows[0]
+        assert "PEER_QUEST_SENTINEL" in quest_rows[1]
+        assert "PEER_QUEST_SENTINEL" not in quest_rows[2]
+        rendered = "\n".join(out)
+        assert "CLI_STATUS_DARK_SENTINEL" not in rendered
+        assert "CLI_STATUS_PRIVATE_SENTINEL" not in rendered
+        assert read_snapshots["after"] == read_snapshots["before"]
+
+        engine.store.close()
+        engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+        reopened_before = (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        )
+        reopened: list[str] = []
+        play_loop(engine, ["/status", "/quit"], out=reopened.append)
+        assert "PEER_QUEST_SENTINEL" not in "\n".join(reopened)
+        assert "CLI_STATUS_DARK_SENTINEL" not in "\n".join(reopened)
+        assert (
+            engine.store.db_path.read_bytes(),
+            engine.store.jsonl_path.read_bytes(),
+            engine.store.revision,
+        ) == reopened_before
+    finally:
+        peer.store.close()
+        engine.store.close()
+
+
 def test_player_recall_uses_pov_projection_and_keeps_hidden_places_out(tmp_path):
     """Recall hides guesses but still searches places this protagonist discovered."""
     from app.engine import build_engine
