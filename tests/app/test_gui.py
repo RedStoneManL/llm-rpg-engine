@@ -90,6 +90,47 @@ def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_sta
         normal.engine.store.close()
 
 
+def test_player_state_shows_only_bounded_public_local_observations(tmp_path):
+    """The dashboard may show durable local observations, never event provenance."""
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    engine = dashboard.engine
+    engine.store.append_many([
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门前石阶潮湿。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门前石阶潮湿。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+        }),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="PRIVATE_OBSERVATION_SENTINEL", deltas={
+            "place": "north_bank_old_tower", "level": 1, "summary": "PRIVATE_OBSERVATION_SENTINEL",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "stable_layout", "observation_range": "塔门近处",
+        }),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="UNMARKED_OBSERVATION_SENTINEL", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "UNMARKED_OBSERVATION_SENTINEL",
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = engine.store.revision
+    try:
+        expected = [{
+            "place": "这里", "is_current": True, "kind": "现场观察",
+            "range": "客栈门前两步内", "summary": "门前石阶潮湿。",
+        }]
+        state = dashboard.state()
+        assert state["observations"] == expected
+        assert "source_event_id" not in json.dumps(state, ensure_ascii=False)
+        assert "PRIVATE_OBSERVATION_SENTINEL" not in json.dumps(state, ensure_ascii=False)
+        assert "UNMARKED_OBSERVATION_SENTINEL" not in json.dumps(state, ensure_ascii=False)
+
+        status, body = _get_wsgi(make_app(dashboard), "/api/state")
+        assert status.startswith("200")
+        assert json.loads(body.decode("utf-8"))["observations"] == expected
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
 def test_player_clock_is_public_and_replayable_across_dashboard_undo_and_reopen(tmp_path):
     """The player sees the already-public engine clock, never a new time authority."""
     campaign = tmp_path / "campaign"

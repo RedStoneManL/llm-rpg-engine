@@ -117,6 +117,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-74 | P0 | 已验收（被动同步比较／显示版本原子性） | CLI、玩家和 GM 仍先独读 revision 决定是否 refresh；peer 紧随该比较发布时，旧投影可被显示为新版本，CLI transcript 也可能记录错误 revision | 比较与重投影统一使用同一 snapshot；投影 DTO 只标记自身 revision，CLI transcript 改记 durable receipt revision。快照后 peer publish 留给下一次读取，不错标当前世界 |
 | RCV-75 | P1 | 已验收（GUI 不可恢复 action 的当前状态回显） | 已提交 action 的 sidecar／信封损坏或不匹配时，409 只给通用提示；浏览器保留 pending，但仍显示提交前投影，玩家必须手动刷新才能判断当前世界 | 409 仍不恢复原 narration、metadata 或异常；仅尽力附带既有安全 player DTO，前端立即渲染它并保留明确结束恢复。DTO 构建失败仍保守 409；WSGI 与真实 loopback 浏览器均验证当前状态同步；不新增重试、写入或权限 |
 | RCV-76 | P1 | 已验收（同场角色公开观察闭环） | GUI/CLI 只显示可交谈人物的 sketch/名称；已经被当前公开场景授权的心情／状态没有共用玩家 read-model，玩家与作者/交流 selector 易发生展示漂移 | 新共享 DTO 仅剥离既有 receipt-safe current-scene projection 的 id、sketch、公开 mood/state；GUI 面板显示详情、CLI `/status` 同步显示，选择器仍用同一人集。NPC 知识、传闻、arrival preview、路线授权与私有/隐藏人物均不进 DTO |
+| RCV-77 | P1 | 已验收（玩家近处公开观察） | 已有 durable `public_place_observations` 只供作者 prompt；玩家 GUI/CLI 无法查看这些受限、本地的现场观察，只能从叙事滚屏回忆 | GUI/CLI 共享只读 DTO，只保留当前地点或当前公开出口的显示名、观察类型、范围与摘要；剥离 raw place id、event id、author/source、历史 scene/day/turn。hidden、非本地和未显式 public 的观察不进入玩家出口，零写入 |
 | RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
@@ -1682,3 +1683,15 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
   390px loopback 页面显示“公开同场的旅人（心情：谨慎）”、下拉框同源、一次真实 action 到集市后人物面板清空、只有预期
   `/api/action` POST 且无横向溢出。该浏览器证据是固定 demo/本地事实，不代表真实模型质量。正式完整离线 gate 为
   **`2015 passed, 1 deselected in 25.43s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。
+
+- 2026-10-15：RCV-77 将已有 durable `public_place_observations` 安全投影接入实际玩家定向，而不重复读取
+  canonical world 或 raw event history。新的 `app.player_observations` 仍先采用原投影的明确 public、主角 POV、
+  当前地点或合法公开出口边界，再只留下显示地点（当前位置为“这里”）、观察类别、范围和摘要；特意剥离 place id、
+  source/event id、day、turn 和 scene。GUI 的“近处观察”和 CLI `/status` 使用同一个 DTO，不新增写路由、发现、
+  receipt、transcript 或权限。
+
+  GUI/WSGI 与 CLI 回归各写入一条本地公开观察、一条 hidden 塔观察和一条未标记 world change：前者可见，后两者及
+  provenance 均不出现，OOC/state 读取前后 revision 不变。生成的 JS 通过 `node --check`；系统 Chromium + Playwright
+  在 390px loopback demo 实测显示“这里·客栈门前两步内（现场观察）：门前石阶潮湿。”，private sentinel 不在 DOM，
+  非 GET 请求为空且无横向溢出。临时 campaign/server 已删除。正式完整离线 gate 为
+  **`2017 passed, 1 deselected in 26.15s`**；唯一 deselect 是既有 slow real embedding，无真实模型、embedding、网络或外部服务。

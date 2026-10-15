@@ -74,6 +74,42 @@ def test_play_loop_one_turn_outputs_narration(tmp_path):
     assert "你环顾四周" in combined, f"Expected narration in output, got: {combined!r}"
 
 
+def test_cli_status_shows_only_bounded_public_local_observations(tmp_path):
+    """CLI status shares the player-facing local observation boundary."""
+    from app.gui import _seed_demo_campaign
+    from app.engine import build_engine
+    from app.play import play_loop
+    from kernel.events import kernel_event
+    from kernel.projection import project
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门前石阶潮湿。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门前石阶潮湿。",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+        }),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="PRIVATE_CLI_OBSERVATION_SENTINEL", deltas={
+            "place": "north_bank_old_tower", "level": 1, "summary": "PRIVATE_CLI_OBSERVATION_SENTINEL",
+            "source": "author_world", "visibility": "public", "public_observation": True,
+            "observation_kind": "stable_layout", "observation_range": "塔门近处",
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world["_revision"] = engine.store.revision
+    before = engine.store.revision
+    output: list[str] = []
+    try:
+        play_loop(engine, inputs=["/status", "/quit"], out=output.append)
+        rendered = "\n".join(output)
+        assert "[状态] 近处观察：这里·客栈门前两步内：门前石阶潮湿。" in rendered
+        assert "PRIVATE_CLI_OBSERVATION_SENTINEL" not in rendered
+        assert engine.store.revision == before
+    finally:
+        engine.store.close()
+
+
 def test_play_loop_steer_is_session_only_and_reaches_only_the_next_author_prompt(tmp_path):
     """A soft direction guides a normal CLI turn but neither writes nor lingers after clear."""
     from app.play import play_loop

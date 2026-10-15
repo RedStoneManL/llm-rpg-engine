@@ -29,6 +29,7 @@ from app.player_recall import player_recall
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
+from app.player_observations import player_place_observations
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from engine.store import RevisionConflict
@@ -342,6 +343,15 @@ def _print_player_status(engine, out: Callable) -> None:
         details = "、".join(f"{item['name']}：{item['value']}" for item in person["observables"])
         people.append(f"{person['label']}（{details}）" if details else person["label"])
     out(f"[状态] 同场角色：{'、'.join(people) if people else '无'}")
+
+    observations = player_place_observations(engine.world, scene)
+    if observations:
+        rendered_observations = "；".join(
+            f"{item['place']}·{item['range']}：{item['summary']}" for item in observations
+        )
+        out(f"[状态] 近处观察：{rendered_observations}")
+    else:
+        out("[状态] 近处观察：暂无已保存的公开观察")
 
     inventory = []
     if graph is not None and isinstance(protagonist, str):
