@@ -125,6 +125,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-82 | P1 | 已验收（GUI 背包→可编辑行动建议） | 玩家可看见背包物品，但没有像地图出口一样把已知物品转为可编辑行动起点，必须手动重输名称 | 每个既有 player inventory DTO 项只提供浏览器本地“填入行动”，追加“使用〈公开标签〉。”到输入框；不自动使用/转移物品，不创建 action-id 或写入任何持久化状态 |
 | RCV-83 | P0 | 已验收（离线 demo 存档归属保护） | `--demo` 的帮助承诺只初始化空 campaign，但原实现会把任意已有存档交给固定离线策略，容易在普通世界上误运行演示行动 | 空 campaign 在 seed 后写入一个小型本地 provenance marker；`--demo`/`--gm --demo` 只接受空 campaign 或该 marker，未标记已有存档在任何 action 前拒绝并保持 SQLite/JSONL 字节不变 |
 | RCV-84 | P0 | 已验收（GUI action 临时上下文释放） | 长运行 dashboard 把每个 action 的输入、场景和逐字交流缓存到 `requests`，即使成功回合已有 host envelope 可做冷恢复，也会随回合永久累积 | 仅在同步 `run_turn` 调用期间保留 context；成功、拒绝或异常后释放。duplicate 继续从 durable receipt/host envelope 恢复，绝不回退为内存权威 |
+| RCV-85 | P0 | 已验收（正常／GM GUI 缺失 campaign 零写入） | 正常 player 与非 demo GM 都会先调用 `build_engine`；给错不存在路径时它会创建空 SQLite campaign，随后才报没有世界，与只读启动预期不符 | 在 SQLite 打开前要求已有 `events.db`；GM 还拒绝已有但空的 store。CLI 和直接构造均验证失败后路径、SQLite、JSONL 不出现 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1767,3 +1768,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   且 duplicate 不调用策略。专项 `tests/app/test_gui.py -rA` 为 **`49 passed in 1.04s`**；正式完整离线 gate 为
   **`2022 passed, 1 deselected in 25.23s`**，唯一 deselect 是既有 slow real embedding。无 UI 修改、浏览器结论、真实模型、
   embedding、网络或外部服务调用。
+
+- 2026-10-15：RCV-85 关闭正常 player 与 non-demo GM 启动时的隐式 campaign 创建。此前两条路径先调用
+  `build_engine`；当 `--campaign` 拼错或不存在时，SQLite 会创建空目录/`events.db`，随后才告知用户无世界，违背 GM
+  只读和正常 GUI“打开已保存战役”的语义。现在先以共享 helper 检查已有 `events.db`，不存在时不打开 store；GM 对已有但零事件
+  的 store 也使用同一清晰提示并关闭连接。真实 CLI `main --gm` 和两种 controller 入口覆盖缺失路径，断言目录本身不出现；
+  另构造已有空 DB，断言 normal/GM 均拒绝、DB 字节不变且不创建 JSONL。开发期首轮保留两条已修复失败：旧短文案断言不匹配新
+  “尚无已保存世界”，以及 existing-empty 分支仍用旧提示；统一常量后专项 `tests/app/test_gui.py -rA` 为 **`50 passed in 0.91s`**。
+  正式完整离线 gate 为 **`2023 passed, 1 deselected in 23.92s`**，唯一 deselect 是既有 slow real embedding。无 UI
+  改动、浏览器结论、真实模型、embedding、网络或外部服务调用。

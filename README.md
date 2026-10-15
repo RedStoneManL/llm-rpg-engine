@@ -182,6 +182,12 @@ never silently falls back to the demo, and the browser never receives API keys
 or provider configuration. This repository validates that wiring with injected
 fake providers only; it does not claim live-model generation quality.
 
+Normal player and non-demo GM starts also require an already saved
+`events.db`: a missing campaign path is rejected before SQLite is opened, so a
+mistyped read-only launch does not create an empty campaign directory or store.
+Use `python -m app` to initialize a normal campaign, or explicitly choose an
+empty directory with `--demo` for the fixed offline tour.
+
 Both player and GM views include a read-only public world-book browser. It
 searches existing Codex title/category/body text and renders details with
 `textContent`; it creates or edits no setting entries. Categories are shown

@@ -51,6 +51,9 @@ _MAX_ACTION_BYTES = 2_000
 _MAX_RECALL_QUERY_BYTES = 320
 _OFFLINE_DEMO_MARKER = ".llm-rpg-offline-demo.json"
 _OFFLINE_DEMO_FORMAT = 1
+_SAVED_CAMPAIGN_REQUIRED_MESSAGE = (
+    "当前 campaign 尚无已保存世界；请先用 python -m app 初始化，或在空目录显式使用 --demo。"
+)
 
 
 class GuiRequestError(ValueError):
@@ -201,6 +204,14 @@ def _build_offline_demo_engine(campaign_dir: str | Path):
         )
     _seed_demo_campaign(engine)
     return engine
+
+
+def _require_saved_campaign_dir(campaign_dir: str | Path) -> Path:
+    """Reject a missing normal/GM campaign before opening a write-capable store."""
+    path = Path(campaign_dir)
+    if not (path / "events.db").is_file():
+        raise GuiRequestError(_SAVED_CAMPAIGN_REQUIRED_MESSAGE)
+    return path
 
 
 def _safe_value(value: Any) -> str:
@@ -1019,10 +1030,11 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
         return PlayerDashboard(engine, strategy=OfflineDemoStrategy(), max_repairs=max_repairs, demo=True)
     if provider is None:
         raise GuiRequestError("正常 GUI 模式需要已配置的 provider；请传 --provider，或显式使用 --demo。")
-    engine = build_engine(campaign_dir, provider=provider, enable_interpretive_memory=False)
+    engine = build_engine(_require_saved_campaign_dir(campaign_dir), provider=provider,
+                          enable_interpretive_memory=False)
     if not any(engine.store.iter_events()):
         engine.store.close()
-        raise GuiRequestError("当前 campaign 尚无世界；请先用 python -m app 初始化，或显式使用 --demo。")
+        raise GuiRequestError(_SAVED_CAMPAIGN_REQUIRED_MESSAGE)
     return PlayerDashboard(engine, strategy=strategy or AuthorStrategy(), max_repairs=max_repairs, demo=False)
 
 
@@ -1031,8 +1043,11 @@ def build_gm_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> GmDas
     if demo:
         engine = _build_offline_demo_engine(campaign_dir)
     else:
-        engine = build_engine(campaign_dir, provider=FakeLLMProvider(responses=["1"]), embedder=None,
+        engine = build_engine(_require_saved_campaign_dir(campaign_dir), provider=FakeLLMProvider(responses=["1"]), embedder=None,
                               enable_interpretive_memory=False)
+        if not any(engine.store.iter_events()):
+            engine.store.close()
+            raise GuiRequestError(_SAVED_CAMPAIGN_REQUIRED_MESSAGE)
     return GmDashboard(engine)
 
 

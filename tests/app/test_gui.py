@@ -128,6 +128,31 @@ def test_offline_demo_never_opens_an_unmarked_saved_campaign(tmp_path, capsys):
         reopened.engine.store.close()
 
 
+def test_normal_and_gm_gui_do_not_create_a_missing_campaign(tmp_path, capsys):
+    """Read-only startup guidance must not leave an empty store or directory behind."""
+    missing = tmp_path / "missing-campaign"
+    with pytest.raises(GuiRequestError, match="尚无已保存世界"):
+        build_dashboard(missing, provider=FakeLLMProvider(responses=["unused"]))
+    with pytest.raises(GuiRequestError, match="尚无已保存世界"):
+        build_gm_dashboard(missing)
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main(["--campaign", str(missing), "--gm", "--port", "0"])
+    assert exit_status.value.code == 2
+    assert "尚无已保存世界" in capsys.readouterr().err
+    assert not missing.exists()
+
+    empty = tmp_path / "empty-store"
+    seed = build_engine(empty, provider=FakeLLMProvider(responses=["unused"]), embedder=None)
+    seed.store.close()
+    db_before = (empty / "events.db").read_bytes()
+    with pytest.raises(GuiRequestError, match="尚无已保存世界"):
+        build_dashboard(empty, provider=FakeLLMProvider(responses=["unused"]))
+    with pytest.raises(GuiRequestError, match="尚无已保存世界"):
+        build_gm_dashboard(empty)
+    assert (empty / "events.db").read_bytes() == db_before
+    assert not (empty / "events.jsonl").exists()
+
+
 def test_gui_request_context_is_ephemeral_and_duplicate_uses_durable_envelope(tmp_path):
     """Completed and pre-publish-failed actions must not grow controller memory."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)
@@ -1459,7 +1484,7 @@ def test_normal_gui_cannot_persist_model_inferred_player_statement_without_host_
 def test_normal_gui_requires_existing_campaign_and_explicit_provider(tmp_path):
     with pytest.raises(GuiRequestError, match="需要已配置的 provider"):
         build_dashboard(tmp_path / "no-provider")
-    with pytest.raises(GuiRequestError, match="尚无世界"):
+    with pytest.raises(GuiRequestError, match="尚无.*世界"):
         build_dashboard(tmp_path / "empty", provider=FakeLLMProvider())
 
 
