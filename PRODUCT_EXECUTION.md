@@ -130,7 +130,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-87 | P1 | 已验收（GUI UTF-8 行动输入预检） | 浏览器的 `maxlength=2000` 按字符而服务端按 UTF-8 bytes 限制 action／逐字原话；多字节文本可看似可填却在提交后才收到可避免的 400 | 页面显示与服务端同值的 2,000-byte 计数，并在提交前拦截超限 action／逐字原话；不替代服务端验证、不创建 pending/action-id 或写入任何状态 |
 | RCV-88 | P0 | 已验收（GUI pending recovery campaign 隔离） | 浏览器 `sessionStorage` 曾以全局 pending key 保存 response-loss 行动；同一 loopback origin 改开另一 campaign 时，旧世界的恢复请求可能被显示或提交给新世界 | 安全 DTO 仅提供稳定、匿名的 campaign key；v2 pending key 按该 key 分区，旧 v1 fail-closed 忽略。同 campaign 冷重开稳定、不同保存世界隔离；不写 EventStore/receipt/transcript，不进入作者上下文 |
 | RCV-89 | P0 | 已验收（pending recovery 操作保护） | 浏览器检测到未确认 action 后仍允许点击撤销；若该 action 实际已保存但响应丢失，玩家可能误撤回刚提交的回合 | pending 存在时统一禁用新提交与撤销，只保留恢复／查看并明确结束恢复；服务端既有 revision/receipt 终检不变，零新写路由 |
-| RCV-90 | P0 | WIP（已提交，浏览器验收未确认） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 已提交只读 `/api/state` 刷新；完整测试已通过，但浏览器脚本无输出，尚不得视为 UI 验收 |
+| RCV-90 | P0 | 已验收（结束恢复状态同步） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 结束恢复清除当前 pending 后只读刷新 state；读取失败使用固定无正文提示，真实 409/失败/重复点击浏览器边界已验收 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1839,3 +1839,8 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   后续真实 409 路径已由“先提交，再以同 action-id 改写 pending 文本”复现：页面显示可见结束恢复、保护提交/撤销；结束恢复
   成功路径读回 state。读取失败测试还发现原页面会显示浏览器底层 `Failed to fetch`，现已改为固定无正文提示，**但恢复环境缺少
   pytest 与原临时 testenv，修复后的完整 gate/浏览器复核尚未执行，继续保持 WIP。**
+
+  隔离 `/tmp` testenv 已按 `requirements-dev.txt` 与实际 import 的最小依赖恢复（pytest、numpy、PyYAML，未改系统环境），
+  正式 gate 现为 **`2025 passed, 1 deselected in 23.18s`**。当前代码的 Chromium/Playwright 用真实已提交 action-id +
+  改写 pending envelope 触发 409：结束恢复可见且 submit/undo 均锁定；拦截 `/api/state` 时显示固定“当前状态暂时无法读取”提示、
+  控件安全解锁、重复隐藏按钮点击不再写入；未拦截时成功读回 state，`writes=[]`，390px 无溢出。RCV-90 至此验收完成。
