@@ -31,14 +31,24 @@ def project(registry: Registry, events) -> dict:
             continue
         # Late historical annotations must not move the current scene/clock back.
         # System projections still receive every event and enforce their own
-        # temporal invariants; a corrupt state transition is never skipped.
+        # temporal invariants.  A compatibility owner may explicitly return
+        # False for a malformed legacy row it intentionally skips; that row
+        # must not alter the kernel-level day, scene, or timeline either.
+        prior_day = world["meta"].get("day")
+        prior_scene = world["meta"].get("scene")
+        timeline_len = len(world["meta"]["timeline"])
         current_day = world['meta'].get('day')
         if current_day is None or ev['day'] >= current_day:
             world["meta"]["day"] = ev["day"]
             world["meta"]["scene"] = ev["scene"]
         world["meta"]["timeline"].append(
             {"day": ev["day"], "scene": ev["scene"], "summary": ev["summary"]})
-        owner.apply(world, ev)
+        if owner.apply(world, ev) is False:
+            world["meta"]["day"] = prior_day
+            world["meta"]["scene"] = prior_scene
+            del world["meta"]["timeline"][timeline_len:]
+            log.debug("owner skipped event type=%s id=%s (ignored)", ev["type"], ev.get("id"))
+            continue
         n += 1
     log.debug("project folded %d events across %d systems", n, len(registry.systems))
     return world

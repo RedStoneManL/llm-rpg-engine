@@ -629,6 +629,7 @@ def test_apply_place_created_missing_id_no_raise():
     # The graph should contain no Place entities
     places = [e for e in g.entities.values() if e.etype == "Place"]
     assert places == []
+    assert w["meta"] == {"day": None, "scene": None, "timeline": []}
 
 
 def test_apply_place_materialized_missing_id_no_raise():
@@ -645,6 +646,9 @@ def test_apply_place_materialized_missing_id_no_raise():
     e = g.get_entity("王都")
     assert e is not None
     assert e.attrs.get("detail") != "full"
+    assert w["meta"]["day"] == 1
+    assert w["meta"]["scene"] == "s1"
+    assert len(w["meta"]["timeline"]) == 1
 
 
 def test_apply_place_linked_missing_ab_no_raise():
@@ -653,6 +657,16 @@ def test_apply_place_linked_missing_ab_no_raise():
     ev = kernel_event("place_linked", day=1, scene="s1",
                       summary="bad link", deltas={}, turn=1)
     w = project(r, [ev])  # must not raise
+    assert w["meta"] == {"day": None, "scene": None, "timeline": []}
+
+
+def test_apply_entity_moved_missing_destination_does_not_contribute_meta():
+    """An owned compatibility skip cannot masquerade as the current scene."""
+    r = _reg()
+    ev = kernel_event("entity_moved", day=9, scene="bad_scene",
+                      summary="bad move", deltas={"who": "主角"}, turn=1)
+    w = project(r, [ev])  # must not raise
+    assert w["meta"] == {"day": None, "scene": None, "timeline": []}
 
 
 def test_to_events_links_missing_ab_no_raise():

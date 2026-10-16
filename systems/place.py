@@ -110,7 +110,7 @@ class PlaceSystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
@@ -119,7 +119,7 @@ class PlaceSystem(ContextSystem):
             pid = d.get("id")
             if not pid:
                 log.warning("place_created %s missing id; skipped", event.get("id"))
-                return
+                return False
             tier = d.get("tier", "mentioned")
             attrs: dict[str, Any] = {}
             # ``label`` is a compact authored display name.  Keep it in the
@@ -147,7 +147,7 @@ class PlaceSystem(ContextSystem):
             pid = d.get("id")
             if not pid:
                 log.warning("place_materialized %s missing id; skipped", event.get("id"))
-                return
+                return False
             e = g.get_entity(pid)
             if e is not None:
                 e.attrs["detail"] = "full"
@@ -160,7 +160,7 @@ class PlaceSystem(ContextSystem):
             if not (a and b):
                 log.warning("place_linked %s missing a/b (a=%r b=%r); skipped",
                             event.get("id"), a, b)
-                return
+                return False
             cost = d.get("travel_cost", 1)
             link_attrs = {"travel_cost": cost}
             if "visibility" in d:
@@ -203,6 +203,7 @@ class PlaceSystem(ContextSystem):
                 # Projection must never crash on a malformed stored event.
                 log.warning("entity_moved %s missing who/to (who=%r to=%r); skipped",
                             event.get("id"), who, to)
+                return False
 
     # ------------------------------------------------------------------
     # Write path: validate + to_events

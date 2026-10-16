@@ -54,11 +54,17 @@ class ContextSystem:
     def empty_state(self) -> Any:
         return {}
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         """Fold one owned event into the world. The system's own slice is
         world["systems"][self.name]; the shared fact-graph (if present) is
         world["systems"]["ontology"]. Mutate in place. Must be total over
-        already-validated events."""
+        already-validated events.
+
+        Return ``False`` only when a legacy durable row is intentionally
+        ignored without changing any system state.  The projector will then
+        discard that row's kernel metadata/timeline contribution as well.
+        Existing systems may keep returning ``None`` after a successful apply.
+        """
 
     # --- write path (turn-commit -> events) -------------------------------
     def validate(self, section: str, decl: Any, world: dict) -> list[ValidationError]:

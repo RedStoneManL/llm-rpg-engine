@@ -144,6 +144,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-101 | P0 | 已验收（opt-in 资源配置 schema／创世零发布） | `resources_configured` 过去直接信任 pack 嵌套数据，非法 type、非有限初始值或上下限可能等到 projection 才异常；resource opt-in 的 bootstrap 已临时写入前序 genesis 事件 | 统一检查非空资源 mapping、资源名、`initial/type/min`、有限数、整数/number 类型、上下限与 label；opt-in pack 在第一条 staging genesis event 前拒绝，projection/replay 重用同一检查；默认关闭与 spend 语义不变 |
 | RCV-102 | P0 | 已验收（资源 intent／裁定／恢复一致性） | `prepare_resources` 把结构化 intent 校验、算术裁定与 provider 调用混在一起；既有回归没有直接证明多资源边界、资源 action 的 cold duplicate 零解析，或两个 SQLite 连接的 stale resource action 零写 | 提取无 provider 的 deterministic resource resolver；保持既有 `spend`/`insufficient` 事件形状与提示。覆盖多资源、零/下限/超额、合法/非法 intent、cold action-id 恢复和 stale revision；不新增经济规则或默认启用 |
 | RCV-103 | P0 | 已验收（资源 durable event 回放校验） | `resources_resolved` 的 owner 在回放时曾直接信任 `before`／`after`，受损或注入的 durable row 可伪造余额、前置快照，甚至借额外 key 写入非资源事实 | projection/publish preflight 现在只接受 deterministic resolver 可产生的完整资源快照：配置键集、类型／有限值／上下限、当前 ledger 前值、`none`／`spent`／`insufficient` 算术均需一致；冷重开损坏 row fail-closed 且零修复写入，不新增经济规则 |
+| RCV-104 | P0 | 已验收（已跳过 place event 的 replay meta 原子性） | `PlaceSystem` 已兼容跳过缺字段的 durable 事件，但 kernel 在 owner apply 前已推进 day/scene/timeline；晚到的坏 row 会让冷重开界面指向不存在的场景 | owner 可显式返回“已忽略”；kernel 随即撤销该 row 的 meta/timeline 贡献。仅接入 Place 已有的四个 skip 分支，保留坏历史可读、无迁移/删除/新权限规则 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1989,3 +1990,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   定向 `tests/test_resources.py tests/test_projection.py tests/test_action_integrity.py -rA` 为 **`125 passed in 0.67s`**；
   正式完整离线 gate 为 **`2074 passed, 1 deselected in 27.65s`**，唯一 deselect 是既有 slow real embedding；无真实模型、
   embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-104 延续已注册 event owner 的 durable/replay 审计，确认一个真实兼容性反例：
+  `PlaceSystem.apply()` 对缺少 `to` 的 `entity_moved` 一直记录 warning 并跳过图修改，但 kernel 此前先写入
+  `meta.day/scene/timeline`。标准 `EventStore.append()` 可保存该已注册事件；隔离红例在关闭重开后把合法主角
+  `inn` 位置保留，却把当前 world 错标为 day 9／`bad_scene`（首轮断言实际为 **`assert 9 == 1`**）。
+
+  现 ContextSystem 允许兼容 owner 以明确 `False` 标记“整条 durable row 被忽略”；projection 保持既有 apply 调用
+  时序，但撤销这条 row 刚刚产生的 kernel day/scene/timeline 贡献。只将 Place 原已有的四种 skip 分支（缺
+  `place_created.id`、`place_materialized.id`、`place_linked.a/b`、`entity_moved.who/to`）接入，不把未审计的
+  owner 分支改成新 guard，不删除／迁移旧 SQLite/JSONL，也不改变正常 place、旅行或权限语义。冷重开回归证明坏行
+  仍可读、DB/JSONL 字节不变、meta/timeline 与实际 `located_in` 一致；每个 Place skip 分支也有单独元数据断言。
+  定向 `tests/kernel/test_projection.py tests/systems/test_place.py tests/app/test_engine.py -rA` 为
+  **`104 passed in 0.32s`**；正式完整离线 gate 为 **`2076 passed, 1 deselected in 25.58s`**，唯一 deselect 是既有
+  slow real embedding。无真实模型、embedding、网络或外部服务调用。
