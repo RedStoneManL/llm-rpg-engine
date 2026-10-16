@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-15 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-16 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
@@ -132,6 +132,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-89 | P0 | 已验收（pending recovery 操作保护） | 浏览器检测到未确认 action 后仍允许点击撤销；若该 action 实际已保存但响应丢失，玩家可能误撤回刚提交的回合 | pending 存在时统一禁用新提交与撤销，只保留恢复／查看并明确结束恢复；服务端既有 revision/receipt 终检不变，零新写路由 |
 | RCV-90 | P0 | 已验收（结束恢复状态同步） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 结束恢复清除当前 pending 后只读刷新 state；读取失败使用固定无正文提示，真实 409/失败/重复点击浏览器边界已验收 |
 | RCV-91 | P1 | 已验收（离线导入预览） | world-book 在 provider 缺失时静默返回空 spec，用户无法区分无可读条目和离线无法翻译 | 纯 preview DTO 和独立 CLI 只报告条目数、角色卡字段与原因；不调用 provider、不写 campaign 或输出源文本 |
+| RCV-92 | P1 | 已验收（创世来源 dry-run） | 已有离线导入预览仍缺少一个能用真实解析优先级检查 card／blueprint 来源、又不会 bootstrap 或打开 campaign 的命令 | `scripts/dry_run_genesis_import.py` 只调用 `resolve_genesis_spec(None)`，报告规范化后的部分／缺项／计数与 world-book 限制；回归验证 blueprint 覆盖 card、坏输入安全失败，且不创建 campaign |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1845,3 +1846,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   正式 gate 现为 **`2025 passed, 1 deselected in 23.18s`**。当前代码的 Chromium/Playwright 用真实已提交 action-id +
   改写 pending envelope 触发 409：结束恢复可见且 submit/undo 均锁定；拦截 `/api/state` 时显示固定“当前状态暂时无法读取”提示、
   控件安全解锁、重复隐藏按钮点击不再写入；未拦截时成功读回 state，`writes=[]`，390px 无溢出。RCV-90 至此验收完成。
+
+- 2026-10-16：RCV-92 为已有的 SillyTavern 离线 preview 补齐创世来源 dry-run。新增
+  `scripts/dry_run_genesis_import.py` 只调用 `resolve_genesis_spec(None)`：它可合并 pitch、角色卡、世界书和
+  blueprint，输出仅含规范化部分名、缺失必填项、集合计数和“世界书仍需要 provider”的限制说明；不调用
+  provider、不 bootstrap、不打开或创建 campaign，也不输出来源正文。专项回归实际通过 card + blueprint 的
+  precedence（blueprint 的主角名覆盖 card）、world-book 离线提示、缺来源和坏 JSON 的安全失败，并逐项确认不
+  出现 campaign 路径。专项为 **`4 passed in 0.39s`**；正式离线 gate 为
+  **`2032 passed, 1 deselected in 25.33s`**，唯一 deselect 是既有 slow real embedding。此项为命令行只读工具，
+  没有浏览器、真实模型、embedding、网络或外部服务调用。
