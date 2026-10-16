@@ -215,6 +215,15 @@ def test_new_game_cli_mode_rejects_incompatible_modes_before_creating_campaign(t
     assert not campaign.exists()
 
 
+def test_new_game_cli_rejects_default_fake_provider_before_creating_campaign(tmp_path, capsys):
+    campaign = tmp_path / "should-not-exist"
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main(["--campaign", str(campaign), "--new-game", "--pitch", "普通世界", "--port", "0"])
+    assert exit_status.value.code == 2
+    assert "需要已配置的正常 provider" in capsys.readouterr().err
+    assert not campaign.exists()
+
+
 def test_gui_request_context_is_ephemeral_and_duplicate_uses_durable_envelope(tmp_path):
     """Completed and pre-publish-failed actions must not grow controller memory."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)

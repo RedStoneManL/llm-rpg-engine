@@ -89,7 +89,7 @@ python -m app.gui --campaign ./campaigns/gui-demo --gm --port 8765
 python -m app.gui --campaign ./campaigns/my-game --provider openai --model <existing-model> --port 8765
 
 # Explicit normal GUI creation: only a previously nonexistent path is accepted.
-# Genesis uses the configured provider; this is not the fixed offline demo.
+# Genesis requires a non-fake configured provider; this is not the fixed offline demo.
 python -m app.gui --campaign ./campaigns/my-new-game --new-game --pitch "雾港的钟楼谜案" \
   --provider openai --model <existing-model> --port 8765
 
@@ -200,7 +200,9 @@ sole GUI exception is explicit `--new-game`: it accepts only a previously
 nonexistent destination, runs the same normal genesis pipeline in a sibling
 temporary directory, and publishes that directory only after genesis succeeds.
 It never overwrites an existing campaign and does not select the fixed demo
-strategy.  Use `python -m app` for the fuller CLI session-zero/import workflow,
+strategy.  To avoid persisting fallback placeholders as a normal world,
+`--new-game` rejects the default `fake` provider; use explicit `--demo` for the
+fixed offline tour. Use `python -m app` for the fuller CLI session-zero/import workflow,
 or explicitly choose an empty directory with `--demo` for the fixed offline
 tour.
 

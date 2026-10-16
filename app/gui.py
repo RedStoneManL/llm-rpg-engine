@@ -1208,6 +1208,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--max-repairs 必须为非负整数")
     if args.new_game and (args.demo or args.gm):
         parser.error("--new-game 不能与 --demo 或 --gm 一起使用")
+    if args.new_game and args.provider == "fake":
+        parser.error("--new-game 需要已配置的正常 provider；离线游玩请显式使用 --demo")
     mode = "gm" if args.gm else "player"
     try:
         if args.gm:
