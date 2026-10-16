@@ -16,9 +16,14 @@ strategy and FakeLLMProvider; it makes no network or model request.
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
 import hashlib
 import json
 import logging
+import os
+import shutil
+import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,7 +32,7 @@ from urllib.parse import parse_qs
 from uuid import uuid4
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
-from app.engine import (build_engine, last_turn, projected_revision,
+from app.engine import (build_engine, last_turn, new_game, projected_revision,
                         refresh_engine_world_if_advanced, reproject_engine_world, rewind)
 from app.play import _build_scene, _previous_scene_before_latest_action
 from app.player_recall import player_recall
@@ -56,6 +61,28 @@ _OFFLINE_DEMO_FORMAT = 1
 _SAVED_CAMPAIGN_REQUIRED_MESSAGE = (
     "当前 campaign 尚无已保存世界；请先用 python -m app 初始化，或在空目录显式使用 --demo。"
 )
+
+
+def _publish_new_campaign_no_replace(staging: Path, target: Path) -> None:
+    """Atomically publish ``staging`` only while ``target`` remains absent.
+
+    ``os.replace`` can replace an empty directory, so a preflight existence
+    check alone is not sufficient once genesis takes time.  Linux/glibc exposes
+    ``renameat2(RENAME_NOREPLACE)`` for exactly this publish race.  Platforms
+    without it fail closed rather than risking a user's newly created path.
+    """
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        renameat2 = libc.renameat2
+    except (AttributeError, OSError) as exc:
+        raise GuiRequestError("当前平台不支持安全发布新 campaign；不会覆盖目标路径。") from exc
+    renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    renameat2.restype = ctypes.c_int
+    if renameat2(-100, os.fsencode(staging), -100, os.fsencode(target), 1) != 0:
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            raise GuiRequestError("新 campaign 发布时目标路径已出现；不会覆盖已有目录。")
+        raise OSError(error, os.strerror(error), target)
 
 
 class GuiRequestError(ValueError):
@@ -1109,6 +1136,41 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
     return PlayerDashboard(engine, strategy=strategy or AuthorStrategy(), max_repairs=max_repairs, demo=False)
 
 
+def build_new_game_dashboard(campaign_dir: str | Path, *, provider, pitch: str = "",
+                             flavor: str | None = None, max_repairs: int = 6) -> PlayerDashboard:
+    """Atomically create one explicit normal campaign, then open its player view.
+
+    Normal GUI starts remain read-only with respect to an absent campaign.  This
+    separate, opt-in path runs the existing genesis pipeline in a sibling
+    temporary directory and publishes the completed campaign directory only
+    after genesis succeeds.  It never turns an existing directory into a new
+    world or substitutes the offline demo strategy.
+    """
+    if provider is None:
+        raise GuiRequestError("新战役需要已配置的 provider；离线试用请显式使用 --demo。")
+    target = Path(campaign_dir)
+    if target.exists():
+        raise GuiRequestError("--new-game 只接受不存在的 campaign 路径；不会覆盖或改写已有目录。")
+    from loop.flavor import resolve_flavor
+    try:
+        resolved_flavor = resolve_flavor(flavor, pitch)
+    except ValueError as exc:
+        raise GuiRequestError(f"无法创建新战役：{exc}") from None
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{target.name}.new-", dir=target.parent))
+    try:
+        engine = build_engine(staging, provider=provider, enable_interpretive_memory=False)
+        try:
+            new_game(engine, pitch, flavor=resolved_flavor)
+        finally:
+            engine.store.close()
+        _publish_new_campaign_no_replace(staging, target)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return build_dashboard(target, provider=provider, max_repairs=max_repairs)
+
+
 def build_gm_dashboard(campaign_dir: str | Path, *, demo: bool = False) -> GmDashboard:
     """Open the same local campaign for a canonical-world, read-only GM view."""
     if demo:
@@ -1126,6 +1188,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="本地离线 RPG 仪表盘（玩家默认；GM 需显式只读启用）")
     parser.add_argument("--campaign", required=True, help="启动时选择的本地 campaign 目录")
     parser.add_argument("--demo", action="store_true", help="仅在空 campaign 中写入固定离线演示世界")
+    parser.add_argument("--new-game", action="store_true", dest="new_game",
+                        help="显式创建一个新的普通 campaign；拒绝覆盖已有路径")
     parser.add_argument("--gm", action="store_true", help="显式启动本地只读 GM 世界总览（切换模式需重启）")
     parser.add_argument("--provider", default="fake", choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
                         help="正常玩家模式的 CLI provider；--demo 始终使用固定离线替身")
@@ -1133,6 +1197,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url", default=None, dest="base_url", help="正常玩家模式 provider 的 base URL")
     parser.add_argument("--max-tokens", default=None, type=int, dest="max_tokens", help="正常玩家模式的输出 token 上限")
     parser.add_argument("--max-repairs", default=6, type=int, dest="max_repairs", help="每回合结构修复上限")
+    parser.add_argument("--pitch", default="", help="新战役的世界背景关键词（仅 --new-game）")
+    parser.add_argument("--flavor", default=None, help="新战役的风味包（仅 --new-game）")
     parser.add_argument("--host", default="127.0.0.1", choices=["127.0.0.1"], help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help="本机端口（0 可让系统分配）")
     args = parser.parse_args(argv)
@@ -1140,12 +1206,19 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--port 必须在 0 到 65535 之间")
     if args.max_repairs < 0:
         parser.error("--max-repairs 必须为非负整数")
+    if args.new_game and (args.demo or args.gm):
+        parser.error("--new-game 不能与 --demo 或 --gm 一起使用")
     mode = "gm" if args.gm else "player"
     try:
         if args.gm:
             dashboard = build_gm_dashboard(args.campaign, demo=args.demo)
         elif args.demo:
             dashboard = build_dashboard(args.campaign, demo=True, max_repairs=args.max_repairs)
+        elif args.new_game:
+            from llm.provider import make_provider
+            provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)
+            dashboard = build_new_game_dashboard(args.campaign, provider=provider, pitch=args.pitch,
+                                                 flavor=args.flavor, max_repairs=args.max_repairs)
         else:
             from llm.provider import make_provider
             provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)

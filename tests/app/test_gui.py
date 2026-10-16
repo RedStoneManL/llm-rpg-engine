@@ -153,6 +153,68 @@ def test_normal_and_gm_gui_do_not_create_a_missing_campaign(tmp_path, capsys):
     assert not (empty / "events.jsonl").exists()
 
 
+def test_explicit_new_game_creates_a_normal_campaign_without_overwriting(tmp_path):
+    """GUI setup has one explicit, atomic opt-in instead of a silent demo fallback."""
+    campaign = tmp_path / "new-normal-campaign"
+    dashboard = gui.build_new_game_dashboard(
+        campaign, provider=FakeLLMProvider(), pitch="一座有钟楼的海港小镇",
+    )
+    try:
+        state = dashboard.state()
+        assert dashboard.demo is False
+        assert state["revision"] > 0
+        assert state["scene"]["location"] is not None
+        assert (campaign / "events.db").exists()
+        assert (campaign / "events.jsonl").exists()
+    finally:
+        dashboard.engine.store.close()
+
+    db_before = (campaign / "events.db").read_bytes()
+    jsonl_before = (campaign / "events.jsonl").read_bytes()
+    with pytest.raises(GuiRequestError, match="不会覆盖"):
+        gui.build_new_game_dashboard(campaign, provider=FakeLLMProvider(), pitch="另一座世界")
+    assert (campaign / "events.db").read_bytes() == db_before
+    assert (campaign / "events.jsonl").read_bytes() == jsonl_before
+
+
+def test_explicit_new_game_failure_never_publishes_partial_campaign(tmp_path, monkeypatch):
+    campaign = tmp_path / "new-normal-campaign"
+
+    def fail_genesis(*args, **kwargs):
+        raise RuntimeError("test-only genesis failure")
+
+    monkeypatch.setattr(gui, "new_game", fail_genesis)
+    with pytest.raises(RuntimeError, match="test-only genesis failure"):
+        gui.build_new_game_dashboard(campaign, provider=FakeLLMProvider(), pitch="会失败的世界")
+    assert not campaign.exists()
+    assert list(tmp_path.glob(".new-normal-campaign.new-*")) == []
+
+
+def test_explicit_new_game_publish_race_never_overwrites_new_target(tmp_path, monkeypatch):
+    campaign = tmp_path / "raced-campaign"
+
+    def competing_publish(staging, target):
+        target.mkdir()
+        (target / "owner.txt").write_text("peer", encoding="utf-8")
+        raise GuiRequestError("新 campaign 发布时目标路径已出现；不会覆盖已有目录。")
+
+    monkeypatch.setattr(gui, "_publish_new_campaign_no_replace", competing_publish)
+    with pytest.raises(GuiRequestError, match="不会覆盖"):
+        gui.build_new_game_dashboard(campaign, provider=FakeLLMProvider(), pitch="竞争世界")
+    assert (campaign / "owner.txt").read_text(encoding="utf-8") == "peer"
+    assert not (campaign / "events.db").exists()
+    assert list(tmp_path.glob(".raced-campaign.new-*")) == []
+
+
+def test_new_game_cli_mode_rejects_incompatible_modes_before_creating_campaign(tmp_path, capsys):
+    campaign = tmp_path / "should-not-exist"
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main(["--campaign", str(campaign), "--new-game", "--demo", "--port", "0"])
+    assert exit_status.value.code == 2
+    assert "不能与 --demo 或 --gm" in capsys.readouterr().err
+    assert not campaign.exists()
+
+
 def test_gui_request_context_is_ephemeral_and_duplicate_uses_durable_envelope(tmp_path):
     """Completed and pre-publish-failed actions must not grow controller memory."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)

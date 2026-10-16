@@ -139,6 +139,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-96 | P1 | 已验收（资源裁定玩家可核对） | 资源系统已以 `resources_resolved` 裁定支付/不足，但玩家出口只有叙事和余额，无法知道一笔显式请求属于哪回合或是否实际发生 | CLI/GUI 共享只读 DTO，只显示当前主角最新 spent/insufficient 的 turn、资源、请求额与结果余额；不从正文推断、不改账本/模型/权限 |
 | RCV-97 | P1 | 已验收（玩家角色状态 DTO 有界显示） | 玩家角色状态 DTO 声称有界，但 public scalar predicate/value 实际可把任意长文本原样送入 CLI 与 GUI，结构化值才会截断 | 共享 read-model 对所有显示 predicate/value 限制为 500 字符并以省略号标记；GUI 对 `dt/dd` 允许断词，仍只消费既有 redacted POV view，零写入 |
 | RCV-98 | P0 | 已验收（restricted 玩家事实统一隔离） | `restricted` 已被 native author policy 视为不可见，但玩家 POV 自身事实、角色状态与续玩摘要只过滤 `secret`，可能把导演限定事实带入普通作者上下文或玩家出口 | `context.access` 统一定义玩家隐藏 secrecy 集合；POV、角色状态与 resume recap 都排除 `secret` 和 `restricted`，只读出口与 prompt 均保持零写入 |
+| RCV-99 | P1 | 已验收（显式 GUI 新战役启动） | GUI 只能打开既有普通 campaign 或固定 demo；玩家无法从同一入口明确创建正常战役，且不能放松缺失路径零写入保护 | 新增 `--new-game --pitch` 显式路径，在相邻临时目录运行既有 genesis，成功后才原子发布到此前不存在的目标；拒绝覆盖、demo/GM 混用或无效 flavor |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1937,3 +1938,11 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   定向 `tests/context/test_assembler.py tests/app/test_gui.py tests/app/test_play.py tests/app/test_resume_recap.py -rA`
   为 **`116 passed in 1.83s`**；正式完整离线 gate 为 **`2045 passed, 1 deselected in 24.65s`**，唯一 deselect
   是既有 slow real embedding。无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-99 补齐正常玩家 GUI 的启动断点。普通 GUI 仍默认只读打开已保存 campaign，避免错路径创建空库；只有明确
+  `--new-game` 才允许创建，且仅接受此前不存在的目标路径。它复用既有 provider、`new_game()` 与 flavor 解析，在同父目录临时
+  campaign 完成 genesis 后才原子发布；失败清理 staging，绝不覆盖已有世界，也不能同 `--demo`／`--gm` 混用。回归以本地 Fake
+  provider 验证新保存世界、dashboard state、创世失败不发布、发布竞争不覆盖既有目标、既有路径字节不变和 CLI 参数拒绝。系统 Chromium
+  DevTools 以新建 campaign 实测 DOM 显示 `SAVED CAMPAIGN`、已保存玩家状态与行动控件，390px 无横向溢出且只读加载无 POST；此前失败是
+  等待脚本而非界面缺陷。定向 `tests/app/test_gui.py -rA` 通过；完整 gate 为 **`2049 passed, 1 deselected in 25.98s`**。这是本地
+  deterministic genesis 接线，不代表真实模型生成质量；本轮未调用真实模型、网络或外部服务。

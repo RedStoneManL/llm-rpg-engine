@@ -88,6 +88,11 @@ python -m app.gui --campaign ./campaigns/gui-demo --gm --port 8765
 # It does not create a demo world or send credentials through the browser.
 python -m app.gui --campaign ./campaigns/my-game --provider openai --model <existing-model> --port 8765
 
+# Explicit normal GUI creation: only a previously nonexistent path is accepted.
+# Genesis uses the configured provider; this is not the fixed offline demo.
+python -m app.gui --campaign ./campaigns/my-new-game --new-game --pitch "雾港的钟楼谜案" \
+  --provider openai --model <existing-model> --port 8765
+
 # or start a disposable temporary campaign (deleted on exit)
 python scripts/demo_offline_gui.py --port 8765
 ```
@@ -188,11 +193,16 @@ never silently falls back to the demo, and the browser never receives API keys
 or provider configuration. This repository validates that wiring with injected
 fake providers only; it does not claim live-model generation quality.
 
-Normal player and non-demo GM starts also require an already saved
-`events.db`: a missing campaign path is rejected before SQLite is opened, so a
-mistyped read-only launch does not create an empty campaign directory or store.
-Use `python -m app` to initialize a normal campaign, or explicitly choose an
-empty directory with `--demo` for the fixed offline tour.
+Normal player and non-demo GM starts require an already saved `events.db`: a
+missing campaign path is rejected before SQLite is opened, so a mistyped
+read-only launch does not create an empty campaign directory or store.  The
+sole GUI exception is explicit `--new-game`: it accepts only a previously
+nonexistent destination, runs the same normal genesis pipeline in a sibling
+temporary directory, and publishes that directory only after genesis succeeds.
+It never overwrites an existing campaign and does not select the fixed demo
+strategy.  Use `python -m app` for the fuller CLI session-zero/import workflow,
+or explicitly choose an empty directory with `--demo` for the fixed offline
+tour.
 
 Both player and GM views include a read-only public world-book browser. It
 searches existing Codex title/category/body text and renders details with
