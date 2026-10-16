@@ -131,6 +131,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-88 | P0 | 已验收（GUI pending recovery campaign 隔离） | 浏览器 `sessionStorage` 曾以全局 pending key 保存 response-loss 行动；同一 loopback origin 改开另一 campaign 时，旧世界的恢复请求可能被显示或提交给新世界 | 安全 DTO 仅提供稳定、匿名的 campaign key；v2 pending key 按该 key 分区，旧 v1 fail-closed 忽略。同 campaign 冷重开稳定、不同保存世界隔离；不写 EventStore/receipt/transcript，不进入作者上下文 |
 | RCV-89 | P0 | 已验收（pending recovery 操作保护） | 浏览器检测到未确认 action 后仍允许点击撤销；若该 action 实际已保存但响应丢失，玩家可能误撤回刚提交的回合 | pending 存在时统一禁用新提交与撤销，只保留恢复／查看并明确结束恢复；服务端既有 revision/receipt 终检不变，零新写路由 |
 | RCV-90 | P0 | 已验收（结束恢复状态同步） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 结束恢复清除当前 pending 后只读刷新 state；读取失败使用固定无正文提示，真实 409/失败/重复点击浏览器边界已验收 |
+| RCV-91 | P1 | 已验收（离线导入预览） | world-book 在 provider 缺失时静默返回空 spec，用户无法区分无可读条目和离线无法翻译 | 纯 preview DTO 和独立 CLI 只报告条目数、角色卡字段与原因；不调用 provider、不写 campaign 或输出源文本 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 

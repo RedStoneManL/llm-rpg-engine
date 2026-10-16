@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from llm.provider import FakeLLMProvider
-from loop.import_sillytavern import convert_sillytavern
+from loop.import_sillytavern import convert_sillytavern, preview_sillytavern
 
 FIX = Path(__file__).parent.parent / "fixtures"
 
@@ -37,3 +37,19 @@ def test_worldbook_llm_translation_shape():
 
 def test_no_inputs_returns_empty():
     assert convert_sillytavern(None) == {}
+
+
+def test_offline_preview_counts_worldbook_without_provider_or_source_text():
+    preview = preview_sillytavern(world_book=_load("st_worldbook.json"), character_card=_load("st_card_v2.json"))
+    assert preview["world_book_entries"] > 0
+    assert preview["card_fields"] == ["name", "origin"]
+    assert any("需要 provider" in issue for issue in preview["issues"])
+    assert "world_book_entries" in preview
+    # The pure preview API has no provider parameter and cannot create a campaign.
+    assert "provider" not in preview
+
+
+def test_offline_preview_reports_malformed_sources():
+    preview = preview_sillytavern(world_book={"entries": []}, character_card={})
+    assert preview["world_book_entries"] == 0
+    assert len(preview["issues"]) == 2

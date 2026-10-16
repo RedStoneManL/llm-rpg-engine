@@ -43,6 +43,31 @@ def _validate_spec_shape(obj) -> list:
     return []
 
 
+def preview_sillytavern(*, world_book=None, character_card=None, card_as: str = "protagonist") -> dict:
+    """Describe offline-importable structure without a provider or source text.
+
+    This is deliberately a validation/read-model, not a partial world-book
+    translator: free-text entries require the existing structured provider path.
+    """
+    card = _card_to_protagonist(character_card) if character_card is not None else {}
+    entries = world_book.get("entries") if isinstance(world_book, dict) else None
+    values = entries.values() if isinstance(entries, dict) else ()
+    readable = sum(1 for item in values if isinstance(item, dict)
+                   and isinstance(item.get("content"), str) and item["content"].strip())
+    issues = []
+    if world_book is not None:
+        if not isinstance(entries, dict):
+            issues.append("世界书缺少可读取的 entries 对象。")
+        elif not readable:
+            issues.append("世界书没有非空条目可供转换。")
+        else:
+            issues.append("世界书条目需要 provider 才能翻译；离线预览不会写入或猜测设定。")
+    if character_card is not None and not card:
+        issues.append("角色卡没有可离线提取的名称或描述。")
+    return {"world_book_entries": readable, "card_fields": sorted(card),
+            "card_as": card_as, "issues": issues}
+
+
 def convert_sillytavern(provider, *, world_book=None, character_card=None,
                         card_as: str = "protagonist") -> dict:
     spec: dict = {}
