@@ -30,6 +30,7 @@ from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
 from app.player_observations import player_place_observations
+from app.player_resources import player_resource_outcome
 from context.access import pov_world
 from context.capabilities import scene_capabilities
 from engine.store import RevisionConflict
@@ -129,7 +130,7 @@ def _print_dm_narration(narration: str, out: Callable, *, _force_tty: bool | Non
     out(narration)
 
 
-def _print_turn_status(result, out: Callable) -> None:
+def _print_turn_status(result, out: Callable, *, protagonist: str | None = None) -> None:
     """Render durable action status without exposing backstage error details."""
     receipt = getattr(result, "receipt", {}) or {}
     events = getattr(result, "events", []) or []
@@ -141,6 +142,11 @@ def _print_turn_status(result, out: Callable) -> None:
         out("[摘要] 已更新。")
     elif recap_status == "pending":
         out("[摘要] 暂未生成；本回合已保存。")
+    outcome = player_resource_outcome(getattr(result, "world", {}), protagonist)
+    if outcome is not None:
+        verdict = "已扣除" if outcome["outcome"] == "spent" else "余额不足，未扣除"
+        out(f"[资源] 第 {outcome['turn']} 回合：{outcome['resource']} 请求 {outcome['requested_amount']}；"
+            f"{verdict}，当前 {outcome['balance']}。")
 
 # ---------------------------------------------------------------------------
 # Input sanitizer — strips terminal control/ANSI noise from raw stdin lines.
@@ -955,7 +961,7 @@ def play_loop(
                     rec[label] = _candidate_record(commit, attempts, dropped)
                 rec["applied"] = "甲"
                 _write_transcript(transcript_path, rec)
-                _print_turn_status(applied, out)
+                _print_turn_status(applied, out, protagonist=scene.get("protagonist"))
             else:
                 spinner = _Spinner(out)
                 spinner.start()
@@ -1006,7 +1012,7 @@ def play_loop(
                     **_candidate_record(result.commit, result.repair_attempts,
                                         result.dropped_sections),
                 })
-                _print_turn_status(result, out)
+                _print_turn_status(result, out, protagonist=scene.get("protagonist"))
 
         except Exception as exc:
             # Provider or extension exceptions may include untrusted/private

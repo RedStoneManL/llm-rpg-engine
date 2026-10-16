@@ -35,6 +35,7 @@ from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
 from app.player_observations import player_place_observations
+from app.player_resources import player_resource_outcome
 from engine.store import RevisionConflict
 from context.access import pov_world
 from context.capabilities import scene_capabilities
@@ -317,6 +318,7 @@ def build_player_state(engine) -> dict[str, Any]:
     present_people = player_present_people(engine.world, scene)
     speech_recipients = [{"id": person["id"], "label": person["label"]} for person in present_people]
     observations = player_place_observations(engine.world, scene)
+    resource_outcome = player_resource_outcome(engine.world, protagonist)
     return {
         "revision": projected_revision(engine),
         "turn": last_turn(engine),
@@ -332,6 +334,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "codex": codex,
         "present_people": present_people,
         "observations": observations,
+        "resource_outcome": resource_outcome,
         "speech_recipients": speech_recipients,
     }
 
@@ -771,7 +774,7 @@ _INDEX = _INDEX.replace(
     '<article class="panel recall"><h2>回忆已知线索</h2><form id="recall-form"><label for="recall-query">只搜索当前主角已知的公开资料</label><input id="recall-query" type="search" maxlength="320" placeholder="例如：石桥、封门"><button id="search-recall" type="submit" class="subtle">查询回忆</button></form><ul id="recall-results"><li>输入关键词以查询已知线索。</li></ul></article><article class="panel codex">',
 )
 _INDEX = _INDEX.replace('<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article>', '<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article><article class="panel"><h2>目标与任务</h2><p id="long-term-goal"></p><h3>进行中</h3><ul id="active-quests"></ul><h3>已完成</h3><ul id="completed-quests"></ul></article>')
-_INDEX = _INDEX.replace('<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article>', '<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article><article class="panel"><h2>当前可交谈角色</h2><ul id="present-people"></ul></article>')
+_INDEX = _INDEX.replace('<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article>', '<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article><article class="panel"><h2>最近资源结算</h2><p id="resource-outcome"></p></article><article class="panel"><h2>当前可交谈角色</h2><ul id="present-people"></ul></article>')
 _INDEX = _INDEX.replace('<article class="panel"><h2>当前位置与地图</h2><div id="map"></div></article>', '<article class="panel"><h2>当前位置与地图</h2><div id="map"></div><h3>近处观察</h3><ul id="place-observations"></ul></article>')
 _INDEX = _INDEX.replace(
     '</textarea><div class="actions">',
@@ -801,6 +804,14 @@ $('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendActi
 $('undo').addEventListener('click',async()=>{if(!state||busy)return;setBusy(true);setStatus('正在撤销…');try{const d=await api('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:state.revision})});render(d.state);setStatus(d.message)}catch(e){setStatus(e.message,true)}finally{setBusy(false)}});load()
 })();"""
 _JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,recoveryUnavailable=false,codexQuery='',selectedMapId=null;")
+_JS = _JS.replace(
+    "function pending(){",
+    "function renderResourceOutcome(item){const target=$('resource-outcome');if(!item){target.textContent='尚无可显示的支付或不足结算。';return}const verdict=item.outcome==='spent'?'已扣除':'余额不足，未扣除';target.textContent=`第 ${item.turn} 回合：${item.resource} 请求 ${item.requested_amount}；${verdict}，当前 ${item.balance}。`}\nfunction pending(){",
+)
+_JS = _JS.replace(
+    "renderObservations(s.observations);clear($('narration'));",
+    "renderObservations(s.observations);renderResourceOutcome(s.resource_outcome);clear($('narration'));",
+)
 _JS = _JS.replace("s.codex.forEach(x=>{", "s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{")
 _JS = _JS.replace("if(!s.codex.length)$('codex').append(el('p','暂无公开设定条目。'));s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery)).forEach(x=>{",
                   "const visibleCodex=s.codex.filter(x=>`${x.title} ${x.kind} ${x.body}`.toLowerCase().includes(codexQuery));if(!visibleCodex.length)$('codex').append(el('p',codexQuery?'没有匹配的公开设定。':'暂无公开设定条目。'));visibleCodex.forEach(x=>{")

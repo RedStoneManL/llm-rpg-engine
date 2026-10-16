@@ -1,6 +1,9 @@
 import pytest
 from app.engine import build_engine, rewind
+from app.gui import _INDEX, _JS, build_player_state
 from app.play import _build_scene
+from app.play import _print_turn_status
+from app.player_resources import player_resource_outcome
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
@@ -63,3 +66,69 @@ def test_explicit_wait_is_repaired_to_absolute_target(game):
         provider=p,strategy=AuthorStrategy())
     assert (answer.world['meta']['day'],answer.world['meta']['band'])==(2,1)
     assert answer.repair_attempts==1
+
+
+@pytest.mark.parametrize(
+    ("amount", "outcome", "balance", "verdict"),
+    [(3, "spent", 9, "已扣除"), (100, "insufficient", 12, "余额不足，未扣除")],
+)
+def test_player_resource_outcome_is_canonical_replayable_and_shared_by_cli_gui(
+        game, amount, outcome, balance, verdict):
+    """Player surfaces report the stored adjudication, not narrator prose."""
+    provider = FakeLLMProvider(json_responses=[
+        {"op": "spend", "resource": "oxygen", "amount": amount},
+        {"narration": "不以正文作为余额结论。"},
+    ])
+    result = run_turn(
+        game.registry, game.store, game.world, _build_scene(game), "使用氧气",
+        provider=provider, strategy=AuthorStrategy(), action_id=f"resource-{amount}",
+    )
+    game.world = result.world
+    expected = {
+        "turn": 1,
+        "outcome": outcome,
+        "resource": "oxygen",
+        "requested_amount": amount,
+        "balance": balance,
+    }
+    resolution_event = next(event for event in result.events if event["type"] == "resources_resolved")
+    assert "turn" not in resolution_event["deltas"]
+    assert player_resource_outcome(game.world, "hero") == expected
+    assert build_player_state(game)["resource_outcome"] == expected
+    assert 'id="resource-outcome"' in _INDEX
+    assert "renderResourceOutcome(s.resource_outcome)" in _JS
+
+    output = []
+    _print_turn_status(result, output.append, protagonist="hero")
+    assert any(line.startswith("[资源]") and verdict in line and "oxygen" in line for line in output)
+
+    campaign = game.store.db_path.parent
+    game.store.close()
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        assert player_resource_outcome(reopened.world, "hero") == expected
+        before_rewind = list(reopened.store.iter_events(include_retracted=True))
+        rewind(reopened, 1)
+        assert player_resource_outcome(reopened.world, "hero") is None
+        assert any(event.get("retracted") for event in reopened.store.iter_events(include_retracted=True))
+        assert len(list(reopened.store.iter_events(include_retracted=True))) == len(before_rewind)
+    finally:
+        reopened.store.close()
+
+
+def test_player_resource_outcome_rejects_nonpublic_or_malformed_resolution():
+    world = {"systems": {"resources": {"last_resolution": {
+        "subject": "other", "outcome": "spent", "resource": "coins",
+        "requested_amount": 1, "after": {"coins": 9}, "turn": 1,
+    }}}}
+    assert player_resource_outcome(world, "hero") is None
+    world["systems"]["resources"]["last_resolution"] = {
+        "subject": "hero", "outcome": "spent", "resource": "coins",
+        "requested_amount": float("nan"), "after": {"coins": 9}, "turn": 1,
+    }
+    assert player_resource_outcome(world, "hero") is None
+    world["systems"]["resources"]["last_resolution"] = {
+        "subject": "hero", "outcome": "none", "resource": None,
+        "requested_amount": 0, "after": {}, "turn": 1,
+    }
+    assert player_resource_outcome(world, "hero") is None

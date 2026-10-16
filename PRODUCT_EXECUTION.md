@@ -136,6 +136,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-93 | P0 | 已验收（CLI 创世来源预检零写入） | 常规 CLI 会在读取 `--genesis`／角色卡／世界书前先调用 `build_engine`，坏路径或坏 JSON 会留下空 campaign SQLite | provider-free 预检在任何 store 打开前验证三类显式来源；正常的后续 resolver 仍是唯一合并/翻译权威，且现有新创世路径保持不变 |
 | RCV-94 | P1 | 已验收（标准 CLI 无存档创世预览） | RCV-91/92 的离线 preview 只有脚本入口，常规 `python -m app` 又强制 `--campaign`，用户难以在创建保存世界前实际使用安全预览 | `--preview-genesis` 复用 provider-free 解析摘要，可省略 `--campaign`；不构造 provider、打开 store 或 bootstrap，README/创世指南给出工作流 |
 | RCV-95 | P0 | 已验收（CLI 新开局风格预检零写入） | 常规 CLI 对未知显式 `--flavor` 要到 `build_engine()` 后才拒绝，首次运行会留下空 campaign SQLite | 缺失 campaign 时在 provider/store 启动前预检显式 flavor；已保存 campaign 仍忽略该新开局参数并使用存档 flavor |
+| RCV-96 | P1 | 已验收（资源裁定玩家可核对） | 资源系统已以 `resources_resolved` 裁定支付/不足，但玩家出口只有叙事和余额，无法知道一笔显式请求属于哪回合或是否实际发生 | CLI/GUI 共享只读 DTO，只显示当前主角最新 spent/insufficient 的 turn、资源、请求额与结果余额；不从正文推断、不改账本/模型/权限 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1887,3 +1888,15 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   失败断言正是未知 flavor 后 campaign 目录已经存在；修复后 `tests/app/test_main_genesis.py -rA` 为
   **`9 passed in 0.20s`**。正式离线 gate 为 **`2038 passed, 1 deselected in 25.21s`**；唯一
   deselect 是既有 slow real embedding。本项无浏览器、真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-96 回到原执行计划中的“叙事与裁定效果一致性”主目标。资源规则早已把显式支付的
+  `spent`／`insufficient` 作为同回合 `resources_resolved` durable event 写入，但 CLI/GUI 只展示叙事与当前
+  余额；玩家不能直接核对本次请求是否发生，也不能区分“余额未变”是未尝试、失败还是旧回合结果。本轮不以
+  关键词审查自然语言或宣称解决模型语义质量，而是把已有的权威裁定投影为受限、只读的玩家 DTO：仅当前
+  protagonist，且仅 finite 数字的资源名、请求额、结果余额、结算回合和 spent/insufficient 状态。`none`、
+  其他主体、畸形或非有限状态一律不显示；投影保留原事件 turn 而不改 event payload。CLI 在保存状态后输出
+  同一 canonical 结算，dashboard 状态及页面使用同一 DTO；它们不读取 action 文本、EventStore raw 文档或
+  私有记忆，也不写入 receipt/transcript/revision。首次回归暴露 `ResourceSystem.last_resolution` 原本丢弃
+  event turn，导致 DTO fail-closed；修复后实际覆盖成功扣除与余额不足、CLI 输出、GUI DTO、关闭重开及 rewind。
+  定向 `tests/test_resources.py tests/app/test_gui.py -rA` 与 Node JS 语法检查的最终结果另记于本提交验证；无
+  真实模型、embedding、网络或外部服务调用。

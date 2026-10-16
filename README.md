@@ -108,6 +108,12 @@ entries, and undo the latest turn. Refreshing or restarting the local server
 reads the same saved campaign; action submission uses the existing explicit
 action-id/revision path rather than a second GUI transaction.
 
+When a campaign has configured numeric resources, the player GUI and CLI also
+show the latest protagonist-owned **spent** or **insufficient** adjudication
+with its durable turn, requested amount, and resulting balance. This is a
+read-only rendering of the existing `resources_resolved` event, not a second
+ledger or a natural-language claim inferred from narration.
+
 The player form also has an optional **明确说出原话** section. Select a current public
 co-present recipient and enter the exact one sentence to be remembered; both fields
 are required together. The browser sends those separately from the normal action text,

@@ -29,4 +29,7 @@ class ResourceSystem(ContextSystem):
             if value != d['before'][predicate]:
                 graph.assert_fact(d['subject'],predicate,value,day=event['day'],
                     turn=event.get('turn') or 0,source_event=event['id'],secrecy='public')
-        world['systems'][self.name]['last_resolution']=dict(d)
+        # Preserve the event's durable turn label in the projection.  The
+        # adjudication payload deliberately remains unchanged, while player
+        # read models can identify which saved action produced this result.
+        world['systems'][self.name]['last_resolution']={**d, 'turn': event.get('turn')}
