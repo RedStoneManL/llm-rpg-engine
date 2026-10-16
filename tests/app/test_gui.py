@@ -713,6 +713,7 @@ def test_gui_campaign_key_scopes_pending_recovery_to_one_saved_world(tmp_path):
     assert "const blocked=!!p" in gui._JS
     assert "已结束恢复；已刷新当前保存的世界状态。" in gui._JS
     assert "render(await api('/api/state'))" in gui._JS
+    assert "当前状态暂时无法读取；请稍后刷新页面。" in gui._JS
     second.engine.store.close()
 
 
