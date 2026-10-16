@@ -216,7 +216,7 @@ class InterpretiveMemorySystem(ContextSystem):
     def empty_state(self) -> dict:
         return {"by_actor": {}}
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         data = event.get("deltas") or {}
         actor = data.get("actor")
         text = data.get("text")
@@ -224,7 +224,7 @@ class InterpretiveMemorySystem(ContextSystem):
         if not isinstance(actor, str) or not actor or not isinstance(text, str) or not text:
             # Do not include private text in diagnostics.
             log.warning("interpretive memory event ignored: malformed actor/text (id=%s)", event.get("id"))
-            return
+            return False
         bucket = world["systems"][self.name]["by_actor"].setdefault(actor, [])
         if any(item["id"] == memory_id for item in bucket):
             return

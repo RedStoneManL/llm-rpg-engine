@@ -124,7 +124,7 @@ class FactionSystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
@@ -135,7 +135,7 @@ class FactionSystem(ContextSystem):
             if not fid:
                 log.warning("faction_created event missing 'id' in deltas — skipping (event=%s)",
                             event.get("id"))
-                return
+                return False
             tier = d.get("tier", "mentioned")
             ranks = d.get("ranks", [])
             groups = d.get("groups", [])
@@ -158,7 +158,7 @@ class FactionSystem(ContextSystem):
                     "skipping (event=%s, person=%r, faction=%r)",
                     event.get("id"), person, faction,
                 )
-                return
+                return False
             day = event["day"]
             turn = event.get("turn") or 0
             src = event["id"]

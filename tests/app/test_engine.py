@@ -198,6 +198,74 @@ def test_reopen_ignores_owned_ontology_event_that_projection_skips_without_meta_
     assert jsonl_path.read_bytes() == jsonl_before
 
 
+def test_reopen_ignores_remaining_owned_compatibility_skips_without_meta_drift(tmp_path):
+    """Pure compatibility skips across the remaining owners are whole-row ignores.
+
+    This deliberately uses the normal direct EventStore path that can carry
+    legacy rows.  It does not exercise lifecycle no-ops (such as a duplicate
+    interpretation) or Cascade audit/queue behavior, which are durable events
+    with intentional semantics rather than malformed-row compatibility skips.
+    """
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "legacy-remaining-owner-skips"
+    engine = build_engine(
+        campaign, provider=FakeLLMProvider(), embedder=None,
+        enable_interpretive_memory=True,
+    )
+    try:
+        base = kernel_event("entity_created", day=1, scene="owned_scene", summary="主角", deltas={
+            "id": "protagonist", "etype": "Person", "tier": "tracked",
+        })
+        malformed = [
+            # CharacterSystem: each event lacks the field that makes it a graph mutation.
+            kernel_event("character_created", day=2, scene="bad_character", summary="bad", deltas={"sketch": "x", "goal": "y"}),
+            kernel_event("character_evolved", day=3, scene="bad_character", summary="bad", deltas={"predicate": "mood", "value": "bad"}),
+            kernel_event("relationship_changed", day=4, scene="bad_character", summary="bad", deltas={"toward": "npc", "value": "bad"}),
+            # ObjectSystem.
+            kernel_event("object_created", day=5, scene="bad_object", summary="bad", deltas={}),
+            kernel_event("item_transferred", day=6, scene="bad_object", summary="bad", deltas={"to": "protagonist"}),
+            # KnowledgeSystem.
+            kernel_event("knowledge_set", day=7, scene="bad_knowledge", summary="bad", deltas={"fact_key": "rumor", "value": "bad"}),
+            kernel_event("knowledge_broadcast", day=8, scene="bad_knowledge", summary="bad", deltas={"audience": {"place": "nowhere"}, "value": "bad"}),
+            # FactionSystem.
+            kernel_event("faction_created", day=9, scene="bad_faction", summary="bad", deltas={}),
+            kernel_event("member_changed", day=10, scene="bad_faction", summary="bad", deltas={"faction": "none"}),
+            # LoreSystem creation/bookkeeping entries with no durable key.
+            kernel_event("lore_created", day=11, scene="bad_lore", summary="bad", deltas={}),
+            kernel_event("quest_created", day=12, scene="bad_lore", summary="bad", deltas={}),
+            kernel_event("quest_opened", day=13, scene="bad_lore", summary="bad", deltas={}),
+            kernel_event("lore_seeded", day=14, scene="bad_lore", summary="bad", deltas={}),
+            kernel_event("density_refreshed", day=15, scene="bad_lore", summary="bad", deltas={}),
+            # Opt-in InterpretiveMemorySystem: no private body is put in diagnostics.
+            kernel_event("character_interpretation_recorded", day=16, scene="bad_memory", summary="bad", deltas={"actor": "", "text": ""}),
+        ]
+        engine.store.append_many([base, *malformed])
+    finally:
+        engine.store.close()
+
+    db_path = campaign / "events.db"
+    jsonl_path = campaign / "events.jsonl"
+    db_before = db_path.read_bytes()
+    jsonl_before = jsonl_path.read_bytes()
+
+    reopened = build_engine(
+        campaign, provider=FakeLLMProvider(), embedder=None,
+        enable_interpretive_memory=True,
+    )
+    try:
+        assert reopened.world["meta"] == {
+            "day": 1,
+            "scene": "owned_scene",
+            "timeline": [{"day": 1, "scene": "owned_scene", "summary": "主角"}],
+        }
+        assert reopened.world["systems"]["interpretive_memory"]["by_actor"] == {}
+    finally:
+        reopened.store.close()
+    assert db_path.read_bytes() == db_before
+    assert jsonl_path.read_bytes() == jsonl_before
+
+
 def test_reproject_engine_world_keeps_the_snapshot_revision_when_peer_writes_after_read(tmp_path, monkeypatch):
     """A refresh must not label an old event snapshot as a newer peer revision."""
     from app.engine import reproject_engine_world

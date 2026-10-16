@@ -146,6 +146,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-103 | P0 | 已验收（资源 durable event 回放校验） | `resources_resolved` 的 owner 在回放时曾直接信任 `before`／`after`，受损或注入的 durable row 可伪造余额、前置快照，甚至借额外 key 写入非资源事实 | projection/publish preflight 现在只接受 deterministic resolver 可产生的完整资源快照：配置键集、类型／有限值／上下限、当前 ledger 前值、`none`／`spent`／`insufficient` 算术均需一致；冷重开损坏 row fail-closed 且零修复写入，不新增经济规则 |
 | RCV-104 | P0 | 已验收（已跳过 place event 的 replay meta 原子性） | `PlaceSystem` 已兼容跳过缺字段的 durable 事件，但 kernel 在 owner apply 前已推进 day/scene/timeline；晚到的坏 row 会让冷重开界面指向不存在的场景 | owner 可显式返回“已忽略”；kernel 随即撤销该 row 的 meta/timeline 贡献。仅接入 Place 已有的四个 skip 分支，保留坏历史可读、无迁移/删除/新权限规则 |
 | RCV-105 | P0 | 已验收（已跳过 ontology event 的 replay meta 原子性） | Ontology 的缺字段 entity/fact/relation/tier 兼容 skip 与 RCV-104 同构；坏 `fact_asserted` 在冷重开会留下空图修改却把当前 scene 推向错误事件 | 同一显式 ignore 协议仅接入 Ontology 的四个既有 skip 分支；正常 FactGraph apply、跨 owner 依赖和历史行保留不变 |
+| RCV-106 | P0 | 已验收（剩余纯 skip owner 的 replay meta 原子性） | Character、Object、Knowledge、Faction、Lore 和 opt-in InterpretiveMemory 的缺字段兼容 skip 同样可让 durable 空操作错误推进冷重开 meta | 六 owner 的 15 个纯 skip 分支显式忽略；综合标准-store→冷重开回归证明 timeline 停在最后合法行、SQLite/JSONL 不改写。保留 Cascade audit/queue、Lore lifecycle no-op、Memory duplicate 与 Knowledge unknown-audience 的既有语义 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2018,3 +2019,19 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `tests/app/test_engine.py::test_reopen_ignores_owned_ontology_event_that_projection_skips_without_meta_drift tests/systems/test_ontology.py tests/kernel/test_projection.py -rA`
   为 **`66 passed in 0.16s`**；正式完整离线 gate 为 **`2077 passed, 1 deselected in 25.22s`**，唯一 deselect 是既有
   slow real embedding。无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-106 按剩余 owner 的明确清单完成有界兼容审计并合并为一个恢复切片。先区分了有意的 durable
+  no-op／审计语义：Cascade 缺地点仍可能记录 change/deferral queue；Lore 对未知 line、已结状态的 lifecycle no-op
+  以及 Memory 重复 record 维持历史时间线；Knowledge unknown audience 也未被重新分类。它们均未改动。
+
+  对真正的“warning 后零 state mutation”的分支，标准 store→关闭→重开红例一次写入 Character（create/evolve/
+  relationship）、Object（create/transfer）、Knowledge（set/broadcast）、Faction（create/member）、Lore（缺 id/town
+  的 create/bookkeeping）和显式 opt-in InterpretiveMemory（坏 actor/text）共 **15** 行；修前 current meta 被最后
+  `bad_memory` 行推进。现在各分支显式返回 ignored，复用 RCV-104 的 kernel 回退；回归确认 timeline 只保留 day 1
+  的合法主角行、私有 memory slice 仍为空、SQLite/JSONL 字节不变。无默认 memory 开关、权限、发布策略或跨 owner
+  写入语义变化；所有已审共享图写都由声明 `requires={'ontology'}` 的 owner 完成，未复现未授权跨 owner 写入。
+
+  定向
+  `tests/app/test_engine.py::test_reopen_ignores_remaining_owned_compatibility_skips_without_meta_drift tests/systems/test_character.py tests/systems/test_object.py tests/systems/test_knowledge.py tests/systems/test_faction.py tests/systems/test_lore_system.py tests/systems/test_interpretive_memory.py tests/kernel/test_projection.py -rA`
+  为 **`236 passed in 0.46s`**；正式完整离线 gate 为 **`2078 passed, 1 deselected in 24.95s`**，唯一 deselect 是
+  既有 slow real embedding。无真实模型、embedding、网络或外部服务调用。

@@ -57,7 +57,7 @@ class LoreSystem(ContextSystem):
     def empty_state(self) -> dict:
         return {"lines": {}, "gen": {}}
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         t = event["type"]
         d = event.get("deltas", {})
         lines = world["systems"][self.name]["lines"]
@@ -66,7 +66,7 @@ class LoreSystem(ContextSystem):
             lid = d.get("id")
             if not lid:
                 log.warning("lore_created missing id; skipped (%s)", event.get("id"))
-                return
+                return False
             complexity = d.get("complexity")
             born_day = event.get("day")
             lifespan_days = d.get("lifespan_days") or _LIFESPAN_DEFAULTS.get(complexity)
@@ -96,7 +96,7 @@ class LoreSystem(ContextSystem):
             lid = d.get("id")
             if not lid:
                 log.warning("quest_created missing id; skipped (%s)", event.get("id"))
-                return
+                return False
             summary = d.get("summary", "")
             complexity = d.get("complexity")
             born_day = event.get("day")
@@ -127,7 +127,7 @@ class LoreSystem(ContextSystem):
             lid = d.get("id")
             if not lid:
                 log.warning("quest_opened missing id; skipped (%s)", event.get("id"))
-                return
+                return False
             summary = d.get("summary", "")
             complexity = d.get("complexity")
             born_day = event.get("day")
@@ -330,7 +330,7 @@ class LoreSystem(ContextSystem):
             town = d.get("town")
             if not town:
                 log.warning("lore_seeded missing town; skipped (%s)", event.get("id"))
-                return
+                return False
             gen.setdefault(town, {})
             gen[town]["seeded"] = True
             gen[town]["last_refresh_day"] = event.get("day")
@@ -344,7 +344,7 @@ class LoreSystem(ContextSystem):
             town = d.get("town")
             if not town:
                 log.warning("density_refreshed missing town; skipped (%s)", event.get("id"))
-                return
+                return False
             gen.setdefault(town, {})["last_refresh_day"] = event.get("day")
             log.debug("density_refreshed town=%s day=%s", town, event.get("day"))
             return

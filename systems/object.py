@@ -55,7 +55,7 @@ class ObjectSystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
@@ -64,7 +64,7 @@ class ObjectSystem(ContextSystem):
             oid = d.get("id")
             if not oid:
                 log.warning("object_created event missing 'id' in deltas — skipping (event %s)", event.get("id"))
-                return
+                return False
             tier = d.get("tier", "mentioned")
             # Collect all extra attrs (exclude id/tier)
             attrs: dict[str, Any] = {
@@ -82,7 +82,7 @@ class ObjectSystem(ContextSystem):
                     "item_transferred event missing 'item' or 'to' in deltas — skipping (event %s)",
                     event.get("id"),
                 )
-                return
+                return False
             # held_by is single-valued — supersedes prior holder (default supersede=True)
             g.add_relation(
                 item, "held_by", to,

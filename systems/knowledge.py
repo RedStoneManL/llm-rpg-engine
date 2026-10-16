@@ -121,7 +121,7 @@ class KnowledgeSystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
@@ -139,7 +139,7 @@ class KnowledgeSystem(ContextSystem):
                     "(knower=%r fact_key=%r value present=%s) — skipped",
                     src, knower, fact_key, "value" in d,
                 )
-                return
+                return False
             g.assert_fact(
                 knower, f"knows:{fact_key}", value,
                 day=day, turn=turn, source_event=src,
@@ -162,7 +162,7 @@ class KnowledgeSystem(ContextSystem):
                     "(fact_key=%r value present=%s) — skipped",
                     src, fact_key, "value" in d,
                 )
-                return
+                return False
             audience = d.get("audience", {})
 
             members = self._resolve_audience(g, audience, day)

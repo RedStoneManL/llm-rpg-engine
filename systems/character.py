@@ -65,7 +65,7 @@ class CharacterSystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
@@ -74,14 +74,14 @@ class CharacterSystem(ContextSystem):
             pid = d.get("id")
             if not pid:
                 log.warning("character_created event missing deltas.id — skipping")
-                return
+                return False
             sketch = d.get("sketch")
             goal = d.get("goal")
             if not sketch or not goal:
                 log.warning(
                     "character_created id=%s missing sketch/goal — skipping", pid
                 )
-                return
+                return False
             tier = d.get("tier", "mentioned")
             g.add_entity(pid, "Person", tier=tier)
             day = event["day"]
@@ -111,7 +111,7 @@ class CharacterSystem(ContextSystem):
                     "character_evolved missing required field(s) id=%r predicate=%r value=%r — skipping",
                     pid, predicate, value,
                 )
-                return
+                return False
             g.assert_fact(pid, predicate, value,
                           day=event["day"],
                           turn=event.get("turn") or 0,
@@ -132,7 +132,7 @@ class CharacterSystem(ContextSystem):
                     "relationship_changed missing required field(s) id=%r toward=%r value=%r — skipping",
                     pid, toward, value,
                 )
-                return
+                return False
             g.assert_fact(pid, f"trust:{toward}", value,
                           day=event["day"],
                           turn=event.get("turn") or 0,
