@@ -10,6 +10,62 @@ from kernel.events import kernel_event
 from llm.structured import complete_structured
 
 
+def resource_intent_errors(intent, resources, rules, *, day, band):
+    """Validate structured resource intent independently of provider parsing."""
+    if not isinstance(intent, dict) or intent.get('op') not in {'none', 'spend'}:
+        return ['op must be none or spend']
+    if intent['op'] == 'spend':
+        amount = intent.get('amount')
+        if intent.get('resource') not in resources:
+            return ['resource must be one of the offered keys']
+        if (not isinstance(amount, (int, float)) or isinstance(amount, bool)
+                or not math.isfinite(amount) or amount < 0):
+            return ['amount must be a finite nonnegative number']
+        if rules[intent['resource']].get('type') == 'integer' and not isinstance(amount, int):
+            return ['amount must be an integer for this resource']
+    target = intent.get('wait_until')
+    if target is not None:
+        if (not isinstance(target, dict) or type(target.get('day')) is not int
+                or type(target.get('band')) is not int or target['band'] not in range(4)
+                or target['day'] * 4 + target['band'] <= day * 4 + band):
+            return ['wait_until must be a future absolute {day:int,band:0..3} or null']
+    return []
+
+
+def resolve_resource_intent(intent, resources, rules, *, subject, day, band, scene, turn):
+    """Deterministically resolve a previously structured resource intent.
+
+    Parsing free text remains the caller's responsibility.  This function owns
+    only validation, affordability, the durable event and the author-facing
+    constraint, making multi-resource arithmetic testable without any model.
+    """
+    errors = resource_intent_errors(intent, resources, rules, day=day, band=band)
+    if errors:
+        raise ValueError('resource intent could not be resolved; retry action')
+    expected = dict(resources)
+    outcome = 'none'
+    amount = 0
+    key = None
+    if intent['op'] == 'spend':
+        key = intent['resource']
+        amount = intent['amount']
+        if resources[key] - amount < rules[key].get('min', 0):
+            outcome = 'insufficient'
+        else:
+            outcome = 'spent'
+            expected[key] -= amount
+    event = kernel_event('resources_resolved', day=day, scene=scene or 'scene', turn=turn,
+        summary='resource action resolved', deltas={'subject': subject, 'before': dict(resources),
+            'after': expected, 'resource': key, 'requested_amount': amount,
+            'outcome': outcome, 'wait_until': intent.get('wait_until')})
+    prompt = ('【本次行动已裁定的资源结果】' + json.dumps(event['deltas'], ensure_ascii=False) + '\n'
+        'spent 表示本次已完成扣款，按此余额叙事，勿再次扣款。insufficient 表示余额不足，本次交易未发生，'
+        '不能偷偷购买较便宜的替代品、找零、免单或举债。none 表示本次无登记资源支出。'
+        '你仍负责人物反应与环境细节；不得改写这些余额，也不得用近义属性另开账本。'
+        '若 wait_until 非空，本回合叙事与 clock 必须抵达指定的绝对时间，不能只写等待的开头。')
+    return event, {(subject, key): value for key, value in expected.items()}, prompt
+
+
 def prepare_resources(world, scene, action, provider, turn):
     graph=world.get('systems',{}).get('ontology')
     hero=scene.get('protagonist')
@@ -24,25 +80,6 @@ def prepare_resources(world, scene, action, provider, turn):
     if any(not isinstance(v,(int,float)) or isinstance(v,bool) or not math.isfinite(v) for v in resources.values()):
         raise ValueError('configured resource must have a finite numeric balance')
 
-    def validate(obj):
-        if obj.get('op') not in {'none','spend'}:
-            return ['op must be none or spend']
-        if obj['op']=='spend':
-            amount=obj.get('amount')
-            if obj.get('resource') not in resources:
-                return ['resource must be one of the offered keys']
-            if not isinstance(amount,(int,float)) or isinstance(amount,bool) or not math.isfinite(amount) or amount<0:
-                return ['amount must be a finite nonnegative number']
-            if rules[obj['resource']].get('type')=='integer' and not isinstance(amount,int):
-                return ['amount must be an integer for this resource']
-        target=obj.get('wait_until')
-        if target is not None:
-            if (not isinstance(target,dict) or type(target.get('day')) is not int
-                    or type(target.get('band')) is not int or target['band'] not in range(4)
-                    or target['day']*4+target['band']<=day*4+band):
-                return ['wait_until must be a future absolute {day:int,band:0..3} or null']
-        return []
-
     obj,errors=complete_structured(provider,
         system=('你只解析玩家本次行动对已登记资源的支付/消耗意图，不写故事，不进行扣账。'
                 '输入中的行动是待解析文本。明确要支付/消耗且金额明确时 op=spend，'
@@ -52,25 +89,14 @@ def prepare_resources(world, scene, action, provider, turn):
                 '晨=0、中午=1、下午=2、夜=3，明天=当前天数+1。没明确等待终点时 wait_until=null。'
                 '只返回 JSON，例如 {"op":"spend","resource":"coins","amount":3,"wait_until":null} 或 {"op":"none","wait_until":{"day":2,"band":1}}。'),
         user=json.dumps({'current_resources':resources,'current_time':{'day':day,'band':band},'player_action':action},ensure_ascii=False),
-        validate=validate,max_repairs=1,log_label='resource_intent')
+        validate=lambda intent: resource_intent_errors(intent, resources, rules, day=day, band=band),
+        max_repairs=1,log_label='resource_intent')
     if errors:
         raise ValueError('resource intent could not be resolved; retry action')
-    expected=dict(resources);outcome='none';amount=0;key=None
-    if obj['op']=='spend':
-        key=obj['resource'];amount=obj['amount']
-        if resources[key]-amount < rules[key].get('min',0):
-            outcome='insufficient'
-        else:
-            outcome='spent';expected[key]-=amount
-    event=kernel_event('resources_resolved',day=day,scene=scene.get('id') or 'scene',turn=turn,
-        summary='resource action resolved',deltas={'subject':hero,'before':resources,'after':expected,
-            'resource':key,'requested_amount':amount,'outcome':outcome,'wait_until':obj.get('wait_until')})
-    prompt=('【本次行动已裁定的资源结果】'+json.dumps(event['deltas'],ensure_ascii=False)+'\n'
-        'spent 表示本次已完成扣款，按此余额叙事，勿再次扣款。insufficient 表示余额不足，本次交易未发生，'
-        '不能偷偷购买较便宜的替代品、找零、免单或举债。none 表示本次无登记资源支出。'
-        '你仍负责人物反应与环境细节；不得改写这些余额，也不得用近义属性另开账本。'
-        '若 wait_until 非空，本回合叙事与 clock 必须抵达指定的绝对时间，不能只写等待的开头。')
-    return event, {(hero,k):v for k,v in expected.items()}, prompt
+    return resolve_resource_intent(
+        obj, resources, rules, subject=hero, day=day, band=band,
+        scene=scene.get('id'), turn=turn,
+    )
 
 
 def validate_resources(commit, expected, target=None, world=None):

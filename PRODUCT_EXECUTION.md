@@ -142,6 +142,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-99 | P1 | 已验收（显式 GUI 新战役启动） | GUI 只能打开既有普通 campaign 或固定 demo；玩家无法从同一入口明确创建正常战役，且不能放松缺失路径零写入保护 | 新增 `--new-game --pitch` 显式路径，在相邻临时目录运行既有 genesis，成功后才原子发布到此前不存在的目标；拒绝覆盖、demo/GM 混用或无效 flavor |
 | RCV-100 | P0 | 已验收（普通 GUI 新战役拒绝 fallback provider） | RCV-99 的 CLI 默认 provider 为 `fake`；用户遗漏 `--provider` 时，原本会把 deterministic fallback/stub 创世结果作为普通保存世界发布 | `--new-game` 在任何目录或 SQLite 创建前拒绝 `fake`；保留显式 `--demo` 的固定离线试用及直接注入 Fake provider 的离线测试，不把 fallback 当作正常创世 |
 | RCV-101 | P0 | 已验收（opt-in 资源配置 schema／创世零发布） | `resources_configured` 过去直接信任 pack 嵌套数据，非法 type、非有限初始值或上下限可能等到 projection 才异常；resource opt-in 的 bootstrap 已临时写入前序 genesis 事件 | 统一检查非空资源 mapping、资源名、`initial/type/min`、有限数、整数/number 类型、上下限与 label；opt-in pack 在第一条 staging genesis event 前拒绝，projection/replay 重用同一检查；默认关闭与 spend 语义不变 |
+| RCV-102 | P0 | 已验收（资源 intent／裁定／恢复一致性） | `prepare_resources` 把结构化 intent 校验、算术裁定与 provider 调用混在一起；既有回归没有直接证明多资源边界、资源 action 的 cold duplicate 零解析，或两个 SQLite 连接的 stale resource action 零写 | 提取无 provider 的 deterministic resource resolver；保持既有 `spend`/`insufficient` 事件形状与提示。覆盖多资源、零/下限/超额、合法/非法 intent、cold action-id 恢复和 stale revision；不新增经济规则或默认启用 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1964,3 +1965,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `tests/test_resources.py tests/test_world_continuity.py -rA` 为 **`31 passed in 0.45s`**；正式完整离线 gate 为
   **`2066 passed, 1 deselected in 25.65s`**，唯一 deselect 是既有 slow real embedding。无真实模型、embedding、网络或
   外部服务调用。
+
+- 2026-10-16：RCV-102 把资源的“模型只做结构化 intent、Python 才做裁定”变成可直接调用的 deterministic resolver。
+  `prepare_resources` 仍使用同一 structured provider contract，但只把已校验 intent 交给 resolver；事件 deltas、余额更新、
+  `spent`／`insufficient`、wait 约束和作者提示均保持原语义。新增回归以两个资源证明未被支付的余额保持不变、整数/number
+  边界（零、恰到下限、超额）不漂移，并证明资源 action 的冷重开 duplicate 在 strategy/provider/intent parser 零调用下返回
+  原结果；另以两个 SQLite 连接证明 stale expected revision 在解析 intent 前拒绝且 SQLite/JSONL 不变。定向
+  `tests/test_resources.py tests/test_action_integrity.py -rA` 为 **`112 passed in 0.65s`**；未调用真实模型、embedding、
+  网络或外部服务。正式完整离线 gate 为 **`2069 passed, 1 deselected in 25.88s`**，唯一 deselect 是既有 slow real
+  embedding。

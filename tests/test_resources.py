@@ -5,9 +5,11 @@ from app.gui import _INDEX, _JS, build_player_state
 from app.play import _build_scene
 from app.play import _print_turn_status
 from app.player_resources import player_resource_outcome
+from engine.store import RevisionConflict
 from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
+from loop.resources import resolve_resource_intent, resource_intent_errors
 from loop.turn import run_turn, TurnRejected
 from loop.strategy import AuthorStrategy
 from loop.bootstrap import GenesisError, bootstrap_world
@@ -69,6 +71,119 @@ def test_explicit_wait_is_repaired_to_absolute_target(game):
         provider=p,strategy=AuthorStrategy())
     assert (answer.world['meta']['day'],answer.world['meta']['band'])==(2,1)
     assert answer.repair_attempts==1
+
+
+def test_pure_resource_resolver_preserves_other_balances_and_numeric_boundaries():
+    resources = {"coins": 5, "fuel": 1.5}
+    rules = {
+        "coins": {"resource": True, "type": "integer", "min": 0},
+        "fuel": {"resource": True, "type": "number", "min": 0.0},
+    }
+    event, expected, prompt = resolve_resource_intent(
+        {"op": "spend", "resource": "coins", "amount": 5, "wait_until": None},
+        resources, rules, subject="hero", day=1, band=0, scene="room", turn=1,
+    )
+    assert event["deltas"]["outcome"] == "spent"
+    assert event["deltas"]["before"] == resources
+    assert event["deltas"]["after"] == {"coins": 0, "fuel": 1.5}
+    assert expected == {("hero", "coins"): 0, ("hero", "fuel"): 1.5}
+    assert "spent" in prompt and "insufficient" in prompt
+
+    event, expected, _ = resolve_resource_intent(
+        {"op": "spend", "resource": "fuel", "amount": 1.5000001, "wait_until": None},
+        resources, rules, subject="hero", day=1, band=0, scene="room", turn=1,
+    )
+    assert event["deltas"]["outcome"] == "insufficient"
+    assert event["deltas"]["after"] == resources
+    assert expected == {("hero", "coins"): 5, ("hero", "fuel"): 1.5}
+
+    zero, _, _ = resolve_resource_intent(
+        {"op": "spend", "resource": "coins", "amount": 0, "wait_until": None},
+        resources, rules, subject="hero", day=1, band=0, scene="room", turn=1,
+    )
+    assert zero["deltas"]["outcome"] == "spent"
+    assert resource_intent_errors(
+        {"op": "spend", "resource": "coins", "amount": 0.5, "wait_until": None},
+        resources, rules, day=1, band=0,
+    ) == ["amount must be an integer for this resource"]
+
+
+def test_resource_action_id_cold_retry_restores_resolution_without_reparsing(game):
+    start_world = game.world
+    start_scene = _build_scene(game)
+    base_revision = game.store.revision
+    first = run_turn(
+        game.registry, game.store, start_world, start_scene, "使用3单位氧气",
+        provider=FakeLLMProvider(json_responses=[
+            {"op": "spend", "resource": "oxygen", "amount": 3, "wait_until": None},
+            {"narration": "阀门回到原位。"},
+        ]),
+        strategy=AuthorStrategy(), action_id="resource-response-loss", expected_revision=base_revision,
+    )
+    assert any(event["type"] == "resources_resolved" for event in first.events)
+    campaign = game.store.db_path.parent
+    game.store.close()
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("duplicate resource action reached strategy")
+
+    class MustNotParse:
+        def complete_messages(self, *args, **kwargs):
+            raise AssertionError("duplicate resource action reparsed intent")
+
+    try:
+        before_events = list(reopened.store.iter_events(include_retracted=True))
+        before_revision = reopened.store.revision
+        before_jsonl = reopened.store.jsonl_path.read_bytes()
+        retry = run_turn(
+            reopened.registry, reopened.store, start_world, start_scene, "使用3单位氧气",
+            provider=MustNotParse(), strategy=MustNotRun(),
+            action_id="resource-response-loss", expected_revision=base_revision,
+        )
+        assert retry.receipt["duplicate"] is True
+        assert retry.events == first.events
+        assert retry.world["systems"]["ontology"].value_at("hero", "oxygen", 1) == 9
+        assert list(reopened.store.iter_events(include_retracted=True)) == before_events
+        assert reopened.store.revision == before_revision
+        assert reopened.store.jsonl_path.read_bytes() == before_jsonl
+    finally:
+        reopened.store.close()
+
+
+def test_stale_resource_turn_rejects_before_intent_parse_or_write(game):
+    other = build_engine(game.store.db_path.parent, provider=FakeLLMProvider(), embedder=None)
+    base_revision = game.store.revision
+    try:
+        first = run_turn(
+            game.registry, game.store, game.world, _build_scene(game), "使用3单位氧气",
+            provider=FakeLLMProvider(json_responses=[
+                {"op": "spend", "resource": "oxygen", "amount": 3, "wait_until": None},
+                {"narration": "阀门回到原位。"},
+            ]),
+            strategy=AuthorStrategy(), action_id="resource-fresh", expected_revision=base_revision,
+        )
+        game.world = first.world
+        before_events = list(other.store.iter_events(include_retracted=True))
+        before_revision = other.store.revision
+        before_jsonl = other.store.jsonl_path.read_bytes()
+
+        class MustNotParse:
+            def complete_messages(self, *args, **kwargs):
+                raise AssertionError("stale resource action parsed intent")
+
+        with pytest.raises(RevisionConflict, match="refresh the world"):
+            run_turn(
+                other.registry, other.store, other.world, _build_scene(other), "使用3单位氧气",
+                provider=MustNotParse(), strategy=AuthorStrategy(),
+                action_id="resource-stale", expected_revision=base_revision,
+            )
+        assert list(other.store.iter_events(include_retracted=True)) == before_events
+        assert other.store.revision == before_revision
+        assert other.store.jsonl_path.read_bytes() == before_jsonl
+    finally:
+        other.store.close()
 
 
 @pytest.mark.parametrize(
