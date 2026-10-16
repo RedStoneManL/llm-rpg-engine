@@ -137,6 +137,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-94 | P1 | 已验收（标准 CLI 无存档创世预览） | RCV-91/92 的离线 preview 只有脚本入口，常规 `python -m app` 又强制 `--campaign`，用户难以在创建保存世界前实际使用安全预览 | `--preview-genesis` 复用 provider-free 解析摘要，可省略 `--campaign`；不构造 provider、打开 store 或 bootstrap，README/创世指南给出工作流 |
 | RCV-95 | P0 | 已验收（CLI 新开局风格预检零写入） | 常规 CLI 对未知显式 `--flavor` 要到 `build_engine()` 后才拒绝，首次运行会留下空 campaign SQLite | 缺失 campaign 时在 provider/store 启动前预检显式 flavor；已保存 campaign 仍忽略该新开局参数并使用存档 flavor |
 | RCV-96 | P1 | 已验收（资源裁定玩家可核对） | 资源系统已以 `resources_resolved` 裁定支付/不足，但玩家出口只有叙事和余额，无法知道一笔显式请求属于哪回合或是否实际发生 | CLI/GUI 共享只读 DTO，只显示当前主角最新 spent/insufficient 的 turn、资源、请求额与结果余额；不从正文推断、不改账本/模型/权限 |
+| RCV-97 | P1 | 已验收（玩家角色状态 DTO 有界显示） | 玩家角色状态 DTO 声称有界，但 public scalar predicate/value 实际可把任意长文本原样送入 CLI 与 GUI，结构化值才会截断 | 共享 read-model 对所有显示 predicate/value 限制为 500 字符并以省略号标记；GUI 对 `dt/dd` 允许断词，仍只消费既有 redacted POV view，零写入 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1909,3 +1910,16 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   临时 server、browser profile 与 campaign 均已删除，未保留截图、未调用真实模型或外部服务。首次 browser
   harness 将 SQLite controller 在主线程构造而让 WSGI 线程读取，得到 500；按 SQLite 线程约束改为同一 WSGI
   线程构造后以上实际路径通过，未改生产代码。
+
+- 2026-10-16：RCV-97 在继续审计既有玩家 read-model 时发现 `player_character._safe_value()` 的注释承诺
+  有界显示，但 string/int/float/bool 标量没有经过长度限制，predicate 名也直接进入 DTO；只有 JSON 结构被
+  截断。公共事实仍应经过 POV/redaction，但一条极长 public 值会同时撑大 CLI `/status` 和 GUI `dt/dd` 面板。
+  现统一对两者做 500 字符上限，超长文本以一个 `…` 明示截断，结构化值也走同一规则；GUI CSS 仅为角色状态
+  的 `dt/dd` 增加 `overflow-wrap:anywhere`，不改变事实、权限、EventStore、prompt 或任何写路由。
+
+  定向单元覆盖长 public predicate/value 及 JSON 结构字段；GUI/CLI 关联回归和最终 JS Node 语法检查通过。
+  系统 Chromium 以临时 loopback campaign 实测一个由 durable public fact 产生的长 ASCII 状态在 390px 页面显示
+  恰好 500 字符且带省略号，private sentinel 不在 DOM，`scrollWidth==clientWidth==375`，服务器只收到 GET（含
+  `/api/state`）；临时 campaign、profile 和 server 已删除。此项没有真实模型、embedding、网络或外部服务调用。
+  定向 `tests/app/test_player_character.py tests/app/test_gui.py tests/app/test_play.py -rA` 为 **`99 passed in 1.55s`**，
+  正式完整离线 gate 为 **`2043 passed, 1 deselected in 29.19s`**；唯一 deselect 是既有 slow real embedding。

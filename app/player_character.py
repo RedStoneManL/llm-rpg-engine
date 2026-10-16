@@ -4,15 +4,24 @@ from __future__ import annotations
 import json
 from typing import Any
 
+_MAX_DISPLAY_CHARS = 500
+
+
+def _bounded_text(text: str) -> str:
+    """Keep a player DTO field bounded without splitting its visible cue."""
+    if len(text) <= _MAX_DISPLAY_CHARS:
+        return text
+    return text[:_MAX_DISPLAY_CHARS - 1] + "…"
+
 
 def _safe_value(value: Any) -> str:
     """Render a bounded scalar-like value without passing structured state through."""
     if isinstance(value, (str, int, float, bool)) or value is None:
-        return str(value)
+        return _bounded_text(str(value))
     try:
-        return json.dumps(value, ensure_ascii=False, sort_keys=True)[:500]
+        return _bounded_text(json.dumps(value, ensure_ascii=False, sort_keys=True))
     except (TypeError, ValueError):
-        return str(value)[:500]
+        return _bounded_text(str(value))
 
 
 def player_character_facts(view: dict[str, Any], protagonist: str | None) -> list[dict[str, str]]:
@@ -28,7 +37,7 @@ def player_character_facts(view: dict[str, Any], protagonist: str | None) -> lis
     if graph is None or not isinstance(protagonist, str):
         return []
     return [
-        {"name": str(fact.predicate), "value": _safe_value(fact.value)}
+        {"name": _bounded_text(str(fact.predicate)), "value": _safe_value(fact.value)}
         for fact in graph.current_facts(protagonist)
         if fact.predicate != "hidden" and fact.secrecy != "secret"
     ]
