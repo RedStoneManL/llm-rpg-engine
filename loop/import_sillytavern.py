@@ -49,6 +49,8 @@ def preview_sillytavern(*, world_book=None, character_card=None, card_as: str = 
     This is deliberately a validation/read-model, not a partial world-book
     translator: free-text entries require the existing structured provider path.
     """
+    if card_as not in {"protagonist", "npc"}:
+        raise ValueError("card_as must be protagonist or npc")
     card = _card_to_protagonist(character_card) if character_card is not None else {}
     entries = world_book.get("entries") if isinstance(world_book, dict) else None
     values = entries.values() if isinstance(entries, dict) else ()

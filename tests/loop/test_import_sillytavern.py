@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+
+import pytest
 from llm.provider import FakeLLMProvider
 from loop.import_sillytavern import convert_sillytavern, preview_sillytavern
 
@@ -53,3 +55,8 @@ def test_offline_preview_reports_malformed_sources():
     preview = preview_sillytavern(world_book={"entries": []}, character_card={})
     assert preview["world_book_entries"] == 0
     assert len(preview["issues"]) == 2
+
+
+def test_offline_preview_rejects_unsupported_card_role():
+    with pytest.raises(ValueError, match="card_as"):
+        preview_sillytavern(card_as="gm")
