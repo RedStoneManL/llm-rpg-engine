@@ -383,10 +383,25 @@ def main(
         _eng_settings.set_max_tool_rounds(args.max_tool_rounds)
 
     from pathlib import Path
-    from app.engine import build_engine, new_game
+    from app.engine import build_engine, new_game, validate_genesis_source_files
     from app.play import play_loop
 
     campaign_dir = Path(args.campaign)
+
+    # A malformed explicit genesis source must not leave a newly-created,
+    # empty campaign behind.  This provider-free check deliberately happens
+    # before build_engine opens SQLite; normal merge/translation precedence is
+    # still resolved below only when this campaign is actually new.
+    from loop.genesis_blueprint import BlueprintError
+    try:
+        validate_genesis_source_files(
+            blueprint_path=args.genesis,
+            world_book_path=args.import_world_book,
+            card_path=args.import_card,
+        )
+    except BlueprintError as e:
+        out(f"[开局错误] 无法读取开局设定文件：{e}")
+        return
 
     # Handle --debug flag: set RPG_DEBUG_TRACE env var and reset tracer singleton
     # so genesis is traced too
@@ -486,7 +501,6 @@ def main(
         # typed a pitch is not re-asked for the premise. Session-zero reads from
         # inputs_iter (same stream the reroll loop + play loop consume next).
         from app.engine import resolve_genesis_spec
-        from loop.genesis_blueprint import BlueprintError
         try:
             spec = resolve_genesis_spec(
                 provider,

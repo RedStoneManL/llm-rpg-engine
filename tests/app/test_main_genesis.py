@@ -1,4 +1,5 @@
 import json
+import pytest
 from llm.provider import FakeLLMProvider
 
 
@@ -45,3 +46,18 @@ def test_main_bad_genesis_file_aborts_cleanly(tmp_path):
         ["--campaign", str(tmp_path / "camp"), "--genesis", str(tmp_path / "nope.json")],
         inputs=iter(["/quit"]), out=out.append, provider=_provider())
     assert "开局错误" in "\n".join(out)
+
+
+@pytest.mark.parametrize("source_flag", ["--genesis", "--import-card", "--import-world-book"])
+def test_main_bad_genesis_source_does_not_create_campaign(tmp_path, source_flag):
+    """Every explicit source is checked before opening a new SQLite campaign."""
+    from app import __main__ as M
+
+    campaign = tmp_path / "campaign"
+    out = []
+    M.main(
+        ["--campaign", str(campaign), source_flag, str(tmp_path / "missing.json")],
+        inputs=iter(["/quit"]), out=out.append, provider=_provider())
+
+    assert "开局错误" in "\n".join(out)
+    assert not campaign.exists()

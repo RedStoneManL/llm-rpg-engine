@@ -133,6 +133,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-90 | P0 | 已验收（结束恢复状态同步） | “结束恢复”曾只清除本地 pending 并宣称当前 state 已保存，若此间 world 已变化会保留旧投影 | 结束恢复清除当前 pending 后只读刷新 state；读取失败使用固定无正文提示，真实 409/失败/重复点击浏览器边界已验收 |
 | RCV-91 | P1 | 已验收（离线导入预览） | world-book 在 provider 缺失时静默返回空 spec，用户无法区分无可读条目和离线无法翻译 | 纯 preview DTO 和独立 CLI 只报告条目数、角色卡字段与原因；不调用 provider、不写 campaign 或输出源文本 |
 | RCV-92 | P1 | 已验收（创世来源 dry-run） | 已有离线导入预览仍缺少一个能用真实解析优先级检查 card／blueprint 来源、又不会 bootstrap 或打开 campaign 的命令 | `scripts/dry_run_genesis_import.py` 只调用 `resolve_genesis_spec(None)`，报告规范化后的部分／缺项／计数与 world-book 限制；回归验证 blueprint 覆盖 card、坏输入安全失败，且不创建 campaign |
+| RCV-93 | P0 | 已验收（CLI 创世来源预检零写入） | 常规 CLI 会在读取 `--genesis`／角色卡／世界书前先调用 `build_engine`，坏路径或坏 JSON 会留下空 campaign SQLite | provider-free 预检在任何 store 打开前验证三类显式来源；正常的后续 resolver 仍是唯一合并/翻译权威，且现有新创世路径保持不变 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1855,3 +1856,14 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   出现 campaign 路径。专项为 **`4 passed in 0.39s`**；正式离线 gate 为
   **`2032 passed, 1 deselected in 25.33s`**，唯一 deselect 是既有 slow real embedding。此项为命令行只读工具，
   没有浏览器、真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-93 审计 RCV-92 的常规 CLI 创世路径时发现，`main()` 先用
+  `build_engine()` 打开 campaign，随后才解析 `--genesis`、`--import-card` 或
+  `--import-world-book`；无效路径/JSON 会留下一份无法游玩的空 SQLite campaign。现在共享
+  `validate_genesis_source_files()` 在任何 store 打开前做 provider-free 的文件读取/格式预检，并沿用
+  `BlueprintError` 的友好错误。正常路径仍在真正 bootstrap 前通过既有
+  `resolve_genesis_spec()` 合并／翻译，故没有复制或改变 card、world-book、blueprint 的来源优先级。
+  红例实际先断言空 campaign 被创建，修复后对三类显式来源均不创建目录；正常 card 与 blueprint 创世保持。
+  定向 `tests/app/test_main_genesis.py tests/app/test_dry_run_genesis_import.py tests/app/test_engine.py -rA`
+  为 **`42 passed`**；正式离线 gate 为 **`2035 passed, 1 deselected in 27.04s`**。唯一 deselect
+  是既有 slow real embedding；本项无浏览器、真实模型、embedding、网络或外部服务调用。

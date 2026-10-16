@@ -355,6 +355,29 @@ def resolve_genesis_spec(provider, *, pitch="", blueprint_path=None,
     return normalize(spec)
 
 
+def validate_genesis_source_files(*, blueprint_path=None, world_book_path=None,
+                                  card_path=None) -> None:
+    """Check explicit genesis files before a new campaign opens its store.
+
+    This is intentionally provider-free and does not normalize or translate a
+    world book.  It exists for entry points that must reject an unreadable
+    source without leaving behind an empty SQLite/JSONL campaign.  The normal
+    resolver remains the single authority for merge precedence and is still
+    called immediately before bootstrap.
+    """
+    from loop.genesis_blueprint import BlueprintError, load_blueprint
+
+    try:
+        if world_book_path:
+            _read_json(world_book_path)
+        if card_path:
+            _read_json(card_path)
+    except (OSError, ValueError) as e:
+        raise BlueprintError(f"failed to read SillyTavern import file: {e}") from e
+    if blueprint_path:
+        load_blueprint(blueprint_path)
+
+
 def _read_json(path):
     import json
     return json.loads(Path(path).read_text(encoding="utf-8"))
