@@ -414,6 +414,19 @@ def main(
 
     campaign_dir = Path(args.campaign)
 
+    # An explicit flavor is a new-game choice.  Validate it before opening a
+    # missing campaign so a typo cannot create an otherwise empty SQLite save.
+    # Existing campaigns intentionally keep their stored flavor (see the
+    # resume branch below), so an incidental --flavor flag must not alter how
+    # they load.
+    if args.flavor and not (campaign_dir / "events.db").is_file():
+        from loop.flavor import resolve_flavor
+        try:
+            resolve_flavor(args.flavor, "")
+        except ValueError as e:
+            out(f"[开局错误] {e}")
+            return
+
     # A malformed explicit genesis source must not leave a newly-created,
     # empty campaign behind.  This provider-free check deliberately happens
     # before build_engine opens SQLite; normal merge/translation precedence is

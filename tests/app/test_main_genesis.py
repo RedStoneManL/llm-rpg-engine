@@ -85,3 +85,37 @@ def test_main_preview_genesis_is_offline_and_needs_no_campaign(monkeypatch):
     result = json.loads(out[0])
     assert result["parts"] == ["npcs"]
     assert result["counts"]["npcs"] == 1
+
+
+def test_main_bad_flavor_does_not_create_campaign(tmp_path):
+    """A rejected first-run flavor must not leave an empty save behind."""
+    from app import __main__ as M
+
+    campaign = tmp_path / "campaign"
+    out = []
+    M.main(
+        ["--campaign", str(campaign), "--flavor", "missing-pack"],
+        inputs=iter(["/quit"]), out=out.append, provider=_provider())
+
+    assert "unknown flavor" in "\n".join(out)
+    assert not campaign.exists()
+
+
+def test_main_saved_campaign_ignores_new_game_flavor_flag(tmp_path):
+    """A resume keeps the save's flavor instead of preflighting a new-game flag."""
+    from app import __main__ as M
+    from app.engine import build_engine, new_game
+
+    campaign = tmp_path / "campaign"
+    engine = build_engine(campaign, provider=_provider())
+    new_game(engine)
+    engine.store.close()
+
+    out = []
+    M.main(
+        ["--campaign", str(campaign), "--flavor", "missing-pack"],
+        inputs=iter(["/quit"]), out=out.append, provider=_provider())
+
+    combined = "\n".join(out)
+    assert "[载入存档]" in combined
+    assert "unknown flavor" not in combined

@@ -135,6 +135,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-92 | P1 | 已验收（创世来源 dry-run） | 已有离线导入预览仍缺少一个能用真实解析优先级检查 card／blueprint 来源、又不会 bootstrap 或打开 campaign 的命令 | `scripts/dry_run_genesis_import.py` 只调用 `resolve_genesis_spec(None)`，报告规范化后的部分／缺项／计数与 world-book 限制；回归验证 blueprint 覆盖 card、坏输入安全失败，且不创建 campaign |
 | RCV-93 | P0 | 已验收（CLI 创世来源预检零写入） | 常规 CLI 会在读取 `--genesis`／角色卡／世界书前先调用 `build_engine`，坏路径或坏 JSON 会留下空 campaign SQLite | provider-free 预检在任何 store 打开前验证三类显式来源；正常的后续 resolver 仍是唯一合并/翻译权威，且现有新创世路径保持不变 |
 | RCV-94 | P1 | 已验收（标准 CLI 无存档创世预览） | RCV-91/92 的离线 preview 只有脚本入口，常规 `python -m app` 又强制 `--campaign`，用户难以在创建保存世界前实际使用安全预览 | `--preview-genesis` 复用 provider-free 解析摘要，可省略 `--campaign`；不构造 provider、打开 store 或 bootstrap，README/创世指南给出工作流 |
+| RCV-95 | P0 | 已验收（CLI 新开局风格预检零写入） | 常规 CLI 对未知显式 `--flavor` 要到 `build_engine()` 后才拒绝，首次运行会留下空 campaign SQLite | 缺失 campaign 时在 provider/store 启动前预检显式 flavor；已保存 campaign 仍忽略该新开局参数并使用存档 flavor |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1877,3 +1878,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   单元回归以会抛错的 provider factory 证明 preview 不会构造 provider。README 与创世指南已给出安全工作流。
   定向 `tests/app/test_main_genesis.py tests/app/test_dry_run_genesis_import.py tests/app/test_engine.py -rA`
   为 **`43 passed in 0.69s`**；此项无浏览器、真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-95 继续审计常规 CLI 的“先拒绝、后打开”边界时发现，未知的显式
+  `--flavor` 仍在 `build_engine()` 创建 campaign SQLite 后才由新开局分支报错。现在仅当 campaign
+  缺少 `events.db`（即将启动新世界）时，`main()` 在 provider／store 初始化前用既有
+  `resolve_flavor()` 预检显式值；报错沿用既有 `[开局错误]` 文案而不创建目录。已保存 campaign 保持
+  原有语义：忽略新开局 `--flavor` 参数，读取自身已保存的 flavor。红例实际为 **`1 failed, 7 passed`**，
+  失败断言正是未知 flavor 后 campaign 目录已经存在；修复后 `tests/app/test_main_genesis.py -rA` 为
+  **`9 passed in 0.20s`**。正式离线 gate 为 **`2038 passed, 1 deselected in 25.21s`**；唯一
+  deselect 是既有 slow real embedding。本项无浏览器、真实模型、embedding、网络或外部服务调用。
