@@ -108,6 +108,94 @@ def test_pure_resource_resolver_preserves_other_balances_and_numeric_boundaries(
     ) == ["amount must be an integer for this resource"]
 
 
+@pytest.mark.parametrize("deltas", [
+    {
+        "subject": "hero", "before": {"oxygen": 12}, "after": {"oxygen": 999},
+        "resource": None, "requested_amount": 0, "outcome": "none", "wait_until": None,
+    },
+    {
+        "subject": "hero", "before": {"oxygen": 7}, "after": {"oxygen": 4},
+        "resource": "oxygen", "requested_amount": 3, "outcome": "spent", "wait_until": None,
+    },
+    {
+        "subject": "hero", "before": {"oxygen": 12, "smuggled": 0},
+        "after": {"oxygen": 12, "smuggled": 1},
+        "resource": None, "requested_amount": 0, "outcome": "none", "wait_until": None,
+    },
+])
+def test_resource_replay_rejects_tampered_resolution_before_publish(game, deltas):
+    """Only the deterministic resolver may create a resource ledger event."""
+    before_events = list(game.store.iter_events(include_retracted=True))
+    before_revision = game.store.revision
+    before_jsonl = game.store.jsonl_path.read_bytes()
+    event = kernel_event(
+        "resources_resolved", day=1, scene="room", turn=1,
+        summary="tampered resource resolution", deltas=deltas,
+    )
+
+    with pytest.raises(ResourceConfigurationError, match="resource resolution"):
+        game.store.append_many(
+            [event], preflight=lambda history: project(game.registry, history),
+        )
+
+    assert list(game.store.iter_events(include_retracted=True)) == before_events
+    assert game.store.revision == before_revision
+    assert game.store.jsonl_path.read_bytes() == before_jsonl
+
+
+def test_resource_replay_accepts_exact_deterministic_resolution(game):
+    graph = game.world["systems"]["ontology"]
+    hero = graph.get_entity("hero")
+    event, _, _ = resolve_resource_intent(
+        {"op": "spend", "resource": "oxygen", "amount": 3, "wait_until": None},
+        {"oxygen": graph.value_at("hero", "oxygen", 1)}, hero.attrs["fact_rules"],
+        subject="hero", day=1, band=0, scene="room", turn=1,
+    )
+    game.store.append_many(
+        [event], preflight=lambda history: project(game.registry, history),
+    )
+    game.world = project(game.registry, game.store.iter_events())
+    assert game.world["systems"]["ontology"].value_at("hero", "oxygen", 1) == 9
+
+
+def test_resource_cold_replay_fails_closed_without_rewriting_tampered_ledger(tmp_path):
+    campaign = tmp_path / "tampered-resource-replay"
+    engine = build_engine(campaign, embedder=None)
+    try:
+        engine.store.append_many([
+            kernel_event("entity_created", day=1, scene="room", turn=0,
+                         summary="hero", deltas={"id": "hero", "etype": "Person", "tier": "tracked"}),
+            kernel_event("resources_configured", day=1, scene="room", turn=0,
+                         summary="resource setup", deltas={"subject": "hero", "resources": {
+                             "oxygen": {"initial": 12, "type": "integer", "min": 0},
+                         }}),
+        ], preflight=lambda history: project(engine.registry, history))
+        # Simulate a damaged durable ledger row written outside the normal
+        # registry-preflight path.  Reopening must not silently normalize it.
+        saved_preflight = engine.store.preflight
+        engine.store.preflight = None
+        try:
+            engine.store.append(kernel_event(
+                "resources_resolved", day=1, scene="room", turn=1,
+                summary="tampered resource resolution", deltas={
+                    "subject": "hero", "before": {"oxygen": 12}, "after": {"oxygen": 999},
+                    "resource": None, "requested_amount": 0, "outcome": "none", "wait_until": None,
+                },
+            ))
+        finally:
+            engine.store.preflight = saved_preflight
+    finally:
+        engine.store.close()
+    before_db = (campaign / "events.db").read_bytes()
+    before_jsonl = (campaign / "events.jsonl").read_bytes()
+
+    with pytest.raises(ResourceConfigurationError, match="resource resolution"):
+        build_engine(campaign, embedder=None)
+
+    assert (campaign / "events.db").read_bytes() == before_db
+    assert (campaign / "events.jsonl").read_bytes() == before_jsonl
+
+
 def test_resource_action_id_cold_retry_restores_resolution_without_reparsing(game):
     start_world = game.world
     start_scene = _build_scene(game)

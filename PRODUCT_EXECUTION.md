@@ -143,6 +143,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-100 | P0 | 已验收（普通 GUI 新战役拒绝 fallback provider） | RCV-99 的 CLI 默认 provider 为 `fake`；用户遗漏 `--provider` 时，原本会把 deterministic fallback/stub 创世结果作为普通保存世界发布 | `--new-game` 在任何目录或 SQLite 创建前拒绝 `fake`；保留显式 `--demo` 的固定离线试用及直接注入 Fake provider 的离线测试，不把 fallback 当作正常创世 |
 | RCV-101 | P0 | 已验收（opt-in 资源配置 schema／创世零发布） | `resources_configured` 过去直接信任 pack 嵌套数据，非法 type、非有限初始值或上下限可能等到 projection 才异常；resource opt-in 的 bootstrap 已临时写入前序 genesis 事件 | 统一检查非空资源 mapping、资源名、`initial/type/min`、有限数、整数/number 类型、上下限与 label；opt-in pack 在第一条 staging genesis event 前拒绝，projection/replay 重用同一检查；默认关闭与 spend 语义不变 |
 | RCV-102 | P0 | 已验收（资源 intent／裁定／恢复一致性） | `prepare_resources` 把结构化 intent 校验、算术裁定与 provider 调用混在一起；既有回归没有直接证明多资源边界、资源 action 的 cold duplicate 零解析，或两个 SQLite 连接的 stale resource action 零写 | 提取无 provider 的 deterministic resource resolver；保持既有 `spend`/`insufficient` 事件形状与提示。覆盖多资源、零/下限/超额、合法/非法 intent、cold action-id 恢复和 stale revision；不新增经济规则或默认启用 |
+| RCV-103 | P0 | 已验收（资源 durable event 回放校验） | `resources_resolved` 的 owner 在回放时曾直接信任 `before`／`after`，受损或注入的 durable row 可伪造余额、前置快照，甚至借额外 key 写入非资源事实 | projection/publish preflight 现在只接受 deterministic resolver 可产生的完整资源快照：配置键集、类型／有限值／上下限、当前 ledger 前值、`none`／`spent`／`insufficient` 算术均需一致；冷重开损坏 row fail-closed 且零修复写入，不新增经济规则 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1974,3 +1975,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `tests/test_resources.py tests/test_action_integrity.py -rA` 为 **`112 passed in 0.65s`**；未调用真实模型、embedding、
   网络或外部服务。正式完整离线 gate 为 **`2069 passed, 1 deselected in 25.88s`**，唯一 deselect 是既有 slow real
   embedding。
+
+- 2026-10-16：RCV-103 审计 RCV-102 的 durable 边界时发现，`ResourceSystem.apply()` 对
+  `resources_resolved` 只遍历 `after` 并断言 fact；它没有复核 `before` 是否为该事件前的真实余额、没有检查 outcome
+  算术，也没有限制映射键集。隔离红例显示正常预检会接受三类事件：`none` 却把 oxygen 12 写成 999、伪造 7→4 的前置
+  快照，或在 `before/after` 中夹带 `smuggled` 非资源 fact；首轮结果为 **`3 failed`**。
+
+  现 `validate_resource_resolution()` 在资源 owner 的 apply 前验证 subject、完整资源键集、有限且与 integer/number
+  规则一致的 before/after、配置边界、前一 graph 的实际余额及 `none`／`spent`／`insufficient` 的唯一合法结果。
+  因此标准 EventStore preflight 在 SQLite／JSONL publish 前原子拒绝损坏 batch；为验证旧/外部损坏历史，回归临时绕过
+  store preflight 写入一行错误 ledger，再 cold reopen，确认 projection fail-closed 且 DB/JSONL 字节完全不被改写。
+  正常 resolver 生成的事件仍能直接重放。没有新增收入、退款、债务、价格、发现授权或默认开关。
+  定向 `tests/test_resources.py tests/test_projection.py tests/test_action_integrity.py -rA` 为 **`125 passed in 0.67s`**；
+  正式完整离线 gate 为 **`2074 passed, 1 deselected in 27.65s`**，唯一 deselect 是既有 slow real embedding；无真实模型、
+  embedding、网络或外部服务调用。
