@@ -140,6 +140,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-97 | P1 | 已验收（玩家角色状态 DTO 有界显示） | 玩家角色状态 DTO 声称有界，但 public scalar predicate/value 实际可把任意长文本原样送入 CLI 与 GUI，结构化值才会截断 | 共享 read-model 对所有显示 predicate/value 限制为 500 字符并以省略号标记；GUI 对 `dt/dd` 允许断词，仍只消费既有 redacted POV view，零写入 |
 | RCV-98 | P0 | 已验收（restricted 玩家事实统一隔离） | `restricted` 已被 native author policy 视为不可见，但玩家 POV 自身事实、角色状态与续玩摘要只过滤 `secret`，可能把导演限定事实带入普通作者上下文或玩家出口 | `context.access` 统一定义玩家隐藏 secrecy 集合；POV、角色状态与 resume recap 都排除 `secret` 和 `restricted`，只读出口与 prompt 均保持零写入 |
 | RCV-99 | P1 | 已验收（显式 GUI 新战役启动） | GUI 只能打开既有普通 campaign 或固定 demo；玩家无法从同一入口明确创建正常战役，且不能放松缺失路径零写入保护 | 新增 `--new-game --pitch` 显式路径，在相邻临时目录运行既有 genesis，成功后才原子发布到此前不存在的目标；拒绝覆盖、demo/GM 混用或无效 flavor |
+| RCV-100 | P0 | 已验收（普通 GUI 新战役拒绝 fallback provider） | RCV-99 的 CLI 默认 provider 为 `fake`；用户遗漏 `--provider` 时，原本会把 deterministic fallback/stub 创世结果作为普通保存世界发布 | `--new-game` 在任何目录或 SQLite 创建前拒绝 `fake`；保留显式 `--demo` 的固定离线试用及直接注入 Fake provider 的离线测试，不把 fallback 当作正常创世 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1946,3 +1947,9 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   DevTools 以新建 campaign 实测 DOM 显示 `SAVED CAMPAIGN`、已保存玩家状态与行动控件，390px 无横向溢出且只读加载无 POST；此前失败是
   等待脚本而非界面缺陷。定向 `tests/app/test_gui.py -rA` 通过；完整 gate 为 **`2049 passed, 1 deselected in 25.98s`**。这是本地
   deterministic genesis 接线，不代表真实模型生成质量；本轮未调用真实模型、网络或外部服务。
+
+- 2026-10-16：RCV-100 收紧 RCV-99 的 provider 入口：普通 `--new-game` 若仍是默认 `fake`，现在由 argparse 在任何
+  campaign 目录、SQLite 或 staging 创建前拒绝，并提示用户显式选择已配置的正常 provider；离线游玩继续只能显式走
+  `--demo`。这不会移除测试中的直接 Fake provider 注入，也不调用真实模型。`tests/app/test_gui.py -rA` 为
+  **`57 passed in 1.00s`**；正式完整离线 gate 为 **`2050 passed, 1 deselected in 25.37s`**，唯一 deselect 是既有
+  slow real embedding。README 的普通新战役示例和约束已同步。
