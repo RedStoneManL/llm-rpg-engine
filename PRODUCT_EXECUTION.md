@@ -141,6 +141,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-98 | P0 | 已验收（restricted 玩家事实统一隔离） | `restricted` 已被 native author policy 视为不可见，但玩家 POV 自身事实、角色状态与续玩摘要只过滤 `secret`，可能把导演限定事实带入普通作者上下文或玩家出口 | `context.access` 统一定义玩家隐藏 secrecy 集合；POV、角色状态与 resume recap 都排除 `secret` 和 `restricted`，只读出口与 prompt 均保持零写入 |
 | RCV-99 | P1 | 已验收（显式 GUI 新战役启动） | GUI 只能打开既有普通 campaign 或固定 demo；玩家无法从同一入口明确创建正常战役，且不能放松缺失路径零写入保护 | 新增 `--new-game --pitch` 显式路径，在相邻临时目录运行既有 genesis，成功后才原子发布到此前不存在的目标；拒绝覆盖、demo/GM 混用或无效 flavor |
 | RCV-100 | P0 | 已验收（普通 GUI 新战役拒绝 fallback provider） | RCV-99 的 CLI 默认 provider 为 `fake`；用户遗漏 `--provider` 时，原本会把 deterministic fallback/stub 创世结果作为普通保存世界发布 | `--new-game` 在任何目录或 SQLite 创建前拒绝 `fake`；保留显式 `--demo` 的固定离线试用及直接注入 Fake provider 的离线测试，不把 fallback 当作正常创世 |
+| RCV-101 | P0 | 已验收（opt-in 资源配置 schema／创世零发布） | `resources_configured` 过去直接信任 pack 嵌套数据，非法 type、非有限初始值或上下限可能等到 projection 才异常；resource opt-in 的 bootstrap 已临时写入前序 genesis 事件 | 统一检查非空资源 mapping、资源名、`initial/type/min`、有限数、整数/number 类型、上下限与 label；opt-in pack 在第一条 staging genesis event 前拒绝，projection/replay 重用同一检查；默认关闭与 spend 语义不变 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1953,3 +1954,13 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `--demo`。这不会移除测试中的直接 Fake provider 注入，也不调用真实模型。`tests/app/test_gui.py -rA` 为
   **`57 passed in 1.00s`**；正式完整离线 gate 为 **`2050 passed, 1 deselected in 25.37s`**，唯一 deselect 是既有
   slow real embedding。README 的普通新战役示例和约束已同步。
+
+- 2026-10-16：RCV-101 完成资源配置可靠性，而不扩大资源经济语义。`resources_configured` 现在对 host/pack 数据统一
+  检查：resources 必须是非空 object；每个资源需要非空名字及 `initial`、`type`、`min`；type 只可为 `integer` 或
+  `number`，所有数值必须有限并满足类型与 `min <= initial <= max`（若提供 max），label 也必须是非空字符串。该检查既
+  在 opt-in genesis 的第一条 staging event 前执行，也在 ResourceSystem projection/replay 中重用。坏 pack 因而不会
+  触发 provider 或发布任何 genesis event；合法既有 pack 形状、integer/number、关闭重开回放都保持兼容。`RPG_RESOURCE_RULES`
+  仍是唯一 opt-in 开关，未默认启用；未新增收入、退款、债务、价格或发现授权。定向
+  `tests/test_resources.py tests/test_world_continuity.py -rA` 为 **`31 passed in 0.45s`**；正式完整离线 gate 为
+  **`2066 passed, 1 deselected in 25.65s`**，唯一 deselect 是既有 slow real embedding。无真实模型、embedding、网络或
+  外部服务调用。

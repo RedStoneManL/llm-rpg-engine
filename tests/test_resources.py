@@ -1,5 +1,6 @@
 import pytest
 from app.engine import build_engine, rewind
+from engine.oracle import load_pack_manifest
 from app.gui import _INDEX, _JS, build_player_state
 from app.play import _build_scene
 from app.play import _print_turn_status
@@ -9,6 +10,8 @@ from kernel.projection import project
 from llm.provider import FakeLLMProvider
 from loop.turn import run_turn, TurnRejected
 from loop.strategy import AuthorStrategy
+from loop.bootstrap import GenesisError, bootstrap_world
+from systems.resources import ResourceConfigurationError, validate_resource_configuration
 
 
 @pytest.fixture
@@ -132,3 +135,82 @@ def test_player_resource_outcome_rejects_nonpublic_or_malformed_resolution():
         "requested_amount": 0, "after": {}, "turn": 1,
     }
     assert player_resource_outcome(world, "hero") is None
+
+
+@pytest.mark.parametrize("resources", [
+    None,
+    [],
+    {},
+    {"coins": []},
+    {"coins": {"initial": 1, "type": "integer"}},
+    {"coins": {"initial": True, "type": "integer", "min": 0}},
+    {"coins": {"initial": float("nan"), "type": "number", "min": 0}},
+    {"coins": {"initial": 1, "type": "decimal", "min": 0}},
+    {"coins": {"initial": 1, "type": "integer", "min": 0.0}},
+    {"coins": {"initial": 1, "type": "integer", "min": 2}},
+    {"coins": {"initial": 1, "type": "integer", "min": 0, "max": 0}},
+    {"coins": {"initial": 1, "type": "integer", "min": 0, "extra": True}},
+])
+def test_resource_configuration_rejects_malformed_numeric_schema(resources):
+    with pytest.raises(ResourceConfigurationError):
+        validate_resource_configuration(resources)
+
+
+def test_resource_configuration_accepts_existing_pack_shape_and_replays(tmp_path):
+    engine = build_engine(tmp_path / "resource-replay", embedder=None)
+    resources = {
+        "coins": {"initial": 12, "type": "integer", "min": 0, "label": "随身钱币"},
+        "fuel": {"initial": 4.5, "type": "number", "min": 0.0, "max": 8.0, "label": "燃料"},
+    }
+    try:
+        engine.store.append_many([
+            kernel_event("entity_created", day=1, scene="s1", turn=0,
+                         summary="hero", deltas={"id": "hero", "etype": "Person", "tier": "tracked"}),
+            kernel_event("resources_configured", day=1, scene="s1", turn=0,
+                         summary="resources", deltas={"subject": "hero", "resources": resources}),
+        ], preflight=lambda history: project(engine.registry, history))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        hero = engine.world["systems"]["ontology"].get_entity("hero")
+        assert hero.attrs["fact_rules"]["coins"] == {"type": "integer", "min": 0,
+                                                        "label": "随身钱币", "resource": True}
+        assert engine.world["systems"]["ontology"].value_at("hero", "fuel", 1) == 4.5
+        campaign = engine.store.db_path.parent
+        engine.store.close()
+        reopened = build_engine(campaign, embedder=None)
+        try:
+            hero = reopened.world["systems"]["ontology"].get_entity("hero")
+            assert hero.attrs["fact_rules"]["fuel"] == {"type": "number", "min": 0.0,
+                                                           "max": 8.0, "label": "燃料", "resource": True}
+            assert reopened.world["systems"]["ontology"].value_at("hero", "coins", 1) == 12
+        finally:
+            reopened.store.close()
+    finally:
+        if engine.store._conn is not None:
+            engine.store.close()
+
+
+@pytest.mark.parametrize("flavor", ["classic", "isekai"])
+def test_shipped_resource_pack_shape_is_schema_compatible(flavor):
+    resources = load_pack_manifest(flavor)["resources"]
+    assert validate_resource_configuration(resources) == resources
+
+
+def test_invalid_opt_in_resource_pack_blocks_genesis_before_any_publish(tmp_path, monkeypatch):
+    engine = build_engine(tmp_path / "bad-resource-pack", provider=FakeLLMProvider(), embedder=None)
+    before_events = list(engine.store.iter_events(include_retracted=True))
+    before_revision = engine.store.revision
+    before_jsonl = engine.store.jsonl_path.read_bytes() if engine.store.jsonl_path.exists() else None
+    monkeypatch.setenv("RPG_RESOURCE_RULES", "1")
+    monkeypatch.setattr("loop.bootstrap.load_pack_manifest", lambda _flavor: {
+        "resources": {"coins": {"initial": float("inf"), "type": "number", "min": 0}},
+    })
+    try:
+        with pytest.raises(GenesisError, match="invalid opt-in resource configuration"):
+            bootstrap_world(engine, "不应开始")
+        assert engine.provider.calls == []
+        assert list(engine.store.iter_events(include_retracted=True)) == before_events
+        assert engine.store.revision == before_revision
+        after_jsonl = engine.store.jsonl_path.read_bytes() if engine.store.jsonl_path.exists() else None
+        assert after_jsonl == before_jsonl
+    finally:
+        engine.store.close()

@@ -13,7 +13,7 @@ from kernel.projection import project
 from llm.generation_guard import collect_failures, WatchedProvider
 from llm.provider import FakeLLMProvider
 
-from engine.oracle import Oracle, scene_seed, load_table  # noqa: F401
+from engine.oracle import Oracle, scene_seed, load_table, load_pack_manifest  # noqa: F401
 from engine.log import get_logger
 from kernel.events import kernel_event
 from kernel.observability import get_tracer
@@ -28,6 +28,7 @@ from loop.genesis import (  # noqa: F401  (re-exported for back-compat)
 )
 
 from loop.flavor import stored_flavor
+from systems.resources import ResourceConfigurationError, validate_resource_configuration
 
 log = get_logger("loop.bootstrap")
 
@@ -118,6 +119,21 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
     if wp:
         spec = {**spec, "world_premise": wp}
     genre = wp.get("genre", pitch)
+
+    # Resource configuration is optional host data, but when the explicit
+    # opt-in is enabled it must be checked before the first staged genesis
+    # event.  Otherwise a malformed pack would only fail after the bootstrap
+    # pipeline had done work (and before this atomic wrapper could explain the
+    # actual cause cleanly).
+    import os
+    resource_config = None
+    if os.environ.get('RPG_RESOURCE_RULES', '0') == '1':
+        resources = load_pack_manifest(flavor).get('resources', {})
+        if resources:
+            try:
+                resource_config = validate_resource_configuration(resources)
+            except ResourceConfigurationError as exc:
+                raise GenesisError('invalid opt-in resource configuration') from exc
 
     boundaries: dict[str, int] = {}
 
@@ -243,13 +259,10 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
 
         # Opt-in host rules; values/types remain flavor data. The resulting
         # configuration is event-sourced, so resumed saves need no environment.
-        import os
-        from engine.oracle import load_pack_manifest
-        resources = load_pack_manifest(flavor).get('resources', {})
-        if resources and os.environ.get('RPG_RESOURCE_RULES', '0') == '1':
+        if resource_config is not None:
             store.append(kernel_event('resources_configured', turn=0, day=1, scene='genesis',
                 summary='scenario resource rules configured',
-                deltas={'subject':protagonist, 'resources':resources}))
+                deltas={'subject':protagonist, 'resources':resource_config}))
 
         # -----------------------------------------------------------------------
         # Step 6: gen_factions
