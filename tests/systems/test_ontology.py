@@ -637,3 +637,10 @@ class TestDefensivePipeline:
         g = w["systems"]["ontology"]
         # The good entity was still created
         assert g.get_entity("艾拉") is not None
+        # Stored rows that the owner explicitly skips cannot become a phantom
+        # current scene or timeline entry.
+        assert w["meta"] == {
+            "day": 1,
+            "scene": "s1",
+            "timeline": [{"day": 1, "scene": "s1", "summary": "艾拉登场"}],
+        }

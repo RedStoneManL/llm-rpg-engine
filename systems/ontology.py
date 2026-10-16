@@ -43,7 +43,7 @@ class OntologySystem(ContextSystem):
     # Projection
     # ------------------------------------------------------------------
 
-    def apply(self, world: dict, event: dict) -> None:
+    def apply(self, world: dict, event: dict) -> bool | None:
         g: FactGraph = world["systems"][self.name]
         d = event.get("deltas", {})
         t = event["type"]
@@ -55,7 +55,7 @@ class OntologySystem(ContextSystem):
                     "entity_created event missing id or etype in deltas; skipping. "
                     "event_id=%s deltas=%r", event.get("id"), d
                 )
-                return
+                return False
             g.add_entity(entity_id, etype, tier=d.get("tier", "mentioned"), **d.get("attrs", {}))
         elif t == "fact_asserted":
             subject = d.get("subject")
@@ -66,7 +66,7 @@ class OntologySystem(ContextSystem):
                     "fact_asserted event missing subject/predicate/value in deltas; skipping. "
                     "event_id=%s deltas=%r", event.get("id"), d
                 )
-                return
+                return False
             g.assert_fact(
                 subject, predicate, value,
                 day=event["day"],
@@ -83,7 +83,7 @@ class OntologySystem(ContextSystem):
                     "relation_added event missing src/rel/dst in deltas; skipping. "
                     "event_id=%s deltas=%r", event.get("id"), d
                 )
-                return
+                return False
             g.add_relation(
                 src, rel, dst,
                 day=event["day"],
@@ -98,7 +98,7 @@ class OntologySystem(ContextSystem):
                     "tier_changed event missing id or tier in deltas; skipping. "
                     "event_id=%s deltas=%r", event.get("id"), d
                 )
-                return
+                return False
             g.set_tier(entity_id, tier)
 
     # ------------------------------------------------------------------

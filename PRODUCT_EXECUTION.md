@@ -145,6 +145,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-102 | P0 | 已验收（资源 intent／裁定／恢复一致性） | `prepare_resources` 把结构化 intent 校验、算术裁定与 provider 调用混在一起；既有回归没有直接证明多资源边界、资源 action 的 cold duplicate 零解析，或两个 SQLite 连接的 stale resource action 零写 | 提取无 provider 的 deterministic resource resolver；保持既有 `spend`/`insufficient` 事件形状与提示。覆盖多资源、零/下限/超额、合法/非法 intent、cold action-id 恢复和 stale revision；不新增经济规则或默认启用 |
 | RCV-103 | P0 | 已验收（资源 durable event 回放校验） | `resources_resolved` 的 owner 在回放时曾直接信任 `before`／`after`，受损或注入的 durable row 可伪造余额、前置快照，甚至借额外 key 写入非资源事实 | projection/publish preflight 现在只接受 deterministic resolver 可产生的完整资源快照：配置键集、类型／有限值／上下限、当前 ledger 前值、`none`／`spent`／`insufficient` 算术均需一致；冷重开损坏 row fail-closed 且零修复写入，不新增经济规则 |
 | RCV-104 | P0 | 已验收（已跳过 place event 的 replay meta 原子性） | `PlaceSystem` 已兼容跳过缺字段的 durable 事件，但 kernel 在 owner apply 前已推进 day/scene/timeline；晚到的坏 row 会让冷重开界面指向不存在的场景 | owner 可显式返回“已忽略”；kernel 随即撤销该 row 的 meta/timeline 贡献。仅接入 Place 已有的四个 skip 分支，保留坏历史可读、无迁移/删除/新权限规则 |
+| RCV-105 | P0 | 已验收（已跳过 ontology event 的 replay meta 原子性） | Ontology 的缺字段 entity/fact/relation/tier 兼容 skip 与 RCV-104 同构；坏 `fact_asserted` 在冷重开会留下空图修改却把当前 scene 推向错误事件 | 同一显式 ignore 协议仅接入 Ontology 的四个既有 skip 分支；正常 FactGraph apply、跨 owner 依赖和历史行保留不变 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2003,4 +2004,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   仍可读、DB/JSONL 字节不变、meta/timeline 与实际 `located_in` 一致；每个 Place skip 分支也有单独元数据断言。
   定向 `tests/kernel/test_projection.py tests/systems/test_place.py tests/app/test_engine.py -rA` 为
   **`104 passed in 0.32s`**；正式完整离线 gate 为 **`2076 passed, 1 deselected in 25.58s`**，唯一 deselect 是既有
+  slow real embedding。无真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-105 继续逐 owner 而非一刀切扩展 RCV-104 协议。Ontology 的 `entity_created`、
+  `fact_asserted`、`relation_added` 和 `tier_changed` 已有缺字段 warning+skip；标准 `EventStore.append()` 写入
+  一个缺 subject 的 `fact_asserted(day=9, scene=bad_scene)` 后，红例关闭重开实际断言为 day 9 而非 day 1，说明
+  它同样可把没有事实改动的历史行错误提升为 current scene。
+
+  这四个 **既有** skip 分支现在明确返回 ignored 信号，复用已验证的 projection 回退机制；不把 dangling、业务 no-op、
+  Cascade audit/queue 行或其他 owner 一概判为 ignored。冷重开回归经正常 store path 写入坏行，断言空 `mood`、
+  day/scene/timeline 稳定及 SQLite/JSONL byte-identical；Ontology 的混合 good/bad stored-event 回归还覆盖三个
+  malformed 分支不贡献元数据。定向
+  `tests/app/test_engine.py::test_reopen_ignores_owned_ontology_event_that_projection_skips_without_meta_drift tests/systems/test_ontology.py tests/kernel/test_projection.py -rA`
+  为 **`66 passed in 0.16s`**；正式完整离线 gate 为 **`2077 passed, 1 deselected in 25.22s`**，唯一 deselect 是既有
   slow real embedding。无真实模型、embedding、网络或外部服务调用。

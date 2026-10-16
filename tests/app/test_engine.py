@@ -157,6 +157,47 @@ def test_reopen_ignores_owned_place_event_that_projection_skips_without_meta_dri
     assert jsonl_path.read_bytes() == jsonl_before
 
 
+def test_reopen_ignores_owned_ontology_event_that_projection_skips_without_meta_drift(tmp_path):
+    """A malformed fact row cannot move meta when its owner skips it."""
+    from kernel.events import kernel_event
+
+    campaign = tmp_path / "legacy-ontology-skip"
+    engine = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        engine.store.append(kernel_event(
+            "entity_created", day=1, scene="owned_scene", summary="主角", deltas={
+                "id": "protagonist", "etype": "Person", "tier": "tracked",
+            },
+        ))
+        # Legacy/direct EventStore callers can retain a registered but
+        # incomplete fact event.  OntologySystem has always skipped it.
+        engine.store.append(kernel_event(
+            "fact_asserted", day=9, scene="bad_scene", summary="损坏事实",
+            deltas={"predicate": "mood", "value": "坏"},
+        ))
+    finally:
+        engine.store.close()
+
+    db_path = campaign / "events.db"
+    jsonl_path = campaign / "events.jsonl"
+    db_before = db_path.read_bytes()
+    jsonl_before = jsonl_path.read_bytes()
+
+    reopened = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
+    try:
+        graph = reopened.world["systems"]["ontology"]
+        assert reopened.world["meta"] == {
+            "day": 1,
+            "scene": "owned_scene",
+            "timeline": [{"day": 1, "scene": "owned_scene", "summary": "主角"}],
+        }
+        assert graph.value_at("protagonist", "mood", day=9) is None
+    finally:
+        reopened.store.close()
+    assert db_path.read_bytes() == db_before
+    assert jsonl_path.read_bytes() == jsonl_before
+
+
 def test_reproject_engine_world_keeps_the_snapshot_revision_when_peer_writes_after_read(tmp_path, monkeypatch):
     """A refresh must not label an old event snapshot as a newer peer revision."""
     from app.engine import reproject_engine_world
