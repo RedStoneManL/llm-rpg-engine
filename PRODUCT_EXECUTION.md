@@ -1900,3 +1900,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   event turn，导致 DTO fail-closed；修复后实际覆盖成功扣除与余额不足、CLI 输出、GUI DTO、关闭重开及 rewind。
   定向 `tests/test_resources.py tests/app/test_gui.py -rA` 与 Node JS 语法检查的最终结果另记于本提交验证；无
   真实模型、embedding、网络或外部服务调用。
+
+  随后的实际浏览器补验使用系统 `/usr/bin/chromium` 的 headless DevTools 协议访问临时、回环的 WSGI
+  campaign（没有 Playwright 依赖）。资源 action 已关闭重开后，390px 页面真实显示“第 1 回合：oxygen 请求
+  3；已扣除，当前 9。”；`window.innerWidth=390` 且 document 的 `scrollWidth==clientWidth==375`，无横向
+  溢出。点击实际的撤销控件只发出预期的 `POST /api/undo`（无 `/api/action`），页面立即变为无可显示结算。
+  第二份只含 other actor 资源事件的临时 campaign 仅 GET 页面/API，`OTHER_RESOURCE_SENTINEL` 不入 DOM。所有
+  临时 server、browser profile 与 campaign 均已删除，未保留截图、未调用真实模型或外部服务。首次 browser
+  harness 将 SQLite controller 在主线程构造而让 WSGI 线程读取，得到 500；按 SQLite 线程约束改为同一 WSGI
+  线程构造后以上实际路径通过，未改生产代码。
