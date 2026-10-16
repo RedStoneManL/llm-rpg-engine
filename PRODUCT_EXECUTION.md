@@ -134,6 +134,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-91 | P1 | 已验收（离线导入预览） | world-book 在 provider 缺失时静默返回空 spec，用户无法区分无可读条目和离线无法翻译 | 纯 preview DTO 和独立 CLI 只报告条目数、角色卡字段与原因；不调用 provider、不写 campaign 或输出源文本 |
 | RCV-92 | P1 | 已验收（创世来源 dry-run） | 已有离线导入预览仍缺少一个能用真实解析优先级检查 card／blueprint 来源、又不会 bootstrap 或打开 campaign 的命令 | `scripts/dry_run_genesis_import.py` 只调用 `resolve_genesis_spec(None)`，报告规范化后的部分／缺项／计数与 world-book 限制；回归验证 blueprint 覆盖 card、坏输入安全失败，且不创建 campaign |
 | RCV-93 | P0 | 已验收（CLI 创世来源预检零写入） | 常规 CLI 会在读取 `--genesis`／角色卡／世界书前先调用 `build_engine`，坏路径或坏 JSON 会留下空 campaign SQLite | provider-free 预检在任何 store 打开前验证三类显式来源；正常的后续 resolver 仍是唯一合并/翻译权威，且现有新创世路径保持不变 |
+| RCV-94 | P1 | 已验收（标准 CLI 无存档创世预览） | RCV-91/92 的离线 preview 只有脚本入口，常规 `python -m app` 又强制 `--campaign`，用户难以在创建保存世界前实际使用安全预览 | `--preview-genesis` 复用 provider-free 解析摘要，可省略 `--campaign`；不构造 provider、打开 store 或 bootstrap，README/创世指南给出工作流 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1867,3 +1868,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   定向 `tests/app/test_main_genesis.py tests/app/test_dry_run_genesis_import.py tests/app/test_engine.py -rA`
   为 **`42 passed`**；正式离线 gate 为 **`2035 passed, 1 deselected in 27.04s`**。唯一 deselect
   是既有 slow real embedding；本项无浏览器、真实模型、embedding、网络或外部服务调用。
+
+- 2026-10-16：RCV-94 把此前只能从脚本路径发现的离线创世预览接入标准 CLI。现在
+  `python -m app --preview-genesis --import-card … [--genesis …]` 可不提供 `--campaign`，复用同一
+  provider-free source summary，输出规范化部分名、缺失项、集合计数和世界书需要 provider 的限制；它不构造
+  provider、不打开 SQLite/EventStore、不 bootstrap，也不输出来源正文。普通 CLI 没有此 flag 时仍要求
+  `--campaign`，既有创世/续玩路径不变。实际命令以 fixture card + `--card-as npc` 返回一项 NPC 和零 campaign；
+  单元回归以会抛错的 provider factory 证明 preview 不会构造 provider。README 与创世指南已给出安全工作流。
+  定向 `tests/app/test_main_genesis.py tests/app/test_dry_run_genesis_import.py tests/app/test_engine.py -rA`
+  为 **`43 passed in 0.69s`**；此项无浏览器、真实模型、embedding、网络或外部服务调用。

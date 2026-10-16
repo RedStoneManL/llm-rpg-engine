@@ -1,6 +1,10 @@
 import json
+from pathlib import Path
 import pytest
 from llm.provider import FakeLLMProvider
+
+
+FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
 def _provider():
@@ -61,3 +65,23 @@ def test_main_bad_genesis_source_does_not_create_campaign(tmp_path, source_flag)
 
     assert "开局错误" in "\n".join(out)
     assert not campaign.exists()
+
+
+def test_main_preview_genesis_is_offline_and_needs_no_campaign(monkeypatch):
+    """The standard CLI exposes the dry-run without provider or store startup."""
+    from app import __main__ as M
+
+    def must_not_make_provider(*args, **kwargs):
+        raise AssertionError("preview must not construct a provider")
+
+    monkeypatch.setattr("llm.provider.make_provider", must_not_make_provider)
+    out = []
+    M.main(
+        ["--preview-genesis", "--import-card", str(FIXTURES / "st_card_v2.json"),
+         "--card-as", "npc"],
+        out=out.append,
+    )
+
+    result = json.loads(out[0])
+    assert result["parts"] == ["npcs"]
+    assert result["counts"]["npcs"] == 1

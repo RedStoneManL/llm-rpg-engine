@@ -79,6 +79,26 @@ free-text once at genesis and produces structured parts.
 - Imports merge UNDER a `--genesis` file and your interactive answers (those win).
 - Offline (no provider) only the card's name/description are extracted.
 
+### Check sources before creating a save
+
+Use the standard CLI's offline preview before choosing a campaign directory:
+
+```bash
+python -m app --preview-genesis \
+  --import-card ./character-card.json --card-as protagonist \
+  --genesis ./my-opening.yaml
+```
+
+This mode does not require `--campaign`, construct a provider, bootstrap a
+world, or open SQLite. It reports only the normalized part names, missing
+required fields, collection counts, and whether a supplied world book still
+needs a provider translation; it never prints the imported source text. A
+blueprint is merged after the card/world-book source, so its non-empty scalar
+fields win. If any supplied file cannot be read or parsed, the command fails
+before a campaign directory can be created. The lower-level
+`python scripts/dry_run_genesis_import.py ...` command exposes the same
+provider-free summary for automation.
+
 ## Example
 
 ```bash

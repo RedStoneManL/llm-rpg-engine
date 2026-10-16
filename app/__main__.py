@@ -258,8 +258,8 @@ def main(
         description="RPG Engine — 跑团命令行",
     )
     parser.add_argument(
-        "--campaign", required=True,
-        help="Path to the campaign directory (created if absent)",
+        "--campaign", required=False,
+        help="Path to the campaign directory (required unless --preview-genesis)",
     )
     parser.add_argument(
         "--provider", default="fake",
@@ -318,6 +318,11 @@ def main(
         help="Import the character card as the protagonist (default) or an NPC.",
     )
     parser.add_argument(
+        "--preview-genesis", action="store_true", dest="preview_genesis",
+        help="Read-only offline preview of genesis sources; does not require --campaign, "
+             "open a store, bootstrap a world, or call a provider.",
+    )
+    parser.add_argument(
         "--debug", action="store_true",
         help="record a structured trajectory trace to <campaign>/trace.jsonl for debugging",
     )
@@ -370,6 +375,27 @@ def main(
     )
     args = parser.parse_args(argv)
     configure_logging()  # honor RPG_DEBUG / RPG_LOG_LEVEL so process logs appear
+
+    if args.preview_genesis:
+        if not any((args.pitch, args.genesis, args.import_world_book, args.import_card)):
+            parser.error("--preview-genesis 至少提供一个创世来源")
+        from app.genesis_preview import preview_genesis_sources
+        import json
+        try:
+            preview = preview_genesis_sources(
+                pitch=args.pitch or "",
+                blueprint_path=args.genesis,
+                world_book_path=args.import_world_book,
+                card_path=args.import_card,
+                card_as=args.card_as,
+            )
+        except Exception as exc:
+            parser.error(f"无法读取创世来源：{exc}")
+        out(json.dumps(preview, ensure_ascii=False, sort_keys=True))
+        return
+
+    if not args.campaign:
+        parser.error("--campaign 是必填项（除非使用 --preview-genesis）")
 
     # Apply --verbosity / --style flags (only when provided; env/default set at import)
     if args.verbosity is not None:
