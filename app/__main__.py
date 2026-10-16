@@ -152,8 +152,10 @@ def _print_resume_recap(engine, out: Callable) -> None:
     g = systems.get("ontology")
     if g is not None:
         try:
+            from context.access import PLAYER_HIDDEN_FACT_SECRECIES
             for f in g.current_facts("protagonist"):
-                if getattr(f, "secrecy", None) == "secret" or getattr(f, "predicate", None) == "hidden":
+                if (getattr(f, "secrecy", None) in PLAYER_HIDDEN_FACT_SECRECIES
+                        or getattr(f, "predicate", None) == "hidden"):
                     continue
                 if getattr(f, "predicate", None) == "真名" and not name:
                     name = str(f.value)

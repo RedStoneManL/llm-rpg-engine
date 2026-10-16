@@ -138,6 +138,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-95 | P0 | 已验收（CLI 新开局风格预检零写入） | 常规 CLI 对未知显式 `--flavor` 要到 `build_engine()` 后才拒绝，首次运行会留下空 campaign SQLite | 缺失 campaign 时在 provider/store 启动前预检显式 flavor；已保存 campaign 仍忽略该新开局参数并使用存档 flavor |
 | RCV-96 | P1 | 已验收（资源裁定玩家可核对） | 资源系统已以 `resources_resolved` 裁定支付/不足，但玩家出口只有叙事和余额，无法知道一笔显式请求属于哪回合或是否实际发生 | CLI/GUI 共享只读 DTO，只显示当前主角最新 spent/insufficient 的 turn、资源、请求额与结果余额；不从正文推断、不改账本/模型/权限 |
 | RCV-97 | P1 | 已验收（玩家角色状态 DTO 有界显示） | 玩家角色状态 DTO 声称有界，但 public scalar predicate/value 实际可把任意长文本原样送入 CLI 与 GUI，结构化值才会截断 | 共享 read-model 对所有显示 predicate/value 限制为 500 字符并以省略号标记；GUI 对 `dt/dd` 允许断词，仍只消费既有 redacted POV view，零写入 |
+| RCV-98 | P0 | 已验收（restricted 玩家事实统一隔离） | `restricted` 已被 native author policy 视为不可见，但玩家 POV 自身事实、角色状态与续玩摘要只过滤 `secret`，可能把导演限定事实带入普通作者上下文或玩家出口 | `context.access` 统一定义玩家隐藏 secrecy 集合；POV、角色状态与 resume recap 都排除 `secret` 和 `restricted`，只读出口与 prompt 均保持零写入 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -1923,3 +1924,16 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `/api/state`）；临时 campaign、profile 和 server 已删除。此项没有真实模型、embedding、网络或外部服务调用。
   定向 `tests/app/test_player_character.py tests/app/test_gui.py tests/app/test_play.py -rA` 为 **`99 passed in 1.55s`**，
   正式完整离线 gate 为 **`2043 passed, 1 deselected in 29.19s`**；唯一 deselect 是既有 slow real embedding。
+
+- 2026-10-16：RCV-98 审计 secrecy 语义时发现不一致：native author policy 已把 `restricted` 与 `secret` 都视为
+  非玩家可见，但 `pov_world()` 的主角自事实分支、玩家角色状态以及续玩摘要只过滤了 `secret`。因此一条
+  `restricted` 的主角事实可能进入普通作者 assembled context，并显示在 GUI、CLI `/status` 或 resume recap。
+  现由 `context.access.PLAYER_HIDDEN_FACT_SECRECIES` 统一该边界；POV 自事实、同场可观测事实、玩家角色 DTO 与
+  resume recap 全部排除这两类 secrecy。普通作者 context、GUI、CLI 和 resume 的回归分别断言 restricted sentinel
+  不出现，公开事实仍可用；本轮不改变 EventStore、fact payload、action receipt、模型或任何写路由。
+
+  系统 Chromium 以临时 loopback WSGI campaign 真实加载 dashboard：durable restricted sentinel 不在 DOM，390px
+  `scrollWidth==clientWidth==375`，服务仅收到 GET（含 `/api/state`）；临时 campaign、profile 与 server 都已删除。
+  定向 `tests/context/test_assembler.py tests/app/test_gui.py tests/app/test_play.py tests/app/test_resume_recap.py -rA`
+  为 **`116 passed in 1.83s`**；正式完整离线 gate 为 **`2045 passed, 1 deselected in 24.65s`**，唯一 deselect
+  是既有 slow real embedding。无真实模型、embedding、网络或外部服务调用。

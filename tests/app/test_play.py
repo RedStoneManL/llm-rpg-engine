@@ -318,6 +318,9 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="secret condition", deltas={
             "subject": "protagonist", "predicate": "hidden", "value": "CLI_STATUS_PRIVATE_SENTINEL", "secrecy": "secret",
         }),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="restricted condition", deltas={
+            "subject": "protagonist", "predicate": "director_note", "value": "CLI_STATUS_RESTRICTED_SENTINEL", "secrecy": "restricted",
+        }),
     ])
     engine.world = project(engine.registry, engine.store.iter_events())
     engine.world["_revision"] = engine.store.revision
@@ -337,6 +340,7 @@ def test_play_loop_status_uses_public_pov_without_writing(tmp_path):
         assert "北岸旧塔" not in rendered
         assert "GUI_DEMO_PRIVATE_SENTINEL" not in rendered
         assert "CLI_STATUS_PRIVATE_SENTINEL" not in rendered
+        assert "CLI_STATUS_RESTRICTED_SENTINEL" not in rendered
         assert engine.store.revision == before_revision
         assert list(engine.store.iter_events()) == before_events
     finally:

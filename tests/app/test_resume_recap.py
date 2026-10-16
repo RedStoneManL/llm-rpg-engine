@@ -92,6 +92,25 @@ def test_resume_recap_ignores_opt_in_private_memory_slice():
     assert "PRIVATE_EVENT_ID" not in rendered
 
 
+def test_resume_recap_excludes_restricted_protagonist_facts(tmp_path):
+    from app.gui import _seed_demo_campaign
+
+    engine = build_engine(tmp_path / "campaign")
+    try:
+        _seed_demo_campaign(engine)
+        engine.store.append(kernel_event(
+            "fact_asserted", day=1, scene="s1", turn=0, summary="restricted objective",
+            deltas={"subject": "protagonist", "predicate": "目标",
+                    "value": "RESTRICTED_RESUME_SENTINEL", "secrecy": "restricted"},
+        ))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        out = []
+        _print_resume_recap(engine, out.append)
+        assert "RESTRICTED_RESUME_SENTINEL" not in "\n".join(out)
+    finally:
+        engine.store.close()
+
+
 def test_resume_recap_uses_canonical_store_projection_without_private_memory(tmp_path):
     engine = build_engine(tmp_path / "campaign")
     try:

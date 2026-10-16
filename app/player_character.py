@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from context.access import PLAYER_HIDDEN_FACT_SECRECIES
+
 _MAX_DISPLAY_CHARS = 500
 
 
@@ -39,5 +41,5 @@ def player_character_facts(view: dict[str, Any], protagonist: str | None) -> lis
     return [
         {"name": _bounded_text(str(fact.predicate)), "value": _safe_value(fact.value)}
         for fact in graph.current_facts(protagonist)
-        if fact.predicate != "hidden" and fact.secrecy != "secret"
+        if fact.predicate != "hidden" and fact.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES
     ]

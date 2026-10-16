@@ -158,6 +158,25 @@ def test_assembled_context_contains_pov_fact():
     assert "安全" in result
 
 
+def test_assembled_context_excludes_restricted_protagonist_fact():
+    """A host-only self fact must not reach the ordinary author prompt."""
+    r, w = _build_world()
+    w["systems"]["ontology"].assert_fact(
+        "主角", "director_note", "RESTRICTED_AUTHOR_SENTINEL",
+        day=1, turn=0, source_event="restricted-self", secrecy="restricted",
+    )
+    scene = {
+        "protagonist": "主角",
+        "present": ["主角", "老兵"],
+        "day": 1,
+        "location": "桥头",
+    }
+
+    result = assemble_context(r, w, scene, query="下一步")
+
+    assert "RESTRICTED_AUTHOR_SENTINEL" not in result
+
+
 def test_assembled_context_excludes_unknown_truth():
     """Unknown ground truth stays backstage even when another NPC knows it."""
     r, w = _build_world()

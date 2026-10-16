@@ -10,6 +10,8 @@ import copy
 from facts.graph import FactGraph
 from systems.knowledge import knows, place_discovery_key, route_discovery_key
 
+PLAYER_HIDDEN_FACT_SECRECIES = frozenset({"secret", "restricted"})
+
 
 def entity_visible(graph, entity, scene, pov, day):
     eid = entity.id
@@ -69,16 +71,18 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
                 if fact.predicate.startswith(own_prefix):
                     predicate = fact.predicate[len(own_prefix):]
                     direct = graph._fact_current.get((pov, predicate))
-                    if direct is not None and predicate != 'hidden' and direct.secrecy != 'secret':
+                    if (direct is not None and predicate != 'hidden'
+                            and direct.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES):
                         exposed.value = copy.deepcopy(direct.value)
                 view.facts.append(exposed)
             continue
         believed = knows(graph, pov, f'{fact.subject}.{fact.predicate}', day)
-        self_visible = fact.subject == pov and fact.predicate != 'hidden' and fact.secrecy != 'secret'
+        self_visible = (fact.subject == pov and fact.predicate != 'hidden'
+                        and fact.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES)
         entity = graph.get_entity(fact.subject)
         observable = {'sketch', 'name', '真名', 'mood', 'state'} | set(entity.attrs.get('observable_fields') or [])
         co_present_visible = (fact.subject in present and
-            fact.predicate in observable and fact.secrecy not in {'secret', 'restricted'})
+            fact.predicate in observable and fact.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES)
         if believed is not None or fact.secrecy == 'public' or self_visible or co_present_visible:
             exposed = copy.deepcopy(fact)
             if believed is not None and not self_visible:

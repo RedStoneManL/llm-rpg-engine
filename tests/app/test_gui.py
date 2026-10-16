@@ -740,6 +740,9 @@ def test_dashboard_does_not_serialize_secret_or_private_memory(tmp_path):
         kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="private fact",
                      deltas={"subject": "protagonist", "predicate": "hidden",
                              "value": "PRIVATE_GUI_SECRET_SENTINEL", "secrecy": "secret"}),
+        kernel_event("fact_asserted", day=1, scene="s1", turn=0, summary="restricted fact",
+                     deltas={"subject": "protagonist", "predicate": "director_note",
+                             "value": "PRIVATE_GUI_RESTRICTED_SENTINEL", "secrecy": "restricted"}),
         kernel_event("character_interpretation_recorded", day=1, scene="s1", turn=0,
                      summary="private memory", deltas={"actor": "protagonist",
                      "text": "PRIVATE_GUI_MEMORY_SENTINEL", "memory_id": "m-private"}),
@@ -748,6 +751,7 @@ def test_dashboard_does_not_serialize_secret_or_private_memory(tmp_path):
     engine.world["_revision"] = engine.store.revision
     payload = json.dumps(build_player_state(engine), ensure_ascii=False)
     assert "PRIVATE_GUI_SECRET_SENTINEL" not in payload
+    assert "PRIVATE_GUI_RESTRICTED_SENTINEL" not in payload
     assert "PRIVATE_GUI_MEMORY_SENTINEL" not in payload
     assert "interpretive_memory" not in payload
     engine.store.close()
