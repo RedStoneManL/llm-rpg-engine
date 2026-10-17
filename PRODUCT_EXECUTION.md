@@ -151,6 +151,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-108 | P0 | 已验收（CLI 明确 provider） | 标准 CLI 的 `--provider` 曾默认 `fake`；遗漏参数即可把 deterministic fallback 用于新建或已保存的普通 campaign | 普通 CLI 必须显式选择 provider，拒绝发生在 provider/store 打开前；缺失/已保存 campaign 均零写，显式 `--provider fake` 与 in-process 注入继续用于离线测试；完整 gate 2080 passed / 1 deselected |
 | RCV-109 | P0 | 已验收（GUI 明确 provider） | 普通 `python -m app.gui` 同样曾默认 `fake`；遗漏参数可用 deterministic fallback 打开已保存普通 campaign | 普通玩家 GUI 在构造 provider 或打开 campaign 前要求显式 `--provider`；`--demo` 与只读 `--gm` 保持 provider-free，完整 gate 2081 passed / 1 deselected |
 | RCV-110 | P1 | 已验收（GUI 非交互创世来源） | GUI 的显式 `--new-game` 只有 pitch/flavor，不能复用 CLI 的 blueprint、角色卡和世界书输入，迫使用户离开同一入口 | GUI 复用 CLI 的来源解析与 provider-free 文件预检；不增加浏览器上传、session-zero、真实模型或额外授权；完整 gate 2086 passed / 1 deselected |
+| RCV-111 | P0 | 已验收（CLI 已保存 campaign 的创世来源拒绝） | CLI 已保存 campaign 会静默忽略 `--genesis`、角色卡或世界书，却继续游玩，用户可能误以为导入已经生效 | 有活跃事件时明确停止于 play/transcript 之前；不改已文档化的 flavor resume 语义，创世来源仍可用于空 campaign；完整 gate 2089 passed / 1 deselected |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2081,4 +2082,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   缺失来源在 provider 构造和 campaign 创建前拒绝，并验证已保存 campaign 不会静默忽略来源参数。定向
   `tests/app/test_gui.py tests/app/test_main_genesis.py tests/app/test_dry_run_genesis_import.py tests/app/test_engine.py -rA` 为
   **`113 passed in 1.99s`**；正式完整离线 gate 为 **`2086 passed, 1 deselected in 32.15s`**，唯一 deselect 是既有 slow real
+  embedding。没有真实模型、embedding、网络或外部服务调用；不涉及隐藏发现 B/C 的运行时启用、外传或 provider 凭据操作。
+
+- 2026-10-17：RCV-111 继续检查同一创世／续玩边界，发现标准 CLI 与刚收紧的 GUI 不一致：给已有 campaign 传
+  `--genesis`、`--import-card` 或 `--import-world-book` 时，CLI 仍会打开并继续游玩，却完全忽略来源。现在读取已有 events
+  后会在 transcript/play setup 前明确停止，并关闭 store；空 campaign 的既有 preflight、解析与创世流程不变，保存世界对
+  `--flavor` 的既有 resume 语义也不改。三类来源的 byte-identical saved-campaign 回归与创世、CLI、GUI、preview 联动
+  `tests/app/test_main_genesis.py tests/app/test_play.py tests/app/test_gui.py tests/app/test_dry_run_genesis_import.py -rA` 为
+  **`126 passed in 2.82s`**；正式完整离线 gate 为 **`2089 passed, 1 deselected in 31.02s`**，唯一 deselect 是既有 slow real
   embedding。没有真实模型、embedding、网络或外部服务调用；不涉及隐藏发现 B/C 的运行时启用、外传或 provider 凭据操作。

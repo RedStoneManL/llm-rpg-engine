@@ -28,7 +28,7 @@ chmod 600 "${XDG_CONFIG_HOME:-$HOME/.config}/llm-rpg-engine/deepseek.env"
 
 也可以直接提供环境变量 `DEEPSEEK_API_KEY`，或使用 `RPG_DEEPSEEK_ENV` 指定配置文件。默认模型为 `deepseek-flash`；`--help` 无需密钥或联网。旧智谱 Coding Plan 入口仍为 `./run.sh`，配置参考 `.env.local.example`。
 
-空存档目录触发创世，已有目录继续冒险。正常 `python -m app` 游玩必须明确传入 `--provider`；只有明确写出 `--provider fake` 时才使用确定性的离线替身。用 `--pitch` 描述世界，`--flavor classic|isekai` 选择场景包，`--verbosity` 与 `--style` 调整文风。自定义创世、角色卡和世界书见 [创世指南](docs/genesis-blueprint.md)。游玩内用 `/help` 查看命令。
+空存档目录触发创世，已有目录继续冒险。正常 `python -m app` 游玩必须明确传入 `--provider`；只有明确写出 `--provider fake` 时才使用确定性的离线替身。用 `--pitch` 描述世界，`--flavor classic|isekai` 选择场景包，`--verbosity` 与 `--style` 调整文风。`--genesis`、角色卡和世界书是仅限创世的来源；已有存档会明确拒绝它们，而不是静默忽略导入。自定义创世、角色卡和世界书见 [创世指南](docs/genesis-blueprint.md)。游玩内用 `/help` 查看命令。
 
 本机玩家 GUI 同样必须在普通模式明确传入 `--provider`，遗漏时会在打开存档或构造 provider 前拒绝；固定离线试用应显式使用 `python -m app.gui --campaign ./campaigns/gui-demo --demo`，只读 GM 模式也不需要 provider。
 

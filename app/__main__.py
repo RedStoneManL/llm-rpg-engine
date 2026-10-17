@@ -514,6 +514,14 @@ def main(
 
     # Seed a new game if the store is empty
     events = list(engine.store.iter_events())
+    if events and any((args.genesis, args.import_world_book, args.import_card)):
+        # These inputs only influence bootstrap.  Continuing after silently
+        # ignoring them makes a player reasonably believe an import was
+        # applied to an existing world, so stop before transcript/play setup.
+        engine.store.close()
+        out("[启动错误] --genesis、--import-world-book 和 --import-card 仅用于创建新战役；"
+            "请使用新的 campaign 路径，或先移除这些参数再续玩。")
+        return
     if not events:
         # ---------------------------------------------------------------
         # Resolve pitch: --pitch flag → RPG_BOOTSTRAP_PITCH env →

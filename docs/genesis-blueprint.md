@@ -48,6 +48,12 @@ A spec is assembled from, in increasing precedence:
 
 Then the model fills everything still absent at bootstrap.
 
+These source flags are bootstrap input, not an edit mechanism for an existing
+campaign. `python -m app` and the explicit GUI `--new-game` path reject them
+when the selected campaign already has saved events, rather than continuing
+and silently ignoring the requested import. Create a new campaign destination
+after using the preview command if you want the source to take effect.
+
 **Merge rules:**
 - **Scalars** (`world_premise.*`, `protagonist.*`, `local_map.town.*`, `opening`):
   a later source's non-empty value wins.

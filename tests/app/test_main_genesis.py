@@ -132,6 +132,37 @@ def test_main_omitted_provider_does_not_open_or_mutate_saved_campaign(tmp_path, 
     } == before
 
 
+@pytest.mark.parametrize("source_flag", ["--genesis", "--import-card", "--import-world-book"])
+def test_main_rejects_genesis_sources_for_a_saved_campaign_without_writing(
+        tmp_path, source_flag):
+    """Creation-only imports must not be silently ignored during normal resume."""
+    from app import __main__ as M
+    from app.engine import build_engine, new_game
+
+    campaign = tmp_path / "campaign"
+    engine = build_engine(campaign, provider=_provider(), embedder=None)
+    new_game(engine, "已保存世界")
+    engine.store.close()
+    source = tmp_path / "source.json"
+    source.write_text(json.dumps({"world_premise": {"genre": "不会被导入"}}), encoding="utf-8")
+    before = {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    }
+    out = []
+
+    M.main(
+        ["--campaign", str(campaign), "--provider", "fake", source_flag, str(source)],
+        inputs=iter(["/quit"]), out=out.append, provider=_provider(),
+    )
+
+    assert "仅用于创建新战役" in "\n".join(out)
+    assert {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    } == before
+
+
 def test_main_bad_flavor_does_not_create_campaign(tmp_path):
     """A rejected first-run flavor must not leave an empty save behind."""
     from app import __main__ as M
