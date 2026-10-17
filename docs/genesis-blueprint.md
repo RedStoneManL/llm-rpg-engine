@@ -99,6 +99,22 @@ before a campaign directory can be created. The lower-level
 `python scripts/dry_run_genesis_import.py ...` command exposes the same
 provider-free summary for automation.
 
+The local player dashboard supports these same **non-interactive** sources on
+its explicit creation path. It does not add a browser upload route or an
+interactive session-zero step:
+
+```bash
+python -m app.gui --campaign ./campaigns/mygame --new-game \
+  --provider openai --model <existing-model> \
+  --genesis ./my-opening.yaml --import-card ./character-card.json \
+  --card-as protagonist
+```
+
+Use the preview command first when possible. For any unreadable or malformed
+source, the dashboard rejects the command before constructing the provider,
+creating its staging directory, or opening SQLite. Interactive session-zero
+remains a CLI-only workflow.
+
 ## Example
 
 ```bash

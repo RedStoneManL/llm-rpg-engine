@@ -32,6 +32,8 @@ chmod 600 "${XDG_CONFIG_HOME:-$HOME/.config}/llm-rpg-engine/deepseek.env"
 
 本机玩家 GUI 同样必须在普通模式明确传入 `--provider`，遗漏时会在打开存档或构造 provider 前拒绝；固定离线试用应显式使用 `python -m app.gui --campaign ./campaigns/gui-demo --demo`，只读 GM 模式也不需要 provider。
 
+GUI 的显式 `--new-game` 现可使用与 CLI 相同的非交互创世来源：`--genesis`、`--import-card`、`--import-world-book` 和 `--card-as`。先用 `python -m app --preview-genesis ...` 作无 provider 的来源摘要；GUI 会在构造 provider 或创建存档前拒绝无法读取的来源。交互式 session-zero 仍只在 `python -m app` 提供。
+
 密钥和个人存档不进入 Git；要继续既有故事，需在旧进程关闭后另行复制完整存档目录。
 
 ## 这一版改变了什么

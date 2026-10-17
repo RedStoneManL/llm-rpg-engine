@@ -93,6 +93,13 @@ python -m app.gui --campaign ./campaigns/my-game --provider openai --model <exis
 python -m app.gui --campaign ./campaigns/my-new-game --new-game --pitch "雾港的钟楼谜案" \
   --provider openai --model <existing-model> --port 8765
 
+# The same non-interactive genesis sources as the CLI are available on the
+# explicit GUI creation path.  Check them first with `python -m app
+# --preview-genesis ...`; a bad source is rejected before the provider or save.
+python -m app.gui --campaign ./campaigns/my-imported-game --new-game \
+  --provider openai --model <existing-model> --genesis ./my-opening.yaml \
+  --import-card ./character-card.json --card-as protagonist --port 8765
+
 # or start a disposable temporary campaign (deleted on exit)
 python scripts/demo_offline_gui.py --port 8765
 ```
@@ -206,9 +213,12 @@ temporary directory, and publishes that directory only after genesis succeeds.
 It never overwrites an existing campaign and does not select the fixed demo
 strategy.  To avoid persisting fallback placeholders as a normal world,
 `--new-game` rejects the default `fake` provider; use explicit `--demo` for the
-fixed offline tour. Use `python -m app` for the fuller CLI session-zero/import workflow,
-or explicitly choose an empty directory with `--demo` for the fixed offline
-tour.
+fixed offline tour. The GUI creation command accepts the same non-interactive
+`--genesis`, `--import-card`, `--import-world-book`, and `--card-as` sources as
+the CLI, while the fuller interactive session-zero workflow remains in
+`python -m app`. Explicit sources are checked before provider or campaign
+startup; use `python -m app --preview-genesis ...` for its provider-free
+summary before creating a save.
 
 Both player and GM views include a read-only public world-book browser. It
 searches existing Codex title/category/body text and renders details with

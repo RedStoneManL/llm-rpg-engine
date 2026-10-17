@@ -1137,7 +1137,10 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
 
 
 def build_new_game_dashboard(campaign_dir: str | Path, *, provider, pitch: str = "",
-                             flavor: str | None = None, max_repairs: int = 6) -> PlayerDashboard:
+                             flavor: str | None = None, blueprint_path: str | Path | None = None,
+                             world_book_path: str | Path | None = None,
+                             card_path: str | Path | None = None,
+                             card_as: str = "protagonist", max_repairs: int = 6) -> PlayerDashboard:
     """Atomically create one explicit normal campaign, then open its player view.
 
     Normal GUI starts remain read-only with respect to an absent campaign.  This
@@ -1151,17 +1154,37 @@ def build_new_game_dashboard(campaign_dir: str | Path, *, provider, pitch: str =
     target = Path(campaign_dir)
     if target.exists():
         raise GuiRequestError("--new-game 只接受不存在的 campaign 路径；不会覆盖或改写已有目录。")
+    from app.engine import resolve_genesis_spec, validate_genesis_source_files
     from loop.flavor import resolve_flavor
+    from loop.genesis_blueprint import BlueprintError
     try:
         resolved_flavor = resolve_flavor(flavor, pitch)
     except ValueError as exc:
         raise GuiRequestError(f"无法创建新战役：{exc}") from None
+    try:
+        # Keep direct callers as safe as the CLI entry point: malformed local
+        # input must fail before the staging directory or SQLite store exists.
+        validate_genesis_source_files(
+            blueprint_path=blueprint_path,
+            world_book_path=world_book_path,
+            card_path=card_path,
+        )
+        spec = resolve_genesis_spec(
+            provider,
+            pitch=pitch,
+            blueprint_path=blueprint_path,
+            world_book_path=world_book_path,
+            card_path=card_path,
+            card_as=card_as,
+        )
+    except BlueprintError as exc:
+        raise GuiRequestError(f"无法读取开局设定文件：{exc}") from None
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{target.name}.new-", dir=target.parent))
     try:
         engine = build_engine(staging, provider=provider, enable_interpretive_memory=False)
         try:
-            new_game(engine, pitch, flavor=resolved_flavor)
+            new_game(engine, pitch, spec=spec, flavor=resolved_flavor)
         finally:
             engine.store.close()
         _publish_new_campaign_no_replace(staging, target)
@@ -1199,6 +1222,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-repairs", default=6, type=int, dest="max_repairs", help="每回合结构修复上限")
     parser.add_argument("--pitch", default="", help="新战役的世界背景关键词（仅 --new-game）")
     parser.add_argument("--flavor", default=None, help="新战役的风味包（仅 --new-game）")
+    parser.add_argument("--genesis", default=None, help="创世蓝图 JSON/YAML（仅 --new-game）")
+    parser.add_argument("--import-world-book", default=None, dest="import_world_book",
+                        help="SillyTavern 世界书 JSON（仅 --new-game）")
+    parser.add_argument("--import-card", default=None, dest="import_card",
+                        help="SillyTavern V2 角色卡 JSON（仅 --new-game）")
+    parser.add_argument("--card-as", default="protagonist", choices=["protagonist", "npc"], dest="card_as",
+                        help="角色卡导入为主角（默认）或 NPC（仅 --new-game）")
     parser.add_argument("--host", default="127.0.0.1", choices=["127.0.0.1"], help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help="本机端口（0 可让系统分配）")
     args = parser.parse_args(argv)
@@ -1214,6 +1244,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--new-game 需要已配置的正常 provider；离线游玩请显式使用 --demo")
     if not args.demo and not args.gm and args.provider is None:
         parser.error("正常 GUI 模式需要已配置的 provider；请传 --provider，或显式使用 --demo")
+    has_genesis_source = any((args.genesis, args.import_world_book, args.import_card))
+    if has_genesis_source and not args.new_game:
+        parser.error("--genesis、--import-world-book 和 --import-card 仅用于 --new-game")
+    if args.new_game:
+        from app.engine import validate_genesis_source_files
+        from loop.genesis_blueprint import BlueprintError
+        try:
+            validate_genesis_source_files(
+                blueprint_path=args.genesis,
+                world_book_path=args.import_world_book,
+                card_path=args.import_card,
+            )
+        except BlueprintError as exc:
+            parser.error(f"无法读取开局设定文件：{exc}")
     mode = "gm" if args.gm else "player"
     try:
         if args.gm:
@@ -1224,7 +1268,10 @@ def main(argv: list[str] | None = None) -> int:
             from llm.provider import make_provider
             provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)
             dashboard = build_new_game_dashboard(args.campaign, provider=provider, pitch=args.pitch,
-                                                 flavor=args.flavor, max_repairs=args.max_repairs)
+                                                 flavor=args.flavor, blueprint_path=args.genesis,
+                                                 world_book_path=args.import_world_book,
+                                                 card_path=args.import_card, card_as=args.card_as,
+                                                 max_repairs=args.max_repairs)
         else:
             from llm.provider import make_provider
             provider = make_provider(args.provider, model=args.model, base_url=args.base_url, max_tokens=args.max_tokens)

@@ -177,6 +177,73 @@ def test_explicit_new_game_creates_a_normal_campaign_without_overwriting(tmp_pat
     assert (campaign / "events.jsonl").read_bytes() == jsonl_before
 
 
+def test_explicit_new_game_resolves_the_same_blueprint_sources_as_cli(tmp_path, monkeypatch):
+    """GUI creation must not discard the documented genesis-file workflow."""
+    campaign = tmp_path / "new-normal-campaign"
+    blueprint = tmp_path / "opening.json"
+    blueprint.write_text(json.dumps({
+        "world_premise": {"genre": "雾港悬疑"},
+        "protagonist": {"name": "岚", "origin": "码头抄写员"},
+    }), encoding="utf-8")
+    captured = {}
+    original_new_game = gui.new_game
+
+    def record_new_game(engine, pitch, *, spec=None, flavor=None):
+        captured["pitch"] = pitch
+        captured["spec"] = spec
+        return original_new_game(engine, pitch, spec=spec, flavor=flavor)
+
+    monkeypatch.setattr(gui, "new_game", record_new_game)
+    dashboard = gui.build_new_game_dashboard(
+        campaign, provider=FakeLLMProvider(), pitch="港口", blueprint_path=blueprint,
+    )
+    try:
+        assert captured["pitch"] == "港口"
+        assert captured["spec"]["world_premise"]["genre"] == "雾港悬疑"
+        assert captured["spec"]["protagonist"]["name"] == "岚"
+        assert (campaign / "events.db").exists()
+        assert (campaign / "events.jsonl").exists()
+    finally:
+        dashboard.engine.store.close()
+
+
+@pytest.mark.parametrize("source_flag", ["--genesis", "--import-card", "--import-world-book"])
+def test_gui_new_game_invalid_source_rejects_before_provider_or_campaign_startup(
+        tmp_path, monkeypatch, capsys, source_flag):
+    """The GUI command keeps the CLI's provider-free malformed-source preflight."""
+    campaign = tmp_path / "should-not-exist"
+
+    def must_not_make_provider(*args, **kwargs):
+        raise AssertionError("invalid GUI genesis input must fail before provider startup")
+
+    monkeypatch.setattr("llm.provider.make_provider", must_not_make_provider)
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main([
+            "--campaign", str(campaign), "--new-game", "--provider", "openai",
+            source_flag, str(tmp_path / "missing.json"), "--port", "0",
+        ])
+    assert exit_status.value.code == 2
+    assert "无法读取开局设定文件" in capsys.readouterr().err
+    assert not campaign.exists()
+
+
+def test_gui_genesis_sources_are_not_silently_ignored_on_saved_campaign_open(tmp_path, capsys):
+    """Source flags are creation input, never ambient options for a saved world."""
+    campaign = tmp_path / "saved-campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    before = (campaign / "events.db").read_bytes(), (campaign / "events.jsonl").read_bytes()
+
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main([
+            "--campaign", str(campaign), "--provider", "fake",
+            "--genesis", str(tmp_path / "unused.json"), "--port", "0",
+        ])
+    assert exit_status.value.code == 2
+    assert "仅用于 --new-game" in capsys.readouterr().err
+    assert ((campaign / "events.db").read_bytes(), (campaign / "events.jsonl").read_bytes()) == before
+
+
 def test_explicit_new_game_failure_never_publishes_partial_campaign(tmp_path, monkeypatch):
     campaign = tmp_path / "new-normal-campaign"
 
