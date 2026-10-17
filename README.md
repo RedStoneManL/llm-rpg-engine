@@ -28,7 +28,7 @@ chmod 600 "${XDG_CONFIG_HOME:-$HOME/.config}/llm-rpg-engine/deepseek.env"
 
 Alternatively, supply `DEEPSEEK_API_KEY` in the environment or point `RPG_DEEPSEEK_ENV` at a configuration file. The default model is `deepseek-flash`; `DEEPSEEK_MODEL` overrides it. `./run-deepseek.sh --help` works without credentials or network access.
 
-An empty campaign directory starts a new world; an existing one resumes it. The original Zhipu Coding Plan launcher remains available as `./run.sh`, with `.env.local.example` for configuration. Provider keys and personal saves are not included in the repository.
+An empty campaign directory starts a new world; an existing one resumes it. Normal `python -m app` play always requires an explicit `--provider`; use `--provider fake` only when you intentionally want the deterministic offline provider. The original Zhipu Coding Plan launcher remains available as `./run.sh`, with `.env.local.example` for configuration. Provider keys and personal saves are not included in the repository.
 
 Use `--pitch` to describe a world, `--flavor classic|isekai` for a content pack, and `--verbosity concise|medium|rich` or `--style` for narration. Player-defined openings use `--genesis`, `--import-card`, or `--import-world-book`; see [the genesis guide](docs/genesis-blueprint.md). Before creating a save, `python -m app --preview-genesis ...` checks those sources offline without requiring `--campaign` or calling a provider. In play, `/help` lists commands, including `/undo`, `/recall`, `/speak`, and `/quit`. `/recall` searches only material visible in the current protagonist's POV; guessing an internal id does not reveal it.
 

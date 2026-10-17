@@ -87,6 +87,51 @@ def test_main_preview_genesis_is_offline_and_needs_no_campaign(monkeypatch):
     assert result["counts"]["npcs"] == 1
 
 
+def test_main_requires_an_explicit_provider_before_opening_campaign(tmp_path, monkeypatch):
+    """A bare normal CLI invocation must not silently fall back to FakeLLM."""
+    from app import __main__ as M
+
+    campaign = tmp_path / "campaign"
+
+    def must_not_make_provider(*args, **kwargs):
+        raise AssertionError("an omitted provider must fail before provider/store startup")
+
+    monkeypatch.setattr("llm.provider.make_provider", must_not_make_provider)
+    out = []
+    M.main(["--campaign", str(campaign)], inputs=iter(["/quit"]), out=out.append)
+
+    assert "--provider" in "\n".join(out)
+    assert not campaign.exists()
+
+
+def test_main_omitted_provider_does_not_open_or_mutate_saved_campaign(tmp_path, monkeypatch):
+    """A saved campaign is protected from an accidental default FakeLLM session."""
+    from app import __main__ as M
+    from app.engine import build_engine, new_game
+
+    campaign = tmp_path / "campaign"
+    engine = build_engine(campaign, provider=_provider())
+    new_game(engine)
+    engine.store.close()
+    before = {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    }
+
+    def must_not_make_provider(*args, **kwargs):
+        raise AssertionError("an omitted provider must fail before reopening a saved campaign")
+
+    monkeypatch.setattr("llm.provider.make_provider", must_not_make_provider)
+    out = []
+    M.main(["--campaign", str(campaign)], inputs=iter(["看看四周", "/quit"]), out=out.append)
+
+    assert "--provider" in "\n".join(out)
+    assert {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    } == before
+
+
 def test_main_bad_flavor_does_not_create_campaign(tmp_path):
     """A rejected first-run flavor must not leave an empty save behind."""
     from app import __main__ as M

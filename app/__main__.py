@@ -1,7 +1,7 @@
 """app.__main__ — CLI entry point for the RPG engine.
 
 Usage:
-    python -m app --campaign DIR [--provider fake|openai|zhipu|anthropic]
+    python -m app --campaign DIR --provider fake|openai|zhipu|anthropic
                   [--model MODEL] [--base-url URL] [--compare]
                   [--pitch TEXT]
 
@@ -264,9 +264,9 @@ def main(
         help="Path to the campaign directory (required unless --preview-genesis)",
     )
     parser.add_argument(
-        "--provider", default="fake",
+        "--provider", default=None,
         choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
-        help="LLM provider (default: fake)",
+        help="LLM provider for normal play (required unless a test injects one; use fake explicitly for offline testing)",
     )
     parser.add_argument(
         "--model", default=None,
@@ -398,6 +398,15 @@ def main(
 
     if not args.campaign:
         parser.error("--campaign 是必填项（除非使用 --preview-genesis）")
+
+    # ``fake`` remains a useful deterministic provider for explicit offline
+    # testing, but it must not be the silent author of a normal saved world.
+    # Keep provider injection available for in-process tests; ordinary command
+    # line play has to make the provider choice explicit before any campaign
+    # directory or SQLite store is opened.
+    if provider is None and args.provider is None:
+        out("[启动错误] 正常游玩请明确指定 --provider；离线测试请显式使用 --provider fake。")
+        return
 
     # Apply --verbosity / --style flags (only when provided; env/default set at import)
     if args.verbosity is not None:

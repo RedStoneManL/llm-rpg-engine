@@ -148,6 +148,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-105 | P0 | 已验收（已跳过 ontology event 的 replay meta 原子性） | Ontology 的缺字段 entity/fact/relation/tier 兼容 skip 与 RCV-104 同构；坏 `fact_asserted` 在冷重开会留下空图修改却把当前 scene 推向错误事件 | 同一显式 ignore 协议仅接入 Ontology 的四个既有 skip 分支；正常 FactGraph apply、跨 owner 依赖和历史行保留不变 |
 | RCV-106 | P0 | 已验收（剩余纯 skip owner 的 replay meta 原子性） | Character、Object、Knowledge、Faction、Lore 和 opt-in InterpretiveMemory 的缺字段兼容 skip 同样可让 durable 空操作错误推进冷重开 meta | 六 owner 的 15 个纯 skip 分支显式忽略；综合标准-store→冷重开回归证明 timeline 停在最后合法行、SQLite/JSONL 不改写。保留 Cascade audit/queue、Lore lifecycle no-op、Memory duplicate 与 Knowledge unknown-audience 的既有语义 |
 | RCV-107 | P1 | 设计草案（未批准／零运行时变更） | 整理隐藏发现 B+C 的宿主接口、一次性授权与 action-id 恢复边界；用户尚未确认玩法语义 | `docs/designs/UNAPPROVED_HIDDEN_DISCOVERY_BC.md` 明确 B/C 触发、消耗、撤回与可见性均待定；现有 host discovery grant、POV 与发布校验行为不变 |
+| RCV-108 | P0 | 已验收（CLI 明确 provider） | 标准 CLI 的 `--provider` 曾默认 `fake`；遗漏参数即可把 deterministic fallback 用于新建或已保存的普通 campaign | 普通 CLI 必须显式选择 provider，拒绝发生在 provider/store 打开前；缺失/已保存 campaign 均零写，显式 `--provider fake` 与 in-process 注入继续用于离线测试；完整 gate 2080 passed / 1 deselected |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2047,3 +2048,16 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   steer 或玩家自由文本转成发现能力，也不自动改变 native importer。B 的触发方式、C 的只揭示/同回合移动、失败/取消/撤回
   后是否可重试、是否需要 durable consume 状态以及覆盖范围均待用户批准。文档提交不重跑完整测试，因为没有可执行代码
   变更；外传、真实/付费模型、B1 与 profiling 均未执行。
+
+- 2026-10-17：RCV-108 从实际普通 CLI 启动路径收敛一个与 GUI RCV-100 同类、但尚未覆盖的风险：`python -m app`
+  的 `--provider` 默认曾是 `fake`，因此用户遗漏参数时，空 campaign 会以 deterministic fallback 创世，已保存 campaign
+  也可能在下一行动由该 fallback 续写。现在正常命令行必须显式传 `--provider`；检查发生在任何 provider、campaign
+  目录、SQLite 或 JSONL 打开前。`--preview-genesis` 保持无 provider 的只读入口；in-process provider 注入仍支持测试；
+  明确 `--provider fake` 仍是保留的离线确定性测试选择，不调用真实模型或网络。
+
+  新回归分别覆盖缺失 campaign 的零创建和已保存 campaign 的 DB/JSONL 字节不变，并断言两者都不构造 provider；既有
+  显式 fake CLI smoke 保留。英文/中文普通 CLI 说明同步为“必须显式 provider”。定向
+  `tests/app/test_main_genesis.py tests/app/test_play.py tests/app/test_debug_flag.py tests/app/test_offline_private_memory_cli.py -rA`
+  为 **`65 passed in 1.40s`**；正式完整离线 gate 为 **`2080 passed, 1 deselected in 29.10s`**，唯一 deselect 是既有
+  slow real embedding。没有真实模型、embedding、网络或外部服务调用；不涉及隐藏发现 B/C 的任何运行时启用、外传或
+  provider 凭据操作。
