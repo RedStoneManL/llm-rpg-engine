@@ -152,6 +152,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-109 | P0 | 已验收（GUI 明确 provider） | 普通 `python -m app.gui` 同样曾默认 `fake`；遗漏参数可用 deterministic fallback 打开已保存普通 campaign | 普通玩家 GUI 在构造 provider 或打开 campaign 前要求显式 `--provider`；`--demo` 与只读 `--gm` 保持 provider-free，完整 gate 2081 passed / 1 deselected |
 | RCV-110 | P1 | 已验收（GUI 非交互创世来源） | GUI 的显式 `--new-game` 只有 pitch/flavor，不能复用 CLI 的 blueprint、角色卡和世界书输入，迫使用户离开同一入口 | GUI 复用 CLI 的来源解析与 provider-free 文件预检；不增加浏览器上传、session-zero、真实模型或额外授权；完整 gate 2086 passed / 1 deselected |
 | RCV-111 | P0 | 已验收（CLI 已保存 campaign 的创世来源拒绝） | CLI 已保存 campaign 会静默忽略 `--genesis`、角色卡或世界书，却继续游玩，用户可能误以为导入已经生效 | 有活跃事件时明确停止于 play/transcript 之前；不改已文档化的 flavor resume 语义，创世来源仍可用于空 campaign；完整 gate 2089 passed / 1 deselected |
+| RCV-112 | P1 | 已验收（创世／导入／续玩端到端组验收） | RCV-110/111 已分别覆盖 GUI 来源接入与 CLI 保存世界拒绝，但本轮需要确认正常 CLI/GUI 成功和失败入口能组成完整用户流程 | 复用现有真实 campaign 回归：坏来源零创建、已保存 campaign 零写拒绝、有效来源实际创世并进入玩家界面；临时 Chromium loopback 检查 normal GUI 可玩页面，未增加产品代码 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2091,3 +2092,15 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   `tests/app/test_main_genesis.py tests/app/test_play.py tests/app/test_gui.py tests/app/test_dry_run_genesis_import.py -rA` 为
   **`126 passed in 2.82s`**；正式完整离线 gate 为 **`2089 passed, 1 deselected in 31.02s`**，唯一 deselect 是既有 slow real
   embedding。没有真实模型、embedding、网络或外部服务调用；不涉及隐藏发现 B/C 的运行时启用、外传或 provider 凭据操作。
+
+- 2026-10-17：RCV-112 按正常 GUI/CLI 新建、导入、续玩完整用户流程做了一次组验收，没有为增加测试数另造 mock。
+  已复用的 deterministic Fake 回归证明：CLI 的有效 blueprint/角色卡实际进入新世界与 play loop；GUI 有效 blueprint 经
+  `resolve_genesis_spec` 传到真实 `new_game`，成功发布后有 `events.db/events.jsonl`；CLI 与 GUI 的三种坏来源都在 provider/
+  campaign 启动前拒绝；保存 campaign 带任一来源时诊断退出且 SQLite/JSONL byte-identical。关联专项为 **`126 passed in
+  2.82s`**，最近可执行实现的完整 gate 为 **`2089 passed, 1 deselected in 31.02s`**。
+
+  另用临时 explicit Fake provider 创建 normal（非 demo）GUI campaign，在本机 `127.0.0.1` WSGI server 上由系统 Chromium/
+  Playwright 以 `390×844` 加载真实页面：标题为 `LLM RPG · 本地玩家仪表盘`，DOM 显示 `SAVED CAMPAIGN` 和行动表单，`/api/state`
+  给出 revision 1 与非空当前位置，浏览器无非 GET 写请求且 `scrollWidth=clientWidth=390`。该组验收不提交玩家行动、不调用真实
+  模型；server、campaign、profile 和中间 state 文件均已删除。首次 harness 错把 state 预期成 `campaign` 字段，实际安全 DTO
+  使用 `session`；按真实接口校正检查后没有产品缺陷或代码改动。隐藏发现仍仅是未批准草案，未作为本组阻塞。
