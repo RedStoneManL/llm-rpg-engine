@@ -1191,8 +1191,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--new-game", action="store_true", dest="new_game",
                         help="显式创建一个新的普通 campaign；拒绝覆盖已有路径")
     parser.add_argument("--gm", action="store_true", help="显式启动本地只读 GM 世界总览（切换模式需重启）")
-    parser.add_argument("--provider", default="fake", choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
-                        help="正常玩家模式的 CLI provider；--demo 始终使用固定离线替身")
+    parser.add_argument("--provider", default=None, choices=["fake", "openai", "deepseek", "zhipu", "anthropic"],
+                        help="正常玩家模式必须显式选择的 provider；--demo 始终使用固定离线替身")
     parser.add_argument("--model", default=None, help="正常玩家模式的模型名")
     parser.add_argument("--base-url", default=None, dest="base_url", help="正常玩家模式 provider 的 base URL")
     parser.add_argument("--max-tokens", default=None, type=int, dest="max_tokens", help="正常玩家模式的输出 token 上限")
@@ -1208,8 +1208,12 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--max-repairs 必须为非负整数")
     if args.new_game and (args.demo or args.gm):
         parser.error("--new-game 不能与 --demo 或 --gm 一起使用")
+    if args.new_game and args.provider is None:
+        parser.error("--new-game 需要已配置的正常 provider；离线游玩请显式使用 --demo")
     if args.new_game and args.provider == "fake":
         parser.error("--new-game 需要已配置的正常 provider；离线游玩请显式使用 --demo")
+    if not args.demo and not args.gm and args.provider is None:
+        parser.error("正常 GUI 模式需要已配置的 provider；请传 --provider，或显式使用 --demo")
     mode = "gm" if args.gm else "player"
     try:
         if args.gm:

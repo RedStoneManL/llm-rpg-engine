@@ -149,6 +149,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-106 | P0 | 已验收（剩余纯 skip owner 的 replay meta 原子性） | Character、Object、Knowledge、Faction、Lore 和 opt-in InterpretiveMemory 的缺字段兼容 skip 同样可让 durable 空操作错误推进冷重开 meta | 六 owner 的 15 个纯 skip 分支显式忽略；综合标准-store→冷重开回归证明 timeline 停在最后合法行、SQLite/JSONL 不改写。保留 Cascade audit/queue、Lore lifecycle no-op、Memory duplicate 与 Knowledge unknown-audience 的既有语义 |
 | RCV-107 | P1 | 设计草案（未批准／零运行时变更） | 整理隐藏发现 B+C 的宿主接口、一次性授权与 action-id 恢复边界；用户尚未确认玩法语义 | `docs/designs/UNAPPROVED_HIDDEN_DISCOVERY_BC.md` 明确 B/C 触发、消耗、撤回与可见性均待定；现有 host discovery grant、POV 与发布校验行为不变 |
 | RCV-108 | P0 | 已验收（CLI 明确 provider） | 标准 CLI 的 `--provider` 曾默认 `fake`；遗漏参数即可把 deterministic fallback 用于新建或已保存的普通 campaign | 普通 CLI 必须显式选择 provider，拒绝发生在 provider/store 打开前；缺失/已保存 campaign 均零写，显式 `--provider fake` 与 in-process 注入继续用于离线测试；完整 gate 2080 passed / 1 deselected |
+| RCV-109 | P0 | 已验收（GUI 明确 provider） | 普通 `python -m app.gui` 同样曾默认 `fake`；遗漏参数可用 deterministic fallback 打开已保存普通 campaign | 普通玩家 GUI 在构造 provider 或打开 campaign 前要求显式 `--provider`；`--demo` 与只读 `--gm` 保持 provider-free，完整 gate 2081 passed / 1 deselected |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2061,3 +2062,12 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   为 **`65 passed in 1.40s`**；正式完整离线 gate 为 **`2080 passed, 1 deselected in 29.10s`**，唯一 deselect 是既有
   slow real embedding。没有真实模型、embedding、网络或外部服务调用；不涉及隐藏发现 B/C 的任何运行时启用、外传或
   provider 凭据操作。
+
+- 2026-10-17：RCV-109 将同一明确 provider 边界补到普通 `python -m app.gui`：此前它的 `--provider` 默认是
+  `fake`，所以遗漏参数仍可能以确定性替身打开并续写已保存普通 campaign。普通玩家 GUI 现在会在构造 provider、打开
+  campaign、SQLite 或 JSONL 前拒绝缺失 provider；显式 `--provider fake` 仍只作为离线确定性选择。固定 `--demo` 与
+  显式只读 `--gm` 继续无需 provider，普通 `--new-game` 继续拒绝 fake。新增回归在一个真实已保存 demo campaign 上断言
+  缺失 provider 时不构造 provider 且 DB/JSONL 字节不变。定向
+  `tests/app/test_gui.py tests/app/test_main_genesis.py tests/app/test_play.py -rA` 为 **`114 passed in 2.04s`**；正式完整
+  离线 gate 为 **`2081 passed, 1 deselected in 30.04s`**，唯一 deselect 是既有 slow real embedding。没有真实模型、embedding、
+  网络或外部服务调用；不涉及隐藏发现 B/C 的运行时启用、外传或 provider 凭据操作。

@@ -224,6 +224,30 @@ def test_new_game_cli_rejects_default_fake_provider_before_creating_campaign(tmp
     assert not campaign.exists()
 
 
+def test_normal_gui_cli_requires_explicit_provider_before_opening_saved_campaign(tmp_path, monkeypatch, capsys):
+    """A bare normal GUI launch must not silently select the FakeLLM provider."""
+    campaign = tmp_path / "saved-campaign"
+    seed = build_dashboard(campaign, demo=True)
+    seed.engine.store.close()
+    before = {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    }
+
+    def must_not_make_provider(*args, **kwargs):
+        raise AssertionError("an omitted GUI provider must fail before provider/store startup")
+
+    monkeypatch.setattr("llm.provider.make_provider", must_not_make_provider)
+    with pytest.raises(SystemExit) as exit_status:
+        gui.main(["--campaign", str(campaign), "--port", "0"])
+    assert exit_status.value.code == 2
+    assert "需要已配置的 provider" in capsys.readouterr().err
+    assert {
+        name: (campaign / name).read_bytes()
+        for name in ("events.db", "events.jsonl")
+    } == before
+
+
 def test_gui_request_context_is_ephemeral_and_duplicate_uses_durable_envelope(tmp_path):
     """Completed and pre-publish-failed actions must not grow controller memory."""
     dashboard = build_dashboard(tmp_path / "campaign", demo=True)

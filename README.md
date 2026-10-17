@@ -97,6 +97,10 @@ python -m app.gui --campaign ./campaigns/my-new-game --new-game --pitch "雾港�
 python scripts/demo_offline_gui.py --port 8765
 ```
 
+Normal player GUI launches also require an explicit `--provider`; omitting it fails
+before opening the campaign or constructing a provider. `--demo` and the separate
+read-only `--gm` mode remain provider-free local tools.
+
 It uses a fixed local demo strategy plus `FakeLLMProvider`, not a configured
 provider, embedder, network service, or API key. On an empty campaign, `--demo`
 seeds a replayable Stonebridge town with a protagonist, a held item, two
