@@ -69,6 +69,61 @@ def test_demo_dashboard_action_duplicate_undo_and_reopen(tmp_path):
     reopened.engine.store.close()
 
 
+def test_gui_nearby_discovery_is_host_selected_recoverable_and_rewindable(tmp_path):
+    """The player asks only to inspect nearby clues; no hidden target crosses UI/prompt."""
+    campaign = tmp_path / "campaign"
+    dashboard = build_dashboard(campaign, demo=True)
+    engine = dashboard.engine
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    initial = dashboard.state()
+    assert "sealed_gate" not in json.dumps(initial, ensure_ascii=False)
+
+    class Capture:
+        def __init__(self): self.scenes = []
+        def produce(self, registry, world, scene, player_input, **kwargs):
+            self.scenes.append(copy.deepcopy(scene))
+            return TurnCommit("你在近处发现一条新的出口。", {
+                "moves": [], "places": [], "links": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "核验"}],
+            })
+        def repair_sections(self, *args, **kwargs): return {}
+        def commit_to_thread(self, narration): return None
+        def reset(self): return None
+
+    capture = Capture(); dashboard.strategy = capture
+    saved = dashboard.action(player_input="核验附近尚未明朗的线索。", action_id="discover-gui",
+                             expected_revision=initial["revision"], discovery_attempt=True)
+    assert saved["duplicate"] is False
+    assert saved["state"]["scene"]["location"]["id"] == "stonebridge_inn"
+    assert {row["id"] for row in saved["state"]["scene"]["exits"]} == {"stonebridge_market", "sealed_gate"}
+    assert "sealed_gate" not in repr(capture.scenes[0])
+    metadata = engine.store.get_action_result_metadata("discover-gui")
+    assert metadata["host_envelope"]["discovery_attempt"] is True
+    assert "sealed_gate" not in json.dumps(metadata["host_envelope"], ensure_ascii=False)
+
+    dashboard.engine.store.close()
+    reopened = build_dashboard(campaign, demo=True)
+    class MustNotRun:
+        def produce(self, *args, **kwargs): raise AssertionError("duplicate must restore before generation")
+    reopened.strategy = MustNotRun()
+    retry = reopened.action(player_input="核验附近尚未明朗的线索。", action_id="discover-gui",
+                            expected_revision=initial["revision"], discovery_attempt=True)
+    assert retry["duplicate"] is True and retry["state"]["scene"]["location"]["id"] == "stonebridge_inn"
+    reopened.undo(expected_revision=retry["revision"])
+    assert "sealed_gate" not in json.dumps(reopened.state(), ensure_ascii=False)
+    reopened.strategy = Capture()
+    retried = reopened.action(player_input="再次核验附近线索。", action_id="discover-after-rewind",
+                              expected_revision=reopened.state()["revision"], discovery_attempt=True)
+    assert retried["duplicate"] is False
+    assert "sealed_gate" in {row["id"] for row in retried["state"]["scene"]["exits"]}
+    reopened.engine.store.close()
+
+
 def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_state(tmp_path):
     """A normal GUI must not claim it is the fixed offline demo."""
     campaign = tmp_path / "campaign"

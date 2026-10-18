@@ -394,6 +394,9 @@ def _build_delta(registry, world: dict, scene: dict, player_input: str) -> str:
         parts.append(scene['_variation_prompt'])
     if scene.get('_resolution_prompt'):
         parts.append(scene['_resolution_prompt'])
+    discovery = _host_discovery_fragment(scene)
+    if discovery:
+        parts.append(discovery)
     steer = _player_steer_fragment(scene)
     if steer:
         parts.append(steer)
@@ -417,6 +420,17 @@ def _player_steer_fragment(scene: dict) -> str | None:
         "在不取代本回合明确行动、不过界于已提供 POV/路线/发布约束的前提下，"
         "后续叙事可优先朝这个方向发展："
         + json.dumps(steer, ensure_ascii=False)
+    )
+
+
+def _host_discovery_fragment(scene: dict) -> str | None:
+    """Describe a host-owned reveal without exposing its target or authority."""
+    if not isinstance(scene, dict) or scene.get('_host_discovery_reveal') is not True:
+        return None
+    return (
+        "【附近线索核验】宿主已决定本回合可记录一项附近的发现；这只会在回合成功后让玩家得知一条出口，"
+        "不会在本回合抵达或移动到那里。不要猜测、命名或输出内部地点 ID、发现键或权限记录；"
+        "不要在 knowledge 段声明发现，宿主会在发布时写入。"
     )
 
 
@@ -508,6 +522,9 @@ class AuthorStrategy(TurnStrategy):
                 parts.append(scene['_variation_prompt'])
             if scene.get('_resolution_prompt'):
                 parts.append(scene['_resolution_prompt'])
+            discovery = _host_discovery_fragment(scene)
+            if discovery:
+                parts.append(discovery)
             steer = _player_steer_fragment(scene)
             if steer:
                 parts.append(steer)
@@ -686,6 +703,9 @@ class HybridStrategy(TurnStrategy):
                 narrate_parts.append(scene['_variation_prompt'])
             if scene.get('_resolution_prompt'):
                 narrate_parts.append(scene['_resolution_prompt'])
+            discovery = _host_discovery_fragment(scene)
+            if discovery:
+                narrate_parts.append(discovery)
             steer = _player_steer_fragment(scene)
             if steer:
                 narrate_parts.append(steer)
@@ -699,6 +719,8 @@ class HybridStrategy(TurnStrategy):
                 struct_parts.append(ctx)
             if steer:
                 struct_parts.append(steer)
+            if discovery:
+                struct_parts.append(discovery)
             struct_parts.append(f"[你刚写的叙事散文]\n{prose}")
             self._messages = [
                 {"role": "system", "content": _SYSTEM_PROMPT_HYBRID},

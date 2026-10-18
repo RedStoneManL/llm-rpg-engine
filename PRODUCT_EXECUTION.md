@@ -2104,3 +2104,16 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   给出 revision 1 与非空当前位置，浏览器无非 GET 写请求且 `scrollWidth=clientWidth=390`。该组验收不提交玩家行动、不调用真实
   模型；server、campaign、profile 和中间 state 文件均已删除。首次 harness 错把 state 预期成 `campaign` 字段，实际安全 DTO
   使用 `session`；按真实接口校正检查后没有产品缺陷或代码改动。隐藏发现仍仅是未批准草案，未作为本组阻塞。
+
+- 2026-10-18：RCV-113 按已批准第一版启用**受宿主约束的附近隐藏出口核验**。普通 CLI 的
+  `/discover` 与 GUI 的“核验附近线索”均只提交一个无目标意图：宿主在 action-start 从当前位置的直连
+  `undiscovered` 路线确定至多一个目标，普通作者只得到不含地点 ID、路线 key 或 canonical topology 的
+  泛化提示。成功 publish 时宿主原子写入精确 place/route discovery records；出口此后才进入 POV，但
+  reveal-only 校验同时覆盖候选、最终 EventBatch 和同回合 world-observation，禁止主角同回合移动到新出口。
+  下一回合仍按已有普通可见出口规则移动。
+
+  action-id 指纹绑定不透明 grant semantic identity：GUI cold reopen/retry 不重签发机会；host envelope 和
+  prompt 不含目标/keys。失败、取消和校验拒绝无 consume marker、receipt 或局部地图写入；rewind 撤回整个
+  discovery 后，新 action id 可再次核验。回归覆盖 CLI/GUI 无泄露成功流、同回合移动拒绝、cold duplicate、
+  rewind 后重试和 failure/cancel 零写。native importer 仍是独立 policy。无真实模型、外传、Library/Drive/mail、
+  GitHub、B1 或 profiling 操作。

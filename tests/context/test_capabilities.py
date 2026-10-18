@@ -1,12 +1,13 @@
 """Scene capability contract: one POV topology for prompt, UI and publication."""
 from __future__ import annotations
 
+import asyncio
 import pytest
 
 from app.engine import build_engine, rewind
 from app.gui import _seed_demo_campaign
 from app.play import _build_scene
-from context.capabilities import (discovery_grant_errors, native_player_dto, place_discovery_key,
+from context.capabilities import (discovery_grant_errors, host_nearby_discovery_grant, native_player_dto, place_discovery_key,
                                   route_discovery_key, scene_capabilities,
                                   validate_protagonist_moves)
 from engine.store import EventBatch
@@ -176,6 +177,84 @@ def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_
     assert reopened_dto == reverted
     assert "GUI_DEMO_PRIVATE_SENTINEL" not in repr(reopened_dto)
     reopened.store.close()
+
+
+def test_host_nearby_discovery_reveals_but_cannot_move_until_later_turn(tmp_path):
+    """The new ordinary-player grant records a route, never same-turn travel."""
+    engine = _demo_engine(tmp_path)
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    scene = _build_scene(engine)
+    grant = host_nearby_discovery_grant(engine.world, scene)
+    assert grant is not None and grant.destination == "sealed_gate"
+
+    class RevealOnly:
+        def produce(self, *args, **kwargs):
+            return TurnCommit("你在近处找到一条新的可辨出口。", {
+                "moves": [], "places": [], "links": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "核验"}],
+            })
+        def repair_sections(self, *args, **kwargs): return {}
+        def commit_to_thread(self, narration): return None
+
+    class IllicitMove(RevealOnly):
+        def produce(self, *args, **kwargs):
+            commit = super().produce(*args, **kwargs)
+            commit.sections["moves"] = [{"who": "protagonist", "to": "sealed_gate"}]
+            return commit
+
+    before = engine.store.revision
+    with pytest.raises(TurnRejected, match="scene capability"):
+        run_turn(engine.registry, engine.store, engine.world, {**scene, "_host_discovery_reveal": True}, "立即穿过封门",
+                 strategy=IllicitMove(), provider=engine.provider, required_sections=REQUIRED_SECTIONS,
+                 enforce_player_travel=True, enforce_player_knowledge_authority=True,
+                 host_discovery_grant=grant)
+    assert engine.store.revision == before
+
+    result = run_turn(
+        engine.registry, engine.store, engine.world, {**scene, "_host_discovery_reveal": True}, "核验附近线索",
+        strategy=RevealOnly(), provider=engine.provider, action_id="reveal-only", expected_revision=engine.store.revision,
+        required_sections=REQUIRED_SECTIONS, enforce_player_travel=True,
+        enforce_player_knowledge_authority=True, host_discovery_grant=grant,
+    )
+    graph = result.world["systems"]["ontology"]
+    assert graph.neighbors("protagonist", "located_in", 1) == ["stonebridge_inn"]
+    assert graph.value_at("protagonist", f"knows:{place_discovery_key('sealed_gate')}", 1) is True
+    assert "sealed_gate" in scene_capabilities(result.world, scene).allowed_move_ids
+    engine.store.close()
+
+
+@pytest.mark.parametrize("error", [RuntimeError("host test failure"), asyncio.CancelledError()])
+def test_host_nearby_discovery_failure_or_cancel_leaves_no_grant_consumption(tmp_path, error):
+    """No opportunity marker exists: a failed turn remains wholly retryable."""
+    engine = _demo_engine(tmp_path)
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    scene = _build_scene(engine); grant = host_nearby_discovery_grant(engine.world, scene)
+    before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
+
+    class Fails:
+        def produce(self, *args, **kwargs): raise error
+
+    with pytest.raises(type(error)):
+        run_turn(engine.registry, engine.store, engine.world, {**scene, "_host_discovery_reveal": True}, "核验",
+                 strategy=Fails(), provider=engine.provider, required_sections=REQUIRED_SECTIONS,
+                 enforce_player_travel=True, enforce_player_knowledge_authority=True,
+                 host_discovery_grant=grant)
+    assert engine.store.revision == revision
+    assert list(engine.store.iter_events(include_retracted=True)) == before
+    assert host_nearby_discovery_grant(engine.world, scene) == grant
+    engine.store.close()
 
 
 def _install_undiscovered_route(engine, destination="sealed_gate"):

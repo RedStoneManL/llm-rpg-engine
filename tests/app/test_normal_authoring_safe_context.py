@@ -418,6 +418,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
                 "ordinary_player_place_authority": True,
                 "ordinary_player_item_authority": True,
                 "ordinary_player_quest_authority": True,
+                "host_discovery_reveal_only": False,
         }
         calls_after_first = len(dashboard.engine.provider.calls)
         duplicate = dashboard.action(player_input="留在门前确认湿痕", action_id="local-world-observation",

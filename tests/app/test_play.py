@@ -74,6 +74,46 @@ def test_play_loop_one_turn_outputs_narration(tmp_path):
     assert "你环顾四周" in combined, f"Expected narration in output, got: {combined!r}"
 
 
+def test_cli_discover_is_a_targetless_host_reveal(tmp_path):
+    """`/discover` does not accept or leak a route target to the ordinary author."""
+    from app.engine import build_engine
+    from app.gui import _seed_demo_campaign
+    from app.play import _build_scene, play_loop
+    from context.capabilities import scene_capabilities
+    from kernel.events import kernel_event
+    from kernel.projection import project
+    from kernel.turncommit import TurnCommit
+
+    engine = build_engine(tmp_path / "campaign", provider=FakeLLMProvider(), embedder=None)
+    _seed_demo_campaign(engine)
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+
+    class Capture:
+        def __init__(self): self.scenes = []
+        def produce(self, registry, world, scene, player_input, **kwargs):
+            self.scenes.append(copy.deepcopy(scene))
+            return TurnCommit("你确认附近多了一条可辨的出口。", {
+                "moves": [], "places": [], "links": [], "cast": [], "facts": [],
+                "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "核验"}],
+            })
+        def repair_sections(self, *args, **kwargs): return {}
+        def commit_to_thread(self, narration): return None
+        def reset(self): return None
+
+    strategy = Capture(); output = []
+    play_loop(engine, ["/discover"], out=output.append, strategy=strategy, echo_input=False)
+    assert {row.id for row in scene_capabilities(engine.world, _build_scene(engine)).exits} >= {"sealed_gate"}
+    assert "sealed_gate" not in repr(strategy.scenes[0])
+    assert "sealed_gate" not in "\n".join(output)
+    engine.store.close()
+
+
 def test_cli_status_shows_only_bounded_public_local_observations(tmp_path):
     """CLI status shares the player-facing local observation boundary."""
     from app.gui import _seed_demo_campaign

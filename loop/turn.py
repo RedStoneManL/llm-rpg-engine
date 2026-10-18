@@ -39,7 +39,9 @@ from context.capabilities import (discovery_grant_errors, player_turn_knowledge_
                                   player_turn_item_errors, player_turn_item_event_errors,
                                   player_turn_quest_errors, player_turn_quest_event_errors,
                                   player_turn_world_errors, player_turn_world_event_errors,
-                                  validate_protagonist_move_events, validate_protagonist_moves)
+                                  validate_protagonist_move_events, validate_protagonist_moves,
+                                  HostDiscoveryGrant, host_discovery_records,
+                                  validate_host_nearby_discovery_grant)
 from context.native_authoring import (player_statement_receipt_errors,
                                       player_statement_receipt_event_errors)
 
@@ -135,6 +137,7 @@ def _memory_request_config(memory_role, memory_generator):
 def _turn_request_fingerprint(scene, player_input, expected_revision, memory_role, *,
                               prev_scene, required_sections, max_repairs, memory_generator,
                               trusted_discovery_keys=frozenset(),
+                              host_discovery_semantic_id: str | None = None,
                               trusted_player_statement_receipts=(), legacy=False,
                               include_player_statement_receipts=True,
                               enforce_player_knowledge_authority: bool = False,
@@ -198,7 +201,15 @@ def _turn_request_fingerprint(scene, player_input, expected_revision, memory_rol
     if enforce_player_quest_authority:
         envelope['ordinary_player_quest_authority'] = True
     if not legacy:
-        envelope['trusted_discovery_keys'] = sorted(trusted_discovery_keys)
+        # A normal internal grant keeps the existing exact-key fingerprint.
+        # The reveal-only host flow instead binds an opaque semantic identity:
+        # the raw hidden destination/key must never be copied into a durable
+        # GUI envelope merely so a cold response-loss retry can recover.
+        envelope['trusted_discovery_keys'] = (
+            [] if host_discovery_semantic_id is not None else sorted(trusted_discovery_keys)
+        )
+        if host_discovery_semantic_id is not None:
+            envelope['host_discovery_reveal'] = host_discovery_semantic_id
         if include_player_statement_receipts:
             envelope['trusted_player_statement_receipts'] = copy.deepcopy(
                 list(trusted_player_statement_receipts))
@@ -349,6 +360,8 @@ def produce_turn(
     enforce_player_item_authority: bool = False,
     enforce_player_quest_authority: bool = False,
     trusted_discovery_keys=frozenset(),
+    host_discovery_records=(),
+    reveal_only_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> tuple:
     """Produce a validated TurnCommit without writing to the store.
@@ -369,11 +382,52 @@ def produce_turn(
     # --------------------------------------------------------------------------
     # Step 1: Produce initial commit
     # --------------------------------------------------------------------------
+    def _without_host_discovery(commit):
+        if not host_discovery_records:
+            return commit
+        from kernel.turncommit import TurnCommit as _TC
+        sections = dict(commit.sections)
+        knowledge = sections.get("knowledge")
+        if not isinstance(knowledge, list):
+            return commit
+        host_rows = list(host_discovery_records)
+        remaining = list(knowledge)
+        for row in host_rows:
+            try:
+                remaining.remove(row)
+            except ValueError:
+                continue
+        sections["knowledge"] = remaining
+        return _TC(narration=commit.narration, sections=sections)
+
+    def _with_host_discovery(commit):
+        """Append host-only discovery records without exposing target ids to a strategy."""
+        if not host_discovery_records:
+            return commit
+        from kernel.turncommit import TurnCommit as _TC
+        commit = _without_host_discovery(commit)
+        sections = dict(commit.sections)
+        knowledge = sections.get("knowledge") or []
+        if not isinstance(knowledge, list):
+            return commit
+        sections["knowledge"] = list(knowledge) + [copy.deepcopy(item) for item in host_discovery_records]
+        return _TC(narration=commit.narration, sections=sections)
+
+    def _reject_author_discovery_declaration(commit):
+        """Only the trusted host may materialize an existing hidden discovery."""
+        if not host_discovery_records:
+            return
+        errors = discovery_grant_errors(_without_host_discovery(commit), scene.get("protagonist"), frozenset())
+        if any(error.code in {"untrusted_discovery", "protected_discovery_write"} for error in errors):
+            raise TurnRejected("ordinary author cannot declare a host discovery")
+
     with get_tracer().span("produce"):
         commit = strategy.produce(
             registry, world, scene, player_input,
             provider=provider, embedder=embedder,
         )
+    _reject_author_discovery_declaration(commit)
+    commit = _with_host_discovery(commit)
     log.debug("produce_turn: initial commit narration=%r sections=%s",
               commit.narration[:40], list(commit.sections))
 
@@ -425,6 +479,7 @@ def produce_turn(
         if enforce_player_world_authority:
             candidate_errors.extend(player_turn_world_errors(
                 commit, world, scene, trusted_keys=trusted_discovery_keys,
+                reveal_only_discovery_keys=reveal_only_discovery_keys,
             ))
         if enforce_player_fact_authority:
             candidate_errors.extend(player_turn_fact_errors(commit, world, scene))
@@ -444,6 +499,7 @@ def produce_turn(
                 commit, world, scene,
                 narration_rewrite_from=travel_narration_baseline,
                 trusted_keys=trusted_discovery_keys,
+                reveal_only_discovery_keys=reveal_only_discovery_keys,
             )
             if (travel_narration_baseline is None
                     and any(error.code == "scene_capability_narration"
@@ -537,6 +593,8 @@ def produce_turn(
                     provider=provider, embedder=embedder,
                     repair=repair_text,
                 )
+        _reject_author_discovery_declaration(commit)
+        commit = _with_host_discovery(commit)
         augment_unresolved_refs(commit, world, scene=_aug_scene, day=_aug_day)
         errors = validate_candidate()
         reject_player_statement_authority_errors(errors)
@@ -661,6 +719,8 @@ def _run_turn_staged(
     enforce_player_item_authority: bool = False,
     enforce_player_quest_authority: bool = False,
     trusted_discovery_keys=frozenset(),
+    host_discovery_records=(),
+    reveal_only_discovery_keys=frozenset(),
     trusted_player_statement_receipts=(),
 ) -> TurnResult:
     """Run one complete turn: produce → validate/repair → drop → events → append → project.
@@ -705,6 +765,8 @@ def _run_turn_staged(
             enforce_player_item_authority=enforce_player_item_authority,
             enforce_player_quest_authority=enforce_player_quest_authority,
             trusted_discovery_keys=trusted_discovery_keys,
+            host_discovery_records=host_discovery_records,
+            reveal_only_discovery_keys=reveal_only_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts,
         )
         if dropped_sections:
@@ -945,6 +1007,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
              enforce_player_item_authority: bool = False,
              enforce_player_quest_authority: bool = False,
              trusted_discovery_keys=frozenset(),
+             host_discovery_grant: HostDiscoveryGrant | None = None,
+             host_discovery_semantic_id: str | None = None,
              trusted_player_statement_receipts=()) -> TurnResult:
     """Prepare one complete action without a lock, then atomically publish it.
 
@@ -953,11 +1017,38 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     narrator's committed conversation. Callers may supply an action identity.
     """
     trusted_player_statement_receipts = tuple(trusted_player_statement_receipts)
+    prior = store.read_committed_action(action_id) if action_id else None
+    host_discovery_records_for_turn = ()
+    reveal_only_discovery_keys = frozenset()
+    if host_discovery_grant is not None:
+        if host_discovery_semantic_id is not None or trusted_discovery_keys:
+            raise TurnRejected('host discovery authorization must not be combined with caller discovery keys')
+        try:
+            validate_host_nearby_discovery_grant(
+                world, scene, host_discovery_grant, allow_known=prior is not None,
+            )
+        except ValueError as exc:
+            raise TurnRejected('host discovery opportunity is no longer available') from exc
+        trusted_discovery_keys = host_discovery_grant.keys
+        host_discovery_semantic_id = host_discovery_grant.semantic_id
+        host_discovery_records_for_turn = host_discovery_records(host_discovery_grant)
+        reveal_only_discovery_keys = host_discovery_grant.keys
+    elif host_discovery_semantic_id is not None:
+        # Only a controller recovering an already durable action may use the
+        # opaque id without the transient grant.  It cannot create a fresh
+        # authorization or smuggle raw discovery keys through a request.
+        if prior is None or trusted_discovery_keys:
+            raise TurnRejected('host discovery recovery is unavailable')
+        if (not isinstance(host_discovery_semantic_id, str)
+                or len(host_discovery_semantic_id) != 64
+                or any(char not in '0123456789abcdef' for char in host_discovery_semantic_id)):
+            raise TurnRejected('host discovery recovery is unavailable')
     version = expected_revision if expected_revision is not None else world.get('_revision')
     fingerprint = (_turn_request_fingerprint(
         scene, player_input, version, memory_role, prev_scene=prev_scene,
         required_sections=required_sections, max_repairs=max_repairs,
         memory_generator=memory_generator, trusted_discovery_keys=trusted_discovery_keys,
+        host_discovery_semantic_id=host_discovery_semantic_id,
         trusted_player_statement_receipts=trusted_player_statement_receipts,
         enforce_player_knowledge_authority=enforce_player_knowledge_authority,
         enforce_player_world_authority=enforce_player_world_authority,
@@ -969,7 +1060,6 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         enforce_player_quest_authority=enforce_player_quest_authority)
         if action_id else None)
     if action_id:
-        prior = store.read_committed_action(action_id)
         if prior is not None:
             if prior['retracted']:
                 raise RevisionConflict('action was retracted; submit a new action_id')
@@ -981,6 +1071,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                            prev_scene=prev_scene, required_sections=required_sections,
                            max_repairs=max_repairs, memory_generator=memory_generator,
                            trusted_discovery_keys=trusted_discovery_keys,
+                           host_discovery_semantic_id=host_discovery_semantic_id,
                            trusted_player_statement_receipts=(),
                       include_player_statement_receipts=False,
                       enforce_player_knowledge_authority=enforce_player_knowledge_authority,
@@ -996,6 +1087,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       prev_scene=prev_scene, required_sections=required_sections,
                       max_repairs=max_repairs, memory_generator=memory_generator,
                       trusted_discovery_keys=trusted_discovery_keys,
+                      host_discovery_semantic_id=host_discovery_semantic_id,
                       trusted_player_statement_receipts=trusted_player_statement_receipts,
                       legacy=True,
                       enforce_player_knowledge_authority=enforce_player_knowledge_authority,
@@ -1006,7 +1098,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                       enforce_player_place_authority=enforce_player_place_authority,
                       enforce_player_item_authority=enforce_player_item_authority,
                       enforce_player_quest_authority=enforce_player_quest_authority)
-                      if not trusted_discovery_keys and not trusted_player_statement_receipts else None)
+                      if (not trusted_discovery_keys and host_discovery_semantic_id is None
+                          and not trusted_player_statement_receipts) else None)
             # Sidecars written before ordinary-player knowledge authority had
             # no mode marker.  Offer a deliberately narrow, read-only bridge
             # only for an otherwise unprivileged envelope; any host discovery
@@ -1019,7 +1112,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     and not enforce_player_place_authority
                     and not enforce_player_item_authority
                     and not enforce_player_quest_authority
-                    and not trusted_discovery_keys
+                    and not trusted_discovery_keys and host_discovery_semantic_id is None
                     and not trusted_player_statement_receipts):
                 old_ordinary_mode = _turn_request_fingerprint(
                     scene, player_input, version, memory_role,
@@ -1072,7 +1165,9 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     if enforce_player_travel:
         def validate_travel_payload(events):
             errors = validate_protagonist_move_events(events, travel_world, travel_scene,
-                                                       trusted_keys=trusted_discovery_keys)
+                                                       trusted_keys=trusted_discovery_keys,
+                                                       reveal_only_discovery_keys=reveal_only_discovery_keys,
+                                                       required_discovery_keys=reveal_only_discovery_keys)
             if errors:
                 raise TurnRejected("final publish violates the player scene capability")
         batch.add_publish_validator(validate_travel_payload)
@@ -1086,6 +1181,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         def validate_player_world_payload(events):
             errors = player_turn_world_event_errors(
                 events, travel_world, travel_scene, trusted_keys=trusted_discovery_keys,
+                reveal_only_discovery_keys=reveal_only_discovery_keys,
             )
             if errors:
                 raise TurnRejected("final publish violates the player world observation boundary")
@@ -1184,6 +1280,8 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             enforce_player_item_authority=enforce_player_item_authority,
             enforce_player_quest_authority=enforce_player_quest_authority,
             trusted_discovery_keys=trusted_discovery_keys,
+            host_discovery_records=host_discovery_records_for_turn,
+            reveal_only_discovery_keys=reveal_only_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts)
         authorized_player_statement_receipt_ids = tuple(
             item['receipt_id']
@@ -1219,6 +1317,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     'ordinary_player_place_authority': bool(enforce_player_place_authority),
                     'ordinary_player_item_authority': bool(enforce_player_item_authority),
                     'ordinary_player_quest_authority': bool(enforce_player_quest_authority),
+                    'host_discovery_reveal_only': bool(host_discovery_semantic_id),
                 },
                 'host_envelope': copy.deepcopy(host_envelope),
                 'result': {

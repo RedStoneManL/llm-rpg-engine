@@ -798,6 +798,7 @@ def play_loop(
         # exact words; the host then validates current public co-presence and
         # creates the narrow receipt used by the existing publish gateway.
         trusted_player_statement_receipts = ()
+        discovery_attempt = False
         if line.startswith("/speak"):
             command, separator, remainder = line.partition(" ")
             if command.lower() != "/speak":
@@ -821,6 +822,13 @@ def play_loop(
                 continue
             trusted_player_statement_receipts = (receipt,)
             line = f"我对 {recipient} 说：{statement}"
+
+        # This is a normal turn-producing command, not a target selector.
+        # The host alone decides whether an adjacent hidden route is eligible;
+        # neither the CLI input nor the author sees a destination or key.
+        if line.strip().lower() in {"/discover", "//discover"}:
+            discovery_attempt = True
+            line = "核验附近尚未明朗的线索。"
 
         if line.startswith("/"):
             revision_before = engine.store.revision
@@ -857,6 +865,12 @@ def play_loop(
 
         # Normal player input — run a turn
         scene = _build_scene(engine)
+        discovery_grant = None
+        if discovery_attempt:
+            from context.capabilities import host_nearby_discovery_grant
+            discovery_grant = host_nearby_discovery_grant(engine.world, scene)
+            if discovery_grant is not None:
+                scene = {**scene, "_host_discovery_reveal": True}
         if steering[0]:
             scene = {**scene, "_player_steer": steering[0]}
         player_input = line
@@ -943,7 +957,8 @@ def play_loop(
                     enforce_player_place_authority=True,
                     enforce_player_item_authority=True,
                     enforce_player_quest_authority=True,
-                    trusted_player_statement_receipts=trusted_player_statement_receipts)
+                    trusted_player_statement_receipts=trusted_player_statement_receipts,
+                    host_discovery_grant=discovery_grant)
                 turn_published = True
                 engine.world = applied.world
                 prev_scene = scene
@@ -992,6 +1007,7 @@ def play_loop(
                         enforce_player_item_authority=True,
                         enforce_player_quest_authority=True,
                         trusted_player_statement_receipts=trusted_player_statement_receipts,
+                        host_discovery_grant=discovery_grant,
                     )
                 finally:
                     spinner.stop()

@@ -43,7 +43,7 @@ from app.player_observations import player_place_observations
 from app.player_resources import player_resource_outcome
 from engine.store import RevisionConflict
 from context.access import pov_world
-from context.capabilities import scene_capabilities
+from context.capabilities import (host_nearby_discovery_grant, scene_capabilities)
 from context.native_authoring import host_player_statement_receipt, native_authoring_context
 from kernel.clock import band_name
 from kernel.events import kernel_event
@@ -492,6 +492,8 @@ class _RequestContext:
     recipient: str | None
     statement: str | None
     trusted_player_statement_receipts: tuple[dict[str, Any], ...]
+    discovery_attempt: bool
+    discovery_semantic_id: str | None
 
 
 class PlayerDashboard:
@@ -598,22 +600,28 @@ class PlayerDashboard:
             saved_recipient = envelope.get("speak_recipient") if isinstance(envelope, dict) else None
             saved_statement = envelope.get("speak_statement") if isinstance(envelope, dict) else None
             saved_receipts = envelope.get("trusted_player_statement_receipts", []) if isinstance(envelope, dict) else []
+            discovery_attempt = envelope.get("discovery_attempt", False) if isinstance(envelope, dict) else False
+            discovery_semantic_id = envelope.get("host_discovery_semantic_id") if isinstance(envelope, dict) else None
             if (not isinstance(scene, dict) or (prev_scene is not None and not isinstance(prev_scene, dict))
                     or saved_recipient is not None and not isinstance(saved_recipient, str)
                     or saved_statement is not None and not isinstance(saved_statement, str)
                     or (saved_recipient is None) != (saved_statement is None)
                     or not isinstance(saved_receipts, list) or len(saved_receipts) > 1
-                    or any(not isinstance(item, dict) for item in saved_receipts)):
+                    or any(not isinstance(item, dict) for item in saved_receipts)
+                    or type(discovery_attempt) is not bool
+                    or (discovery_semantic_id is not None and (not isinstance(discovery_semantic_id, str)
+                        or len(discovery_semantic_id) != 64))):
                 raise ValueError
             if bool(saved_receipts) != bool(saved_recipient):
                 raise ValueError
             return _RequestContext("", None, scene, prev_scene, saved_recipient, saved_statement,
-                                   tuple(saved_receipts))
+                                   tuple(saved_receipts), discovery_attempt, discovery_semantic_id)
         except Exception:
             raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
 
     def action(self, *, player_input: str, action_id: str, expected_revision: int | None,
-               recipient: str | None = None, statement: str | None = None) -> dict[str, Any]:
+               recipient: str | None = None, statement: str | None = None,
+               discovery_attempt: bool = False) -> dict[str, Any]:
         if not isinstance(player_input, str) or not player_input.strip():
             raise GuiRequestError("请输入一个行动。")
         if len(player_input.encode("utf-8")) > _MAX_ACTION_BYTES:
@@ -622,6 +630,8 @@ class PlayerDashboard:
             raise GuiRequestError("请求标识无效，请刷新后重试。")
         if expected_revision is not None and (type(expected_revision) is not int or expected_revision < 0):
             raise GuiRequestError("页面状态无效，请刷新后重试。")
+        if type(discovery_attempt) is not bool:
+            raise GuiRequestError("附近线索请求无效，请刷新后重试。")
         if (recipient is None) != (statement is None):
             raise GuiRequestError("请同时明确选择当前同场收件人并填写逐字原话。")
         if recipient is not None:
@@ -633,7 +643,8 @@ class PlayerDashboard:
             self._refresh_if_store_advanced()
             stored = self._stored_context(action_id)
             if stored is not None:
-                if stored.recipient != recipient or stored.statement != statement:
+                if (stored.recipient != recipient or stored.statement != statement
+                        or stored.discovery_attempt != discovery_attempt):
                     # A receipt already exists, so this is not a request that
                     # the browser can safely reject and discard.  The original
                     # committed turn may be recoverable only with its original
@@ -641,7 +652,8 @@ class PlayerDashboard:
                     raise GuiRecoveryError("已保存行动无法安全恢复；请刷新查看当前世界状态。")
                 context = _RequestContext(player_input, expected_revision, stored.scene, stored.prev_scene,
                                           stored.recipient, stored.statement,
-                                          stored.trusted_player_statement_receipts)
+                                          stored.trusted_player_statement_receipts,
+                                          stored.discovery_attempt, stored.discovery_semantic_id)
             else:
                 scene = _build_scene(self.engine)
                 try:
@@ -652,8 +664,10 @@ class PlayerDashboard:
                     ))
                 except ValueError as exc:
                     raise GuiRequestError("收件人必须是当前公开同场角色，且原话不能为空。") from exc
+                grant = host_nearby_discovery_grant(self.engine.world, scene) if discovery_attempt else None
                 context = _RequestContext(player_input, expected_revision, scene, self.previous_scene,
-                                          recipient, statement, receipts)
+                                          recipient, statement, receipts, discovery_attempt,
+                                          grant.semantic_id if grant is not None else None)
             # The durable host envelope, not this controller cache, is the
             # recovery authority after publication.  Keep an entry only while
             # this synchronous controller call is in flight so a long-lived
@@ -662,6 +676,15 @@ class PlayerDashboard:
             scene_for_turn = context.scene
             if self.steering:
                 scene_for_turn = {**context.scene, "_player_steer": self.steering}
+            # This flag deliberately carries no target, place key, route key,
+            # or host-only opportunity data into the ordinary author prompt.
+            if context.discovery_semantic_id is not None:
+                scene_for_turn = {**scene_for_turn, "_host_discovery_reveal": True}
+            grant_for_turn = None
+            if stored is None and context.discovery_semantic_id is not None:
+                grant_for_turn = host_nearby_discovery_grant(self.engine.world, context.scene)
+                if grant_for_turn is None or grant_for_turn.semantic_id != context.discovery_semantic_id:
+                    raise GuiRequestError("附近线索已变化；请刷新后重新决定行动。")
             try:
                 result = run_turn(
                     self.engine.registry, self.engine.store, self.engine.world, scene_for_turn, player_input,
@@ -673,7 +696,11 @@ class PlayerDashboard:
                         "scene": context.scene, "prev_scene": context.prev_scene,
                         "speak_recipient": context.recipient, "speak_statement": context.statement,
                         "trusted_player_statement_receipts": list(context.trusted_player_statement_receipts),
+                        "discovery_attempt": context.discovery_attempt,
+                        "host_discovery_semantic_id": context.discovery_semantic_id,
                     },
+                    host_discovery_grant=grant_for_turn,
+                    host_discovery_semantic_id=(context.discovery_semantic_id if stored is not None else None),
                     enforce_player_travel=True,
                     enforce_player_knowledge_authority=True,
                     enforce_player_world_authority=True,
@@ -792,7 +819,7 @@ _JS = """(() => {let state=null;const $=id=>document.getElementById(id);const el
 # HTML document.
 _INDEX = _INDEX.replace(
     '<button id="undo" type="button" class="subtle">撤销上一回合</button>',
-    '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
+    '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="discover-nearby" type="button" class="subtle">核验附近线索</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
 )
 _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
@@ -834,6 +861,10 @@ _JS = _JS.replace('let state=null,busy=false;', "let state=null,busy=false,recov
 _JS = _JS.replace(
     "function pending(){",
     "function renderResourceOutcome(item){const target=$('resource-outcome');if(!item){target.textContent='尚无可显示的支付或不足结算。';return}const verdict=item.outcome==='spent'?'已扣除':'余额不足，未扣除';target.textContent=`第 ${item.turn} 回合：${item.resource} 请求 ${item.requested_amount}；${verdict}，当前 ${item.balance}。`}\nfunction pending(){",
+)
+_JS = _JS.replace(
+    "$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});",
+    "$('discover-nearby').addEventListener('click',()=>{if(!state||busy)return;const old=pending();if(old){setStatus('请先恢复或检查上次未确认的请求。',true);return}const action_id=crypto.randomUUID?crypto.randomUUID():`gui-${Date.now()}-${Math.random()}`,envelope={text:'核验附近尚未明朗的线索。',action_id,expected_revision:state.revision,discovery_attempt:true};sessionStorage.setItem(pendingKey,JSON.stringify(envelope));sendAction(envelope,false)});$('resume-action').addEventListener('click',()=>{const p=pending();if(p)sendAction(p,true)});",
 )
 _JS = _JS.replace(
     "renderObservations(s.observations);clear($('narration'));",
@@ -1071,7 +1102,8 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                                           error_message="请求格式无效，请刷新后重试。")
                 return _json_response(start_response, "200 OK", dashboard.action(
                     player_input=data.get("text"), action_id=data.get("action_id"), expected_revision=data.get("expected_revision"),
-                    recipient=data.get("recipient"), statement=data.get("statement")))
+                    recipient=data.get("recipient"), statement=data.get("statement"),
+                    discovery_attempt=data.get("discovery_attempt", False)))
             if method == "POST" and path == "/api/steer":
                 _require_same_origin_json(environ)
                 data = _read_json_request(environ, minimum=2, maximum=4096,

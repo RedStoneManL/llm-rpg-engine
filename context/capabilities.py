@@ -14,10 +14,11 @@ together.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from typing import Any
 
 from context.access import pov_world
-from systems.knowledge import place_discovery_key, route_discovery_key
+from systems.knowledge import knows, place_discovery_key, route_discovery_key
 from kernel.contextsystem import ValidationError
 from loop.graph_utils import ancestor_of_level
 
@@ -34,6 +35,22 @@ class RouteCapability:
     source: str
     destination: str
     cost: str
+
+
+@dataclass(frozen=True)
+class HostDiscoveryGrant:
+    """One opaque, host-selected reveal authorization for an existing route.
+
+    The destination stays inside this trusted value.  Player DTOs, strategy
+    prompts and durable host envelopes use only ``semantic_id`` (an opaque
+    digest), never the destination id or discovery keys.
+    """
+    version: int
+    actor: str
+    origin: str
+    destination: str
+    keys: frozenset[str]
+    semantic_id: str
 
 
 @dataclass(frozen=True)
@@ -185,6 +202,63 @@ def host_route_discovery_grant(world: dict, scene: dict, destination: str) -> di
         "place_discovery_key": place_discovery_key(destination),
         "route_discovery_key": route_discovery_key(origin, destination),
     }
+
+
+def host_nearby_discovery_grant(world: dict, scene: dict, *, allow_known: bool = False) -> HostDiscoveryGrant | None:
+    """Select at most one hidden adjacent route for a trusted reveal attempt.
+
+    This is deliberately a host resolver, not a player lookup: callers cannot
+    name a target.  The deterministic lowest-id selection keeps an action-id
+    retry stable while exposing no target information to ordinary UI or
+    authoring input.  A previously committed retry may set ``allow_known`` so
+    recovery does not need to mint a second opportunity after the first turn
+    already made the route visible.
+    """
+    actor = scene.get("protagonist")
+    origin = scene.get("location")
+    graph = world.get("systems", {}).get("ontology")
+    if not isinstance(actor, str) or not isinstance(origin, str) or graph is None:
+        return None
+    day = scene.get("day") or world.get("meta", {}).get("day") or 1
+    candidates: list[str] = []
+    for destination, attrs in graph.relation_attrs_at(origin, "adjacent_to", day):
+        target = graph.get_entity(destination)
+        if target is None or target.attrs.get("visibility") != "undiscovered":
+            continue
+        if attrs.get("visibility") != "undiscovered":
+            continue
+        place_key = place_discovery_key(destination)
+        route_key = route_discovery_key(origin, destination)
+        if not allow_known and knows(graph, actor, place_key, day) is True and knows(graph, actor, route_key, day) is True:
+            continue
+        candidates.append(destination)
+    if not candidates:
+        return None
+    destination = sorted(candidates)[0]
+    keys = frozenset({place_discovery_key(destination), route_discovery_key(origin, destination)})
+    # The digest is a durable recovery discriminator, not a target handle.
+    material = f"hidden-discovery-v1\0{actor}\0{origin}\0{destination}".encode("utf-8")
+    return HostDiscoveryGrant(
+        version=1, actor=actor, origin=origin, destination=destination, keys=keys,
+        semantic_id=hashlib.sha256(material).hexdigest(),
+    )
+
+
+def validate_host_nearby_discovery_grant(world: dict, scene: dict, grant: HostDiscoveryGrant, *, allow_known: bool = False) -> None:
+    """Fail closed unless a grant is exactly the current host selection."""
+    if not isinstance(grant, HostDiscoveryGrant):
+        raise ValueError("host discovery authorization is invalid")
+    expected = host_nearby_discovery_grant(world, scene, allow_known=allow_known)
+    if expected != grant:
+        raise ValueError("host discovery authorization is no longer available")
+
+
+def host_discovery_records(grant: HostDiscoveryGrant) -> tuple[dict[str, str], dict[str, str]]:
+    """Return the exact two knowledge declarations only the trusted host adds."""
+    return (
+        {"op": "discover_place", "knower": grant.actor, "place": grant.destination},
+        {"op": "discover_route", "knower": grant.actor, "a": grant.origin, "b": grant.destination},
+    )
 
 
 def discovery_grant_errors(commit, actor: str | None, trusted_keys=frozenset()) -> list[ValidationError]:
@@ -895,7 +969,8 @@ def _declared_discovery_keys(commit, actor: str | None) -> frozenset[str]:
     return frozenset(key for key, value in values.items() if value is True)
 
 
-def _candidate_observation_places(commit, world: dict, scene: dict, *, trusted_keys=frozenset()) -> frozenset[str]:
+def _candidate_observation_places(commit, world: dict, scene: dict, *, trusted_keys=frozenset(),
+                                  reveal_only_discovery_keys=frozenset()) -> frozenset[str]:
     """Return locations an ordinary player candidate may observe this turn.
 
     This intentionally uses the player POV capability rather than the canonical
@@ -916,13 +991,16 @@ def _candidate_observation_places(commit, world: dict, scene: dict, *, trusted_k
             continue
         if (destination in capability.allowed_move_ids
                 or _new_place_route(commit, world, capability.location, destination)
-                or _host_discovered_route(world, capability.location, destination,
-                                          trusted_keys, effective_keys)):
+                or (_host_discovered_route(world, capability.location, destination,
+                                           trusted_keys, effective_keys)
+                    and not {place_discovery_key(destination), route_discovery_key(capability.location, destination)}
+                    <= set(reveal_only_discovery_keys))):
             allowed.add(destination)
     return frozenset(allowed)
 
 
-def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
+def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=frozenset(),
+                             reveal_only_discovery_keys=frozenset()) -> list[ValidationError]:
     """Constrain ordinary-player world writes to local public observations.
 
     A normal player author receives a redacted, action-start POV, not director
@@ -931,8 +1009,10 @@ def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=f
     a remote/hidden world change or trigger a global cascade.  Trusted native
     import and host/director paths opt in separately and do not use this guard.
     """
-    allowed_places = _candidate_observation_places(commit, world, scene,
-                                                    trusted_keys=trusted_keys)
+    allowed_places = _candidate_observation_places(
+        commit, world, scene, trusted_keys=trusted_keys,
+        reveal_only_discovery_keys=reveal_only_discovery_keys,
+    )
     errors: list[ValidationError] = []
     for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("world") or []):
         if not isinstance(item, dict):
@@ -959,7 +1039,8 @@ def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=f
     return errors
 
 
-def _event_observation_places(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> frozenset[str]:
+def _event_observation_places(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset(),
+                              reveal_only_discovery_keys=frozenset()) -> frozenset[str]:
     """Final-payload equivalent of :func:`_candidate_observation_places`."""
     capability = scene_capabilities(world, scene)
     if not capability.actor or not capability.location:
@@ -997,15 +1078,21 @@ def _event_observation_places(events: list[dict], world: dict, scene: dict, *, t
         if (destination in capability.allowed_move_ids
                 or (destination in created
                     and frozenset((capability.location, destination)) in direct_links)
-                or _host_discovered_route(world, capability.location, destination,
-                                          trusted_keys, effective_keys)):
+                or (_host_discovered_route(world, capability.location, destination,
+                                           trusted_keys, effective_keys)
+                    and not {place_discovery_key(destination), route_discovery_key(capability.location, destination)}
+                    <= set(reveal_only_discovery_keys))):
             allowed.add(destination)
     return frozenset(allowed)
 
 
-def player_turn_world_event_errors(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
+def player_turn_world_event_errors(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset(),
+                                   reveal_only_discovery_keys=frozenset()) -> list[ValidationError]:
     """Final-payload guard for ordinary-player public place observations."""
-    allowed_places = _event_observation_places(events, world, scene, trusted_keys=trusted_keys)
+    allowed_places = _event_observation_places(
+        events, world, scene, trusted_keys=trusted_keys,
+        reveal_only_discovery_keys=reveal_only_discovery_keys,
+    )
     errors: list[ValidationError] = []
     for index, event in enumerate(events):
         if not isinstance(event, dict) or event.get("retracted") or event.get("type") != "world_change":
@@ -1036,6 +1123,7 @@ def validate_protagonist_moves(
     *,
     narration_rewrite_from: str | None = None,
     trusted_keys=frozenset(),
+    reveal_only_discovery_keys=frozenset(),
 ) -> list[ValidationError]:
     """Return repairable errors when the scene protagonist leaves its capability.
 
@@ -1074,8 +1162,17 @@ def validate_protagonist_moves(
             if isinstance(key, str) and key.endswith(".discovered"):
                 values[key] = item.get("value", True)
         grants = {key for key, value in values.items() if value is True}
-        if (_new_place_route(commit, world, capability.location, destination)
-                or _host_discovered_route(world, capability.location, destination, trusted_keys, grants)):
+        host_discovered = _host_discovered_route(world, capability.location, destination, trusted_keys, grants)
+        if (host_discovered
+                and {place_discovery_key(destination), route_discovery_key(capability.location, destination)}
+                <= set(reveal_only_discovery_keys)):
+            errors.append(ValidationError(
+                section="moves", field=f"[{index}].to", code="discovery_reveal_only",
+                hint="本回合只揭示新的相邻出口；请留在当前位置，下回合再决定是否前往。",
+            ))
+            requires_narration_rewrite = True
+            continue
+        if _new_place_route(commit, world, capability.location, destination) or host_discovered:
             continue
         errors.append(ValidationError(
             section="moves",
@@ -1103,7 +1200,9 @@ def validate_protagonist_moves(
     return errors
 
 
-def validate_protagonist_move_events(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset()) -> list[ValidationError]:
+def validate_protagonist_move_events(events: list[dict], world: dict, scene: dict, *, trusted_keys=frozenset(),
+                                     reveal_only_discovery_keys=frozenset(),
+                                     required_discovery_keys=frozenset()) -> list[ValidationError]:
     """Recheck final publish payloads so later staging cannot bypass the contract."""
     capability = scene_capabilities(world, scene)
     if not capability.actor:
@@ -1137,6 +1236,13 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
             if isinstance(key, str) and key.endswith(".discovered"):
                 grant_values[key] = delta.get("value")
     effective_grants = {key for key, value in grant_values.items() if value is True}
+    if required_discovery_keys:
+        discovered = {key for key in effective_grants if key.endswith(".discovered")}
+        if discovered != set(required_discovery_keys):
+            errors.append(ValidationError(
+                section="knowledge", field="", code="host_discovery_incomplete",
+                hint="宿主授权的地点和路线发现必须作为同一回合的完整一对写入。",
+            ))
     canonical_graph = world.get("systems", {}).get("ontology")
     created = {
         (event.get("deltas") or {}).get("id")
@@ -1165,6 +1271,14 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
                       and frozenset((capability.location, destination)) in direct_links)
         host_discovered = (isinstance(destination, str)
                            and _host_discovered_route(world, capability.location, destination, trusted_keys, effective_grants))
+        if (host_discovered
+                and {place_discovery_key(destination), route_discovery_key(capability.location, destination)}
+                <= set(reveal_only_discovery_keys)):
+            errors.append(ValidationError(
+                section="moves", field=f"event[{index}].deltas.to", code="discovery_reveal_only",
+                hint="最终发布的发现回合不能把主角移动到刚揭示的出口。",
+            ))
+            continue
         if not isinstance(destination, str) or destination in allowed or discovered or host_discovered:
             continue
         errors.append(ValidationError(
