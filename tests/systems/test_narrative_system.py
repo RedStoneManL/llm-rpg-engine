@@ -1,6 +1,10 @@
 """Tests for NarrativeSystem (P2 — recency-tiered recap)."""
 from __future__ import annotations
 
+import hashlib
+import json
+import pytest
+
 from kernel.registry import Registry
 from kernel.projection import project
 from kernel.events import kernel_event
@@ -106,3 +110,57 @@ def test_aged_out_scene_detects_window_overflow():
 def test_aged_out_scene_none_when_within_window():
     world = project(_reg(), [_narr("s1", "a", turn=1), _narr("s2", "b", turn=2)])
     assert nmod.aged_out_scene(world["systems"]["narrative"]) is None
+
+
+def _source(events):
+    pairs = [[ev['id'], ev['deltas']['text']] for ev in events]
+    return {'version': 1, 'bucket_id': events[0]['id'],
+            'event_ids': [ev['id'] for ev in events],
+            'sha256': hashlib.sha256(json.dumps(pairs, ensure_ascii=False,
+                                               separators=(',', ':')).encode()).hexdigest()}
+
+
+def test_bound_summary_selects_exact_visit_not_first_matching_scene():
+    first = _narr('inn', 'First visit: I promised to wait.', turn=1)
+    outside = _narr('market', 'Went to market.', turn=2)
+    later = _narr('inn', 'Second visit: I returned the key.', turn=3)
+    summary = _summ('inn', 'Returned the key.', turn=4)
+    summary['deltas']['source'] = _source([later])
+    world = project(_reg(), [first, outside, later, summary])
+    buckets = world['systems']['narrative']['scenes']
+    assert buckets[0]['summary'] is None
+    assert buckets[2]['summary'] == 'Returned the key.'
+    assert buckets[2]['source_event_ids'] == [later['id']]
+    assert buckets[2]['summary_source'] == _source([later])
+
+
+@pytest.mark.parametrize('corruption', ['missing_event', 'edited_text', 'null', 'version', 'scene'])
+def test_bound_summary_rejects_unverifiable_source(corruption):
+    narration = _narr('inn', 'Exact original wording.', turn=1)
+    summary = _summ('inn', 'A lossy summary.', turn=2)
+    summary['deltas']['source'] = _source([narration])
+    if corruption == 'missing_event':
+        summary['deltas']['source']['event_ids'] = ['ev_missing']
+    elif corruption == 'edited_text':
+        narration['deltas']['text'] = 'Different wording under the same ID.'
+    elif corruption == 'null':
+        summary['deltas']['source'] = None
+    elif corruption == 'version':
+        summary['deltas']['source']['version'] = 99
+    else:
+        summary['deltas']['scene'] = 'market'
+    with pytest.raises(ValueError, match='summary source'):
+        project(_reg(), [narration, summary])
+
+
+def test_summary_closes_bucket_so_later_same_scene_text_is_not_covered():
+    first = _narr('inn', 'Earlier words.', turn=1)
+    summary = _summ('inn', 'Earlier summary.', turn=2)
+    summary['deltas']['source'] = _source([first])
+    # A newly bound summary closes its source range; legacy bucketing is unchanged.
+    later = _narr('inn', 'A new promise not in the summary.', turn=3)
+    buckets = project(_reg(), [first, summary, later])['systems']['narrative']['scenes']
+    assert len(buckets) == 2
+    assert buckets[0]['raw'] == ['Earlier words.']
+    assert buckets[1]['raw'] == ['A new promise not in the summary.']
+    assert buckets[1]['summary'] is None

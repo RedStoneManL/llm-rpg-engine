@@ -14,7 +14,10 @@ World slice: world["systems"]["narrative"] = {
     "scenes": [               # append-order list of scene buckets
         {"scene": str,
          "raw":  [str, ...],  # one entry per turn's narration in that scene
-         "summary": str | None},  # filled when the scene ages out
+         "source_event_ids": [str, ...],  # same ordering as raw
+         "summary": str | None,  # filled when the scene ages out
+         # New bound summaries also have summary_source and summary_event_id.
+        },
     ],
     "super_summary": str | None,   # recursive summary-of-summaries
     "summarized_through_index": int,  # number of scene buckets summarized so far
@@ -35,6 +38,9 @@ fragment; the assembler handles the dual-layer split).
 """
 from __future__ import annotations
 
+import hashlib
+import json
+
 from kernel.contextsystem import ContextSystem, Fragment
 from engine.log import get_logger
 
@@ -52,6 +58,26 @@ RECAP_SUMMARY_FANOUT: int = 6  # recompress into super_summary when > N aged sum
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+
+def summary_source_ref(bucket: dict) -> dict:
+    """Host-owned identity of the exact narration texts given to a summarizer.
+
+    This is provenance, not proof that the summary is semantically faithful.
+    Event IDs survive reopen and distinguish revisits/rewritten turn numbers;
+    the digest also detects changed text under an unchanged ID. No seq fields
+    are used, so staging and durable replay compute the same reference.
+    """
+    ids, raw = bucket.get('source_event_ids'), bucket.get('raw')
+    if (not isinstance(ids, list) or not ids or not isinstance(raw, list)
+            or len(ids) != len(raw)
+            or any(not isinstance(value, str) or not value for value in ids)
+            or len(set(ids)) != len(ids)
+            or any(not isinstance(text, str) for text in raw)):
+        raise ValueError('invalid summary source')
+    payload = json.dumps(list(zip(ids, raw)), ensure_ascii=False, separators=(',', ':'))
+    return {'version': 1, 'bucket_id': ids[0], 'event_ids': list(ids),
+            'sha256': hashlib.sha256(payload.encode()).hexdigest()}
+
 
 def aged_out_scene(ns: dict) -> str | None:
     """Return the scene id of the oldest unsummarized bucket beyond the raw window.
@@ -116,18 +142,39 @@ class NarrativeSystem(ContextSystem):
                 return
             buckets = ns["scenes"]
             if (buckets and buckets[-1]["scene"] == scene
+                    and 'summary_source' not in buckets[-1]
                     and len(buckets[-1]['raw']) < RECAP_TURNS_PER_BUCKET):
                 # Append to current scene bucket
                 buckets[-1]["raw"].append(text)
+                buckets[-1]['source_event_ids'].append(event.get('id'))
             else:
                 # New scene → new bucket
-                buckets.append({"scene": scene, "raw": [text], "summary": None})
+                buckets.append({"scene": scene, "raw": [text], "summary": None,
+                                'source_event_ids': [event.get('id')]})
             log.debug("narrative.apply: narration_recorded scene=%s text_len=%d", scene, len(text))
 
         elif t == "scene_summarized":
             scene = d.get("scene")
             summary = d.get("summary")
             buckets = ns["scenes"]
+            if 'source' in d:
+                source = d['source']
+                if (not isinstance(source, dict) or type(source.get('version')) is not int
+                        or source.get('version') != 1):
+                    raise ValueError('invalid summary source')
+                bucket = next((b for b in buckets
+                               if b['source_event_ids'][0] == source.get('bucket_id')), None)
+                if (bucket is None or bucket['scene'] != scene
+                        or bucket.get('summary') is not None
+                        or source != summary_source_ref(bucket)
+                        or not isinstance(summary, str) or not summary.strip()):
+                    raise ValueError('invalid summary source')
+                bucket['summary'] = summary
+                bucket['summary_source'] = summary_source_ref(bucket)
+                bucket['summary_event_id'] = event.get('id')
+                return
+            # Compatibility only: do not rewrite old records or infer that an
+            # unbound historical summary has verified source coverage.
             # Find the FIRST bucket for this scene whose summary is None and set it
             for bucket in buckets:
                 if bucket["scene"] == scene and bucket.get("summary") is None:

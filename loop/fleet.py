@@ -354,6 +354,10 @@ def digest_fleet(
                     None,
                 )
                 if aged_bucket and aged_bucket.get("raw"):
+                    # Freeze the host's exact source before calling the provider.
+                    # Model output cannot choose its own provenance or retarget a
+                    # summary to another visit to the same scene.
+                    source_ref = nmod.summary_source_ref(aged_bucket)
                     # The foreground action is already staged.  A recap is a
                     # best-effort public derivative: retain this transient
                     # pending status if its provider fails or returns malformed
@@ -361,6 +365,7 @@ def digest_fleet(
                     appended_all.recap_status = "pending"
                     summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"])
                     if summ_ev is not None:
+                        summ_ev['deltas']['source'] = source_ref
                         next_turn = _next_turn_in_store(store)
                         summ_ev["turn"] = next_turn
                         arc_day = max((ev.get("day", 1) for ev in new_events), default=1) if new_events else 1
@@ -376,8 +381,16 @@ def digest_fleet(
                             ns2 = post2.get("systems", {}).get("narrative") or {}
                             buckets2 = ns2.get("scenes", [])
                             through = ns2.get('summarized_through_index', 0)
-                            pending_summaries = [(i, b) for i, b in enumerate(buckets2)
-                                if i >= through and b.get('summary') is not None]
+                            # A prefix coverage marker may only advance across
+                            # a contiguous summarized range. Skipping a hole
+                            # would hide raw text never sent to recompression.
+                            pending_summaries = []
+                            for i, b in enumerate(buckets2):
+                                if i < through:
+                                    continue
+                                if b.get('summary') is None:
+                                    break
+                                pending_summaries.append((i, b))
                             summarized_buckets = [b for i, b in pending_summaries]
                             if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
                                 # Summarize the oldest summaries into super_summary

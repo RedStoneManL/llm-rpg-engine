@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-24（Asia/Shanghai）。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-25（Asia/Shanghai）。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
@@ -45,6 +45,11 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | 前端/运维 | CLI、trace viewer、portable handoff 存在；`app.gui` 已有仅回环的玩家游玩页、显式启动的只读 GM 总览与公开 Codex 浏览 | 没有世界书/角色卡编辑器、GM 写入能力、账户/多人协作、部署或生产 web runtime；玩家图仍需从出口文本升级为严格 POV 的可视关系图 |
 
 ## 工作队列
+
+2026-10-25 用户确认的下一阶段方向：**agentic 分段定位并回读原文**，摘要只是导航，不可代替精确原话；
+硬结果先裁定、最终正文后生成，其余长期后果／角色认知逐步推进。具体来源分类、接口约束和实施顺序见
+[分段原文查证与结果先行设计](docs/designs/AGENTIC_HISTORY_AND_OUTCOME_PLAN.md)。B1/profiling 原 HOLD 不变，
+本轮不启用历史展开工具，也不将来源底座误报为完整 agentic recall。
 
 | ID | 优先级 | 状态 | 根因与下一动作 | 验收 |
 | --- | --- | --- | --- | --- |
@@ -153,6 +158,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-110 | P1 | 已验收（GUI 非交互创世来源） | GUI 的显式 `--new-game` 只有 pitch/flavor，不能复用 CLI 的 blueprint、角色卡和世界书输入，迫使用户离开同一入口 | GUI 复用 CLI 的来源解析与 provider-free 文件预检；不增加浏览器上传、session-zero、真实模型或额外授权；完整 gate 2086 passed / 1 deselected |
 | RCV-111 | P0 | 已验收（CLI 已保存 campaign 的创世来源拒绝） | CLI 已保存 campaign 会静默忽略 `--genesis`、角色卡或世界书，却继续游玩，用户可能误以为导入已经生效 | 有活跃事件时明确停止于 play/transcript 之前；不改已文档化的 flavor resume 语义，创世来源仍可用于空 campaign；完整 gate 2089 passed / 1 deselected |
 | RCV-112 | P1 | 已验收（创世／导入／续玩端到端组验收） | RCV-110/111 已分别覆盖 GUI 来源接入与 CLI 保存世界拒绝，但本轮需要确认正常 CLI/GUI 成功和失败入口能组成完整用户流程 | 复用现有真实 campaign 回归：坏来源零创建、已保存 campaign 零写拒绝、有效来源实际创世并进入玩家界面；临时 Chromium loopback 检查 normal GUI 可玩页面，未增加产品代码 |
+| RCV-116 | P1 | 已验收（分段原文来源底座，不是召回工具） | 新摘要显式绑定原 narration IDs 与文本校验值，拒绝同场景错配／过期源；总概要覆盖不得越过未摘要空洞 | 同地重访、源篡改、真实 run_turn／冷重开／撤回和发布失败零写；专项 57 passed，完整 2107 passed / 1 deselected。旧无来源记录保留兼容，agentic 定位／展开及原输入档案尚未启用 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2142,3 +2148,25 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   为 **49 passed in 0.55s**；正式 `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -q`
   为 **2099 passed, 1 deselected in 24.06s**。唯一 deselect 是既有 slow real embedding，均为本地确定性验收。
   限制：连续摘要故障会增长未压缩上下文；本项先消除静默遗忘，未实现预算感知检索或后台积压队列，也不证明真实模型摘要质量。
+
+- 2026-10-25：RCV-116 按用户明确的“分段定位→按需原文查证”方向先补来源底座，不把摘要当精确记忆。
+  重建 `/tmp/llm-rpg-engine-testenv`（system-site-packages，pytest 8.4.2；仅下载测试依赖），修改前实际完整
+  gate **2099 passed, 1 deselected in 41.68s**。新来源协议的 7 条测试在旧实现红：同场第二段 summary 落到
+  第一段、5 种无效 source 未拒绝、summary 后同地新原文继续混入旧 bucket。旧实现未声称支持该新协议；
+  后一测试随后限定新 bound summary，避免改变历史无 source bucket 划分及索引语义。
+
+  新摘要由 host 在 provider 前绑定 source v1（首 narration ID、有序全部 IDs、原文 SHA-256），projection
+  校验后才写 summary。ID 与文本绑定不依赖临时 seq；无效 source 的 append_many 在 event/revision/receipt/JSONL
+  前原子拒绝，冷重开仍一致；已绑定桶不吞后来文本。旧无 source 摘要不迁移、不声称来源已验证。
+  另外真实混合历史红例证明 recompression 会跳过一个未摘要 bucket 却推进 prefix index；现只压缩连续已有摘要的前缀，
+  不会把没送给 provider 的原文当作已覆盖。
+
+  第一次联动专项为 55 passed / 1 failed（旧测试精确期待只有 scene+summary 两字段）；保留原事实不受摘要影响的断言，
+  补全 source 字段验证。空洞单测旧实现也实际失败（多出 recap_recompressed）。最终专项
+  `/tmp/llm-rpg-engine-testenv/bin/python -m pytest tests/systems/test_narrative_system.py tests/test_recap_integrity.py tests/loop/test_fleet.py tests/test_world_continuity.py tests/context/test_assembler.py -o "addopts=-m 'not slow'" -q`
+  为 **57 passed in 0.86s**；完整同环境 `python -m pytest -o "addopts=-m 'not slow'" -q` 为
+  **2107 passed, 1 deselected in 32.65s**，仅既有 slow real embedding 未运行。
+
+  范围限制：没有新增模型工具／公共历史 API／原玩家输入事件，没有保证摘要内容正确，没有完成 agentic recall；
+  总概要仍是旧索引格式，来源链与积压维护待做。原始输入、NPC heard receipt 和旁白的不同证据强度已写入设计。
+  不触碰 B1/profiling、真实模型、外传或部署。后续先补总概要来源，再独立推进结果先行叙事；检索工具的暂停边界不绕过。

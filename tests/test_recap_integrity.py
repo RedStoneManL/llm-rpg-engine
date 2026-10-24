@@ -7,6 +7,7 @@ the production implementations: no synthetic narrative events are injected.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import logging
 
@@ -121,6 +122,34 @@ def _public_resume(engine):
     return "\n".join(lines)
 
 
+def test_recompression_does_not_skip_unsummarized_source_gap(tmp_path):
+    """Mixed/legacy histories can contain a hole before saved summaries."""
+    from loop.fleet import digest_fleet
+    engine = _seed_engine(tmp_path)
+    try:
+        for i in range(11):
+            engine.store.append(kernel_event(
+                'narration_recorded', day=1, scene=f's{i}', summary='public', turn=i + 1,
+                deltas={'scene': f's{i}', 'text': f'ORIGINAL_{i}'}))
+            if 2 <= i <= 8:
+                engine.store.append(kernel_event(
+                    'scene_summarized', day=1, scene=f's{i}', summary='legacy', turn=i + 1,
+                    deltas={'scene': f's{i}', 'summary': f'SUMMARY_{i}'}))
+        engine.world = project(engine.registry, engine.store.iter_events())
+        provider = FixedRecapProvider('SUMMARY_OF_FIRST')
+        result = digest_fleet(engine.registry, engine.store, [], engine.world,
+                              provider=provider, recap_provider=provider)
+        assert [ev['type'] for ev in result] == ['scene_summarized']
+        assert len(provider.calls) == 1
+        world = project(engine.registry, engine.store.iter_events())
+        ns = world['systems']['narrative']
+        assert ns['summarized_through_index'] == 0
+        assert ns['scenes'][1]['summary'] is None
+        assert 'ORIGINAL_1' in assemble_context(engine.registry, world, _scene('s10'))
+    finally:
+        engine.store.close()
+
+
 @pytest.mark.parametrize("same_scene", [False, True])
 def test_failed_recap_keeps_unsummarized_history_until_saved_and_replays(tmp_path, monkeypatch, same_scene):
     """Actual turns retain promises across failed compression and branch rewind."""
@@ -147,11 +176,40 @@ def test_failed_recap_keeps_unsummarized_history_until_saved_and_replays(tmp_pat
 
         result = _play(engine, "room" if same_scene else "recovery", "PUBLIC_RECOVERY_TURN", 40,
                        FixedRecapProvider("PUBLIC_SAVED_PROMISE_SUMMARY"), "promise-recovery")
+        summary = next(ev for ev in result.events if ev['type'] == 'scene_summarized')
+        source = summary['deltas']['source']
+        history_by_id = {ev['id']: ev for ev in engine.store.iter_events()}
+        originals = [history_by_id[eid] for eid in source['event_ids']]
+        assert source['version'] == 1 and source['bucket_id'] == originals[0]['id']
+        assert len(originals) == (6 if same_scene else 1)
+        assert all(ev['type'] == 'narration_recorded' for ev in originals)
+        assert originals[0]['deltas']['text'] == 'PUBLIC_PROMISE_000_END'
+        pairs = [[ev['id'], ev['deltas']['text']] for ev in originals]
+        assert source['sha256'] == hashlib.sha256(json.dumps(
+            pairs, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
         recovered = assemble_context(engine.registry, engine.world, _scene("room"))
         assert "PUBLIC_SAVED_PROMISE_SUMMARY" in recovered
         assert "PUBLIC_PROMISE_000_END" not in recovered
         assert f"PUBLIC_PROMISE_{count-1:03d}_END" in recovered
         assert PRIVATE_SENTINEL not in recovered
+
+        # Verify the durable source, not just the in-memory batch. Invalid new
+        # provenance must fail before any event/revision/receipt/mirror write.
+        engine.store.close()
+        engine = build_engine(tmp_path / "campaign", enable_interpretive_memory=True)
+        assert engine.world['systems']['narrative']['scenes'][0]['summary_source'] == source
+        assert assemble_context(engine.registry, engine.world, _scene('room')) == recovered
+        before = list(engine.store.iter_events(include_retracted=True))
+        revision, mirror = engine.store.revision, engine.store.jsonl_path.read_bytes()
+        bad = copy.deepcopy(summary)
+        bad['id'] = 'ev_bad_summary_source'
+        bad['deltas']['source']['bucket_id'] = 'ev_missing'
+        with pytest.raises(ValueError, match='summary source'):
+            engine.store.append_many([bad], action_id='invalid-summary-source')
+        assert list(engine.store.iter_events(include_retracted=True)) == before
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+        assert engine.store.get_action_receipt('invalid-summary-source') is None
 
         rewind(engine, result.events[0]["turn"])
         assert assemble_context(engine.registry, engine.world, _scene("room")) == context
@@ -278,8 +336,10 @@ def test_summary_is_public_replayable_narrative_not_fact_authority(tmp_path, mon
 
         summaries = [event for event in result.events if event["type"] == "scene_summarized"]
         assert len(summaries) == 1
+        from systems.narrative import summary_source_ref
         assert summaries[0]["deltas"] == {
-            "scene": "s1", "summary": "SUMMARY_FALSE_CLAIM_COINS_999"}
+            "scene": "s1", "summary": "SUMMARY_FALSE_CLAIM_COINS_999",
+            'source': summary_source_ref(pre_action_world['systems']['narrative']['scenes'][0])}
         assert provider.calls
         recap_prompt = provider.calls[0]
         rendered_prompt = "\n".join(message.get("content", "") for message in recap_prompt)
