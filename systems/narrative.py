@@ -27,7 +27,8 @@ Constants (tunable — referenced as nmod.RECAP_RAW_SCENES etc.):
 Rewind-safety: the entire slice folds from events.  /rewind N retracts
 events >= turn N and re-projects; summaries of retracted scenes disappear.
 
-inject() returns a SCENE-layer fragment with the recent-N raw narration blocks.
+inject() returns a SCENE-layer fragment with recent-N raw narration blocks and
+older blocks still awaiting a saved summary. Failed compression never drops text.
 The STABLE-layer summary block (super_summary + aged scene summaries) is emitted
 by context/assembler.py's dedicated recap composition step (one system = one
 fragment; the assembler handles the dual-layer split).
@@ -148,7 +149,7 @@ class NarrativeSystem(ContextSystem):
     # ------------------------------------------------------------------
 
     def inject(self, scene: dict, world: dict) -> "Fragment | None":
-        """Force-render the recent-N verbatim narration blocks into the scene layer.
+        """Render recent narration and any older, not-yet-compressed backlog.
 
         The stable-layer summary block (aged summaries + super_summary) is rendered
         by assemble_context directly from world["systems"]["narrative"] so that
@@ -162,8 +163,24 @@ class NarrativeSystem(ContextSystem):
         if not buckets:
             return None
 
-        recent = buckets[-RECAP_RAW_SCENES:]
-        lines = ["【最近剧情·原文】（延续性，每回合必看）"]
+        cutoff = max(0, len(buckets) - RECAP_RAW_SCENES)
+        through = ns.get("summarized_through_index", 0)
+        pending = [bucket for idx, bucket in enumerate(buckets[:cutoff])
+                   if idx >= through and not bucket.get("summary")]
+        lines = []
+        # Age alone is not evidence that compression succeeded. Keep the
+        # public source text until a durable summary (or super-summary) covers
+        # it. This is a read projection: no retry, synthetic summary or write.
+        # A prolonged recap outage may grow this backlog; silently truncating
+        # it would erase the only available representation of old promises.
+        if any(bucket.get("raw") for bucket in pending):
+            lines.append("【待摘要剧情·原文】（摘要尚未保存，保留此前经过）")
+            for bucket in pending:
+                if bucket.get("raw"):
+                    lines.append(f"〔{bucket['scene']}〕" + "\n".join(bucket["raw"]))
+
+        recent = buckets[cutoff:]
+        lines.append("【最近剧情·原文】（延续性，每回合必看）")
         for bucket in recent:
             raw_texts = bucket.get("raw", [])
             if raw_texts:

@@ -18,6 +18,8 @@ from kernel.events import kernel_event
 from kernel.projection import project
 from kernel.turncommit import TurnCommit
 from loop.turn import REQUIRED_SECTIONS, run_turn
+from context.assembler import assemble_context
+from app.engine import rewind
 from systems.interpretive_memory import (
     OfflineInterpretationGenerator,
     public_event_history,
@@ -117,6 +119,47 @@ def _public_resume(engine):
     lines = []
     _print_resume_recap(engine, lines.append)
     return "\n".join(lines)
+
+
+@pytest.mark.parametrize("same_scene", [False, True])
+def test_failed_recap_keeps_unsummarized_history_until_saved_and_replays(tmp_path, monkeypatch, same_scene):
+    """Actual turns retain promises across failed compression and branch rewind."""
+    _disable_unrelated_backstage(monkeypatch)
+    engine = _seed_engine(tmp_path)
+    count = 14 if same_scene else 4
+    try:
+        failing = RaisingRecapProvider()
+        for i in range(count):
+            _play(engine, "room" if same_scene else f"s{i}",
+                  f"PUBLIC_PROMISE_{i:03d}_END", 10 + i, failing, f"promise-{i}")
+        assert failing.calls
+        context = assemble_context(engine.registry, engine.world, _scene("room"))
+        for i in range(count):
+            assert context.count(f"PUBLIC_PROMISE_{i:03d}_END") == 1
+        assert PRIVATE_SENTINEL not in context
+        before_revision = engine.store.revision
+        before_jsonl = engine.store.jsonl_path.read_bytes()
+        engine.store.close()
+        engine = build_engine(tmp_path / "campaign", enable_interpretive_memory=True)
+        assert assemble_context(engine.registry, engine.world, _scene("room")) == context
+        assert engine.store.revision == before_revision
+        assert engine.store.jsonl_path.read_bytes() == before_jsonl
+
+        result = _play(engine, "room" if same_scene else "recovery", "PUBLIC_RECOVERY_TURN", 40,
+                       FixedRecapProvider("PUBLIC_SAVED_PROMISE_SUMMARY"), "promise-recovery")
+        recovered = assemble_context(engine.registry, engine.world, _scene("room"))
+        assert "PUBLIC_SAVED_PROMISE_SUMMARY" in recovered
+        assert "PUBLIC_PROMISE_000_END" not in recovered
+        assert f"PUBLIC_PROMISE_{count-1:03d}_END" in recovered
+        assert PRIVATE_SENTINEL not in recovered
+
+        rewind(engine, result.events[0]["turn"])
+        assert assemble_context(engine.registry, engine.world, _scene("room")) == context
+        engine.store.close()
+        engine = build_engine(tmp_path / "campaign", enable_interpretive_memory=True)
+        assert assemble_context(engine.registry, engine.world, _scene("room")) == context
+    finally:
+        engine.store.close()
 
 
 def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp_path, monkeypatch, caplog):

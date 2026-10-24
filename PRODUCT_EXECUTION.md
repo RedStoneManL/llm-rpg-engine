@@ -1,6 +1,6 @@
 # RPG 产品与持续开发执行追踪
 
-最后核对：2026-10-16 UTC。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
+最后核对：2026-10-24（Asia/Shanghai）。本文是用户指定的持续执行准则与当前仓库恢复工作的唯一执行入口；历史
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
@@ -2129,3 +2129,16 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   action-id 冷恢复、rewind 与恶意 POST 的零写入；真实临时 loopback Chromium 流程覆盖“揭示而不移动→下一回合移动
   →两次撤销→冷重开”，整个 DOM 都不含 hidden canonical id。所有测试使用固定本地策略／临时 campaign，无真实模型、
   网络模型、外传或部署。
+
+- 2026-10-24：RCV-115 修复长局摘要失败后的上下文断层。原实现仅注入最近两个 bucket 的原文，旧 bucket
+  必须已有 summary 才会进入 stable 层；摘要服务失败后，公开承诺虽仍存于 SQLite，却从下一轮作者上下文中消失。
+  实际红例通过 `run_turn → digest_fleet → assemble_context` 复现：跨场景 4 回合、同场景 14 回合两例均为
+  `PUBLIC_PROMISE_000_END` 出现次数 `0 != 1`。
+
+  `NarrativeSystem.inject` 现在保留尚无持久化摘要且未被总概要覆盖的旧 bucket 原文，并明确标为“待摘要剧情”；
+  摘要成功后按既有分层替代原文。无新事件、回填、事实权限或私有记忆注入。两条端到端回归验证每段公开经历恰好一次、
+  私有 sentinel 不出现、冷重开相同、生成摘要后旧原文移除、整回合撤回后原文恢复且再次冷重开不复活已撤回摘要。
+  定向命令 `python -m pytest tests/test_recap_integrity.py tests/test_world_continuity.py tests/systems/test_narrative_system.py tests/context/test_assembler.py tests/loop/test_fleet.py -o "addopts=-m 'not slow'" -q`
+  为 **49 passed in 0.55s**；正式 `/tmp/llm-rpg-engine-testenv/bin/python -m pytest -o "addopts=-m 'not slow'" -q`
+  为 **2099 passed, 1 deselected in 24.06s**。唯一 deselect 是既有 slow real embedding，均为本地确定性验收。
+  限制：连续摘要故障会增长未压缩上下文；本项先消除静默遗忘，未实现预算感知检索或后台积压队列，也不证明真实模型摘要质量。
