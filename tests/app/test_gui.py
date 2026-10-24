@@ -78,7 +78,13 @@ def test_gui_nearby_discovery_is_host_selected_recoverable_and_rewindable(tmp_pa
         kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
             "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
-            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门前石阶有一道新裂缝。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门前石阶有一道新裂缝。",
+            "source": "host_discovery_clue", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+            "discovery_clue_id": "inn-cracked-step"}),
     ], preflight=lambda history: project(engine.registry, history))
     initial = dashboard.state()
     assert "sealed_gate" not in json.dumps(initial, ensure_ascii=False)
@@ -122,6 +128,31 @@ def test_gui_nearby_discovery_is_host_selected_recoverable_and_rewindable(tmp_pa
     assert retried["duplicate"] is False
     assert "sealed_gate" in {row["id"] for row in retried["state"]["scene"]["exits"]}
     reopened.engine.store.close()
+
+
+def test_gui_discovery_without_a_public_host_clue_is_confirmed_noop(tmp_path):
+    """A forged POST cannot turn an unmarked hidden edge into a probe."""
+    dashboard = build_dashboard(tmp_path / "campaign", demo=True)
+    initial = dashboard.state()
+    before = (dashboard.engine.store.db_path.read_bytes(), dashboard.engine.store.jsonl_path.read_bytes())
+
+    class MustNotRun:
+        def produce(self, *args, **kwargs):
+            raise AssertionError("unavailable discovery must not invoke the author")
+
+    dashboard.strategy = MustNotRun()
+    status, payload = _post_wsgi(make_app(dashboard), "/api/action", {
+        "text": "核验附近尚未明朗的线索。", "action_id": "unavailable-discovery",
+        "expected_revision": initial["revision"], "discovery_attempt": True,
+    })
+    assert status.startswith("400")
+    assert payload == {
+        "message": "附近暂无可核验的公开线索；世界未改变。",
+        "confirmed_rejection": True,
+    }
+    assert dashboard.state() == initial
+    assert (dashboard.engine.store.db_path.read_bytes(), dashboard.engine.store.jsonl_path.read_bytes()) == before
+    dashboard.engine.store.close()
 
 
 def test_player_shell_labels_demo_and_normal_saved_campaign_without_exposing_state(tmp_path):

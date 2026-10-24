@@ -34,3 +34,20 @@ def test_player_character_facts_bounds_serialized_structure_too():
     assert facts[0]["name"] == "装备"
     assert len(facts[0]["value"]) == 500
     assert facts[0]["value"].endswith("…")
+
+
+def test_player_character_facts_excludes_internal_knowledge_capabilities():
+    graph = FactGraph()
+    graph.add_entity("hero", "Person", tier="tracked")
+    graph.assert_fact(
+        "hero", "knows:sealed_gate.discovered", True, day=1, turn=1,
+        source_event="host-discovery", secrecy="public",
+    )
+    graph.assert_fact(
+        "hero", "状态", "保持公开", day=1, turn=1,
+        source_event="public-status", secrecy="public",
+    )
+
+    assert player_character_facts({"systems": {"ontology": graph}}, "hero") == [{
+        "name": "状态", "value": "保持公开",
+    }]

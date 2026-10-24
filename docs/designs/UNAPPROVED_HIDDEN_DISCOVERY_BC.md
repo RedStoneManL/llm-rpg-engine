@@ -5,7 +5,7 @@
 ## 已批准第一版
 
 - 玩家可在普通 CLI 用 `/discover` 或 GUI 用“核验附近线索”发起一次**无目标**的核验；请求不能提交地点 ID、路线 key 或授权摘要。
-- 可信宿主只在 action-start 从当前公开位置的直连 `undiscovered` 路线中确定一个目标。作者/普通 prompt 只收到泛化的可核验提示。
+- 可信宿主只在 action-start 从当前公开位置的直连 `undiscovered` 路线中确定一个目标，且该路线必须有**唯一匹配的、已持久化的公开本地宿主线索**；没有线索或多个路线错误共用同一线索时 fail-closed。作者/普通 prompt 只收到泛化的可核验提示。
 - 成功时宿主在同一 turn publish 精确 place/route discovery records：出口只在该 turn 成功后进入 POV；主角**不得同回合移动**，下一回合才可按普通可见出口移动。
 - 失败、取消、候选/最终校验拒绝和 stale 冲突均不写消费标记或半个发现；整 turn rewind 撤回 discovery，随后新的 action id 可再次核验。
 - action-id 只绑定不透明语义摘要；已提交的 cold retry 从 sidecar 恢复，不重新签发机会。native importer 仍独立。
@@ -14,21 +14,21 @@
 
 当前实现已把“发现既有隐藏地点/路线”定义为宿主权限，而不是普通作者可从叙事中推断出的能力：
 
-- `host_route_discovery_grant(world, scene, destination)` 只接受当前地点直接相邻、已存在且 `visibility=undiscovered` 的目标；它产出地点和路线两条 discovery key。
+- `host_route_discovery_grant(world, scene, destination)` 只接受当前地点直接相邻、已存在且 `visibility=undiscovered` 的目标；第一版的 `host_nearby_discovery_grant()` 还要求该 edge 的私有 clue marker 对应一条既有 `source=host_discovery_clue` 的公开本地观察，并且只在唯一匹配时签发。它产出地点和路线两条 discovery key。
 - 普通回合的 `discovery_grant_errors()`、最终 `EventBatch` 校验和 `run_turn()` 都要求作者的 `discover_place` / `discover_route` 写入与精确可信 key 一致。
 - `trusted_discovery_keys` 已进入 action-id 请求指纹；同一 action-id 改变该集合必须在生成前 fail-closed。发现写入随整回合原子 publish，撤回与冷重开沿现有 receipt / sidecar 路径工作。
 - 已知出口、同回合全新公开前沿地点，和“揭示一个已存在 hidden/undiscovered 路线”是不同通路。后者不能借普通 world、facts、links、narration 或玩家自由文本间接取得。
 
 因此本草案不重新发明发现事件，也不把 NPC 的方向陈述升级为路线事实。它只讨论：若产品希望让玩家在受限玩法里触发一个**已有的、宿主可验证的**隐藏发现，怎样把该宿主决定安全地交给一回合。
 
-## 待决假设（必须由用户批准）
+## 已解决的第一版选择与后续扩展
 
-仓库和执行记录没有定义“隐藏发现 B+C”的最终玩家语义。本草案暂将它拆为两个待决产品选择，名称只为讨论方便：
+第一版已采用下列最小玩法：玩家明确请求一次无目标核验；宿主只接受预先存在的公开本地线索；成功只揭示、不同回合移动；失败、取消与撤回不消耗机会。下表保留的是未来扩展，而非当前实现缺口：
 
 | 决定 | 草案选项 | 尚未批准的问题 |
 | --- | --- | --- |
-| B：触发机会 | 宿主可基于当前公开 scene、已保存的公开线索或一个明确玩家行动，产生**不含隐藏 ID/名称**的“可以尝试核验”的机会。 | 什么算足够线索；机会是否展示给玩家；是否允许多次尝试；失败是否写公共观察。 |
-| C：一次性授权 | 宿主在实际 action-start 重新验证后，为一个已有的直连 undiscovered 目标签发一回合、精确到地点+路线 key 的能力；作者仍必须在 commit 中写出匹配的 discovery records。 | 授权何时过期；失败/取消/撤回是否可再次签发；是否需玩家在 GUI/CLI 明确确认；是否可以只发现不移动。 |
+| B：触发机会 | 当前为“已有公开 host 线索 + 玩家明确核验”；UI 只导出布尔能力，CLI 无线索时固定 no-op。 | 更丰富的线索来源、次数或失败后新观察。 |
+| C：一次性授权 | 当前为 action-start 重验、精确地点+路线 key、成功只揭示。 | durable 使用次数/过期与其他隐藏内容类型。 |
 
 以下内容不是对这两个选择的默认启用。若用户批准与本文不同的 B/C 定义，应先修订本文及验收矩阵，再实现。
 

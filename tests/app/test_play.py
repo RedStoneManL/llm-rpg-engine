@@ -90,7 +90,13 @@ def test_cli_discover_is_a_targetless_host_reveal(tmp_path):
         kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
             "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
-            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门前石阶有一道新裂缝。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门前石阶有一道新裂缝。",
+            "source": "host_discovery_clue", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+            "discovery_clue_id": "inn-cracked-step"}),
     ], preflight=lambda history: project(engine.registry, history))
     engine.world = project(engine.registry, engine.store.iter_events())
 

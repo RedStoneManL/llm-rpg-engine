@@ -33,6 +33,18 @@ def _demo_engine(tmp_path):
     return engine
 
 
+def _install_host_discovery_clue(engine, *, clue_id="inn-cracked-step"):
+    """Persist the public local observation that makes one route eligible."""
+    engine.store.append_many([
+        kernel_event("world_change", day=1, scene="s1", turn=0, summary="门前石阶有一道新裂缝。", deltas={
+            "place": "stonebridge_inn", "level": 1, "summary": "门前石阶有一道新裂缝。",
+            "source": "host_discovery_clue", "visibility": "public", "public_observation": True,
+            "observation_kind": "single_observation", "observation_range": "客栈门前两步内",
+            "discovery_clue_id": clue_id,
+        }),
+    ], preflight=lambda history: project(engine.registry, history))
+
+
 def test_scene_capability_is_pov_filtered_and_matches_map_contract(tmp_path):
     engine = _demo_engine(tmp_path)
     capability = scene_capabilities(engine.world, _build_scene(engine))
@@ -134,8 +146,10 @@ def test_sqlite_host_grant_discovers_undiscovered_route_and_moves_same_turn(tmp_
         kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
             "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
-            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
     ], preflight=lambda history: project(engine.registry, history))
+    _install_host_discovery_clue(engine)
     engine.world = project(engine.registry, engine.store.iter_events())
     scene = _build_scene(engine)
     grants = frozenset({place_discovery_key("sealed_gate"),
@@ -186,8 +200,10 @@ def test_host_nearby_discovery_reveals_but_cannot_move_until_later_turn(tmp_path
         kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
             "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
-            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
     ], preflight=lambda history: project(engine.registry, history))
+    _install_host_discovery_clue(engine)
     engine.world = project(engine.registry, engine.store.iter_events())
     scene = _build_scene(engine)
     grant = host_nearby_discovery_grant(engine.world, scene)
@@ -237,8 +253,10 @@ def test_host_nearby_discovery_failure_or_cancel_leaves_no_grant_consumption(tmp
         kernel_event("place_created", day=1, scene="s1", turn=0, summary="sealed gate", deltas={
             "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
         kernel_event("place_linked", day=1, scene="s1", turn=0, summary="sealed route", deltas={
-            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
     ], preflight=lambda history: project(engine.registry, history))
+    _install_host_discovery_clue(engine)
     engine.world = project(engine.registry, engine.store.iter_events())
     scene = _build_scene(engine); grant = host_nearby_discovery_grant(engine.world, scene)
     before = list(engine.store.iter_events(include_retracted=True)); revision = engine.store.revision
@@ -254,6 +272,41 @@ def test_host_nearby_discovery_failure_or_cancel_leaves_no_grant_consumption(tmp
     assert engine.store.revision == revision
     assert list(engine.store.iter_events(include_retracted=True)) == before
     assert host_nearby_discovery_grant(engine.world, scene) == grant
+    engine.store.close()
+
+
+def test_nearby_discovery_requires_one_matching_public_host_clue(tmp_path):
+    """Hidden adjacency cannot be probed; ambiguous host markers fail closed."""
+    engine = _demo_engine(tmp_path)
+    engine.store.append_many([
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="first", deltas={
+            "id": "sealed_gate", "level": 2, "kind": "venue", "seed": "封门", "visibility": "undiscovered"}),
+        kernel_event("place_created", day=1, scene="s1", turn=0, summary="second", deltas={
+            "id": "hidden_steps", "level": 2, "kind": "venue", "seed": "暗阶", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="no clue", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered"}),
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="ambiguous clue", deltas={
+            "a": "stonebridge_inn", "b": "hidden_steps", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    scene = _build_scene(engine)
+    assert host_nearby_discovery_grant(engine.world, scene) is None
+
+    # One route marked but no durable host clue is still not an opportunity.
+    engine.store.append_many([
+        kernel_event("place_linked", day=1, scene="s1", turn=0, summary="duplicate marker", deltas={
+            "a": "stonebridge_inn", "b": "sealed_gate", "visibility": "undiscovered",
+            "discovery_clue_id": "inn-cracked-step"}),
+    ], preflight=lambda history: project(engine.registry, history))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    assert host_nearby_discovery_grant(engine.world, scene) is None
+
+    _install_host_discovery_clue(engine)
+    engine.world = project(engine.registry, engine.store.iter_events())
+    # Two matching routes are a host configuration ambiguity, never a lexical
+    # player-visible selection rule.
+    assert host_nearby_discovery_grant(engine.world, scene) is None
     engine.store.close()
 
 

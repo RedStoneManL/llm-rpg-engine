@@ -41,5 +41,10 @@ def player_character_facts(view: dict[str, Any], protagonist: str | None) -> lis
     return [
         {"name": _bounded_text(str(fact.predicate)), "value": _safe_value(fact.value)}
         for fact in graph.current_facts(protagonist)
-        if fact.predicate != "hidden" and fact.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES
+        # ``knows:*`` is the engine's capability/visibility bookkeeping.  The
+        # player may see its resulting map or recall projection, but a raw
+        # predicate can disclose canonical place/route ids and must never be a
+        # character-status field in CLI or GUI.
+        if (fact.predicate != "hidden" and not str(fact.predicate).startswith("knows:")
+            and fact.secrecy not in PLAYER_HIDDEN_FACT_SECRECIES)
     ]

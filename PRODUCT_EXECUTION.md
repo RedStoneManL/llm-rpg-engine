@@ -2117,3 +2117,15 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   discovery 后，新 action id 可再次核验。回归覆盖 CLI/GUI 无泄露成功流、同回合移动拒绝、cold duplicate、
   rewind 后重试和 failure/cancel 零写。native importer 仍是独立 policy。无真实模型、外传、Library/Drive/mail、
   GitHub、B1 或 profiling 操作。
+
+- 2026-10-24：RCV-113 的后续审查发现“相邻 `undiscovered`”本身不足以成为玩家可反复探测的机会；首版记录中
+  的“至多一个目标”因此不能单独作为验收结论。现在 `host_nearby_discovery_grant()` 还要求路线的私有 clue marker
+  精确对应一条已经持久化的、本地、公开 `source=host_discovery_clue` 观察，且 action-start 时恰好只有一条匹配路线；
+  无线索、重复 marker 或歧义都 fail-closed。CLI `/discover` 对无线索固定 no-op，GUI 隐藏按钮，并对绕过 UI 的
+  POST 在作者调用前确认拒绝，SQLite/JSONL 不变。
+
+  同时修复了成功发现后玩家角色状态把内部 `knows:<canonical-id>` capability 直接输出到 CLI/DOM 的泄漏：这类
+  bookkeeping 现在只影响已知地图／recall 投影，不再成为玩家状态字段。定向回归覆盖公开线索、无/歧义线索、取消、
+  action-id 冷恢复、rewind 与恶意 POST 的零写入；真实临时 loopback Chromium 流程覆盖“揭示而不移动→下一回合移动
+  →两次撤销→冷重开”，整个 DOM 都不含 hidden canonical id。所有测试使用固定本地策略／临时 campaign，无真实模型、
+  网络模型、外传或部署。

@@ -869,8 +869,10 @@ def play_loop(
         if discovery_attempt:
             from context.capabilities import host_nearby_discovery_grant
             discovery_grant = host_nearby_discovery_grant(engine.world, scene)
-            if discovery_grant is not None:
-                scene = {**scene, "_host_discovery_reveal": True}
+            if discovery_grant is None:
+                out("[附近暂无可核验的公开线索；世界未改变。]")
+                continue
+            scene = {**scene, "_host_discovery_reveal": True}
         if steering[0]:
             scene = {**scene, "_player_steer": steering[0]}
         player_input = line

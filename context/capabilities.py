@@ -208,11 +208,11 @@ def host_nearby_discovery_grant(world: dict, scene: dict, *, allow_known: bool =
     """Select at most one hidden adjacent route for a trusted reveal attempt.
 
     This is deliberately a host resolver, not a player lookup: callers cannot
-    name a target.  The deterministic lowest-id selection keeps an action-id
-    retry stable while exposing no target information to ordinary UI or
-    authoring input.  A previously committed retry may set ``allow_known`` so
-    recovery does not need to mint a second opportunity after the first turn
-    already made the route visible.
+    name a target.  A route is eligible only when its opaque host marker has a
+    matching durable, public local clue; exactly one eligible route is required
+    or the resolver fails closed.  A previously committed retry may set
+    ``allow_known`` so recovery does not need to mint a second opportunity
+    after the first turn already made the route visible.
     """
     actor = scene.get("protagonist")
     origin = scene.get("location")
@@ -227,6 +227,9 @@ def host_nearby_discovery_grant(world: dict, scene: dict, *, allow_known: bool =
             continue
         if attrs.get("visibility") != "undiscovered":
             continue
+        clue_id = attrs.get("discovery_clue_id")
+        if not _has_active_host_discovery_clue(world, origin, clue_id):
+            continue
         place_key = place_discovery_key(destination)
         route_key = route_discovery_key(origin, destination)
         if not allow_known and knows(graph, actor, place_key, day) is True and knows(graph, actor, route_key, day) is True:
@@ -234,13 +237,42 @@ def host_nearby_discovery_grant(world: dict, scene: dict, *, allow_known: bool =
         candidates.append(destination)
     if not candidates:
         return None
-    destination = sorted(candidates)[0]
+    # A public clue must name one particular host opportunity.  Treat a host
+    # configuration mistake (the same clue marker on multiple hidden edges) as
+    # no opportunity rather than picking a lexical winner that players could
+    # enumerate by repeating a generic request.
+    if len(candidates) != 1:
+        return None
+    destination = candidates[0]
     keys = frozenset({place_discovery_key(destination), route_discovery_key(origin, destination)})
     # The digest is a durable recovery discriminator, not a target handle.
     material = f"hidden-discovery-v1\0{actor}\0{origin}\0{destination}".encode("utf-8")
     return HostDiscoveryGrant(
         version=1, actor=actor, origin=origin, destination=destination, keys=keys,
         semantic_id=hashlib.sha256(material).hexdigest(),
+    )
+
+
+def _has_active_host_discovery_clue(world: dict, origin: str, clue_id: Any) -> bool:
+    """Require a durable, local, public clue minted by a trusted host path.
+
+    A hidden adjacency alone is never an opportunity.  The matching clue is a
+    public `world_change` already visible at the action-start place, while its
+    opaque id stays in canonical route metadata.  Ordinary author world writes
+    cannot forge this because their event materializer fixes source to
+    ``author_world``; the resolver accepts only the explicit host source.
+    """
+    if not isinstance(clue_id, str) or not clue_id or len(clue_id) > 128:
+        return False
+    changes = (world.get("systems", {}).get("cascade", {}) or {}).get("changes", [])
+    return any(
+        isinstance(item, dict)
+        and item.get("place") == origin
+        and item.get("source") == "host_discovery_clue"
+        and item.get("discovery_clue_id") == clue_id
+        and item.get("public_observation") is True
+        and item.get("visibility") == "public"
+        for item in changes
     )
 
 

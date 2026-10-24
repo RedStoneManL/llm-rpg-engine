@@ -346,12 +346,16 @@ def build_player_state(engine) -> dict[str, Any]:
     speech_recipients = [{"id": person["id"], "label": person["label"]} for person in present_people]
     observations = player_place_observations(engine.world, scene)
     resource_outcome = player_resource_outcome(engine.world, protagonist)
+    # Boolean capability only: it tells the UI whether a *publicly grounded*
+    # nearby-clue action exists, never which hidden destination qualifies.
+    discovery_available = host_nearby_discovery_grant(engine.world, scene) is not None
     return {
         "revision": projected_revision(engine),
         "turn": last_turn(engine),
         "scene": {"day": day, "time": {"day": day, "band": band_name(band)},
                   "location": places.get(scene.get("location")),
-                  "exits": exits, "exit_costs": exit_costs},
+                  "exits": exits, "exit_costs": exit_costs,
+                  "discovery_available": discovery_available},
         "map": map_data,
         "character": {"id": protagonist, "facts": character_facts},
         "objectives": objectives,
@@ -665,6 +669,12 @@ class PlayerDashboard:
                 except ValueError as exc:
                     raise GuiRequestError("收件人必须是当前公开同场角色，且原话不能为空。") from exc
                 grant = host_nearby_discovery_grant(self.engine.world, scene) if discovery_attempt else None
+                # The UI only offers this control for a current public clue, but
+                # the HTTP controller must enforce the same boundary.  A
+                # caller cannot turn a generic discovery probe into an ordinary
+                # authored turn or use failures to enumerate hidden exits.
+                if discovery_attempt and grant is None:
+                    raise GuiRequestError("附近暂无可核验的公开线索；世界未改变。")
                 context = _RequestContext(player_input, expected_revision, scene, self.previous_scene,
                                           recipient, statement, receipts, discovery_attempt,
                                           grant.semantic_id if grant is not None else None)
@@ -819,7 +829,7 @@ _JS = """(() => {let state=null;const $=id=>document.getElementById(id);const el
 # HTML document.
 _INDEX = _INDEX.replace(
     '<button id="undo" type="button" class="subtle">撤销上一回合</button>',
-    '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="discover-nearby" type="button" class="subtle">核验附近线索</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
+    '<button id="undo" type="button" class="subtle">撤销上一回合</button><button id="discover-nearby" type="button" class="subtle" hidden>核验附近线索</button><button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>',
 )
 _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button>', '<button id="resume-action" type="button" class="subtle" hidden>恢复上次请求</button><button id="end-recovery" type="button" class="subtle" hidden>查看状态后结束恢复</button>')
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
@@ -892,7 +902,7 @@ function render(s){state=s;""",
 )
 _JS = _JS.replace(
     "function render(s){state=s;",
-    "function render(s){state=s;const savedSteer=s.session&&typeof s.session.soft_direction==='string'?s.session.soft_direction:'';if(document.activeElement!==$('soft-direction'))$('soft-direction').value=savedSteer;",
+    "function render(s){state=s;$('discover-nearby').hidden=!(s.scene&&s.scene.discovery_available===true);const savedSteer=s.session&&typeof s.session.soft_direction==='string'?s.session.soft_direction:'';if(document.activeElement!==$('soft-direction'))$('soft-direction').value=savedSteer;",
 )
 _JS = _JS.replace(
     "function setBusy(next){busy=next;$('submit-action').disabled=next;$('undo').disabled=next;$('resume-action').disabled=next}",

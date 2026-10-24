@@ -165,6 +165,12 @@ class PlaceSystem(ContextSystem):
             link_attrs = {"travel_cost": cost}
             if "visibility" in d:
                 link_attrs["visibility"] = d["visibility"]
+            # This opaque host-authored marker is not a player DTO.  It lets
+            # the nearby-discovery resolver require a separately persisted
+            # public scene clue instead of turning generic probes into a hidden
+            # map enumerator.
+            if isinstance(d.get("discovery_clue_id"), str):
+                link_attrs["discovery_clue_id"] = d["discovery_clue_id"]
             # adjacent_to is multi-valued — use supersede=False so prior edges survive
             g.add_relation(
                 a, "adjacent_to", b,

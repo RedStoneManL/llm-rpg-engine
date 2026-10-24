@@ -131,6 +131,7 @@ class CascadeSystem(ContextSystem):
                     "public_observation": d.get("public_observation") is True,
                     "observation_kind": d.get("observation_kind"),
                     "observation_range": d.get("observation_range"),
+                    "discovery_clue_id": d.get("discovery_clue_id"),
                 }
                 slice_["changes"].append(entry)
                 entity = g.get_entity(place)
