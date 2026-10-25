@@ -393,6 +393,10 @@ def digest_fleet(
                                 pending_summaries.append((i, b))
                             summarized_buckets = [b for i, b in pending_summaries]
                             if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
+                                through_index = pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1
+                                # Bind the same inputs we render below before any
+                                # provider call; model-supplied source fields are ignored.
+                                recap_source = nmod.recap_source_ref(ns2, through_index)
                                 # Summarize the oldest summaries into super_summary
                                 oldest_summaries = [
                                     f"〔{b['scene']}〕{b['summary']}"
@@ -419,7 +423,8 @@ def digest_fleet(
                                         summary="recap recompressed",
                                         deltas={
                                             "super_summary": rc_summary,
-                                            "summarized_through_index": pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1,
+                                            "summarized_through_index": through_index,
+                                            "source": recap_source,
                                         },
                                         turn=_next_turn_in_store(store),
                                     )

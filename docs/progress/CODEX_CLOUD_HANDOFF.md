@@ -2,6 +2,20 @@
 
 更新：2026-10-25（Asia/Shanghai）。本文件是本次跨环境交接入口，不是完整聊天逐字转录。
 
+## 云端接续增量：RCV-117（仅本地提交）
+
+以下原交接正文描述 `d1833ad`／RCV-116 的历史基线。云端已从指定接续分支恢复并验证检查点祖先，
+在独立 Python 3.12.14 venv 重跑得到 **2107 passed, 1 deselected in 116.43s**。
+本次新实现为总概要来源链：host 在生成前绑定有序摘要、前序总概要及内容哈希；新事件 publish/replay
+验证连续覆盖，旧来源保持 `legacy_unbound`，不迁移或补造原文。实现后完整 gate 为
+**2135 passed, 1 deselected in 99.62s**，最终专项 **85 passed in 5.02s**。
+验证与精确协议见 [RCV-117](../verification/RCV-117-recap-source-chain.md) 和
+[设计增量](../designs/AGENTIC_HISTORY_AND_OUTCOME_PLAN.md)。未 push，远端仍不是本次本地增量的备份。
+
+下一独立项是拆分分段摘要／总概要积压维护：总概要重试仍依赖本轮分段摘要成功。
+原玩家输入同事务档案、结果先行正文和 agentic recall 尚未实现；locate/open/邻文工具仍与 B1 HOLD
+重合，未经明确解除不得接入。所有真实模型、权重下载、私有解释默认启用和外传边界不变。
+
 ## 1. 先核对代码，不能从远端 main 的旧版本继续
 
 - 仓库：`https://github.com/RedStoneManL/llm-rpg-engine.git`。

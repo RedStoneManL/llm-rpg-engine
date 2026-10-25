@@ -164,6 +164,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-111 | P0 | 已验收（CLI 已保存 campaign 的创世来源拒绝） | CLI 已保存 campaign 会静默忽略 `--genesis`、角色卡或世界书，却继续游玩，用户可能误以为导入已经生效 | 有活跃事件时明确停止于 play/transcript 之前；不改已文档化的 flavor resume 语义，创世来源仍可用于空 campaign；完整 gate 2089 passed / 1 deselected |
 | RCV-112 | P1 | 已验收（创世／导入／续玩端到端组验收） | RCV-110/111 已分别覆盖 GUI 来源接入与 CLI 保存世界拒绝，但本轮需要确认正常 CLI/GUI 成功和失败入口能组成完整用户流程 | 复用现有真实 campaign 回归：坏来源零创建、已保存 campaign 零写拒绝、有效来源实际创世并进入玩家界面；临时 Chromium loopback 检查 normal GUI 可玩页面，未增加产品代码 |
 | RCV-116 | P1 | 已验收（分段原文来源底座，不是召回工具） | 新摘要显式绑定原 narration IDs 与文本校验值，拒绝同场景错配／过期源；总概要覆盖不得越过未摘要空洞 | 同地重访、源篡改、真实 run_turn／冷重开／撤回和发布失败零写；专项 57 passed，完整 2107 passed / 1 deselected。旧无来源记录保留兼容，agentic 定位／展开及原输入档案尚未启用 |
+| RCV-117 | P1 | 已验收（总概要来源链，离线协议） | 新总概要绑定有序摘要 ID／正文／source 与前序总概要；publish/replay 拒绝错源、覆盖空洞及旧分支复用；旧输入明确 legacy_unbound | 新环境基线 2107 passed；修前 25 failed；最终专项 85 passed，全量 2135 passed / 1 deselected。15 回合两次递归压缩、冷重开、duplicate、撤回、损坏来源零写；不证明真实模型语义质量 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2175,3 +2176,32 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   范围限制：没有新增模型工具／公共历史 API／原玩家输入事件，没有保证摘要内容正确，没有完成 agentic recall；
   总概要仍是旧索引格式，来源链与积压维护待做。原始输入、NPC heard receipt 和旁白的不同证据强度已写入设计。
   不触碰 B1/profiling、真实模型、外传或部署。后续先补总概要来源，再独立推进结果先行叙事；检索工具的暂停边界不绕过。
+
+- 2026-10-25：RCV-117 完成新云端恢复与总概要来源链切片。初始 cwd 没有仓库，按指定分支 clone；HEAD
+  为 `d1833ade0a49a6cb6eeb7c1b103ca52d6a7ad52d`，工作区干净，检查点祖先验证退出 0。未发现适用 AGENTS.md；
+  已完整阅读五份交接材料及根目录跑团 SKILL.md，未启动子 agent。独立 `.venv` 使用 Python 3.12.14、pytest 8.4.2、
+  NumPy 2.5.4、PyYAML 6.0.3，不继承 system-site-packages；依赖安装后 `pip check` 通过。本环境修改前实际完整
+  gate 为 **2107 passed, 1 deselected in 116.43s**，不是引用上一环境成绩。
+
+  源码核对确认 RCV-115/116 已实现未摘要原文保留及分段 source v1；缺口是总概要仍直接采用 index，没有来源验证。
+  新协议 25 个测试在旧实现全部失败（`super_summary_source` 缺失，错误来源／前序／重写分支均未抛错）。现在 host
+  在 provider 调用前冻结 recap source v1，包含连续范围、有序摘要 ID／文本／分段来源哈希及前一版总概要 ID／文本／
+  来源哈希；projection 在标准 EventStore preflight 和冷重开重验，不接向量搜索或新存储。旧摘要只保留真实 event ID，
+  不追认原文覆盖；旧总概要照旧回放，并以 `legacy_unbound` 显式参与后续链。缺少单一完整前序事件的 legacy partial
+  update 仍可读，但不会被伪造成新 bound provenance。
+
+  实际 `run_turn → digest_fleet → EventBatch → SQLite` 的 15 回合离线 fixture 触发两次总概要，覆盖前沿为 6、12；
+  每项来源可追至对应摘要与 narration，固定 provider 的真实请求包含全部采用文本、不含非空私有 sentinel，模型自报
+  来源不被采用。invalid append 保持 events/revision/receipt/sidecar/JSONL 全不变；模拟损坏 durable 来源冷重开拒绝且
+  不改文件。冷重开、已提交 action-id 无调用恢复、撤回回到前序总概要及相同文字／回合重写后的旧来源拒绝均通过。
+
+  最终专项命令与[验证记录](../verification/RCV-117-recap-source-chain.md)一致，为 **85 passed in 5.02s**；
+  完整 `.venv/bin/python -m pytest -o "addopts=-m 'not slow'" -q` 为 **2135 passed, 1 deselected in 99.62s**。
+  全量启动后仅强化了既有 legacy repair-loop 测试断言，最终专项覆盖了该断言；生产代码未再改变。唯一 deselect 仍是
+  既有 slow real embedding，未扩大 skip/xfail；`git diff --check` 通过。
+
+  原文协议审计还确认：请求指纹仅存 hash，GUI host envelope 不含普通输入，CLI 可选 transcript 为 publish 后写入，
+  明确交流 receipt 不能代替全输入；archive 的 scene+turn ID 与无 actor/revision 过滤的向量搜索也不能直接成为安全
+  来源协议。下一独立切片为分离摘要／总概要积压调度；统一输入档案与结果先行正文仍在设计中。locate/open/邻文展开与
+  B1 detail retrieval HOLD 直接重合，需要明确解除接入范围的暂停后才可实施；profiling 未执行。本次没有新 recall 工具、
+  默认私有记忆、真实／付费模型、权重下载、凭据修改、push／main／PR／部署或任何 Library／Drive／邮件上传。

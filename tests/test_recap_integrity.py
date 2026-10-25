@@ -390,3 +390,82 @@ def test_summary_is_public_replayable_narrative_not_fact_authority(tmp_path, mon
         if engine.store._conn:
             engine.store.close()
         raise
+
+
+def test_recursive_recap_binds_real_turn_sources_and_cold_duplicate(tmp_path, monkeypatch):
+    """Default thresholds, actual run_turn batches, two generations of recaps."""
+    _disable_unrelated_backstage(monkeypatch)
+
+    class RecapProvider(FixedRecapProvider):
+        def complete_messages(self, messages, **kwargs):
+            self.calls.append(copy.deepcopy(messages))
+            # Extra model provenance must never replace host-created references.
+            return json.dumps({'summary': f'PUBLIC_SUMMARY_{len(self.calls)}',
+                               'source': {'event_id': 'MODEL_FORGED_SOURCE'}})
+
+    engine = _seed_engine(tmp_path)
+    provider = RecapProvider('unused')
+    try:
+        for i in range(15):
+            pre_action_world = engine.world
+            result = _play(engine, f's{i}', f'PUBLIC_RAW_{i}', 10 + i,
+                           provider, f'chain-{i}')
+        history = list(engine.store.iter_events())
+        by_id = {e['id']: e for e in history}
+        recaps = [e for e in history if e['type'] == 'recap_recompressed']
+        assert len(recaps) == 2
+        assert [e['deltas']['summarized_through_index'] for e in recaps] == [6, 12]
+        assert recaps[0]['deltas']['source']['previous'] is None
+        assert recaps[1]['deltas']['source']['previous']['event_id'] == recaps[0]['id']
+        assert PRIVATE_SENTINEL not in str(provider.calls)
+        assert 'MODEL_FORGED_SOURCE' not in str(recaps)
+        for recap in recaps:
+            source = recap['deltas']['source']
+            # Rebuild from the exact durable prefix, not the staging projection.
+            prefix = history[:history.index(recap)]
+            from systems.narrative import recap_source_ref
+            ns = project(engine.registry, prefix)['systems']['narrative']
+            assert source == recap_source_ref(ns, source['through_index'])
+            for reference in source['summaries']:
+                summary = by_id[reference['event_id']]
+                assert summary['type'] == 'scene_summarized'
+                assert reference['source_status'] == 'bound'
+                assert reference['bucket_id'] == summary['deltas']['source']['bucket_id']
+                assert all(by_id[eid]['type'] == 'narration_recorded'
+                           for eid in summary['deltas']['source']['event_ids'])
+            # The prompt actually sent contains every referenced summary and predecessor.
+            text = recap['deltas']['super_summary']
+            call = provider.calls[int(text.removeprefix('PUBLIC_SUMMARY_')) - 1]
+            prompt = '\n'.join(m['content'] for m in call)
+            for reference in source['summaries']:
+                assert by_id[reference['event_id']]['deltas']['summary'] in prompt
+            if source['previous']:
+                assert recaps[0]['deltas']['super_summary'] in prompt
+
+        context = assemble_context(engine.registry, engine.world, _scene('s14'))
+        assert PRIVATE_SENTINEL not in context
+        expected = copy.deepcopy(engine.world['systems']['narrative'])
+        engine.store.close()
+        engine = build_engine(tmp_path / 'campaign', enable_interpretive_memory=True)
+        assert engine.world['systems']['narrative'] == expected
+        before = list(engine.store.iter_events(include_retracted=True))
+        revision, mirror = engine.store.revision, engine.store.jsonl_path.read_bytes()
+        guard = RaisingRecapProvider()
+        recovered = run_turn(
+            engine.registry, engine.store, pre_action_world, _scene('s14'), '继续前进',
+            strategy=PreparedStrategy('PUBLIC_RAW_14', 24), provider=guard,
+            required_sections=REQUIRED_SECTIONS, action_id='chain-14',
+            memory_role='hero', memory_generator=OfflineInterpretationGenerator(PRIVATE_SENTINEL))
+        assert recovered.receipt['duplicate']
+        assert recovered.events == result.events
+        assert guard.calls == []
+        assert list(engine.store.iter_events(include_retracted=True)) == before
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+        rewind(engine, 15)
+        assert engine.world['systems']['narrative']['super_summary_event_id'] == recaps[0]['id']
+        engine.store.close()
+        engine = build_engine(tmp_path / 'campaign', enable_interpretive_memory=True)
+        assert engine.world['systems']['narrative']['super_summary_event_id'] == recaps[0]['id']
+    finally:
+        engine.store.close()

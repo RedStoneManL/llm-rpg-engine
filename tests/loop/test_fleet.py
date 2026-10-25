@@ -538,6 +538,13 @@ def test_recompress_repair_loop_uses_repaired_result():
         rc_ev = next((e for e in all_ev if e["type"] == "recap_recompressed"), None)
         assert rc_ev is not None, "recap_recompressed event should be appended"
         assert rc_ev["deltas"]["super_summary"] == "总概要修复后"
+        source = rc_ev['deltas']['source']
+        assert source['from_index'] == 0 and source['through_index'] == FANOUT
+        assert len(source['summaries']) == FANOUT
+        assert all(ref['source_status'] == 'legacy_unbound' for ref in source['summaries'])
+        assert source['previous'] is None
+        projected = project(reg, all_ev)['systems']['narrative']
+        assert projected['super_summary_source'] == source
         # 3 calls: summarize (1) + recompress initial (1) + recompress repair (1)
         assert len(recap.calls) == 3
     finally:

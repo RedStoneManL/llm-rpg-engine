@@ -16,11 +16,13 @@ World slice: world["systems"]["narrative"] = {
          "raw":  [str, ...],  # one entry per turn's narration in that scene
          "source_event_ids": [str, ...],  # same ordering as raw
          "summary": str | None,  # filled when the scene ages out
-         # New bound summaries also have summary_source and summary_event_id.
+         # All summaries retain summary_event_id; only bound ones have summary_source.
         },
     ],
     "super_summary": str | None,   # recursive summary-of-summaries
     "summarized_through_index": int,  # number of scene buckets summarized so far
+    # After a recap: super_summary_event_id; new recaps also retain
+    # super_summary_source (ordered summary references + previous recap link).
 }
 
 Constants (tunable — referenced as nmod.RECAP_RAW_SCENES etc.):
@@ -77,6 +79,63 @@ def summary_source_ref(bucket: dict) -> dict:
     payload = json.dumps(list(zip(ids, raw)), ensure_ascii=False, separators=(',', ':'))
     return {'version': 1, 'bucket_id': ids[0], 'event_ids': list(ids),
             'sha256': hashlib.sha256(payload.encode()).hexdigest()}
+
+
+def _source_json(value) -> str:
+    return json.dumps(value, sort_keys=True, ensure_ascii=False,
+                      separators=(',', ':'), allow_nan=False)
+
+
+def _source_hash(value) -> str:
+    return hashlib.sha256(_source_json(value).encode()).hexdigest()
+
+
+def recap_source_ref(ns: dict, through_index: int) -> dict:
+    """Freeze the exact inputs for one recursive recap, before generation.
+
+    Coverage advances only from the current frontier through a nonempty,
+    contiguous sequence of saved summaries. References bind summary IDs/text
+    and their narration provenance, plus the previous recap's ID/text/source.
+    No seq or tunable compression threshold participates in durable identity.
+
+    ``bound`` describes the immediate link, not semantic correctness or a
+    fully verified ancestry: a bound recap may depend on legacy_unbound inputs.
+    Legacy provenance is never inferred from the current bucket's raw texts.
+    """
+    buckets = ns.get('scenes', [])
+    start = ns.get('summarized_through_index', 0)
+    if (type(start) is not int or type(through_index) is not int
+            or not 0 <= start < through_index <= len(buckets)):
+        raise ValueError('invalid recap source coverage')
+
+    previous = None
+    previous_text = ns.get('super_summary')
+    if previous_text is not None or start != 0:
+        previous_id = ns.get('super_summary_event_id')
+        if (not isinstance(previous_text, str) or not previous_text.strip()
+                or not isinstance(previous_id, str) or not previous_id):
+            raise ValueError('invalid recap source predecessor')
+        previous = {
+            'event_id': previous_id,
+            'source_status': 'bound' if 'super_summary_source' in ns else 'legacy_unbound',
+            'sha256': _source_hash([previous_text, ns.get('super_summary_source')]),
+        }
+
+    summaries = []
+    for bucket in buckets[start:through_index]:
+        ids = bucket.get('source_event_ids') or []
+        summary_id, text = bucket.get('summary_event_id'), bucket.get('summary')
+        if (not ids or not isinstance(ids[0], str) or not ids[0]
+                or not isinstance(summary_id, str) or not summary_id
+                or not isinstance(text, str) or not text.strip()):
+            raise ValueError('invalid recap source summary')
+        summaries.append({
+            'bucket_id': ids[0], 'event_id': summary_id,
+            'source_status': 'bound' if 'summary_source' in bucket else 'legacy_unbound',
+            'sha256': _source_hash([bucket['scene'], text, bucket.get('summary_source')]),
+        })
+    return {'version': 1, 'from_index': start, 'through_index': through_index,
+            'previous': previous, 'summaries': summaries}
 
 
 def aged_out_scene(ns: dict) -> str | None:
@@ -179,13 +238,36 @@ class NarrativeSystem(ContextSystem):
             for bucket in buckets:
                 if bucket["scene"] == scene and bucket.get("summary") is None:
                     bucket["summary"] = summary
+                    bucket['summary_event_id'] = event.get('id')
                     log.debug("narrative.apply: scene_summarized scene=%s", scene)
                     return
             log.debug("narrative.apply: scene_summarized scene=%s — no unsummarized bucket found", scene)
 
         elif t == "recap_recompressed":
+            if 'source' in d:
+                source = d['source']
+                text = d.get('super_summary')
+                if (not isinstance(source, dict) or type(source.get('version')) is not int
+                        or source.get('version') != 1
+                        or not isinstance(text, str) or not text.strip()):
+                    raise ValueError('invalid recap source')
+                expected = recap_source_ref(ns, d.get('summarized_through_index'))
+                # JSON equality is type-strict (True/1/1.0 must not alias).
+                if _source_json(source) != _source_json(expected):
+                    raise ValueError('invalid recap source')
+                ns['super_summary_source'] = expected
+            else:
+                # Replay old index-only events unchanged, without inheriting
+                # a verified descriptor from an earlier bound recap.
+                ns.pop('super_summary_source', None)
             if "super_summary" in d:
                 ns["super_summary"] = d["super_summary"]
+            if 'super_summary' in d and d.get('summarized_through_index') is not None:
+                ns['super_summary_event_id'] = event.get('id')
+            else:
+                # A legacy partial update has no single event containing both
+                # inputs. Preserve replay, but do not fabricate a predecessor.
+                ns.pop('super_summary_event_id', None)
             idx = d.get("summarized_through_index")
             if idx is not None:
                 ns["summarized_through_index"] = idx

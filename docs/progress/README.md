@@ -11,6 +11,7 @@
 2. [产品执行清单](PRODUCT_EXECUTION.md)：累计进度、已验收事实和开放风险。
 3. [Agentic 历史召回与结果先行设计](../designs/AGENTIC_HISTORY_AND_OUTCOME_PLAN.md)：设计方向，不等于已实现。
 4. [RCV-116 验证记录](../verification/RCV-116-45c270d.md)：具体版本、命令、结果和局限。
+5. [RCV-117 验证记录](../verification/RCV-117-recap-source-chain.md)：云端恢复实测、总概要来源链与旧档兼容。
 
 ## 维护规则
 
@@ -22,6 +23,9 @@
 
 ## 最近交付
 
+- 2026-10-25：RCV-117 在交接检查点 `d1833ad` 上实现总概要来源链，绑定有序摘要与上一版总概要，
+  保留旧档未验证来源标识。新环境基线 **2107 passed / 1 deselected**；实现后全量 **2135 passed / 1 deselected**，
+  最终专项 **85 passed**。仅本地提交，没有 push／部署／外部上传；详细范围及限制见上方验证记录。
 - 2026-10-25：`e8caf7b470e67c0706fbd8c87f513ada9a2f2b96` 已推送至上述分支，远端 SHA 已核对。
   生产基线为 RCV-116 `45c270d`；全新独立虚拟环境离线门禁为 **2107 passed, 1 deselected in 32.12s**。
 - 同日：按用户要求集中进度文档；本次仅文档整理，不改变引擎行为，不将既有测试结果冒充本次重跑。

@@ -53,11 +53,55 @@
 
 这不证明摘要语义忠实，也未把旧总概要的索引式覆盖升级为完整来源链。总概要来源、调度、积压和检索仍是后续任务。
 
+## 当前落地补充：RCV-117 总概要来源链
+
+RCV-116 上述局限中的「新总概要来源」已在此切片实现；调度／积压／检索仍未实现。
+沿用现有 SQLite EventStore、NarrativeSystem projection 与 digest_fleet，不建立新索引或数据库。
+
+新 `recap_recompressed.deltas.source` v1 协议：
+
+| 字段 | 含义与校验 |
+| --- | --- |
+| `version` | 精确整数 1；`true`、浮点数或未知版本不兼容回退 |
+| `from_index` / `through_index` | 必须从当前覆盖前沿严格向前推进，终点与 event 的 `summarized_through_index` 一致；只接受完整连续、非空的已摘要范围 |
+| `previous` | 首次为 null；之后绑定上一总概要 event ID、SHA-256 和 `source_status` |
+| `summaries` | 按 bucket 顺序逐项绑定 `bucket_id`、摘要 `event_id`、SHA-256 与 `source_status`；不可漏项、交换、重复或跨分支复用 |
+
+摘要项的 SHA-256 输入为 `[scene, summary_text, scene_summary_source_or_null]`；前序总概要为
+`[super_summary_text, recap_source_or_null]`。统一使用 UTF-8、`ensure_ascii=False`、`sort_keys=True`、
+`separators=(',', ':')` 的 JSON 编码；不包含临时／持久 seq，因此 staging 与冷重开一致。
+来源在 provider 调用前由 host 冻结；provider 仍只提供摘要正文，其自报来源不被采用。
+所有新来源在标准 publish preflight 和 replay 时重新从活动历史投影验证，失败不更新覆盖范围。
+
+`source_status=bound` 仅表示该直接依赖有经过校验的 source 字段；不证明摘要语义正确，也不保证整个祖先链
+都没有 legacy 记录。`legacy_unbound` 明确表示旧来源未验证：旧摘要记录只补投影中的已有 event ID，不给
+历史事件加 source、不从原文反推它当年覆盖了什么、不改变旧桶划分。旧总概要的 index-only 回放仍兼容；
+旧的 partial update 若没有一条同时记录正文与覆盖范围的前序事件，可读取，但拒绝据此生成新 bound 来源，
+不能伪造一个 predecessor。后来的 legacy recap 会清除投影中旧 bound 描述，避免误标。
+
+来源链是内部叙事 provenance，不是角色阅读授权。没有新模型工具、公共 DTO、原话档案、向量索引或事实写入；
+私有解释仍默认关闭。离线验证见 [RCV-117](../verification/RCV-117-recap-source-chain.md)。
+
+### 本轮原文协议审计与剩余缺口
+
+- `loop/turn.py` 将玩家输入纳入请求 **hash**；result sidecar 保存结果与可选 host envelope，并未统一保存原输入正文。
+- GUI envelope 保存场景、明确交流片段／收件人及 receipt，不保存普通 action input；CLI 的可选 transcript
+  保存 input、turn、revision、action_id，但在 publish 后另写，不能冒充与成功回合同事务的来源档案。
+- `knowledge.heard_player` 只为获 host receipt 授权的收件人写精确 statement，`source_kind=player_statement`；
+  旁白、原始行动、NPC 听到的内容仍是不同证据。该切片不改变这些写入语义。
+- `engine/archive.py` 的 `c_{scene}_{turn}` 可在撤回重写后重用；`engine/vectorstore.py.search()` 没有 actor/revision
+  范围参数。它们仍只可作为后续派生索引的复用组件，不能直接作为安全来源句柄或事实／权限权威。
+
+下一无 HOLD 依赖切片优先拆分 scene summary 与 recap recompression 调度：目前总概要维护仍嵌套在本次
+成功生成分段摘要之后，已有摘要积压但没有新 aged raw 时不会独立重试。统一输入来源档案及结果先行叙事仍待实施。
+locate/open/邻文重查工具与 B1 detail retrieval 的暂停范围直接重合；实际接入前需要明确解除该工具接入范围的
+HOLD，当前没有启用或换名绕过。profiling 同样未执行。
+
 ## 后续实施顺序
 
 ### A. 公共历史来源与查证
 
-先为总概要绑定来源摘要及上一版总概要，防止覆盖空洞；拆分摘要／总概要维护的触发条件与预算。
+总概要来源绑定已见 RCV-117；接下来拆分摘要／总概要维护的触发条件与预算。
 然后审查并补齐输入来源保存，建立仅限授权公共叙事／本人输入／明确交流的本地目录。
 定位和展开工具按上述 HOLD 条件处理；不会以此阻塞无依赖的来源维护与叙事一致性工作。
 
