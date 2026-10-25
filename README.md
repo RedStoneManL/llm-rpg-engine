@@ -2,6 +2,8 @@
 
 **English** | [中文](README.zh-CN.md)
 
+**2026-10-25 Codex Cloud continuation:** read [the current handoff](CODEX_CLOUD_HANDOFF.md) first. The handoff branch is `handoff/codex-cloud-20261025`; older reports below are historical, not the current verification baseline.
+
 An LLM-driven RPG engine for exploring a persistent world. The model narrates and proposes changes; a deterministic harness maintains world facts, knowledge, time, memory, and replayable events.
 
 The October 2026 implementation adds atomic player actions, full-action rewind, POV read views, bounded conversation and recap memory, fact indexes, a native DeepSeek profile, seeded flavor variations, and optional resource rules. Existing world bootstrap, factions, hidden storylines, background hooks, and multi-genre packs remain extensible.
