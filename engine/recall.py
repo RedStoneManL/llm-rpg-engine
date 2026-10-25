@@ -38,19 +38,25 @@ def reindex(campaign_dir, *, embedder=None):
 
 def recall(campaign_dir, query, *, k=5, entity=None, day=None, semantic=True, embedder=None):
     """FTS + structured + (optional) semantic recall over the verbatim archive.
-    Returns verbatim chunks, deduped by chunk_id (FTS hits first)."""
+    Returns verbatim chunks, deduped by chunk_id (FTS hits first).
+
+    Both paths use the same exact entity/day candidate scope before top-k.
+    Legacy archive IDs and filters are not actor ACLs or revision-bound sources.
+    """
     with _archive(campaign_dir) as a:
         fts_hits = a.fts_search(query, k=k, entity=entity, day=day)
         sem_hits = []
         emb = embedder if embedder is not None else get_embedder()
         if semantic and emb is not None:
             try:
-                qv = emb.embed([query])[0]
-                with _vectors(campaign_dir) as vs:
-                    for cid, _score in vs.search(qv, k):
-                        ch = a.get_chunk(cid)
-                        if ch:
-                            sem_hits.append(ch)
+                # Take candidate text from this one filtered archive read, not
+                # a later lookup that can retarget an ID after replacement.
+                candidates = {ch['chunk_id']: ch for ch in a.iter_chunks(entity=entity, day=day)}
+                if candidates:
+                    qv = emb.embed([query])[0]
+                    with _vectors(campaign_dir) as vs:
+                        for cid, _score in vs.search(qv, k, allowed_ids=candidates):
+                            sem_hits.append(candidates[cid])
             except Exception as e:           # 向量路失败不应连累 FTS
                 log.debug("semantic path failed: %s", e)
         seen, merged = set(), []

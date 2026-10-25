@@ -24,8 +24,29 @@ class VectorStore:
         self._conn.commit()
         log.debug("add block_id=%s dim=%d", block_id, v.shape[0])
 
-    def search(self, vector, k=5):
-        rows = self._conn.execute("SELECT block_id, vec FROM vectors").fetchall()
+    def search(self, vector, k=5, *, allowed_ids=None):
+        """Rank only caller-selected IDs when a candidate scope is supplied.
+
+        None preserves legacy whole-index search; an empty scope means no hits.
+        The vector index does not decide authorization, event validity or facts.
+        Excluded rows are never decoded or scored, including stale dimensions.
+        """
+        if allowed_ids is None:
+            rows = self._conn.execute("SELECT block_id, vec FROM vectors").fetchall()
+        else:
+            if isinstance(allowed_ids, (str, bytes)):
+                raise TypeError('allowed_ids must be a collection of strings')
+            ids = list(allowed_ids)
+            if any(not isinstance(bid, str) for bid in ids):
+                raise TypeError('allowed_ids must contain only strings')
+            ids = sorted(set(ids))
+            rows = []
+            # Keep each query below SQLite's conservative parameter limit.
+            for offset in range(0, len(ids), 500):
+                batch = ids[offset:offset + 500]
+                placeholders = ','.join('?' for _ in batch)
+                rows.extend(self._conn.execute(
+                    f"SELECT block_id, vec FROM vectors WHERE block_id IN ({placeholders})", batch).fetchall())
         if not rows:
             log.debug("search empty store")
             return []

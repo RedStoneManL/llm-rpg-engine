@@ -17,6 +17,8 @@
 
 7. [RCV-119 全量评估](../verification/RCV-119-current-environment-assessment.md)：解除 HOLD 后的环境、性能、检索／正文反例与优先级。
 
+8. [RCV-120 验证记录](../verification/RCV-120-retrieval-scope.md)：混合检索先限定候选再排序，完整 2171 passed。
+
 ## 维护规则
 
 - 本目录两份正文是当前唯一维护版本；仓库根目录的同名文件只作兼容入口。
@@ -26,6 +28,9 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-10-25：RCV-120 将评估发现的检索范围错误落实修复；专项 **71 passed**，全量 **2171 passed / 1 deselected**。
+  原输入档案、actor/revision 来源句柄及结果先行最终正文仍待做，旧 HOLD 不再阻塞。
 
 - 2026-10-25：RCV-119 重新评估完成，包含 100／1000／5000 条本地 profiling 与检索范围、来源键、Hybrid 正文反例。
   B1/profiling 旧暂停已解除，下一项实际修复为 FTS／语义候选范围一致性。

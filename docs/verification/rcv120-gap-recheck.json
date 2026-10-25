@@ -1,0 +1,48 @@
+{
+  "archive_key_collision": {
+    "same_id": true,
+    "old_handle_now_reads": "NEW_BRANCH_QUOTE"
+  },
+  "short_query_like_wildcard": {
+    "query": "%",
+    "hits": 0
+  },
+  "semantic_filter_probe": {
+    "requested_day": 1,
+    "requested_entity": "阿岚",
+    "returned": [
+      {
+        "day": 1,
+        "entities": [
+          "阿岚"
+        ]
+      }
+    ]
+  },
+  "vector_search_signature": "(self, vector, k=5, *, allowed_ids=None)",
+  "tool_names": [
+    "map_query",
+    "recall_query",
+    "characters_query",
+    "factions_query",
+    "ambient_query",
+    "codex_query"
+  ],
+  "host_public_history_is_not_actor_acl": {
+    "canonical_secret_in_host_dto": true,
+    "player_recall_hits": [],
+    "scope": "host helper probe; not a public API exposure claim"
+  },
+  "hybrid_strategy_only": {
+    "initial_moves": [
+      {
+        "who": "protagonist",
+        "to": "far_bank"
+      }
+    ],
+    "repaired_moves": [],
+    "repaired_narration": "你付清船费，已经乘船抵达对岸。",
+    "same_narration": true,
+    "scope": "strategy probe, not a published turn or real-model quality test"
+  }
+}

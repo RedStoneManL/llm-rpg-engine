@@ -140,3 +140,12 @@ profiling 见 [RCV-119](../verification/RCV-119-current-environment-assessment.m
 范围分歧，再实现同事务输入档案及 actor/revision 绑定读取集合。`public_event_history` 只排除私有解释，
 不能作为完整 actor ACL；现有 player recall 不查任意历史旁白。总概要质量和准确引用不能由 provenance hash 代替。
 结果先行应复用已有 `loop.resources` 确定性裁定，不重复实现资源余额；实际缺口是全部结构结果与最终正文同步。
+
+
+## 已落地的检索底座增量：RCV-120
+
+FTS 与语义候选现在共用精确 day/entity，VectorStore 接收宿主 `allowed_ids` 并在 SQL 选取后再做 cosine/top-k；
+空集合不回退全库，字面短查询正确转义。此过滤只是候选范围，不是 actor 授权或活动 revision 验证。
+混合 recall 保存调用内候选行，避免 embedding 期间同 ID 替换后读错正文；没有跨 archive/vector 的统一快照，
+也未修改 legacy `c_{scene}_{turn}`，所以不可把该 ID 直接发给模型作可靠引用。完整来源工具仍需上述安全阅读协议。
+验证见 [RCV-120](../verification/RCV-120-retrieval-scope.md)，下一步从原输入同事务来源入手。

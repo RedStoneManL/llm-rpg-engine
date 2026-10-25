@@ -173,6 +173,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-116 | P1 | 已验收（分段原文来源底座，不是召回工具） | 新摘要显式绑定原 narration IDs 与文本校验值，拒绝同场景错配／过期源；总概要覆盖不得越过未摘要空洞 | 同地重访、源篡改、真实 run_turn／冷重开／撤回和发布失败零写；专项 57 passed，完整 2107 passed / 1 deselected。旧无来源记录保留兼容，agentic 定位／展开及原输入档案尚未启用 |
 | RCV-117 | P1 | 已验收（总概要来源链，离线协议） | 新总概要绑定有序摘要 ID／正文／source 与前序总概要；publish/replay 拒绝错源、覆盖空洞及旧分支复用；旧输入明确 legacy_unbound | 新环境基线 2107 passed；修前 25 failed；最终专项 85 passed，全量 2135 passed / 1 deselected。15 回合两次递归压缩、冷重开、duplicate、撤回、损坏来源零写；不证明真实模型语义质量 |
 | RCV-118 | P1 | 已验收（独立积压维护） | 分段摘要与总概要各自有界重试，部分成功保持、失败仍报 pending、取消整体回滚 | 红例 5 failed；专项 118 passed；全量 2142 passed / 1 deselected；Luna medium 两请求生成通过精确回放，非远程 API 或长期质量验收 |
+| RCV-119 | P1 | 已完成当前环境评估 | 解除旧 HOLD 后重查环境／来源／检索／正文／规模；临时合成 100/1000/5000 条 profiling | 当前基础 gate 2142 passed；确认 raw context 增长、旧 key 重用、语义过滤绕过与 frozen prose；不冒充长期质量结论 |
+| RCV-120 | P0 | 已验收（检索候选范围） | FTS／语义共用精确 day/entity，向量 SQL allowlist 在排序前筛选；短查询通配符按字面处理 | 红例 23 failed；专项 71 passed；完整 2171 passed / 1 deselected；不等同 actor ACL 或 agentic source tools |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2241,3 +2243,20 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   当前玩家 POV 仍隐藏该秘密值，不把宿主 helper 缺口冒充线上泄漏。现有资源先裁定已实现，不能重复从零建设。
   下一实际项是修复检索候选范围，其后是原输入同事务档案／安全 source handle 与结果先行正文。历史暂停不再阻挡，
   新工程缺口仍如实标注。没有生产代码修改、外传、网络模型、权重下载或新子 agent。
+
+
+- 2026-10-25：RCV-120 在新评估后实际修复混合检索范围。Archive 的 FTS 与候选遍历共用精确 day/entity
+  SQL 条件（JSON 成员匹配），短查询 `%`、`_`、反斜线转义为字面；VectorStore 增加宿主给定 `allowed_ids`，
+  SQL 中先选候选再加载／计算／top-k，空范围不回全库。只拿仍在 archive 的候选，避免残留向量挤掉合规命中；
+  embedding 期间旧 ID 被覆盖也返回原候选正文。模型／向量均不签发权限，不改变旧 ID 格式，不接新 tool。
+
+  先跑新例实际 **23 failed, 5 passed in 2.44s**；修后专项 **70 passed**，补入调用中替换 ID 的回归后
+  最终 **71 passed in 2.16s**。完整 `.venv/bin/python -m pytest -o "addopts=-m 'not slow'" -q`
+  **2171 passed, 1 deselected in 127.06s**；仅旧 slow real embedding 未运行，无扩大 skip/xfail。
+  复跑同一评估反例现在得到第1天／阿岚，字面 `%` 无命中；其余已知缺口继续如实保留。详见
+  [RCV-120](../verification/RCV-120-retrieval-scope.md)。只本地提交，未 push／部署／上传。
+
+  新 allowlist 是检索范围机制，不是 actor/revision ACL；archive/vector 没有共同 revision，旧键重用与
+  陈旧向量 relevance 仍存在。后续首项是成功回合原输入同事务档案与可信 source read session，随后对接
+  locate/open/邻文重查；结果先行正文并列 P0。旧 HOLD 已解除，无新增权限阻塞；缺远程 provider 密钥与
+  Chromium 仅限制对应验收。私有解释仍默认关闭。本次没有额外真实模型或权重下载。

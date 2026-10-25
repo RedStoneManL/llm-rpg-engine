@@ -14,6 +14,26 @@ def _fts_query(q):
     toks = [t for t in q.split() if t]
     return " ".join('"' + t.replace('"', '""') + '"' for t in toks)
 
+
+def _scope_sql(*, entity=None, day=None):
+    """Shared exact candidate predicates (SQL caller aliases chunks as c).
+
+    These are query filters, not actor authorization or history validation.
+    JSON membership avoids treating entity IDs as LIKE patterns or fragments.
+    """
+    clauses, params = [], []
+    if day is not None:
+        clauses.append('c.day=?')
+        params.append(day)
+    if entity is not None:
+        clauses.append("EXISTS (SELECT 1 FROM json_each(c.entities) e WHERE e.type='text' AND e.value=?)")
+        params.append(entity)
+    return (''.join(' AND ' + clause for clause in clauses), params)
+
+
+def _like_literal(text):
+    return text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS chunks (
     chunk_id TEXT PRIMARY KEY,
@@ -70,7 +90,7 @@ class ArchiveStore:
         q = (query or "").strip()
         if not q:
             return []
-        ent = f'%"{entity}"%' if entity else None
+        scope, scope_params = _scope_sql(entity=entity, day=day)
         if len(q) >= 3:
             fq = _fts_query(q)
             if not fq:
@@ -78,19 +98,13 @@ class ArchiveStore:
             sql = ("SELECT c.* FROM chunks_fts f JOIN chunks c ON c.rowid=f.rowid "
                    "WHERE chunks_fts MATCH ?")
             params = [fq]
-            if day is not None:
-                sql += " AND c.day=?"; params.append(day)
-            if ent is not None:
-                sql += " AND c.entities LIKE ?"; params.append(ent)
+            sql += scope
+            params.extend(scope_params)
             sql += " ORDER BY rank LIMIT ?"; params.append(k)
         else:
-            sql = "SELECT * FROM chunks WHERE text LIKE ?"
-            params = [f"%{q}%"]
-            if day is not None:
-                sql += " AND day=?"; params.append(day)
-            if ent is not None:
-                sql += " AND entities LIKE ?"; params.append(ent)
-            sql += " ORDER BY day DESC, turn DESC LIMIT ?"; params.append(k)
+            sql = "SELECT c.* FROM chunks c WHERE c.text LIKE ? ESCAPE '\\'" + scope
+            params = [f"%{_like_literal(q)}%", *scope_params]
+            sql += " ORDER BY c.day DESC, c.turn DESC LIMIT ?"; params.append(k)
         rows = [self._row(r) for r in self._conn.execute(sql, params)]
         log.debug("fts_search q=%r entity=%s day=%s hits=%d", query, entity, day, len(rows))
         return rows
@@ -118,8 +132,9 @@ class ArchiveStore:
         r = self._conn.execute("SELECT MIN(turn) FROM chunks WHERE scene=?", (scene,)).fetchone()
         return r[0]
 
-    def iter_chunks(self):
-        for r in self._conn.execute("SELECT * FROM chunks ORDER BY rowid"):
+    def iter_chunks(self, *, entity=None, day=None):
+        scope, params = _scope_sql(entity=entity, day=day)
+        for r in self._conn.execute("SELECT c.* FROM chunks c WHERE 1=1" + scope + " ORDER BY c.rowid", params):
             yield self._row(r)
 
     def close(self):

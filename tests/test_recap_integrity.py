@@ -1,8 +1,8 @@
 """RCV-04 — recap is a replayable public narrative aid, never fact authority.
 
-These tests exercise the real ``run_turn`` → ``digest_fleet`` path.  The
-foreground strategy is deterministic, but recap providers and persistence are
-the production implementations: no synthetic narrative events are injected.
+Foreground integrity cases exercise the real ``run_turn`` → ``digest_fleet``
+path with deterministic providers and production persistence. Backlog scheduler
+cases explicitly seed synthetic narration and bound summaries to isolate retries.
 """
 from __future__ import annotations
 

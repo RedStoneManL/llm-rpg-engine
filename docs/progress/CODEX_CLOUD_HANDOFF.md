@@ -2,6 +2,21 @@
 
 更新：2026-10-25（Asia/Shanghai）。本文件是本次跨环境交接入口，不是完整聊天逐字转录。
 
+## 当前接续点：RCV-120（2026-10-25 UTC，仅本地提交）
+
+解除旧 HOLD 后已完成 [RCV-119 全量评估](../verification/RCV-119-current-environment-assessment.md)，并实际修复
+其中的 FTS／语义过滤分歧：共用精确 day/entity 候选，向量先做宿主 ID allowlist 再排序，短 LIKE 查询转义。
+最终专项 **71 passed**，完整 gate **2171 passed, 1 deselected in 127.06s**；唯一 deselect 为旧 slow real embedding。
+见 [RCV-120](../verification/RCV-120-retrieval-scope.md)。没有 push，远端尚未备份这些本地增量。
+
+B1／profiling 已由用户明确解除暂停，原生模型按 Luna medium 受控运行；RCV-118 两份真实摘要响应有独立证据。
+本机未配置远程 provider 标准密钥、Chromium executable 缺失，只限制对应验收。没有阻塞本地开发的旧 HOLD。
+下一首项为成功回合同事务原输入档案与 actor/campaign/revision 绑定 source read session，再接 locate/open/邻文工具；
+结果先行最终正文并列 P0。现有资源先裁定已做，Hybrid 冻结正文问题未修；allowlist 不等于已完成 ACL。
+不改凭据、不外传私人存档、不部署／push／PR／Library／Drive／邮件，私有解释默认关闭。
+
+以下增量与原交接正文保留历史状态；冲突时以上当前接续点及用户最新指令优先。
+
 ## 最新增量：RCV-118 与本轮授权（2026-10-25 UTC）
 
 已完成摘要／总概要独立有界维护，完整 gate **2142 passed, 1 deselected in 90.51s**，专项 **118 passed**。
