@@ -1,0 +1,563 @@
+{
+  "python": "3.12.14",
+  "sqlite": "3.53.1",
+  "fixtures": "synthetic; 3 timing repeats; fourth turn cProfile; 64d deterministic vectors, no embedding",
+  "scope": "cold reopening and raw-heavy history, no real generation latency; not full mixed-world load",
+  "gap_probes": {
+    "archive_key_collision": {
+      "same_id": true,
+      "old_handle_now_reads": "NEW_BRANCH_QUOTE"
+    },
+    "short_query_like_wildcard": {
+      "query": "%",
+      "hits": 1
+    },
+    "semantic_filter_probe": {
+      "requested_day": 1,
+      "requested_entity": "阿岚",
+      "returned": [
+        {
+          "day": 2,
+          "entities": [
+            "船主"
+          ]
+        }
+      ]
+    },
+    "vector_search_signature": "(self, vector, k=5)",
+    "tool_names": [
+      "map_query",
+      "recall_query",
+      "characters_query",
+      "factions_query",
+      "ambient_query",
+      "codex_query"
+    ],
+    "host_public_history_is_not_actor_acl": {
+      "canonical_secret_in_host_dto": true,
+      "player_recall_hits": [],
+      "scope": "host helper probe; not a public API exposure claim"
+    },
+    "hybrid_strategy_only": {
+      "initial_moves": [
+        {
+          "who": "protagonist",
+          "to": "far_bank"
+        }
+      ],
+      "repaired_moves": [],
+      "repaired_narration": "你付清船费，已经乘船抵达对岸。",
+      "same_narration": true,
+      "scope": "strategy probe, not a published turn or real-model quality test"
+    }
+  },
+  "benchmarks": [
+    {
+      "narration_events": 100,
+      "initial_events": 103,
+      "unsummarized_context_chars": 32232,
+      "player_recall_raw_keyword_hits": 0,
+      "snapshot_project": {
+        "median_ms": 1.85,
+        "samples_ms": [
+          2.962,
+          1.806,
+          1.85
+        ]
+      },
+      "context": {
+        "median_ms": 0.335,
+        "samples_ms": [
+          0.893,
+          0.335,
+          0.286
+        ]
+      },
+      "player_recall": {
+        "median_ms": 0.031,
+        "samples_ms": [
+          0.04,
+          0.031,
+          0.03
+        ]
+      },
+      "cold_reopen": {
+        "median_ms": 2.732,
+        "samples_ms": [
+          3.49,
+          2.219,
+          2.732
+        ]
+      },
+      "prepared_run_turn": {
+        "median_ms": 19.629,
+        "samples_ms": [
+          23.712,
+          16.599,
+          19.629
+        ]
+      },
+      "turn_profile_top_cumulative": [
+        {
+          "function": "assess_local_engine.py:89:turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000106,
+          "cumulative_seconds": 0.066346
+        },
+        {
+          "function": "turn.py:996:run_turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000145,
+          "cumulative_seconds": 0.06624
+        },
+        {
+          "function": "store.py:483:publish",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 1.8e-05,
+          "cumulative_seconds": 0.025215
+        },
+        {
+          "function": "store.py:192:append_many",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000283,
+          "cumulative_seconds": 0.025165
+        },
+        {
+          "function": "turn.py:694:_run_turn_staged",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.00035,
+          "cumulative_seconds": 0.021949
+        },
+        {
+          "function": "projection.py:16:project",
+          "primitive_calls": 12,
+          "total_calls": 12,
+          "self_seconds": 0.005634,
+          "cumulative_seconds": 0.019501
+        },
+        {
+          "function": "store.py:295:iter_events",
+          "primitive_calls": 361,
+          "total_calls": 361,
+          "self_seconds": 0.00211,
+          "cumulative_seconds": 0.015263
+        },
+        {
+          "function": "copy.py:118:deepcopy",
+          "primitive_calls": 141,
+          "total_calls": 4740,
+          "self_seconds": 0.007251,
+          "cumulative_seconds": 0.014661
+        },
+        {
+          "function": "copy.py:217:_deepcopy_dict",
+          "primitive_calls": 141,
+          "total_calls": 285,
+          "self_seconds": 0.001388,
+          "cumulative_seconds": 0.014021
+        },
+        {
+          "function": "turn.py:1264:<genexpr>",
+          "primitive_calls": 119,
+          "total_calls": 119,
+          "self_seconds": 0.000836,
+          "cumulative_seconds": 0.0134
+        },
+        {
+          "function": "store.py:372:_row_to_event",
+          "primitive_calls": 358,
+          "total_calls": 358,
+          "self_seconds": 0.004951,
+          "cumulative_seconds": 0.013137
+        },
+        {
+          "function": "turn.py:991:_backstage_call",
+          "primitive_calls": 7,
+          "total_calls": 7,
+          "self_seconds": 0.000112,
+          "cumulative_seconds": 0.012748
+        },
+        {
+          "function": "store.py:325:_sync_mirror_safely",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 3e-06,
+          "cumulative_seconds": 0.011716
+        },
+        {
+          "function": "store.py:332:sync_jsonl",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 4.5e-05,
+          "cumulative_seconds": 0.011713
+        },
+        {
+          "function": "store.py:345:_rewrite_jsonl",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000281,
+          "cumulative_seconds": 0.011636
+        }
+      ],
+      "archive_fts": {
+        "median_ms": 0.489,
+        "samples_ms": [
+          0.559,
+          0.198,
+          0.489
+        ]
+      },
+      "vector_64d_synthetic": {
+        "median_ms": 0.329,
+        "samples_ms": [
+          2.687,
+          0.329,
+          0.277
+        ]
+      }
+    },
+    {
+      "narration_events": 1000,
+      "initial_events": 1003,
+      "unsummarized_context_chars": 321132,
+      "player_recall_raw_keyword_hits": 0,
+      "snapshot_project": {
+        "median_ms": 18.553,
+        "samples_ms": [
+          36.987,
+          18.553,
+          18.252
+        ]
+      },
+      "context": {
+        "median_ms": 1.493,
+        "samples_ms": [
+          10.488,
+          1.493,
+          1.259
+        ]
+      },
+      "player_recall": {
+        "median_ms": 0.033,
+        "samples_ms": [
+          0.049,
+          0.033,
+          0.029
+        ]
+      },
+      "cold_reopen": {
+        "median_ms": 21.416,
+        "samples_ms": [
+          23.36,
+          21.416,
+          20.947
+        ]
+      },
+      "prepared_run_turn": {
+        "median_ms": 131.715,
+        "samples_ms": [
+          148.502,
+          111.328,
+          131.715
+        ]
+      },
+      "turn_profile_top_cumulative": [
+        {
+          "function": "assess_local_engine.py:89:turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.001745,
+          "cumulative_seconds": 0.3953
+        },
+        {
+          "function": "turn.py:996:run_turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000993,
+          "cumulative_seconds": 0.393555
+        },
+        {
+          "function": "turn.py:694:_run_turn_staged",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.001369,
+          "cumulative_seconds": 0.152709
+        },
+        {
+          "function": "projection.py:16:project",
+          "primitive_calls": 12,
+          "total_calls": 12,
+          "self_seconds": 0.037084,
+          "cumulative_seconds": 0.143133
+        },
+        {
+          "function": "store.py:295:iter_events",
+          "primitive_calls": 3055,
+          "total_calls": 3055,
+          "self_seconds": 0.01843,
+          "cumulative_seconds": 0.112584
+        },
+        {
+          "function": "store.py:483:publish",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 2.2e-05,
+          "cumulative_seconds": 0.111444
+        },
+        {
+          "function": "store.py:192:append_many",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.000482,
+          "cumulative_seconds": 0.111385
+        },
+        {
+          "function": "turn.py:991:_backstage_call",
+          "primitive_calls": 7,
+          "total_calls": 7,
+          "self_seconds": 0.000417,
+          "cumulative_seconds": 0.098148
+        },
+        {
+          "function": "store.py:372:_row_to_event",
+          "primitive_calls": 3052,
+          "total_calls": 3052,
+          "self_seconds": 0.013857,
+          "cumulative_seconds": 0.094128
+        },
+        {
+          "function": "copy.py:118:deepcopy",
+          "primitive_calls": 1039,
+          "total_calls": 36154,
+          "self_seconds": 0.0421,
+          "cumulative_seconds": 0.0871
+        },
+        {
+          "function": "turn.py:1264:<genexpr>",
+          "primitive_calls": 1017,
+          "total_calls": 1017,
+          "self_seconds": 0.001033,
+          "cumulative_seconds": 0.085323
+        },
+        {
+          "function": "copy.py:217:_deepcopy_dict",
+          "primitive_calls": 1039,
+          "total_calls": 2081,
+          "self_seconds": 0.015612,
+          "cumulative_seconds": 0.083683
+        },
+        {
+          "function": "store.py:374:_j",
+          "primitive_calls": 18312,
+          "total_calls": 18312,
+          "self_seconds": 0.007027,
+          "cumulative_seconds": 0.080272
+        },
+        {
+          "function": "narrative.py:186:apply",
+          "primitive_calls": 12090,
+          "total_calls": 12090,
+          "self_seconds": 0.052062,
+          "cumulative_seconds": 0.079003
+        },
+        {
+          "function": "__init__.py:299:loads",
+          "primitive_calls": 12209,
+          "total_calls": 12209,
+          "self_seconds": 0.011544,
+          "cumulative_seconds": 0.073263
+        }
+      ],
+      "archive_fts": {
+        "median_ms": 1.886,
+        "samples_ms": [
+          1.886,
+          1.491,
+          2.209
+        ]
+      },
+      "vector_64d_synthetic": {
+        "median_ms": 4.608,
+        "samples_ms": [
+          5.085,
+          4.608,
+          3.881
+        ]
+      }
+    },
+    {
+      "narration_events": 5000,
+      "initial_events": 5003,
+      "unsummarized_context_chars": 1613132,
+      "player_recall_raw_keyword_hits": 0,
+      "snapshot_project": {
+        "median_ms": 149.389,
+        "samples_ms": [
+          176.728,
+          117.63,
+          149.389
+        ]
+      },
+      "context": {
+        "median_ms": 9.783,
+        "samples_ms": [
+          34.956,
+          9.783,
+          5.228
+        ]
+      },
+      "player_recall": {
+        "median_ms": 0.031,
+        "samples_ms": [
+          0.067,
+          0.031,
+          0.029
+        ]
+      },
+      "cold_reopen": {
+        "median_ms": 133.21,
+        "samples_ms": [
+          125.993,
+          141.575,
+          133.21
+        ]
+      },
+      "prepared_run_turn": {
+        "median_ms": 863.808,
+        "samples_ms": [
+          863.808,
+          935.666,
+          838.671
+        ]
+      },
+      "turn_profile_top_cumulative": [
+        {
+          "function": "assess_local_engine.py:89:turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.008247,
+          "cumulative_seconds": 2.380001
+        },
+        {
+          "function": "turn.py:996:run_turn",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.004692,
+          "cumulative_seconds": 2.371754
+        },
+        {
+          "function": "turn.py:694:_run_turn_staged",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.00944,
+          "cumulative_seconds": 0.834226
+        },
+        {
+          "function": "projection.py:16:project",
+          "primitive_calls": 12,
+          "total_calls": 12,
+          "self_seconds": 0.214191,
+          "cumulative_seconds": 0.797672
+        },
+        {
+          "function": "store.py:295:iter_events",
+          "primitive_calls": 15055,
+          "total_calls": 15055,
+          "self_seconds": 0.122593,
+          "cumulative_seconds": 0.705793
+        },
+        {
+          "function": "store.py:483:publish",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 2.7e-05,
+          "cumulative_seconds": 0.654929
+        },
+        {
+          "function": "store.py:192:append_many",
+          "primitive_calls": 1,
+          "total_calls": 1,
+          "self_seconds": 0.004514,
+          "cumulative_seconds": 0.654859
+        },
+        {
+          "function": "turn.py:1264:<genexpr>",
+          "primitive_calls": 5017,
+          "total_calls": 5017,
+          "self_seconds": 0.005025,
+          "cumulative_seconds": 0.618201
+        },
+        {
+          "function": "copy.py:118:deepcopy",
+          "primitive_calls": 5039,
+          "total_calls": 176134,
+          "self_seconds": 0.290861,
+          "cumulative_seconds": 0.612978
+        },
+        {
+          "function": "copy.py:217:_deepcopy_dict",
+          "primitive_calls": 5039,
+          "total_calls": 10081,
+          "self_seconds": 0.095505,
+          "cumulative_seconds": 0.592954
+        },
+        {
+          "function": "store.py:372:_row_to_event",
+          "primitive_calls": 15052,
+          "total_calls": 15052,
+          "self_seconds": 0.092371,
+          "cumulative_seconds": 0.583156
+        },
+        {
+          "function": "turn.py:991:_backstage_call",
+          "primitive_calls": 7,
+          "total_calls": 7,
+          "self_seconds": 0.003754,
+          "cumulative_seconds": 0.492156
+        },
+        {
+          "function": "store.py:374:_j",
+          "primitive_calls": 90312,
+          "total_calls": 90312,
+          "self_seconds": 0.048382,
+          "cumulative_seconds": 0.490784
+        },
+        {
+          "function": "__init__.py:299:loads",
+          "primitive_calls": 60209,
+          "total_calls": 60209,
+          "self_seconds": 0.070635,
+          "cumulative_seconds": 0.442418
+        },
+        {
+          "function": "narrative.py:186:apply",
+          "primitive_calls": 60090,
+          "total_calls": 60090,
+          "self_seconds": 0.26378,
+          "cumulative_seconds": 0.424833
+        }
+      ],
+      "archive_fts": {
+        "median_ms": 8.698,
+        "samples_ms": [
+          8.698,
+          8.948,
+          7.624
+        ]
+      },
+      "vector_64d_synthetic": {
+        "median_ms": 23.846,
+        "samples_ms": [
+          24.055,
+          17.657,
+          23.846
+        ]
+      }
+    }
+  ]
+}

@@ -172,7 +172,6 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-112 | P1 | 已验收（创世／导入／续玩端到端组验收） | RCV-110/111 已分别覆盖 GUI 来源接入与 CLI 保存世界拒绝，但本轮需要确认正常 CLI/GUI 成功和失败入口能组成完整用户流程 | 复用现有真实 campaign 回归：坏来源零创建、已保存 campaign 零写拒绝、有效来源实际创世并进入玩家界面；临时 Chromium loopback 检查 normal GUI 可玩页面，未增加产品代码 |
 | RCV-116 | P1 | 已验收（分段原文来源底座，不是召回工具） | 新摘要显式绑定原 narration IDs 与文本校验值，拒绝同场景错配／过期源；总概要覆盖不得越过未摘要空洞 | 同地重访、源篡改、真实 run_turn／冷重开／撤回和发布失败零写；专项 57 passed，完整 2107 passed / 1 deselected。旧无来源记录保留兼容，agentic 定位／展开及原输入档案尚未启用 |
 | RCV-117 | P1 | 已验收（总概要来源链，离线协议） | 新总概要绑定有序摘要 ID／正文／source 与前序总概要；publish/replay 拒绝错源、覆盖空洞及旧分支复用；旧输入明确 legacy_unbound | 新环境基线 2107 passed；修前 25 failed；最终专项 85 passed，全量 2135 passed / 1 deselected。15 回合两次递归压缩、冷重开、duplicate、撤回、损坏来源零写；不证明真实模型语义质量 |
-
 | RCV-118 | P1 | 已验收（独立积压维护） | 分段摘要与总概要各自有界重试，部分成功保持、失败仍报 pending、取消整体回滚 | 红例 5 failed；专项 118 passed；全量 2142 passed / 1 deselected；Luna medium 两请求生成通过精确回放，非远程 API 或长期质量验收 |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
@@ -180,7 +179,7 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
 - RCV-75 生产修复：`18798c1ea399ab653a9a9b4798017fc487733b01`；随后浏览器证据文档检查点：`860e96d5d8f94afdf23bb2532aa819d5f33e81f2`。
 - RCV-76：`e7b5de4be191102b32e2cb0dd55f65e4f7d78001`。已确认 GUI/WSGI、CLI、冷重开和 390px loopback 浏览器均只显示公开同场人物的 sketch／mood／state；明确交流下拉框仍是同一人集的 id/label 投影，hidden id、private sketch/mood、NPC evidence、reported knowledge、arrival preview 与路线授权均未进入玩家 DTO 或 DOM。
 - RCV-77：`96f1ff76970b3631f0cc1030940d0984cfb600a3`。
-| RCV-05 | P1 | 已解除暂停，重新评估中 | B1 detail retrieval 与 profiling | 2026-10-25 用户明确解除旧 HOLD；按新环境实测，不把授权等同于实现或验收 |
+| RCV-05 | P1 | 已解除暂停；新环境评估完成 | B1 detail retrieval 与 profiling | 2026-10-25 用户明确解除旧 HOLD；RCV-119 已实测 profiling／检索反例；B1 完整工具仍未实现 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
 | M3-01 | P1 | 已验收（新公开历史 API） | 完整历史的私有记忆过滤 DTO | `Engine.public_history()` 过滤 active/retracted 私有行及显式引用；RCV-03 的 CLI 回归验证其不含私有正文；GUI/GM/raw-store 仍未接入 |
@@ -2228,3 +2227,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   总概要却省掉保密请求的独立日期，不能拿它当精确记忆。仅人工合成历史的原生生成与回放，非远程 API 链路或
   长期可玩性证明。用户随后明确解除 B1/profiling 暂停；开始按新环境全量评估，不继续沿用旧 HOLD 阻挡。
   详见 [RCV-118 验证记录](../verification/RCV-118-independent-recap-jobs.md)。本阶段本地提交，不 push／部署／上传。
+
+
+- 2026-10-25：RCV-119 完成解除 HOLD 后的新环境全量评估（覆盖主要模块，不等于所有能力通过）。FTS5 trigram
+  实际建库成功，Python 依赖检查通过；远程 provider 标准密钥均未配置，只检查存在性；运行时 Node Playwright
+  可用但 Chromium 可执行文件缺失，未虚报浏览器验收。当前生产代码沿用 RCV-118 的 2142 passed / 1 deselected。
+  仅合成临时历史做 100／1000／5000 条 profiling，5,000 条的本地策略 run_turn 中位 **863.808 ms**、
+  冷重开 **133.210 ms**、未摘要上下文 **1,613,132 字符**；cProfile 见一回合 12 次 project。不是模型延迟或
+  token 数／长期可玩性评分。原始样本与可复现脚本已入库，详见 [完整评估](../verification/RCV-119-current-environment-assessment.md)。
+
+  新实测复现：旧 archive ID 重用、短词 `%` 当通配符、语义检索忽略 day/entity（查第1天阿岚却返回第2天船主）、
+  player recall 无任意旧 narration 查证、宿主 public_history 不是 actor ACL、Hybrid 结构修复仍保留成功正文。
+  当前玩家 POV 仍隐藏该秘密值，不把宿主 helper 缺口冒充线上泄漏。现有资源先裁定已实现，不能重复从零建设。
+  下一实际项是修复检索候选范围，其后是原输入同事务档案／安全 source handle 与结果先行正文。历史暂停不再阻挡，
+  新工程缺口仍如实标注。没有生产代码修改、外传、网络模型、权重下载或新子 agent。

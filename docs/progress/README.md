@@ -15,6 +15,8 @@
 
 6. [RCV-118 验证记录](../verification/RCV-118-independent-recap-jobs.md)：独立有界重试、部分失败与 Luna 原生摘要样本。
 
+7. [RCV-119 全量评估](../verification/RCV-119-current-environment-assessment.md)：解除 HOLD 后的环境、性能、检索／正文反例与优先级。
+
 ## 维护规则
 
 - 本目录两份正文是当前唯一维护版本；仓库根目录的同名文件只作兼容入口。
@@ -24,6 +26,9 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-10-25：RCV-119 重新评估完成，包含 100／1000／5000 条本地 profiling 与检索范围、来源键、Hybrid 正文反例。
+  B1/profiling 旧暂停已解除，下一项实际修复为 FTS／语义候选范围一致性。
 
 - 2026-10-25：RCV-118 完成摘要／总概要独立维护，专项 **118 passed**，全量 **2142 passed / 1 deselected**。
   Luna medium 两份真实响应通过精确请求回放；旧 B1/profiling HOLD 已由用户明确解除，开始重新全量评估。

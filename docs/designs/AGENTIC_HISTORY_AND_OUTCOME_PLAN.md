@@ -131,3 +131,12 @@ Hybrid 的 prose-first/frozen-prose 路径需要显式调整，不能仅加提�
 每个可运行切片先有失败反例，再跑真实 store／projection／run_turn 离线链路和全量 gate，本地提交与完整
 恢复包。假 provider 证明协议，不证明真实作者质量；真实模型仅按当前授权做受控验证，不外传私人数据或部署。连续剧情另做有界评审，
 不把通过数量当作长期可玩性评分。
+
+
+## 解除暂停后的评估：RCV-119
+
+当前 B1/profiling 已获明确授权，旧阶段的 HOLD 描述不再是实施阻塞。重新评估与实际 100／1000／5000 条
+profiling 见 [RCV-119](../verification/RCV-119-current-environment-assessment.md)。优先修复 FTS／语义
+范围分歧，再实现同事务输入档案及 actor/revision 绑定读取集合。`public_event_history` 只排除私有解释，
+不能作为完整 actor ACL；现有 player recall 不查任意历史旁白。总概要质量和准确引用不能由 provenance hash 代替。
+结果先行应复用已有 `loop.resources` 确定性裁定，不重复实现资源余额；实际缺口是全部结构结果与最终正文同步。

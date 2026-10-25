@@ -11,7 +11,9 @@ Luna medium 两份原生响应已精确回放生产摘要请求并验证持久�
 用户现已明确解除 B1 detail retrieval／profiling 旧 HOLD，要求在新环境重新全量评估；指定真实模型使用
 5.6 terra 或 Luna medium（当前使用可用的后者）。下文历史暂停与“不运行真实模型”条款不再阻止该授权范围，
 但不改凭据、不外传私有数据、不部署、不自动 push／PR／Library／Drive／邮件、私有解释默认关闭仍有效。
-原文读取的工程缺口须实际实现与验证，不能因为解除暂停就声称已完成。当前正在重新评估。
+原文读取的工程缺口须实际实现与验证，不能因为解除暂停就声称已完成。重新评估已完成，见 [RCV-119](../verification/RCV-119-current-environment-assessment.md)：
+5,000 条未摘要旁白使上下文达 161 万字符；语义检索实际越过 day/entity 过滤、Hybrid 冻结正文等缺口已复现。
+本机缺远程 provider 标准凭据及 Chromium executable，仅影响对应验收。下一实际修复为检索候选范围一致性。
 
 ## 云端接续增量：RCV-117（仅本地提交）
 
