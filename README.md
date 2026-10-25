@@ -2,7 +2,7 @@
 
 **English** | [中文](README.zh-CN.md)
 
-**2026-10-25 Codex Cloud continuation:** read [the current handoff](CODEX_CLOUD_HANDOFF.md) first. The handoff branch is `handoff/codex-cloud-20261025`; older reports below are historical, not the current verification baseline.
+**2026-10-25 Codex Cloud continuation:** read [the current handoff](docs/progress/CODEX_CLOUD_HANDOFF.md) first; all current progress documents are indexed in [docs/progress](docs/progress/README.md). The handoff branch is `handoff/codex-cloud-20261025`; older reports below are historical, not the current verification baseline.
 
 An LLM-driven RPG engine for exploring a persistent world. The model narrates and proposes changes; a deterministic harness maintains world facts, knowledge, time, memory, and replayable events.
 

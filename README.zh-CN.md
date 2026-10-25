@@ -2,7 +2,7 @@
 
 [English](README.md) | **中文**
 
-**2026-10-25 Codex Cloud 接续：**先读[当前交接说明](CODEX_CLOUD_HANDOFF.md)，使用 `handoff/codex-cloud-20261025` 分支。下方早期报告是历史记录，不是最新测试基线。
+**2026-10-25 Codex Cloud 接续：**先读[当前交接说明](docs/progress/CODEX_CLOUD_HANDOFF.md)，所有当前进度文档统一见 [docs/progress 目录](docs/progress/README.md)。使用 `handoff/codex-cloud-20261025` 分支。下方早期报告是历史记录，不是最新测试基线。
 
 一个由 LLM 叙事、由 harness 维护事实与记忆的 RPG 引擎。玩家负责探索和行动；引擎在后台管理人物、地点、暗线、世界时钟和事件历史。
 
