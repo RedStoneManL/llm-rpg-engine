@@ -18,8 +18,10 @@ digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
   P2 recap/quest maintenance phase (new, runs after arc phase, each step non-fatal):
     1. Record narration: if narration_text+scene given, append narration_recorded event.
     2. Summarize aged scene: if a scene aged out of the recent-N window AND recap_provider
-       is given, append a scene_summarized event (cheap-model); if summaries exceed
-       RECAP_SUMMARY_FANOUT, append a recap_recompressed event.
+       is given, append one scene_summarized event (cheap-model). Independently,
+       if the saved contiguous prefix exceeds RECAP_SUMMARY_FANOUT, attempt one
+       recap_recompressed event, even without new raw text. Each job has at most
+       one structured repair; ordinary failure preserves its successful sibling.
     3. Quest backstop: if no active threads AND substantive player event, append
        a quest_created event with state:"暗" (conservative FLAG, not auto-open活跃).
 
@@ -28,6 +30,7 @@ digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from typing import Any
 
@@ -337,107 +340,97 @@ def digest_fleet(
             log.exception("digest_fleet: narration recording failed (non-fatal)")
 
     # ------------------------------------------------------------------
-    # Phase 3: Summarize aged scene (gated — only when a scene ages out)
+    # Phase 3: independent, bounded recap jobs (one of each per invocation).
     # ------------------------------------------------------------------
     if recap_provider is not None:
-        aged = None
+        scene_status = recap_status = "not_due"
         try:
-            # Re-project once to get post-narration state
             post = project(registry, store.iter_events())
             ns = post.get("systems", {}).get("narrative") or {}
             aged = nmod.aged_out_scene(ns)
-
             if aged is not None:
-                # Find the aged bucket's raw texts
                 aged_bucket = next(
                     (b for b in ns.get("scenes", []) if b["scene"] == aged and b.get('summary') is None),
                     None,
                 )
                 if aged_bucket and aged_bucket.get("raw"):
-                    # Freeze the host's exact source before calling the provider.
-                    # Model output cannot choose its own provenance or retarget a
-                    # summary to another visit to the same scene.
+                    scene_status = "pending"
+                    # Freeze provenance before generation. append_many gives
+                    # staged stores a job-local validation/rollback boundary.
                     source_ref = nmod.summary_source_ref(aged_bucket)
-                    # The foreground action is already staged.  A recap is a
-                    # best-effort public derivative: retain this transient
-                    # pending status if its provider fails or returns malformed
-                    # output, so a CLI can be honest without exposing details.
-                    appended_all.recap_status = "pending"
                     summ_ev = summarize_scene(recap_provider, aged, aged_bucket["raw"])
                     if summ_ev is not None:
                         summ_ev['deltas']['source'] = source_ref
-                        next_turn = _next_turn_in_store(store)
-                        summ_ev["turn"] = next_turn
-                        arc_day = max((ev.get("day", 1) for ev in new_events), default=1) if new_events else 1
-                        summ_ev["day"] = arc_day
-                        store.append(summ_ev)
+                        summ_ev["turn"] = _next_turn_in_store(store)
+                        summ_ev["day"] = post.get("meta", {}).get("day") or 1
+                        store.append_many([summ_ev])
                         appended_all.append(summ_ev)
-                        appended_all.recap_status = "saved"
-                        log.debug("digest_fleet: scene_summarized scene=%s", aged)
-
-                        # Recompress check: if #summarized buckets > RECAP_SUMMARY_FANOUT
-                        try:
-                            post2 = project(registry, store.iter_events())
-                            ns2 = post2.get("systems", {}).get("narrative") or {}
-                            buckets2 = ns2.get("scenes", [])
-                            through = ns2.get('summarized_through_index', 0)
-                            # A prefix coverage marker may only advance across
-                            # a contiguous summarized range. Skipping a hole
-                            # would hide raw text never sent to recompression.
-                            pending_summaries = []
-                            for i, b in enumerate(buckets2):
-                                if i < through:
-                                    continue
-                                if b.get('summary') is None:
-                                    break
-                                pending_summaries.append((i, b))
-                            summarized_buckets = [b for i, b in pending_summaries]
-                            if len(summarized_buckets) > nmod.RECAP_SUMMARY_FANOUT:
-                                through_index = pending_summaries[nmod.RECAP_SUMMARY_FANOUT - 1][0] + 1
-                                # Bind the same inputs we render below before any
-                                # provider call; model-supplied source fields are ignored.
-                                recap_source = nmod.recap_source_ref(ns2, through_index)
-                                # Summarize the oldest summaries into super_summary
-                                oldest_summaries = [
-                                    f"〔{b['scene']}〕{b['summary']}"
-                                    for b in summarized_buckets[: nmod.RECAP_SUMMARY_FANOUT]
-                                ]
-                                previous = ns2.get('super_summary') or ''
-                                user_rc = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
-                                           + previous + '\n' + '\n'.join(oldest_summaries))
-                                rc_obj, rc_errors = complete_structured(
-                                    recap_provider,
-                                    system=_RECOMPRESS_SYSTEM,
-                                    user=user_rc,
-                                    validate=_summary_validate,
-                                    max_repairs=1,
-                                    schema_reminder='Required: {"summary": "总概要"}',
-                                    log_label="recap",
-                                )
-                                rc_summary = (rc_obj.get("summary") or "").strip() if isinstance(rc_obj, dict) else ""
-                                if rc_summary and not rc_errors:
-                                    rc_ev = kernel_event(
-                                        "recap_recompressed",
-                                        day=arc_day,
-                                        scene=scene or aged,
-                                        summary="recap recompressed",
-                                        deltas={
-                                            "super_summary": rc_summary,
-                                            "summarized_through_index": through_index,
-                                            "source": recap_source,
-                                        },
-                                        turn=_next_turn_in_store(store),
-                                    )
-                                    store.append(rc_ev)
-                                    appended_all.append(rc_ev)
-                                    log.debug("digest_fleet: recap_recompressed through_index=%d",
-                                              len(summarized_buckets))
-                        except Exception:
-                            log.exception("digest_fleet: recompress check failed (non-fatal)")
+                        scene_status = "saved"
+        except asyncio.CancelledError:
+            raise
         except Exception:
-            if aged is not None:
-                appended_all.recap_status = "pending"
             log.error("digest_fleet: scene summarization failed (non-fatal)")
+
+        # Recompression depends on the saved prefix, not on a new scene summary
+        # succeeding in this invocation. Re-project after the independent job:
+        # a failure leaves its raw bucket intact; an older eligible prefix can
+        # still be compressed. No while loop drains an unbounded backlog.
+        try:
+            post = project(registry, store.iter_events())
+            ns = post.get("systems", {}).get("narrative") or {}
+            through = ns.get('summarized_through_index', 0)
+            pending_summaries = []
+            for i, bucket in enumerate(ns.get("scenes", [])):
+                if i < through:
+                    continue
+                if bucket.get('summary') is None:
+                    break  # never advance coverage across an unsummarized hole
+                pending_summaries.append((i, bucket))
+            if len(pending_summaries) > nmod.RECAP_SUMMARY_FANOUT:
+                recap_status = "pending"
+                selected = pending_summaries[:nmod.RECAP_SUMMARY_FANOUT]
+                through_index = selected[-1][0] + 1
+                source_ref = nmod.recap_source_ref(ns, through_index)
+                oldest_summaries = [f"〔{b['scene']}〕{b['summary']}" for _, b in selected]
+                previous = ns.get('super_summary') or ''
+                user_rc = ('保留重要承诺、人物关系和未解决问题，将已有总览与新增摘要合并：\n\n'
+                           + previous + '\n' + '\n'.join(oldest_summaries))
+                rc_obj, rc_errors = complete_structured(
+                    recap_provider,
+                    system=_RECOMPRESS_SYSTEM,
+                    user=user_rc,
+                    validate=_summary_validate,
+                    max_repairs=1,
+                    schema_reminder='Required: {"summary": "总概要"}',
+                    log_label="recap",
+                )
+                if not rc_errors:
+                    rc_ev = kernel_event(
+                        "recap_recompressed",
+                        day=post.get("meta", {}).get("day") or 1,
+                        scene=scene or post.get("meta", {}).get("scene"),
+                        summary="recap recompressed",
+                        deltas={
+                            "super_summary": rc_obj["summary"].strip(),
+                            "summarized_through_index": through_index,
+                            "source": source_ref,
+                        },
+                        turn=_next_turn_in_store(store),
+                    )
+                    store.append_many([rc_ev])
+                    appended_all.append(rc_ev)
+                    recap_status = "saved"
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # Do not log exception bodies: they may contain provider/source text.
+            log.error("digest_fleet: recap recompression failed (non-fatal)")
+
+        # A saved job must not conceal a failed sibling. Status describes this
+        # invocation, not a promise that the entire historical backlog is empty.
+        statuses = (scene_status, recap_status)
+        appended_all.recap_status = ("pending" if "pending" in statuses else
+                                     "saved" if "saved" in statuses else "not_due")
 
     # ------------------------------------------------------------------
     # Phase 4: Storyline backstop (conservative 休眠 flag)

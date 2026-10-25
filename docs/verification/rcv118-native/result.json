@@ -1,0 +1,85 @@
+{
+  "generation": "native gpt-6-luna / medium, supplied externally",
+  "transport": "exact production-request replay; no remote API invocation",
+  "fixture": "human-authored synthetic history, no user campaign data",
+  "requests_sha256": "8b483fdd67950b9b80745867569dc5cd0200fd303092666c103dc9a8de85f3e5",
+  "responses_sha256": "9ebec60eff4291682939a184fdec5c0eb59e66e9c3684fd77e8f3706569eedba",
+  "request_count": 2,
+  "repair_count": 0,
+  "recap_status": "saved",
+  "published": [
+    {
+      "type": "scene_summarized",
+      "deltas": {
+        "scene": "native-7",
+        "summary": "第3天午后，船主要求两枚铜钱且不赊账，主角因钱袋空空未付款，阿岚仍在岸上拿着封信，两人尚未上船，送信期限仍是第4天黄昏。",
+        "source": {
+          "version": 1,
+          "bucket_id": "ev_bea7293eb44a",
+          "event_ids": [
+            "ev_bea7293eb44a"
+          ],
+          "sha256": "6633dd9116f027e906b518716665cc20af57cfedf1f2fdf19812f1d1f2312db5"
+        }
+      }
+    },
+    {
+      "type": "recap_recompressed",
+      "deltas": {
+        "super_summary": "第1天，阿岚答应在第4天黄昏前把封好的信送到北桥，但未承诺替人还债；主角与阿岚第2天和解，阿岚仍不肯透露收件人，并请求保密。旧桥已封闭，送信路线未定，信尚未拆；第3天找到的渡船要求两枚铜钱，主角尚未付款或上船，送信任务仍未完成。守桥人所说桥税可能次日涨至三枚铜钱尚未核实，并非已生效事实。",
+        "summarized_through_index": 6,
+        "source": {
+          "version": 1,
+          "from_index": 0,
+          "through_index": 6,
+          "previous": null,
+          "summaries": [
+            {
+              "bucket_id": "ev_52a1571656b6",
+              "event_id": "ev_abf4a0457853",
+              "source_status": "bound",
+              "sha256": "fedc4fd36b1948ce21135a72926afef6c4fb5887f7c0934717722780411d5d05"
+            },
+            {
+              "bucket_id": "ev_0e183b6d18af",
+              "event_id": "ev_40c2fbcdc8f6",
+              "source_status": "bound",
+              "sha256": "ec75075764ce1b3d12d105020ed1346cb232589f51b5013538fef29a8867578a"
+            },
+            {
+              "bucket_id": "ev_9db5206a8548",
+              "event_id": "ev_d0360df8d3c3",
+              "source_status": "bound",
+              "sha256": "997f9d7303f818f30bb7f0efa9536cbc05e5e85d32f4c074892022bcab6c1479"
+            },
+            {
+              "bucket_id": "ev_f3369a5bfea9",
+              "event_id": "ev_771c126c32ec",
+              "source_status": "bound",
+              "sha256": "a1644ba244122bcbb0db0c1060599a91ad6457762ffd49eb9c24c5db6ebd1ba5"
+            },
+            {
+              "bucket_id": "ev_32c9865bce16",
+              "event_id": "ev_7fe3b9536ce3",
+              "source_status": "bound",
+              "sha256": "1e2940fb073619ac7bc2111ec90ed749208cb5ae021ed072d2e00852e6841e1b"
+            },
+            {
+              "bucket_id": "ev_582c1219987f",
+              "event_id": "ev_95c598374105",
+              "source_status": "bound",
+              "sha256": "aa1b912b0f62cf44937a23329474d1b3764a9083875434e871ff665fbfaa0cdb"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "checks": [
+    "exact_messages",
+    "source_chain",
+    "sqlite_publish",
+    "cold_reopen",
+    "no_repeat_job_or_write"
+  ]
+}

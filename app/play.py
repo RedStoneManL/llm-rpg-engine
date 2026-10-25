@@ -141,7 +141,7 @@ def _print_turn_status(result, out: Callable, *, protagonist: str | None = None)
     if recap_status == "saved":
         out("[摘要] 已更新。")
     elif recap_status == "pending":
-        out("[摘要] 暂未生成；本回合已保存。")
+        out("[摘要] 更新尚未完成；本回合已保存。")
     outcome = player_resource_outcome(getattr(result, "world", {}), protagonist)
     if outcome is not None:
         verdict = "已扣除" if outcome["outcome"] == "spent" else "余额不足，未扣除"

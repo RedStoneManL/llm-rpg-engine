@@ -7,6 +7,7 @@ the production implementations: no synthetic narrative events are injected.
 from __future__ import annotations
 
 import copy
+import asyncio
 import hashlib
 import json
 import logging
@@ -120,6 +121,195 @@ def _public_resume(engine):
     lines = []
     _print_resume_recap(engine, lines.append)
     return "\n".join(lines)
+
+
+def _seed_summary_backlog(engine, *, summaries=7, raw=2, day=1):
+    """Persist bound summaries, with no fabricated index-only coverage."""
+    from systems.narrative import summary_source_ref
+    for i in range(summaries + raw):
+        scene = f'backlog-{i}'
+        engine.store.append(kernel_event(
+            'narration_recorded', day=day, scene=scene, turn=i + 1,
+            summary='public source', deltas={'scene': scene, 'text': f'PUBLIC_BACKLOG_RAW_{i}'}))
+        if i < summaries:
+            ns = project(engine.registry, engine.store.iter_events())['systems']['narrative']
+            engine.store.append(kernel_event(
+                'scene_summarized', day=day, scene=scene, turn=i + 1,
+                summary='bound source', deltas={'scene': scene, 'summary': f'PUBLIC_BACKLOG_SUMMARY_{i}',
+                                              'source': summary_source_ref(ns['scenes'][-1])}))
+    engine.world = project(engine.registry, engine.store.iter_events())
+    engine.world['_revision'] = engine.store.revision
+
+
+def test_recompress_existing_backlog_retries_after_reopen_with_bounded_work(tmp_path):
+    from loop.fleet import digest_fleet
+    engine = _seed_engine(tmp_path)
+    try:
+        _seed_summary_backlog(engine, summaries=13, day=4)
+        revision, mirror = engine.store.revision, engine.store.jsonl_path.read_bytes()
+        failing = RaisingRecapProvider()
+        result = digest_fleet(engine.registry, engine.store, [], engine.world,
+                              provider=failing, recap_provider=failing)
+        assert result.recap_status == 'pending'
+        assert len(failing.calls) == 1
+        assert result == []
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+        engine.store.close()
+        engine = build_engine(tmp_path / 'campaign', enable_interpretive_memory=True)
+        provider = FixedRecapProvider('PUBLIC_RETRY_OVERVIEW')
+        # Each invocation does only one recap job, even with two batches waiting.
+        for frontier in (6, 12):
+            calls = len(provider.calls)
+            result = digest_fleet(engine.registry, engine.store, [], engine.world,
+                                  provider=provider, recap_provider=provider)
+            assert result.recap_status == 'saved'
+            assert [e['type'] for e in result] == ['recap_recompressed']
+            assert len(provider.calls) == calls + 1
+            assert result[0]['day'] == 4
+            assert result[0]['scene'] == 'backlog-14'
+            assert result[0]['deltas']['summarized_through_index'] == frontier
+            engine.world = project(engine.registry, engine.store.iter_events())
+        revision, mirror, calls = engine.store.revision, engine.store.jsonl_path.read_bytes(), len(provider.calls)
+        result = digest_fleet(engine.registry, engine.store, [], engine.world,
+                              provider=provider, recap_provider=provider)
+        assert result == [] and result.recap_status == 'not_due'
+        assert len(provider.calls) == calls
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+    finally:
+        engine.store.close()
+
+
+@pytest.mark.parametrize('failed_job', ['scene', 'recap'])
+def test_independent_recap_jobs_keep_partial_success_and_pending_status(tmp_path, monkeypatch, caplog, failed_job):
+    _disable_unrelated_backstage(monkeypatch)
+    caplog.set_level(logging.ERROR)
+    engine = _seed_engine(tmp_path)
+
+    class PartialProvider(FixedRecapProvider):
+        def complete_messages(self, messages, **kwargs):
+            self.calls.append(copy.deepcopy(messages))
+            job = 'recap' if '多场景' in messages[0]['content'] else 'scene'
+            if job == failed_job:
+                raise RuntimeError('PRIVATE_MAINTENANCE_EXCEPTION')
+            return json.dumps({'summary': f'PUBLIC_{job}_SUCCESS'})
+
+    try:
+        _seed_summary_backlog(engine, raw=3)
+        provider = PartialProvider('unused')
+        pre_action_world = engine.world
+        result = _play(engine, 'backlog-9', 'PUBLIC_NEXT_ACTION', 20, provider, 'partial-job')
+        assert len(provider.calls) == 2
+        assert result.recap_status == 'pending'
+        types = [e['type'] for e in result.events]
+        assert ('scene_summarized' in types) == (failed_job != 'scene')
+        assert ('recap_recompressed' in types) == (failed_job != 'recap')
+        assert engine.world['systems']['ontology'].value_at('hero', 'coins', 1) == 20
+        ns = engine.world['systems']['narrative']
+        assert (ns['scenes'][7]['summary'] is None) == (failed_job == 'scene')
+        assert ns['summarized_through_index'] == (0 if failed_job == 'recap' else 6)
+        context = assemble_context(engine.registry, engine.world, _scene('backlog-9'))
+        if failed_job == 'scene':
+            assert 'PUBLIC_BACKLOG_RAW_7' in context
+        assert PRIVATE_SENTINEL not in str(provider.calls)
+        assert 'PRIVATE_MAINTENANCE_EXCEPTION' not in caplog.text
+        expected = copy.deepcopy(ns)
+        revision, mirror = engine.store.revision, engine.store.jsonl_path.read_bytes()
+        engine.store.close()
+        engine = build_engine(tmp_path / 'campaign', enable_interpretive_memory=True)
+        assert engine.world['systems']['narrative'] == expected
+        guard = RaisingRecapProvider()
+        duplicate = run_turn(
+            engine.registry, engine.store, pre_action_world, _scene('backlog-9'), '继续前进',
+            strategy=PreparedStrategy('PUBLIC_NEXT_ACTION', 20), provider=guard,
+            required_sections=REQUIRED_SECTIONS, action_id='partial-job',
+            memory_role='hero', memory_generator=OfflineInterpretationGenerator(PRIVATE_SENTINEL))
+        assert duplicate.receipt['duplicate'] and duplicate.recap_status == 'pending'
+        assert guard.calls == []
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+    finally:
+        engine.store.close()
+
+
+def test_malformed_jobs_have_separate_bounded_repair_budgets(tmp_path, monkeypatch):
+    _disable_unrelated_backstage(monkeypatch)
+    engine = _seed_engine(tmp_path)
+
+    class MalformedProvider(FixedRecapProvider):
+        def complete_messages(self, messages, **kwargs):
+            self.calls.append(copy.deepcopy(messages))
+            return '{"wrong": "no summary"}'
+
+    try:
+        _seed_summary_backlog(engine, raw=3)
+        provider = MalformedProvider('unused')
+        result = _play(engine, 'backlog-9', 'PUBLIC_NEXT_ACTION', 20, provider, 'bad-jobs')
+        assert len(provider.calls) == 4  # two jobs, one repair each; no drain loop
+        assert [len(m) for m in provider.calls] == [2, 4, 2, 4]
+        assert result.recap_status == 'pending'
+        assert not any(e['type'] in {'scene_summarized', 'recap_recompressed'} for e in result.events)
+        assert engine.store.get_action_receipt('bad-jobs') is not None
+    finally:
+        engine.store.close()
+
+
+@pytest.mark.parametrize('cancel_job', ['scene', 'recap'])
+def test_cancellation_in_either_independent_job_aborts_entire_turn(tmp_path, monkeypatch, cancel_job):
+    _disable_unrelated_backstage(monkeypatch)
+    engine = _seed_engine(tmp_path)
+
+    class CancellingProvider(FixedRecapProvider):
+        def complete_messages(self, messages, **kwargs):
+            self.calls.append(copy.deepcopy(messages))
+            job = 'recap' if '多场景' in messages[0]['content'] else 'scene'
+            if job == cancel_job:
+                raise asyncio.CancelledError()
+            return '{"summary": "PUBLIC_SCENE_SAVED_BEFORE_CANCEL"}'
+
+    try:
+        _seed_summary_backlog(engine, raw=3)
+        before = list(engine.store.iter_events(include_retracted=True))
+        revision, mirror = engine.store.revision, engine.store.jsonl_path.read_bytes()
+        with pytest.raises(asyncio.CancelledError):
+            _play(engine, 'backlog-9', 'PUBLIC_CANCELLED_ACTION', 20,
+                  CancellingProvider('unused'), 'cancel-jobs')
+        assert list(engine.store.iter_events(include_retracted=True)) == before
+        assert engine.store.revision == revision
+        assert engine.store.jsonl_path.read_bytes() == mirror
+        assert engine.store.get_action_receipt('cancel-jobs') is None
+        engine.store.close()
+        engine = build_engine(tmp_path / 'campaign', enable_interpretive_memory=True)
+        assert list(engine.store.iter_events(include_retracted=True)) == before
+    finally:
+        engine.store.close()
+
+
+def test_invalid_recap_staging_does_not_discard_saved_scene_summary(tmp_path, monkeypatch):
+    import loop.fleet as fleet
+    _disable_unrelated_backstage(monkeypatch)
+    engine = _seed_engine(tmp_path)
+    original = fleet.kernel_event
+
+    def corrupt_recap(*args, **kwargs):
+        event = original(*args, **kwargs)
+        if event['type'] == 'recap_recompressed':
+            event['deltas']['source']['previous'] = {'event_id': 'nonexistent'}
+        return event
+
+    try:
+        _seed_summary_backlog(engine, raw=3)
+        monkeypatch.setattr(fleet, 'kernel_event', corrupt_recap)
+        result = _play(engine, 'backlog-9', 'PUBLIC_VALID_ACTION', 20,
+                       FixedRecapProvider('PUBLIC_VALID_SUMMARY'), 'bad-recap-staging')
+        assert result.recap_status == 'pending'
+        assert any(e['type'] == 'scene_summarized' for e in result.events)
+        assert not any(e['type'] == 'recap_recompressed' for e in result.events)
+        assert engine.world['systems']['narrative']['scenes'][7]['summary'] == 'PUBLIC_VALID_SUMMARY'
+        assert engine.world['systems']['narrative']['summarized_through_index'] == 0
+    finally:
+        engine.store.close()
 
 
 def test_recompression_does_not_skip_unsummarized_source_gap(tmp_path):

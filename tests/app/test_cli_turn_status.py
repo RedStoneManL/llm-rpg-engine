@@ -68,7 +68,7 @@ def test_offline_cli_reports_saved_turn_pending_recap_and_memory_lifecycle(tmp_p
     # this is a real digest summary attempt rather than a mocked CLI branch.
     assert provider.summary_calls >= 1
     assert enabled.count("[已保存]") == 3
-    assert "[摘要] 暂未生成；本回合已保存。" in enabled
+    assert "[摘要] 更新尚未完成；本回合已保存。" in enabled
     assert "PRIVATE_EXCEPTION_BODY" not in enabled
     assert "[离线私有记忆实验已启用]" in enabled
     assert enabled.count("[memory] 第 ") == 3
@@ -84,7 +84,7 @@ def test_offline_cli_reports_saved_turn_pending_recap_and_memory_lifecycle(tmp_p
     # including its private record; reopening proves this is durable, not a
     # presentation cache.
     assert reopened.count("[memory] 第 ") == 2
-    assert "[摘要] 暂未生成；本回合已保存。" not in reopened
+    assert "[摘要] 更新尚未完成；本回合已保存。" not in reopened
 
 
 def test_cli_does_not_echo_untrusted_exception_text(tmp_path, monkeypatch, caplog):

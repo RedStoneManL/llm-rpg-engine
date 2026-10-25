@@ -4,6 +4,13 @@
 Library 文档记录的是另一份后续代码快照，不能替代这里的源码与测试证据。仓库中没有另一份可核实的
 “整体架构 prompt”文件能取代它；设计原则、已验收事实、开放风险和下一项必须在本文件持续更新。
 
+## 当前授权增量（2026-10-25 UTC）
+
+用户本轮明确解除旧 B1 detail retrieval／profiling HOLD，要求在新环境重新全量评估并推进；并指定真实模型
+使用 5.6 terra 或 Luna medium。已用可用 `gpt-6-luna` medium 完成两请求受控原生摘要生成与精确请求回放。
+下面旧记录中的 HOLD／真实模型限制描述历史状态，以本增量为当前准则；私有解释默认关闭、不外传私有数据、
+不改凭据、不部署、不自动 push／PR／Library／Drive／邮件的边界继续有效。不以换环境自动推断功能已经安全。
+
 ## 持续执行约定（用户确认）
 
 - 2026-10-25 本次迁移例外：用户明确要求将当前代码提交到 GitHub，以便 Codex 在线环境恢复。
@@ -53,8 +60,8 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 
 2026-10-25 用户确认的下一阶段方向：**agentic 分段定位并回读原文**，摘要只是导航，不可代替精确原话；
 硬结果先裁定、最终正文后生成，其余长期后果／角色认知逐步推进。具体来源分类、接口约束和实施顺序见
-[分段原文查证与结果先行设计](../designs/AGENTIC_HISTORY_AND_OUTCOME_PLAN.md)。B1/profiling 原 HOLD 不变，
-本轮不启用历史展开工具，也不将来源底座误报为完整 agentic recall。
+[分段原文查证与结果先行设计](../designs/AGENTIC_HISTORY_AND_OUTCOME_PLAN.md)。B1/profiling 已获明确解除暂停，
+现在重新评估与逐步实现；来源底座仍不能误报为完整 agentic recall。
 
 | ID | 优先级 | 状态 | 根因与下一动作 | 验收 |
 | --- | --- | --- | --- | --- |
@@ -166,12 +173,14 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-116 | P1 | 已验收（分段原文来源底座，不是召回工具） | 新摘要显式绑定原 narration IDs 与文本校验值，拒绝同场景错配／过期源；总概要覆盖不得越过未摘要空洞 | 同地重访、源篡改、真实 run_turn／冷重开／撤回和发布失败零写；专项 57 passed，完整 2107 passed / 1 deselected。旧无来源记录保留兼容，agentic 定位／展开及原输入档案尚未启用 |
 | RCV-117 | P1 | 已验收（总概要来源链，离线协议） | 新总概要绑定有序摘要 ID／正文／source 与前序总概要；publish/replay 拒绝错源、覆盖空洞及旧分支复用；旧输入明确 legacy_unbound | 新环境基线 2107 passed；修前 25 failed；最终专项 85 passed，全量 2135 passed / 1 deselected。15 回合两次递归压缩、冷重开、duplicate、撤回、损坏来源零写；不证明真实模型语义质量 |
 
+| RCV-118 | P1 | 已验收（独立积压维护） | 分段摘要与总概要各自有界重试，部分成功保持、失败仍报 pending、取消整体回滚 | 红例 5 failed；专项 118 passed；全量 2142 passed / 1 deselected；Luna medium 两请求生成通过精确回放，非远程 API 或长期质量验收 |
+
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
 - RCV-75 生产修复：`18798c1ea399ab653a9a9b4798017fc487733b01`；随后浏览器证据文档检查点：`860e96d5d8f94afdf23bb2532aa819d5f33e81f2`。
 - RCV-76：`e7b5de4be191102b32e2cb0dd55f65e4f7d78001`。已确认 GUI/WSGI、CLI、冷重开和 390px loopback 浏览器均只显示公开同场人物的 sketch／mood／state；明确交流下拉框仍是同一人集的 id/label 投影，hidden id、private sketch/mood、NPC evidence、reported knowledge、arrival preview 与路线授权均未进入玩家 DTO 或 DOM。
 - RCV-77：`96f1ff76970b3631f0cc1030940d0984cfb600a3`。
-| RCV-05 | HOLD | HOLD | B1 detail retrieval 与额外 profiling | 原历史工具审查拒绝；不换路绕过，也不重试 |
+| RCV-05 | P1 | 已解除暂停，重新评估中 | B1 detail retrieval 与 profiling | 2026-10-25 用户明确解除旧 HOLD；按新环境实测，不把授权等同于实现或验收 |
 | M1-01 | P1 | 已验收（默认禁用数据切片） | 角色私有解释记忆的最小持久化/重放边界 | 默认 app 拒绝事件；opt-in 隔离 registry 的 actor 分组、撤回和重开 replay 通过；读取只接入 RCV-03 的受限 CLI 实验 |
 | M2-01 | P1 | 已验收（离线宿主前置层） | 仅可信 Python 宿主的私有记忆读取 handle | world/store/session/role identity 绑定、关闭撤销和跨 session/store 反例通过；RCV-03 仅以当前主角的无参数 `/memory` 使用它，tools/DM 仍未接入 |
 | M3-01 | P1 | 已验收（新公开历史 API） | 完整历史的私有记忆过滤 DTO | `Engine.public_history()` 过滤 active/retracted 私有行及显式引用；RCV-03 的 CLI 回归验证其不含私有正文；GUI/GM/raw-store 仍未接入 |
@@ -2205,3 +2214,17 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   来源协议。下一独立切片为分离摘要／总概要积压调度；统一输入档案与结果先行正文仍在设计中。locate/open/邻文展开与
   B1 detail retrieval HOLD 直接重合，需要明确解除接入范围的暂停后才可实施；profiling 未执行。本次没有新 recall 工具、
   默认私有记忆、真实／付费模型、权重下载、凭据修改、push／main／PR／部署或任何 Library／Drive／邮件上传。
+
+
+- 2026-10-25：RCV-118 修复分段摘要与总概要的触发耦合。无新 aged raw 也能重试已有连续摘要积压；每次最多
+  一项分段摘要和一项总概要，各最多一次格式修复。正常异常只回滚失败任务，成功项保留；取消仍整回合零发布。
+  任一尝试失败最终为 pending，CLI 文案改为“更新尚未完成”。日期与场景使用当前投影，来源链沿用 RCV-117。
+  修前 7 新例实际为 **5 failed, 2 passed**；初次专项 2 个重复行动 fixture 因使用提交后 revision 被正确拒绝，
+  改用原请求 world，未放松 fingerprint。最终专项 **118 passed in 7.55s**；完整 gate **2142 passed,
+  1 deselected in 90.51s**，唯一未运行仍为 slow real embedding，pip check／diff check 通过。
+
+  用户新增指定真实模型授权后，Luna medium 对两份实际生产摘要请求生成原始响应；独立保存 requests/responses
+  与 SHA-256，精确回放通过生产结构校验、SQLite、来源链、冷重开与无重复任务检查。保留未付款等关键否定，
+  总概要却省掉保密请求的独立日期，不能拿它当精确记忆。仅人工合成历史的原生生成与回放，非远程 API 链路或
+  长期可玩性证明。用户随后明确解除 B1/profiling 暂停；开始按新环境全量评估，不继续沿用旧 HOLD 阻挡。
+  详见 [RCV-118 验证记录](../verification/RCV-118-independent-recap-jobs.md)。本阶段本地提交，不 push／部署／上传。

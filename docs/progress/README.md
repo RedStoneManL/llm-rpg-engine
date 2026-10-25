@@ -13,6 +13,8 @@
 4. [RCV-116 验证记录](../verification/RCV-116-45c270d.md)：具体版本、命令、结果和局限。
 5. [RCV-117 验证记录](../verification/RCV-117-recap-source-chain.md)：云端恢复实测、总概要来源链与旧档兼容。
 
+6. [RCV-118 验证记录](../verification/RCV-118-independent-recap-jobs.md)：独立有界重试、部分失败与 Luna 原生摘要样本。
+
 ## 维护规则
 
 - 本目录两份正文是当前唯一维护版本；仓库根目录的同名文件只作兼容入口。
@@ -22,6 +24,9 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-10-25：RCV-118 完成摘要／总概要独立维护，专项 **118 passed**，全量 **2142 passed / 1 deselected**。
+  Luna medium 两份真实响应通过精确请求回放；旧 B1/profiling HOLD 已由用户明确解除，开始重新全量评估。
 
 - 2026-10-25：RCV-117 在交接检查点 `d1833ad` 上实现总概要来源链，绑定有序摘要与上一版总概要，
   保留旧档未验证来源标识。新环境基线 **2107 passed / 1 deselected**；实现后全量 **2135 passed / 1 deselected**，
