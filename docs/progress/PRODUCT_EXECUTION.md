@@ -175,6 +175,7 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 | RCV-118 | P1 | 已验收（独立积压维护） | 分段摘要与总概要各自有界重试，部分成功保持、失败仍报 pending、取消整体回滚 | 红例 5 failed；专项 118 passed；全量 2142 passed / 1 deselected；Luna medium 两请求生成通过精确回放，非远程 API 或长期质量验收 |
 | RCV-119 | P1 | 已完成当前环境评估 | 解除旧 HOLD 后重查环境／来源／检索／正文／规模；临时合成 100/1000/5000 条 profiling | 当前基础 gate 2142 passed；确认 raw context 增长、旧 key 重用、语义过滤绕过与 frozen prose；不冒充长期质量结论 |
 | RCV-120 | P0 | 已验收（检索候选范围） | FTS／语义共用精确 day/entity，向量 SQL allowlist 在排序前筛选；短查询通配符按字面处理 | 红例 23 failed；专项 71 passed；完整 2171 passed / 1 deselected；不等同 actor ACL 或 agentic source tools |
+| RCV-121 | 文档 | 已交付当前架构 HTML | 用户要求先解释全部模块、结构、调用流程与优化方向；基于 03cabc4 审读，不改生产行为 | 14 章节、15 系统、96 模块、861 符号；453 链接／锚点校验，交互逻辑通过；未虚报浏览器渲染或重跑全量 gate |
 
 RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `work` 分支提交；不代表外传）：
 
@@ -2260,3 +2261,19 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   陈旧向量 relevance 仍存在。后续首项是成功回合原输入同事务档案与可信 source read session，随后对接
   locate/open/邻文重查；结果先行正文并列 P0。旧 HOLD 已解除，无新增权限阻塞；缺远程 provider 密钥与
   Chromium 仅限制对应验收。私有解释仍默认关闭。本次没有额外真实模型或权重下载。
+
+
+- 2026-10-26（Asia/Shanghai）：RCV-121 按用户“先给详细 HTML 现状分析”交付
+  [架构与优化报告](../reports/2026-10-26/architecture-status.html)，基于 `03cabc4`。
+  包含架构图、四种回合调用路径、后台顺序、核心数据对象、14 默认＋1 opt-in 系统结构、创世／导入、作者策略与
+  上下文、两条 recall 路径、权限／存储／来源链，以及性能和优化优先级。九个运行目录共 96 个非包标记 Python
+  模块、25,514 行；861 个符号行号由 AST 核对，50 个默认事件类型由实际 Registry 核对。内容 pack、旧 hook、
+  scripts/tests/reference 另有定位，未把旧兼容路线画成已接通的新原文工具。
+
+  单文件 HTML 无外部资源，453 链接／锚点、143 唯一 ID、内联 JS 语法通过；DOM adapter 检查流程切换、搜索／
+  筛选、展开折叠与跳转通过。Chromium executable 仍缺，未声称真实浏览器验收；MuPDF 仅内部文字解析烟测，
+  不作为完整 CSS 视觉验证。本阶段无生产改动，未重跑 2171 gate；报告明确成绩来自 RCV-120，性能来自 RCV-119，
+  Luna 样本来自 RCV-118。构建器与核验说明见 [RCV-121](../verification/RCV-121-architecture-report.md)。
+
+  后续优先原 input 同事务来源 → actor/revision 安全 source session → agentic locate/open；结果先行正文
+  并列 P0，继承已有资源裁定而不重复造轮子。用户本轮要求先看报告，未把这些建议写成已经实现。仅本地提交。

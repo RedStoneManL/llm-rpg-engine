@@ -19,6 +19,8 @@
 
 8. [RCV-120 验证记录](../verification/RCV-120-retrieval-scope.md)：混合检索先限定候选再排序，完整 2171 passed。
 
+9. [当前架构 HTML](../reports/2026-10-26/architecture-status.html)：模块结构、调用路径与优化路线；[RCV-121 核验](../verification/RCV-121-architecture-report.md)。
+
 ## 维护规则
 
 - 本目录两份正文是当前唯一维护版本；仓库根目录的同名文件只作兼容入口。
@@ -28,6 +30,9 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-10-26：RCV-121 交付基于 `03cabc4` 的自包含 HTML 架构报告：14 章节、15 系统、96 模块与可切换调用流程。
+  本次是文档与源码核对，不改运行行为，不把历史 gate 当作本次重跑。
 
 - 2026-10-25：RCV-120 将评估发现的检索范围错误落实修复；专项 **71 passed**，全量 **2171 passed / 1 deselected**。
   原输入档案、actor/revision 来源句柄及结果先行最终正文仍待做，旧 HOLD 不再阻塞。

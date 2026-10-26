@@ -2,6 +2,15 @@
 
 更新：2026-10-25（Asia/Shanghai）。本文件是本次跨环境交接入口，不是完整聊天逐字转录。
 
+## 最新文档交付：RCV-121（2026-10-26，Asia/Shanghai）
+
+用户要求继续前先给详细 HTML 模块／架构／调用流程与优化建议，已交付
+[architecture-status.html](../reports/2026-10-26/architecture-status.html)，基于生产 HEAD `03cabc4`。
+14 章节，15 个系统，96 个源码模块，四种可切换回合路径；只读源码／Registry 审计，无生产改动。
+链接、符号位置和交互逻辑已核验；未重跑完整引擎 gate，也未声称 Chromium 渲染通过，详见
+[RCV-121](../verification/RCV-121-architecture-report.md)。下一实现建议保持：原 input 同事务档案与安全 source session，
+结果先行最终正文并列 P0。旧 HOLD 已解除，用户本轮“先报告”没有授权新的外部发布或改变私有数据边界。
+
 ## 当前接续点：RCV-120（2026-10-25 UTC，仅本地提交）
 
 解除旧 HOLD 后已完成 [RCV-119 全量评估](../verification/RCV-119-current-environment-assessment.md)，并实际修复
