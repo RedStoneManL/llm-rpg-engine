@@ -19,8 +19,11 @@ Rewind-safe: the slice folds entirely from the event log.
 """
 from __future__ import annotations
 
+import copy
+
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment
 from kernel.events import kernel_event
+from kernel.quest_outcomes import objective_problems, quest_summary
 from engine.log import get_logger
 
 log = get_logger("systems.lore")
@@ -128,6 +131,8 @@ class LoreSystem(ContextSystem):
             if not lid:
                 log.warning("quest_opened missing id; skipped (%s)", event.get("id"))
                 return False
+            if 'objective' in d and objective_problems(d['objective'], world):
+                raise ValueError('invalid delivery objective')
             summary = d.get("summary", "")
             complexity = d.get("complexity")
             born_day = event.get("day")
@@ -153,6 +158,8 @@ class LoreSystem(ContextSystem):
                 "last_advanced_day": born_day,
             }
             log.debug("quest_opened id=%s summary=%r born_day=%s", lid, summary, born_day)
+            if 'objective' in d:
+                lines[lid]['objective'] = copy.deepcopy(d['objective'])
             return
 
         if t == "lore_advanced":
@@ -222,10 +229,14 @@ class LoreSystem(ContextSystem):
                             lid, ln.get("state"))
                 return
             ln["state"] = "了结"
+            ln['resolved_order'] = max((line.get('resolved_order', 0) for line in lines.values()), default=0) + 1
+            ln['resolved_public'] = True
             ln["resolved"] = {
                 "by": d.get("by"),
                 "summary": d.get("summary"),
             }
+            if 'resolution' in d:
+                ln['resolved']['resolution'] = copy.deepcopy(d['resolution'])
             log.debug("quest_resolved id=%s by=%s", lid, d.get("by"))
             return
 
@@ -367,6 +378,11 @@ class LoreSystem(ContextSystem):
         lines = (world.get("systems", {}).get(self.name) or {}).get("lines", {})
         for i, item in enumerate(decl or []):
             op = item.get("op")
+            if 'objective' in item:
+                problems = (objective_problems(item['objective'], world) if op == 'open'
+                            else ['交付条件只能在接取任务时确定'])
+                errs.extend(ValidationError(section, f'[{i}].objective', 'bad_objective', hint)
+                            for hint in problems)
             # op validation
             if op not in _QUEST_OPS:
                 errs.append(ValidationError(
@@ -463,6 +479,11 @@ class LoreSystem(ContextSystem):
                 deltas["summary"] = item["summary"]
             if op == "resolve":
                 deltas["by"] = "player"
+                for field in ('outcome', 'resolution'):
+                    if field in item:
+                        deltas[field] = copy.deepcopy(item[field])
+            if op == 'open' and 'objective' in item:
+                deltas['objective'] = copy.deepcopy(item['objective'])
             ev = kernel_event(
                 ev_type,
                 day=day,
@@ -485,13 +506,23 @@ class LoreSystem(ContextSystem):
 
         # Render 明 lines as active-quest ledger.
         ming_lines = [ln for ln in lines.values() if ln.get("state") == "明"]
-        if not ming_lines:
+        closed = sorted((ln for ln in lines.values() if ln.get('state') == '了结'
+                         and ln.get('resolved_public') and type(ln.get('surfaced_turn')) is int),
+                        key=lambda ln: ln.get('resolved_order', 0), reverse=True)[:6]
+        if not ming_lines and not closed:
             return None
 
-        ledger_lines = ["【任务·明账】（活跃任务，每回合必看）"]
+        ledger_lines = ["【任务·明账】（活跃任务，每回合必看）"] if ming_lines else []
         for ln in ming_lines:
-            summary = ln.get("summary") or "（暂无摘要）"
+            summary = quest_summary(ln, world)
             ledger_lines.append(f"  [{ln['id']}] {summary}")
+            objective = ln.get('objective')
+            if objective:
+                ledger_lines.append(f"    交付条件：{objective['item']} → {objective['recipient']}；"
+                                    "逾期不会自动失败，仍可交付或明确放弃。")
+        if closed:
+            ledger_lines.append('【任务·近期结局】（最近六条公开已结任务；影响后续反应，不能重复结算）')
+            ledger_lines.extend(f"  [{ln['id']}] {quest_summary(ln, world, closed=True)}" for ln in closed)
         text = "\n".join(ledger_lines)
         affordance = ("本回合若推进/收束了某条明态任务，用 quests 段声明 advance/resolve；"
                       "若玩家接取了暗线，用 surface 声明")

@@ -46,6 +46,7 @@ from context.native_authoring import (player_statement_receipt_errors,
                                       player_statement_receipt_event_errors)
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
+from kernel.quest_outcomes import delivery_errors, bind_delivery_outcomes, validate_delivery_events
 
 from kernel.registry import Registry
 from kernel.projection import project
@@ -471,6 +472,7 @@ def produce_turn(
         candidate_errors = validate_commit(
             registry, commit, world, required_sections=required_sections,
         )
+        candidate_errors.extend(delivery_errors(commit, world))
         candidate_errors.extend(player_statement_receipt_errors(
             world, scene, commit, receipts=trusted_player_statement_receipts,
         ))
@@ -634,6 +636,11 @@ def produce_turn(
         from kernel.turncommit import TurnCommit
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
+    if not dropped_sections:
+        commit = bind_delivery_outcomes(commit, world)
+        if validate_candidate():
+            raise TurnRejected('settled delivery outcome could not be validated')
+
     # Step 4: freeze accepted effects, then compose the text the player will see.
     # No effects have been applied. A prose retry cannot debit or move twice.
     # Duck-typed legacy/prepared strategies keep their existing contract.
@@ -716,6 +723,11 @@ def apply_turn(
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
+    if any(e['type'] in {'quest_opened', 'quest_resolved', 'item_transferred'} for e in events):
+        try:
+            validate_delivery_events(events, project(registry, store.iter_events()))
+        except ValueError as exc:
+            raise TurnRejected(str(exc)) from exc
     store.append_many(events, preflight=lambda history: project(registry, history))
     new_world = project(registry, store.iter_events())
 
@@ -1194,6 +1206,12 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     # receipt that the accepted commit actually authorizes to materialize.
     authorized_player_statement_receipt_ids: tuple[str, ...] = ()
     batch = EventBatch(store, preflight=lambda history: project(registry, history))
+    def validate_delivery_payload(events):
+        try:
+            validate_delivery_events(events, travel_world)
+        except ValueError as exc:
+            raise TurnRejected(str(exc)) from exc
+    batch.add_publish_validator(validate_delivery_payload)
     if enforce_player_travel:
         def validate_travel_payload(events):
             errors = validate_protagonist_move_events(events, travel_world, travel_scene,

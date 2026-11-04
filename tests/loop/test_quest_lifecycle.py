@@ -463,11 +463,10 @@ class TestQuestFullLifecycle:
 
         # 明账 must no longer include complex_line (it's 了结, not 明)
         fragment6 = lore_sys.inject({"protagonist": "hero"}, world)
-        # Only 明 lines appear; 了结 must not
-        if fragment6 is not None:
-            assert "complex_line" not in fragment6.text, (
-                "step 6: 了结 line must not appear in 明账 inject"
-            )
+        assert fragment6 is not None
+        active, closed = fragment6.text.split('【任务·近期结局】')
+        assert 'complex_line' not in active
+        assert 'complex_line' in closed and '玩家破解了古老诅咒' in closed
 
 
 # ---------------------------------------------------------------------------

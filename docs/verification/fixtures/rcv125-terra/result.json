@@ -1,0 +1,163 @@
+{
+  "generation": "native gpt-6.1-terra, raw responses supplied externally",
+  "transport": "exact production-request replay; no remote HTTP API invocation",
+  "fixture": "synthetic public foreground play; unrelated background LLM hooks disabled; run_lore active",
+  "request_count": 10,
+  "requests_sha256": "bfa93cc2f683c36baa027ec3d58b6b104435baebd7aff4d1e4320d3f494afd7c",
+  "responses_sha256": "bce26423cba2b44687fad311f549a32ff409fa7607623bec68518ce18498b67c",
+  "checks": [
+    "accept",
+    "overdue_remains_active",
+    "unspoken_claim_not_delivery",
+    "actual_late_delivery",
+    "next_turn_continuity",
+    "cold_reopen",
+    "duplicate_no_model",
+    "undo_restores_item_and_quest"
+  ],
+  "transcript": [
+    {
+      "input": "我接受这份约定：把背包里的药包（medicine）交给眼前的药师（apothecary），截止第1天中午（包含中午时段）。此刻只答应，还没交药，也没有约定奖励。",
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你答应下来：今天中午结束前，把药包交给药师。\n\n药师点了点头，目光落在你的背包上，随即望向窗外的晨光。药包还在包里，眼下只是定下了约定。"
+      ],
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [
+          {
+            "id": "deliver_medicine",
+            "summary": "【期限：第1天中午（含）】第1天中午前把药包交给药师"
+          }
+        ],
+        "completed_quests": []
+      }
+    },
+    {
+      "input": "我等到今天下午，药包一直留在自己背包，没有交给任何人。",
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你答应下来：今天中午结束前，把药包交给药师。\n\n药师点了点头，目光落在你的背包上，随即望向窗外的晨光。药包还在包里，眼下只是定下了约定。",
+        "窗外的光从晨雾中透出来，又慢慢偏斜。你一直等到下午，背包里的药包没有动过。\n\n约定的中午已经过去。药师还在客栈里，朝你的背包看了一眼。"
+      ],
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [
+          {
+            "id": "deliver_medicine",
+            "summary": "【已逾期，仍可交付；期限：第1天中午（含）】第1天中午前把药包交给药师"
+          }
+        ],
+        "completed_quests": []
+      }
+    },
+    {
+      "input": "我心想可以骗他药已经交过了，但没有说出口，也没有递出药包。我只是站在原地看看药师。",
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你答应下来：今天中午结束前，把药包交给药师。\n\n药师点了点头，目光落在你的背包上，随即望向窗外的晨光。药包还在包里，眼下只是定下了约定。",
+        "窗外的光从晨雾中透出来，又慢慢偏斜。你一直等到下午，背包里的药包没有动过。\n\n约定的中午已经过去。药师还在客栈里，朝你的背包看了一眼。",
+        "那个借口在你心里转了一圈，终究没有出口。你站在原地，药包仍在背包里。\n\n药师迎上你的目光，等了片刻，问道：「药呢？」"
+      ],
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [
+          {
+            "id": "deliver_medicine",
+            "summary": "【已逾期，仍可交付；期限：第1天中午（含）】第1天中午前把药包交给药师"
+          }
+        ],
+        "completed_quests": []
+      }
+    },
+    {
+      "input": "现在把药包实际递给药师，虽然已经错过中午的期限。",
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你答应下来：今天中午结束前，把药包交给药师。\n\n药师点了点头，目光落在你的背包上，随即望向窗外的晨光。药包还在包里，眼下只是定下了约定。",
+        "窗外的光从晨雾中透出来，又慢慢偏斜。你一直等到下午，背包里的药包没有动过。\n\n约定的中午已经过去。药师还在客栈里，朝你的背包看了一眼。",
+        "那个借口在你心里转了一圈，终究没有出口。你站在原地，药包仍在背包里。\n\n药师迎上你的目光，等了片刻，问道：「药呢？」",
+        "你从背包里取出药包，递到药师手里。\n\n药师接过药，低头看了一眼，才抬头望向你。「中午已经过了。」他将药包拿稳，停了一下，「怎么耽搁了？」"
+      ],
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [],
+        "completed_quests": [
+          {
+            "id": "deliver_medicine",
+            "summary": "【已交付·逾期】第1天中午前把药包交给药师"
+          }
+        ]
+      }
+    },
+    {
+      "input": "我仍站在药师面前，观察他收药后的反应，看看接下来有什么可做的；不再拿取或交付任何东西。",
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你答应下来：今天中午结束前，把药包交给药师。\n\n药师点了点头，目光落在你的背包上，随即望向窗外的晨光。药包还在包里，眼下只是定下了约定。",
+        "窗外的光从晨雾中透出来，又慢慢偏斜。你一直等到下午，背包里的药包没有动过。\n\n约定的中午已经过去。药师还在客栈里，朝你的背包看了一眼。",
+        "那个借口在你心里转了一圈，终究没有出口。你站在原地，药包仍在背包里。\n\n药师迎上你的目光，等了片刻，问道：「药呢？」",
+        "你从背包里取出药包，递到药师手里。\n\n药师接过药，低头看了一眼，才抬头望向你。「中午已经过了。」他将药包拿稳，停了一下，「怎么耽搁了？」",
+        "药师手里捏着药包的折角，目光仍停在你脸上。他没有再催，只等着你回答刚才的问题。\n\n客栈外通往集市的小路就在门外；你也可以留在这里，回应药师。"
+      ],
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [],
+        "completed_quests": [
+          {
+            "id": "deliver_medicine",
+            "summary": "【已交付·逾期】第1天中午前把药包交给药师"
+          }
+        ]
+      }
+    }
+  ],
+  "saved_lore": {
+    "lines": {
+      "deliver_medicine": {
+        "id": "deliver_medicine",
+        "complexity": null,
+        "about": "第1天中午前把药包交给药师",
+        "secret": null,
+        "anchor": null,
+        "description": null,
+        "trigger": null,
+        "l3_anchor": null,
+        "stages": [],
+        "threshold": 50,
+        "stage_idx": -1,
+        "state": "了结",
+        "clues_dropped": [],
+        "summary": "第1天中午前把药包交给药师",
+        "surfaced_turn": 1,
+        "born_day": 1,
+        "lifespan_days": null,
+        "last_advanced_day": 1,
+        "objective": {
+          "kind": "deliver",
+          "item": "medicine",
+          "recipient": "apothecary",
+          "due": {
+            "day": 1,
+            "band": 1
+          }
+        },
+        "resolved_order": 1,
+        "resolved_public": true,
+        "resolved": {
+          "by": "player",
+          "summary": "第1天中午前把药包交给药师",
+          "resolution": {
+            "outcome": "delivered",
+            "timing": "late",
+            "recorded_at": {
+              "day": 1,
+              "band": 2
+            }
+          }
+        }
+      }
+    },
+    "gen": {}
+  }
+}

@@ -934,6 +934,12 @@ def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[Validatio
         op, line_id = item.get("op"), item.get("id")
         if op == "open":
             valid = isinstance(line_id, str) and bool(line_id) and line_id not in existing
+            if 'objective' in item:
+                _, inventory, targets = _ordinary_item_authority(world, scene)
+                objective = item['objective']
+                valid = (valid and isinstance(objective, dict)
+                         and isinstance(objective.get('item'), str) and isinstance(objective.get('recipient'), str)
+                         and objective.get('item') in inventory and objective.get('recipient') in targets)
         elif op == "surface":
             valid = line_id in local_dark
         elif op in {"advance", "resolve"}:
@@ -971,6 +977,12 @@ def player_turn_quest_event_errors(events: list[dict], world: dict, scene: dict)
         if event_type == "quest_opened":
             valid = (isinstance(line_id, str) and bool(line_id) and line_id not in existing
                      and isinstance(delta.get("summary"), str) and bool(delta.get("summary")))
+            if 'objective' in delta:
+                _, inventory, targets = _ordinary_item_authority(world, scene)
+                objective = delta['objective']
+                valid = (valid and isinstance(objective, dict)
+                         and isinstance(objective.get('item'), str) and isinstance(objective.get('recipient'), str)
+                         and objective.get('item') in inventory and objective.get('recipient') in targets)
         elif event_type == "quest_surfaced":
             valid = line_id in local_dark
         elif event_type in {"quest_advanced", "quest_resolved"}:

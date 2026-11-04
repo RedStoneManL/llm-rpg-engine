@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+from kernel.quest_outcomes import quest_summary
 
 
 def player_objectives(view: dict[str, Any], protagonist: str | None) -> dict[str, Any]:
@@ -32,12 +33,12 @@ def player_objectives(view: dict[str, Any], protagonist: str | None) -> dict[str
             if not isinstance(quest_id, str) or not isinstance(line, dict):
                 continue
             if line.get("state") == "明" and isinstance(line.get("summary"), str):
-                active.append({"id": quest_id, "summary": line["summary"]})
+                active.append({"id": quest_id, "summary": quest_summary(line, view)})
                 continue
             resolved = line.get("resolved")
             summary = resolved.get("summary") if isinstance(resolved, dict) else None
             summary = summary if isinstance(summary, str) and summary else line.get("summary")
             if (line.get("state") == "了结" and isinstance(line.get("surfaced_turn"), int)
                     and isinstance(summary, str)):
-                completed.append({"id": quest_id, "summary": summary})
+                completed.append({"id": quest_id, "summary": quest_summary(line, view, closed=True)})
     return {"long_term_goal": goal, "active_quests": active, "completed_quests": completed}

@@ -222,19 +222,20 @@ def test_to_events_skips_malformed_item():
 # inject tests
 # ---------------------------------------------------------------------------
 
-def test_inject_renders_active_and_dormant_omits_resolved():
-    """inject renders 明 lines, omits 了结 lines."""
+def test_inject_separates_active_ledger_from_recent_public_outcomes():
+    """Completed work leaves the active ledger but remains a continuity cue."""
     world = project(_reg(), [
         _opened("th_a", "线A：查案", scene="s1"),
         _opened("th_b", "线B：寻人", scene="s1"),
-        _resolved("th_b", scene="s2"),          # 了结 → omitted
+        _resolved("th_b", scene="s2"),
     ])
     frag = LoreSystem().inject({"id": "s2"}, world)
     assert frag is not None
     assert frag.layer == "scene"
-    assert "线A：查案" in frag.text
-    assert "线B：寻人" not in frag.text          # resolved omitted
-    assert "明账" in frag.text                   # ledger header
+    active, closed = frag.text.split('【任务·近期结局】')
+    assert "线A：查案" in active and '明账' in active
+    assert "线B：寻人" not in active
+    assert "线B：寻人" in closed and '不能重复结算' in closed
 
 
 def test_inject_empty_ledger_returns_none():
