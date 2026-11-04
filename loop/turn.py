@@ -428,6 +428,7 @@ def produce_turn(
         )
     _reject_author_discovery_declaration(commit)
     commit = _with_host_discovery(commit)
+    proposed_sections = copy.deepcopy(commit.sections)
     log.debug("produce_turn: initial commit narration=%r sections=%s",
               commit.narration[:40], list(commit.sections))
 
@@ -435,9 +436,8 @@ def produce_turn(
     # Step 2: Validate + modular repair loop
     #
     # When validation fails, re-emit ONLY the failing sections (not narration,
-    # not passing sections).  This is far cheaper than a full re-author (the
-    # original narration prose is already valid and authoritative — regenerating
-    # it on every repair turn was the dominant cost measured at ~59s/repair).
+    # not passing sections). Final prose is composed once after structure settles,
+    # rather than repeatedly composing it during each structural repair.
     #
     # Flow per repair attempt:
     #   a. Compute failing section names from the error list.
@@ -501,6 +501,10 @@ def produce_turn(
                 trusted_keys=trusted_discovery_keys,
                 reveal_only_discovery_keys=reveal_only_discovery_keys,
             )
+            if getattr(strategy, 'outcome_first', False):
+                # Hybrid has no player-facing prose yet. Repair the move first;
+                # the final writer will describe the accepted result.
+                travel_errors = [e for e in travel_errors if e.code != 'scene_capability_narration']
             if (travel_narration_baseline is None
                     and any(error.code == "scene_capability_narration"
                             for error in travel_errors)):
@@ -629,6 +633,34 @@ def produce_turn(
                           if k not in failing}
         from kernel.turncommit import TurnCommit
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
+
+    # Step 4: freeze accepted effects, then compose the text the player will see.
+    # No effects have been applied. A prose retry cannot debit or move twice.
+    # Duck-typed legacy/prepared strategies keep their existing contract.
+    finalize = getattr(strategy, 'finalize_narration', None)
+    changed = frozenset(key for key in proposed_sections.keys() | commit.sections.keys()
+                        if proposed_sections.get(key) != commit.sections.get(key))
+    if (not dropped_sections and callable(finalize)
+            and (changed or getattr(strategy, 'outcome_first', False))):
+        from kernel.turncommit import TurnCommit
+        repair_text = None
+        for prose_attempt in range(2):
+            with get_tracer().span('final_narration', attempt=prose_attempt):
+                narration = finalize(copy.deepcopy(commit), provider=provider,
+                                     changed_sections=changed, repair=repair_text)
+            # Only the string can come back; no returned or mutated sections are applied.
+            commit = TurnCommit(narration=narration, sections=commit.sections)
+            final_errors = validate_candidate()
+            if not isinstance(narration, str) or not narration.strip():
+                from kernel.contextsystem import ValidationError
+                final_errors.append(ValidationError('narration', '', 'missing_narration',
+                                                    '请给出非空的最终散文正文。'))
+            if not final_errors:
+                break
+            if prose_attempt or any(e.section != 'narration' for e in final_errors):
+                raise TurnRejected('final narration could not be reconciled with the accepted outcome')
+            repair_text = build_repair_request(final_errors)
+            attempts += 1
 
     log.debug("produce_turn: done repair_attempts=%d dropped=%s", attempts, dropped_sections)
     # Persistent conversation is advanced only by run_turn after durable commit.

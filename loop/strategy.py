@@ -9,11 +9,9 @@ AuthorStrategy (甲):
     provider.complete_json, and returns TurnCommit.from_dict(data).
 
 HybridStrategy (丙):
-    Two-call approach: (1) provider.complete for free-form prose narration;
-    (2) provider.complete_json with a grounded author prompt (full context +
-    the prose) to produce structured TurnCommit sections.  narration is
-    forced to the prose from call 1.  Prose is frozen across repair attempts;
-    only the structure conversation continues (agent loop).
+    Two-call approach: (1) propose structured outcomes; (2) after host validation
+    and repairs, compose free-form prose from the accepted outcomes. No draft
+    prose becomes visible before produce_turn finishes validation.
 """
 from __future__ import annotations
 
@@ -277,31 +275,16 @@ def _narrate_prompt(verbosity: str | None = None, style: str | None = None) -> s
 _SYSTEM_PROMPT = _system_prompt("medium")
 _NARRATE_PROMPT = _narrate_prompt("medium")
 
-# 丙 HybridStrategy 结构提示(call 2:作者为自己刚写的散文补结构,带全上下文)
-_SYSTEM_PROMPT_HYBRID = """\
-你是主持人（DM）。你刚写完下面这段叙事散文。现在以"懂世界规则的作者"身份，为这段散文忠实地补出结构化 turn-commit。
-规则：
-1. 只记录散文中【真实发生】的世界变化；不要新增散文里没有的人物/地点/事件。
-2. 上文给出了当前世界状态与已存在实体的 canonical id——散文指向已知对象（主角、已知 NPC、已知地点）时必须复用其原有 id，只为散文中首次出现的新对象创建新 id。
-3. 每个段落都是对象数组，下面标了【必填】/【可选】：
-   - 【必填】moves: [{"who":实体id, "to":地点id}]——散文里谁移动了；**没有就给 []**
-   - 【必填】places: [{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述, "visibility":"public"}]——散文里**新出现**的地点；**没有就给 []**；普通玩家只能创建全新 public 前沿地点，且需在可选 links 段以恰好一条 public 边直连 action-start 当前位置
-   - 【必填】cast: [{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——可 create 新鲜公开 NPC（id 不得复用既有角色，且不写 past/hidden）；evolve 只可改主角或当前公开在场人物可观察的 ``mood``/``state``。主角对当前公开人物的关系可用 op=relationship；**没有就给 []**。不得改远方、隐藏或未发现角色，不能写其秘密、目标或全局关系。
-   - 【必填】facts: [{"subject":实体id, "predicate":属性名, "value":值, "secrecy":"public"}]——只可写主角自身的公开事实，或当前公开在场人物的 ``reported:主题`` 来源陈述；**没有就给 []**。不得为远方、隐藏地点、物品或 NPC 断言 canonical 真相，更不得写 restricted/secret。局部地形／物理所见使用第 7 条的 world 观察。
-   - 【必填】clock: [{"advance":true/false, "days":整天数, "bands":时段数, "reason":"为什么"}]（**恰好一个元素，永不为空**）——本回合游戏内时间推进多少（一天四段：晨→中午→下午→夜晚；bands=跨过的时段数，只在时段名真正切换时才计，可>3，引擎自动进位）；reason 必填。散文里时间明显流逝（入夜、次日、三日后）就按量给出；同一时段内的细碎动作（连续紧接、一次冲刺/夺取）不算推进，给 advance:false 且写 reason，切勿为小动作多推一段。
-   - 【可选】entities / relations：普通玩家回合不要输出这两段；它们属于宿主／导演或已受约束的地点、物品系统，不能借此改写远方或隐藏拓扑。
-   - 【可选】factions：普通玩家回合不要输出本段；势力创建、成员、位阶与群组属于宿主／导演或导入历史权限。
-   - 【可选】links / materialize：普通玩家通常省略；仅新建 places 时 links 可直连当前位置和该新地点，materialize 始终不得输出。不得重写既有地点拓扑或移动既有人物；同回合新建公开人物只可放在当前位置或主角同回合目的地。
-   - 【可选】items：只可用 [{"op":"transfer","item":"主角当前背包物品 id","to":"当前公开人物 id 或当前位置 id"}] 交接已持有物品；没有就省略。不能创建物品，不能移动非背包物品，也不能交给远方、隐藏或未出现目标。
-   - 【可选】knowledge: 记录"谁知道了什么"——见第 5 条
-   - 【可选】world: 本地公开观察——见第 7 条
-   - 【可选】quests: 记录"任务的开启/浮现/推进/收束"——见第 8 条
-4. 【铁律】上面 5 个【必填】段（moves/places/cast/facts/clock）每回合都必须出现：clock 给恰好一个元素，moves/places/cast/facts **散文里没有该类变化就给 [](空数组)**。条目要么字段齐全、要么根本别放——宁可 [] 也别塞缺字段的半成品。尤其：散文里主角移动了就必须有 moves、出现新地点就必须有 places，写了却漏记不行。【可选】段没有就直接省略。
-5. 【信息视野·knowledge（可选段）】这是普通玩家回合：通用 told 只可把本回合主角合法得知/亲历的信息写给 protagonist，形如 {"op":"told","knower":"protagonist","fact_key":"实体.属性","value":其所知,"via":途径(可选)}。NPC 听到主角原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由文字写成 NPC 的 told/endowment/broadcast，也不得用 facts 的 knows: 谓词代替。NPC 独立来源知识交由宿主/导演/导入历史，不在这里补写。散文未提及主角获得信息时省略本段。
-6. 只输出合法 JSON（不含 narration），不附任何 markdown 代码块或其他包装。
-7. 【本地公开观察·world（可选段）】普通玩家回合没有区域／全局 world 权限。仅当散文描写主角在当前地点，或本回合合法抵达的公开地点，实际看见一项可公开、局部且有范围的事物时才写：world: [{"areas":["当前或合法同回合到达的单一公开地点 id"],"level":1,"summary":"一句话本地观察","public_observation":true,"visibility":"public","observation_kind":"stable_layout"|"single_observation","observation_range":"实际可见范围"}]。它不是地图发现、路线结论、全局真相或级联事件；不能点名远方、隐藏或未发现地点，不能使用 level 2/3，也不能把 NPC 的旧证言改写为世界事实。寻常场景没有新观察就省略。
-8. 【任务系统·quests（可选段）】散文中若有任务变化，用 quests 段记录：[{"op":"open"|"surface"|"advance"|"resolve","id":任务标识,"summary":"一句话摘要"}]；open=玩家接取全新公开任务（id 必须全新，必须提供 summary）；surface 只能让上文【本地暗线】中的 [id] 浮现；advance/resolve 只能处理当前城镇任务或无地点锚定的普通公开任务。不能 surface、推进或收束远方账目。无任务变化时省略本段。
-"""
+# Both authors share one structural contract; Hybrid adds only stage semantics.
+def _hybrid_prompt() -> str:
+    return _system_prompt() + "\n\n" + (
+        "【结果先行·规划阶段】先理解玩家的行动，提出本回合将发生的结构化变化。"
+        "narration 仅为内部场景草稿，不会展示给玩家，不必雕琢长篇正文。"
+        "宿主将校验并修正结构，之后另写最终散文；本阶段不得把希望发生的事当作已发生的历史。"
+    )
+
+
+_SYSTEM_PROMPT_HYBRID = _hybrid_prompt()
 
 
 # ---------------------------------------------------------------------------
@@ -446,6 +429,11 @@ class AuthorStrategy(TurnStrategy):
     incrementally (agent loop), instead of re-prompting blind each round.
     """
 
+    outcome_first = False
+
+    def author_prompt(self) -> str:
+        return _system_prompt()
+
     _messages: list | None = None       # transient working list for the current turn
     _thread: list | None = None         # persistent multi-turn conversation (multiturn)
     _pending_user: str | None = None    # user msg for the in-flight turn (committed on success)
@@ -532,13 +520,13 @@ class AuthorStrategy(TurnStrategy):
             full_user = "\n\n".join(parts)
             self._pending_user = full_user
             self._messages = [
-                {"role": "system", "content": _system_prompt()},
+                {"role": "system", "content": self.author_prompt()},
                 {"role": "user", "content": full_user},
             ]
             if multiturn:
                 # Reset the thread to a bare system base; the turn's user + narration
                 # are appended by commit_to_thread on success (so no duplication).
-                self._thread = [{"role": "system", "content": _system_prompt()}]
+                self._thread = [{"role": "system", "content": self.author_prompt()}]
                 self._compaction_due = False
 
         log.debug("AuthorStrategy.produce msgs=%d repair=%r multiturn=%s",
@@ -576,6 +564,34 @@ class AuthorStrategy(TurnStrategy):
             self._maybe_flag_compaction(provider)
         data = _data_or_safe(raw)
         return TurnCommit.from_dict(data)
+
+    def finalize_narration(self, commit, *, provider, changed_sections=(), repair=None) -> str:
+        """Write only visible prose against an already accepted, frozen proposal.
+
+        Reuse the POV context from this action. Rejected proposals, repair
+        conversations and unvalidated draft prose are deliberately not replayed.
+        The ordinary one-call path stays one call when its structure is unchanged.
+        """
+        if not (self.outcome_first or changed_sections or repair):
+            return commit.narration
+        if self._pending_user is None:
+            raise RuntimeError("finalize_narration called before produce")
+        result = json.dumps(commit.sections, ensure_ascii=False, sort_keys=True)
+        parts = [
+            "【行动开始时的语境与玩家意图】\n" + self._pending_user,
+            "【本回合已通过校验的结果】\n" + result,
+            "以上是本回合唯一可以叙述为已完成的状态变化；语境里的路线、猜测和行动意图不等于成功。"
+            "资源以语境内宿主已裁定结果为准，不再扣账。未列出的移动、交接、任务完成或信息传播不能补写成成功。"
+            "NPC 的原话回忆必须有提供的来源；来源陈述不升级为世界事实。"
+            "现在写最终正文：直接回应这一次行动，用人物反应、可感细节与后果推动局面；"
+            "允许自然对白，不增造持久效果，不替玩家决定下一步，不展示结构、校验过程或内部 id。",
+        ]
+        if changed_sections:
+            parts.append("结果曾修正（" + "、".join(sorted(changed_sections)) +
+                         "）；请完全按最终结果重新叙述，不沿用先前草稿中的成功结论。")
+        if repair:
+            parts.append("【正文重写要求·结果不变】\n" + repair)
+        return provider.complete(_narrate_prompt(), "\n\n".join(parts))
 
     def _reask_json(self, prose: str, provider) -> str:
         """After a tool loop returned bare prose, ask once for the JSON commit.
@@ -669,122 +685,24 @@ class AuthorStrategy(TurnStrategy):
 
 
 # ---------------------------------------------------------------------------
-# HybridStrategy (丙) — free prose, then grounded authoring of its structure
+# HybridStrategy (丙) — validate outcomes, then render free-form prose
 # ---------------------------------------------------------------------------
 
-class HybridStrategy(TurnStrategy):
-    """Strategy 丙: 乙's free prose (call 1, frozen) + 甲's grounded authoring of
-    the structure FOR that prose (call 2 sees the FULL assembled context + the
-    prose, with an author framing — NOT a blind 史官). Aims for 乙's prose freedom
-    + 甲's structural tightness, at 乙's 2-call cost. Repairs continue the
-    structure conversation (agent loop); prose stays frozen."""
+class HybridStrategy(AuthorStrategy):
+    """Plan and repair structure first; produce_turn requests final prose once
+    the proposal is valid. Shares context, tool research and repairs with Author.
+    A successful turn still costs two author calls in the no-repair case.
+    """
 
-    _frozen_prose: str | None = None
-    _messages: list | None = None
+    outcome_first = True
 
-    def produce(
-        self,
-        registry: Registry,
-        world: dict,
-        scene: dict,
-        player_input: str,
-        *,
-        provider,
-        embedder=None,
-        repair: str | None = None,
-    ) -> TurnCommit:
-        if repair is None or self._frozen_prose is None:
-            ctx = assemble_context(registry, world, scene,
-                                   query=player_input, embedder=embedder)
-            narrate_parts = []
-            if ctx:
-                narrate_parts.append(ctx)
-            if scene.get('_variation_prompt'):
-                narrate_parts.append(scene['_variation_prompt'])
-            if scene.get('_resolution_prompt'):
-                narrate_parts.append(scene['_resolution_prompt'])
-            discovery = _host_discovery_fragment(scene)
-            if discovery:
-                narrate_parts.append(discovery)
-            steer = _player_steer_fragment(scene)
-            if steer:
-                narrate_parts.append(steer)
-            narrate_parts.append(f"[player] {player_input}")
-            prose = provider.complete(_narrate_prompt(), "\n\n".join(narrate_parts))
-            self._frozen_prose = prose
+    def author_prompt(self) -> str:
+        return _hybrid_prompt()
 
-            # Structure call sees the SAME full context the author had + the prose.
-            struct_parts = []
-            if ctx:
-                struct_parts.append(ctx)
-            if steer:
-                struct_parts.append(steer)
-            if discovery:
-                struct_parts.append(discovery)
-            struct_parts.append(f"[你刚写的叙事散文]\n{prose}")
-            self._messages = [
-                {"role": "system", "content": _SYSTEM_PROMPT_HYBRID},
-                {"role": "user", "content": "\n\n".join(struct_parts)},
-            ]
-            log.debug("HybridStrategy.produce: fresh prose + grounded structure conversation")
-        else:
-            prose = self._frozen_prose
-            self._messages.append({"role": "user", "content": repair})
-            log.debug("HybridStrategy.produce: re-structure on repair (frozen prose, msgs=%d)",
-                      len(self._messages))
-
-        raw = json_call(provider.complete_messages, self._messages)
-        self._messages.append({"role": "assistant", "content": raw})
-        data = _parse_json_object(raw) or {}
-        data["narration"] = prose
-        return TurnCommit.from_dict(data)
-
-    def repair_sections(
-        self,
-        failing_sections: set[str],
-        errors: list,
-        *,
-        provider,
-    ) -> dict:
-        """Modular repair for HybridStrategy: re-emit ONLY the failing sections.
-
-        Continues the structure conversation (self._messages); the frozen prose
-        is already in the thread context. The LLM is asked to output ONLY the
-        failing section keys as a JSON object — no narration, no other sections.
-        """
-        if self._messages is None:
-            raise RuntimeError("repair_sections called before produce (no conversation)")
-
-        by_section: dict[str, list] = {}
-        for e in errors:
-            by_section.setdefault(e.section, []).append(e)
-
-        error_lines = []
-        for sec in sorted(failing_sections):
-            errs = by_section.get(sec, [])
-            error_lines.append(f"[{sec}]")
-            for e in errs:
-                loc = f"{sec}{e.field}" if e.field else sec
-                error_lines.append(f"  - {loc} ({e.code}): {e.hint}")
-
-        section_list = "、".join(sorted(failing_sections))
-        repair_instruction = (
-            f"上一条提交中以下段有校验错误：\n"
-            + "\n".join(error_lines)
-            + f"\n\n只重新输出这些段 [{section_list}] 的合法 JSON（一个对象，仅含这些键）"
-            + (
-                "，narration 给本回合新散文字符串，只回应玩家最后一条动作，不复制历史；其它段保持不变。"
-                if "narration" in failing_sections else
-                "，不要重写 narration 或其它段，不要包含任何其它内容。"
-            )
-        )
-
-        self._messages.append({"role": "user", "content": repair_instruction})
-        log.debug("HybridStrategy.repair_sections failing=%s msgs=%d",
-                  sorted(failing_sections), len(self._messages))
-
-        raw = json_call(provider.complete_messages, self._messages)
-        self._messages.append({"role": "assistant", "content": raw})
-
-        data = _parse_json_object(raw) or {}
-        return {k: v for k, v in data.items() if k in failing_sections}
+    def produce(self, registry, world, scene, player_input, *, provider,
+                embedder=None, repair=None) -> TurnCommit:
+        proposal = super().produce(registry, world, scene, player_input,
+                                   provider=provider, embedder=embedder, repair=repair)
+        # Narration validation is meaningful only after final composition. This
+        # internal placeholder never reaches run_turn/apply when validation fails.
+        return TurnCommit(narration="（本回合结果待定。）", sections=proposal.sections)

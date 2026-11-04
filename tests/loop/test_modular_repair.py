@@ -1,16 +1,7 @@
-"""Fix #8: modular repair — re-emit ONLY failing sections on each repair attempt.
+"""Section repairs remain modular; changed outcomes get one final prose pass.
 
-Tests:
-  1. MODULAR_NARRATION_PRESERVED — narration from first pass is NEVER regenerated;
-     only the failing section is re-emitted; passing sections are preserved.
-  2. REPAIR_PROMPT_TARGETS_ONLY_FAILING — the repair call asks for ONLY the
-     failing section(s), not narration, not passing sections.
-  3. DROP_STILL_FAILING_AFTER_MAX_REPAIRS — a section that stays invalid after
-     max_repairs is still dropped (existing fallback intact).
-  4. HYBRID_MODULAR_REPAIR — HybridStrategy also repairs modularly (prose frozen;
-     structure repair covers only failing sections).
-  5. MULTIPLE_FAILING_SECTIONS — two different sections both fail initially;
-     both are repaired in one repair call, passing section preserved.
+Passing sections stay intact. Failed candidates never request a final narrative.
+The final writer runs after all structure repairs, including Hybrid proposals.
 """
 from __future__ import annotations
 
@@ -57,7 +48,7 @@ class _RecordingProvider(FakeLLMProvider):
     """
 
     def __init__(self, json_seq: list[dict]):
-        super().__init__(json_responses=json_seq)
+        super().__init__(json_responses=json_seq, responses=["修正后的局面已经清楚，英雄停步观察。"])
         self.message_log: list[list[dict]] = []
 
     def complete_messages(self, messages: list[dict], **kwargs) -> str:
@@ -67,13 +58,13 @@ class _RecordingProvider(FakeLLMProvider):
 
 
 # ---------------------------------------------------------------------------
-# Test 1 — narration preserved; only the failing section is repaired
+# Test 1 — preserve passing sections, compose prose after repair
 # ---------------------------------------------------------------------------
 
-def test_modular_repair_preserves_narration():
+def test_modular_repair_preserves_passing_sections_then_refreshes_narration():
     """First pass: valid narration + valid entities + invalid facts.
     Repair: only `facts` re-emitted (partial dict, no narration key).
-    Result: narration == first-pass narration; entities preserved; facts fixed.
+    Result: final narration follows accepted effects; entities preserved; facts fixed.
     """
     from loop.turn import produce_turn
     from loop.strategy import AuthorStrategy
@@ -104,10 +95,9 @@ def test_modular_repair_preserves_narration():
         strategy=strategy, provider=provider, max_repairs=3,
     )
 
-    # Core assertion: narration unchanged from first pass
-    assert commit.narration == first_narration, (
-        f"narration was regenerated! got: {commit.narration!r}"
-    )
+    # Structure repair does not write prose; the separate final pass does.
+    assert commit.narration == "修正后的局面已经清楚，英雄停步观察。"
+    assert len(provider.calls) == 3
 
     # Repair happened exactly once
     assert attempts == 1, f"expected 1 repair attempt, got {attempts}"
@@ -123,7 +113,7 @@ def test_modular_repair_preserves_narration():
     # Nothing dropped
     assert dropped == []
 
-    # Exactly 2 LLM calls (initial + 1 repair)
+    # Exactly 2 structure calls (initial + repair), plus the final prose call
     assert len(provider.message_log) == 2, (
         f"expected 2 LLM calls, got {len(provider.message_log)}"
     )
@@ -240,13 +230,11 @@ def test_still_failing_section_dropped_after_max_repairs():
 
 
 # ---------------------------------------------------------------------------
-# Test 4 — HybridStrategy also repairs modularly (prose frozen)
+# Test 4 — Hybrid repairs structure before composing prose
 # ---------------------------------------------------------------------------
 
 def test_hybrid_strategy_modular_repair():
-    """HybridStrategy: prose frozen across all attempts; structure repair
-    re-emits only the failing section. narration must equal the first prose call.
-    """
+    """Hybrid structure repair re-emits only failing sections, then writes prose."""
     from loop.turn import produce_turn
     from loop.strategy import HybridStrategy
 
@@ -254,10 +242,9 @@ def test_hybrid_strategy_modular_repair():
     world = _make_world(registry)
     scene = _make_scene()
 
-    frozen_prose = "烛火摇曳，映出英雄的身影。"
+    final_prose = "烛火摇曳，映出英雄的身影。"
 
-    # HybridStrategy: first complete() call is for prose, then complete_messages for structure
-    # Pass 1 prose response
+    # Structure is proposed and repaired before the only complete() prose call.
     first_struct = {
         "entities": [{"id": "hero", "etype": "Person", "tier": "tracked"}],
         "facts": [{"subject": "phantom", "predicate": "mood", "value": "angry"}],  # dangling
@@ -268,7 +255,7 @@ def test_hybrid_strategy_modular_repair():
 
     provider = _RecordingProvider(json_seq=[first_struct, repair_struct])
     # Prose comes via complete() — set responses for that
-    provider._responses = [frozen_prose]
+    provider._responses = [final_prose]
 
     strategy = HybridStrategy()
 
@@ -277,8 +264,8 @@ def test_hybrid_strategy_modular_repair():
         strategy=strategy, provider=provider, max_repairs=3,
     )
 
-    # Prose is frozen — narration equals the prose call
-    assert commit.narration == frozen_prose, (
+    # Final narration equals the prose call made after both structural calls
+    assert commit.narration == final_prose, (
         f"narration changed! got: {commit.narration!r}"
     )
 
@@ -333,8 +320,9 @@ def test_multiple_failing_sections_repaired_together():
         strategy=strategy, provider=provider, max_repairs=3,
     )
 
-    # Narration unchanged
-    assert commit.narration == first_narration
+    # One final prose pass after the combined structural repair.
+    assert commit.narration == "修正后的局面已经清楚，英雄停步观察。"
+    assert len(provider.calls) == 3
 
     # Both sections repaired
     assert commit.sections.get("facts") == []
@@ -346,5 +334,5 @@ def test_multiple_failing_sections_repaired_together():
     assert attempts == 1
     assert dropped == []
 
-    # Only 2 LLM calls (initial + 1 repair for both failing sections together)
+    # Only 2 structure calls; both failing sections share one repair
     assert len(provider.message_log) == 2

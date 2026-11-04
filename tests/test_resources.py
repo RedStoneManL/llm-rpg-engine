@@ -64,7 +64,7 @@ def test_prose_failure_does_not_charge_prepared_cost(game):
 
 
 def test_explicit_wait_is_repaired_to_absolute_target(game):
-    p=FakeLLMProvider(json_responses=[{'op':'none','wait_until':{'day':2,'band':1}},
+    p=FakeLLMProvider(responses=['你休息到了次日中午。'], json_responses=[{'op':'none','wait_until':{'day':2,'band':1}},
         {'narration':'你休息到约定的时间。','clock':[{'advance':False,'days':0,'bands':0,'reason':'wrong'}]},
         {'clock':[{'advance':True,'days':1,'bands':1,'reason':'次日中午'}]}])
     answer=run_turn(game.registry,game.store,game.world,_build_scene(game),'等到明天中午',

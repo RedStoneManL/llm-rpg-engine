@@ -26,10 +26,8 @@ def _make_scene():
     return {"protagonist": "hero", "present": [], "day": 1, "location": "town"}
 
 
-def test_hybrid_strategy_freezes_prose_and_structures_separately():
-    """丙: call 1 writes prose (= narration); call 2 authors structure with an
-    author framing (not 史官). On repair the prose is frozen and only the
-    structure conversation continues."""
+def test_hybrid_strategy_plans_then_finalizes_after_repairs():
+    """Direct produce is a proposal; only finalization asks for visible prose."""
     from loop.strategy import HybridStrategy, _NARRATE_PROMPT, _SYSTEM_PROMPT_HYBRID
 
     registry = _make_registry()
@@ -40,12 +38,11 @@ def test_hybrid_strategy_freezes_prose_and_structures_separately():
     strat = HybridStrategy()
     c1 = strat.produce(registry, world, scene, "走", provider=provider)
     c2 = strat.produce(registry, world, scene, "走", provider=provider, repair="补 moves.who")
-
-    assert c1.narration == "丙散文" and c2.narration == "丙散文"        # frozen prose
-    narrate_calls = [c for c in provider.calls if c[0] == _NARRATE_PROMPT]
-    assert len(narrate_calls) == 1                                      # prose generated once
-    struct_calls = [c for c in provider.calls if c[0] == _SYSTEM_PROMPT_HYBRID]
-    assert len(struct_calls) == 2                                       # initial + repair (agent loop)
+    assert c1.sections == c2.sections == {"moves": []}
+    assert not any(system == _NARRATE_PROMPT for system, _ in provider.calls)
+    assert strat.finalize_narration(c2, provider=provider) == "丙散文"
+    assert [system for system, _ in provider.calls] == [
+        _SYSTEM_PROMPT_HYBRID, _SYSTEM_PROMPT_HYBRID, _NARRATE_PROMPT]
 
 
 def test_session_steer_is_explicitly_marked_in_author_and_hybrid_prompts():
@@ -62,7 +59,9 @@ def test_session_steer_is_explicitly_marked_in_author_and_hybrid_prompts():
     assert "优先核实当前公开地点的线索" in author_user
 
     hybrid_provider = FakeLLMProvider(responses=["丙散文"], json_responses=[{"moves": []}])
-    HybridStrategy().produce(registry, world, scene, "观察周围", provider=hybrid_provider)
+    hybrid = HybridStrategy()
+    proposal = hybrid.produce(registry, world, scene, "观察周围", provider=hybrid_provider)
+    hybrid.finalize_narration(proposal, provider=hybrid_provider)
     narrate_users = [user for system, user in hybrid_provider.calls if system == _NARRATE_PROMPT]
     struct_users = [user for system, user in hybrid_provider.calls if system == _SYSTEM_PROMPT_HYBRID]
     assert len(narrate_users) == len(struct_users) == 1

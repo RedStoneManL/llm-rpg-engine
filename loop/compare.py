@@ -77,7 +77,7 @@ def run_compare(
     log.debug("run_compare: 甲 done narration=%r attempts=%d dropped=%s",
               jia_commit.narration[:40], jia_attempts, jia_dropped)
 
-    # Strategy 丙: HybridStrategy (free prose + grounded authoring of its structure)
+    # Strategy 丙: HybridStrategy (validated structure + final prose)
     bing_commit, bing_attempts, bing_dropped = produce_turn(
         registry, world, scene, player_input,
         strategy=HybridStrategy(),

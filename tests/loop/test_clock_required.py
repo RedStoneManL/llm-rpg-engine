@@ -47,7 +47,7 @@ def test_missing_clock_is_repaired_via_gate():
     with_clock = {**no_clock,
                   "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "紧接上一刻"}]}
 
-    provider = FakeLLMProvider(json_responses=[no_clock, with_clock])
+    provider = FakeLLMProvider(json_responses=[no_clock, with_clock], responses=["你留在原地，打量眼前的动静。"] )
     store = _store(r)
     try:
         result = run_turn(r, store, world, scene, "观察",

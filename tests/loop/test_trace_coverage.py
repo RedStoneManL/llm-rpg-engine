@@ -323,7 +323,7 @@ class _RepairFakeProvider:
         return self._good
 
     def complete(self, system, user, **kw):
-        return self._good
+        return "修复后的输出，你环顾四周。"
 
 
 def test_repair_span_appears(tmp_path, monkeypatch):

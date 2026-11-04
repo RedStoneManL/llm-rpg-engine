@@ -567,7 +567,7 @@ def test_response_loss_retry_preserves_nonzero_repair_result(engine, monkeypatch
     first = run_turn(
         engine.registry, engine.store, old_world, scene, '买酒',
         strategy=AuthorStrategy(), provider=FakeLLMProvider(
-            json_responses=[invalid, {'facts': []}]),
+            json_responses=[invalid, {'facts': []}], responses=['你在柜台前停下。']),
         action_id='repaired-response', max_repairs=1)
     assert first.repair_attempts == 1 and first.dropped_sections == []
 

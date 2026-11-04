@@ -51,7 +51,7 @@ def test_run_compare_returns_both_candidates():
         "narration": "甲: Hero slashes forward.",
         "entities": [{"id": "hero", "etype": "Person", "tier": "tracked"}],
     }
-    # 丙 (HybridStrategy) uses complete (prose) then complete_json (structure)
+    # 丙 (HybridStrategy) plans structure then calls complete for final prose
     bing_prose = "丙: Hero pivots and thrusts."
     bing_extraction = {
         "narration": bing_prose,
@@ -110,7 +110,7 @@ def test_run_compare_includes_hybrid_candidate():
     assert set(result.keys()) == {"甲", "丙"}
 
     bing_commit, _bing_attempts, bing_dropped = result["丙"]
-    assert bing_commit.narration == prose   # 丙's narration = its frozen prose (call 1)
+    assert bing_commit.narration == prose   # 丙's narration = its final prose (call 2)
     assert bing_dropped == []
 
 

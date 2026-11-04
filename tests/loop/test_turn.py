@@ -122,7 +122,7 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
     Fix #8 behaviour (modular repair):
     - First pass: narration + entities (valid) + facts (dangling ref → invalid).
     - Repair call: returns ONLY the corrected `facts` section (no narration, no entities).
-    - Result: narration == first-pass narration (NOT regenerated); facts fixed;
+    - Result: final prose describes the repaired result; facts fixed;
       entities from first pass preserved; ghost_entity appears via entities.
     """
     from loop.strategy import AuthorStrategy
@@ -143,7 +143,7 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
     repair_canned = {
         "facts": [],  # remove the dangling facts reference
     }
-    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned])
+    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned], responses=["The visitor watches quietly."])
 
     store = _open_temp_store(registry)
     try:
@@ -156,8 +156,8 @@ def test_run_turn_repair_loop_fixes_invalid_commit():
 
     # Should have done exactly 1 repair attempt
     assert result.repair_attempts >= 1
-    # Narration unchanged from first pass (modular repair doesn't regenerate it)
-    assert result.narration == "First attempt narration."
+    # Final narration is generated only after the structural repair
+    assert result.narration == "The visitor watches quietly."
     # Final world should have the entity from the first-pass entities
     g = result.world.get("systems", {}).get("ontology")
     assert g is not None
@@ -407,7 +407,7 @@ def test_produce_turn_repair_loop_no_store_writes():
     Fix #8 behaviour (modular repair):
     - First pass: narration + entities (valid) + facts (dangling ref → invalid).
     - Repair: ONLY the corrected `facts` section returned (partial dict).
-    - narration stays == first-pass narration (NOT the repair response's narration).
+    - narration is written separately after structure has settled.
     - Still zero store writes throughout.
     """
     from loop.strategy import AuthorStrategy
@@ -428,7 +428,7 @@ def test_produce_turn_repair_loop_no_store_writes():
     repair_canned = {
         "facts": [],  # remove dangling ref
     }
-    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned])
+    provider = FakeLLMProvider(json_responses=[invalid_canned, repair_canned], responses=["The visitor watches quietly."])
 
     store = _open_temp_store(registry)
     try:
@@ -441,8 +441,8 @@ def test_produce_turn_repair_loop_no_store_writes():
         store.close()
 
     assert attempts == 1
-    # narration unchanged from first pass (modular repair doesn't regenerate it)
-    assert commit.narration == "First pass narration."
+    # Final narration is generated only after the structural repair
+    assert commit.narration == "The visitor watches quietly."
 
 
 # ---------------------------------------------------------------------------
