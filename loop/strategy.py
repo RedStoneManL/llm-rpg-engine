@@ -185,6 +185,8 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 
 【铁律】上面 6 个【必填】段每回合都必须出现：narration 给散文、clock 给恰好一个元素、moves/places/cast/facts **没有该类变化就给 []（空数组）**。条目**要么字段齐全、要么根本别放**——宁可给 [] 也别塞一个缺字段的半成品（缺字段会被打回、拖慢一整局）。【可选】段没有就直接省略、不要硬凑。
 
+【人物连续性】当前角色卡的状态、心情和有方向的关系是本次互动的起点。已经收剑、受伤或等答复的人不能无缘由恢复初见状态；只有本回合实际变化才用 cast.evolve 更新 mood/state，不要每轮重置。卡上的“主角对其态度”不等于对方信任主角。先回应玩家这次行动，再通过人物反应和可回应的后果自然推进，不必每回合制造突发事件。
+
 【信息视野·knowledge】本引擎追踪"谁知道什么",并据此决定下回合对主角【保密 / 可见】。普通玩家回合中，通用 told 只可写给 protagonist：凡主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于"失忆"、POV 工具也查不到。NPC 获知主角的原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由行动文字改写为 NPC 的 told、endowment、broadcast 或 knows: fact。NPC 独立来源的既有知识由宿主/导演/导入历史管理，不在普通玩家作者回合中补写。
 - told:      [{"op":"told","knower":"protagonist","fact_key":"实体.属性","value":主角所知内容,"via":合法来源(可选)}]
 - heard_player: 仅在宿主明确提供 receipt 时才可写给该 receipt 的唯一收件人；无 receipt 时省略 knowledge。

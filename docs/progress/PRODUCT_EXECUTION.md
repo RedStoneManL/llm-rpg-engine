@@ -11,7 +11,9 @@ Library 文档记录的是另一份后续代码快照，不能替代这里的源
 没有撤销正确性要求，也不新增账户／多人安全工程。旧 B1/profiling HOLD 已解除，不重复请求授权。
 
 本轮 RCV-122 已实际改造 Hybrid 为结构先行、校验后最终正文；默认 Author 只在结构变化后补最终正文。
-新增正文阶段不重新执行效果。下一项为当前人物状态与有方向的关系在作者语境中的连续呈现，复用现有事实图。
+新增正文阶段不重新执行效果。RCV-123 已将当前人物 state 与主角对其态度带回作者角色卡。
+下一重点是任务／承诺的多回合后果，复用 Lore／director，而不是继续扩展底层权限。
+系统整理及验收顺序见 [游戏体验优先计划](../designs/PLAY_EXPERIENCE_PLAN.md)。
 
 ## 当前授权增量（2026-10-25 UTC）
 
@@ -2293,3 +2295,10 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   一次调用；结构变化后才重写最终正文。重写只返回文本，不改变已接受 effects，不重新扣款或重新规划行动。
   新增 14 个离线案例，专项 **229 passed**；基线重跑 **2171 passed / 1 deselected**，实现后全量 **2185 passed / 1 deselected（39.62s）**。
   完整结果和实际局限见 [RCV-122](../verification/RCV-122-outcome-narration.md)。离线替身不证明真实模型的语义／文笔质量。
+
+
+- 2026-11-04：RCV-123 修复 NPC 连续性：CharacterSystem.inject 读取当前有效 state，并就近列出主角对
+  当前 NPC 的态度；不倒置为 NPC 私有信任，不为离场人物创建在场角色卡，不编造缺失状态。
+  新增 6 个用例，旧方法复现 **4 failed / 2 passed**；专项 **197 passed**，完整 **2191 passed / 1 deselected（39.84s）**。零新 provider 调用、事件类型或迁移。
+  正常 GUI 两回合、冷重开、撤回和状态替换验证见 [RCV-123](../verification/RCV-123-character-continuity.md)。
+  同时建立 [体验优先迭代计划](../designs/PLAY_EXPERIENCE_PLAN.md)，原文查证依赖只约束其自身切片，不再阻塞玩法推进。

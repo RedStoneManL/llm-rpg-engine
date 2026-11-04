@@ -363,6 +363,7 @@ class CharacterSystem(ContextSystem):
 
         For each id in scene["present"] that is a Person entity, renders:
             {id}：{sketch} | 目标：{goal} | 此刻：{mood或'—'}
+            plus persisted state and the protagonist's outgoing attitude, if known.
         using value_at(id, pred, day) to get bitemporal current values.
 
         Returns None if present is empty or absent.
@@ -372,6 +373,7 @@ class CharacterSystem(ContextSystem):
             return None
         present = scene.get("present", []) or []
         day = scene.get("day", 0)
+        protagonist = scene.get("protagonist")
 
         cards = []
         for pid in present:
@@ -381,7 +383,17 @@ class CharacterSystem(ContextSystem):
             sketch = g.value_at(pid, "sketch", day) or ""
             goal = g.value_at(pid, "goal", day) or ""
             mood = g.value_at(pid, "mood", day) or "—"
-            cards.append(f"{pid}：{sketch} | 目标：{goal} | 此刻：{mood}")
+            card = f"{pid}：{sketch} | 目标：{goal} | 此刻：{mood}"
+            state = g.value_at(pid, "state", day)
+            if state is not None and state != "":
+                card += f" | 状态：{state}"
+            if protagonist and pid != protagonist:
+                attitude = g.value_at(protagonist, f"trust:{pid}", day)
+                if attitude is not None and attitude != "":
+                    # Direction matters: the player's attitude is not the NPC's
+                    # private belief. The caller supplies the existing POV graph.
+                    card += f" | 主角对其态度：{attitude}"
+            cards.append(card)
 
         # #R7 Phase 2: a terse continuity line for co-located WALK-ONS — mentioned
         # Persons physically in the scene but not in `present` (which is
@@ -389,7 +401,6 @@ class CharacterSystem(ContextSystem):
         # around, without the full-card bloat reserved for tracked NPCs; off-scene
         # entities stay hidden (importance filtering / anti-bloat).
         location = scene.get("location")
-        protagonist = scene.get("protagonist")
         ambient = []
         if location:
             present_set = set(present)
