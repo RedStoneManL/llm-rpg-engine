@@ -2302,3 +2302,10 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   新增 6 个用例，旧方法复现 **4 failed / 2 passed**；专项 **197 passed**，完整 **2191 passed / 1 deselected（39.84s）**。零新 provider 调用、事件类型或迁移。
   正常 GUI 两回合、冷重开、撤回和状态替换验证见 [RCV-123](../verification/RCV-123-character-continuity.md)。
   同时建立 [体验优先迭代计划](../designs/PLAY_EXPERIENCE_PLAN.md)，原文查证依赖只约束其自身切片，不再阻塞玩法推进。
+
+
+- 2026-11-04：RCV-124 更新[架构／模块／流程 HTML](../reports/2026-11-04/architecture-status.html)，
+  基于生产 `b24c529`；旧 2026-10-26 版本保留为历史。14 章节、96 模块、15 系统、864 符号，
+  链接／AST 位置／Node 交互逻辑通过；无 Chromium 视觉验收。当前下一重点是任务／承诺后果，
+  再处理长局节奏与等待；来源协议与原文工具作为独立体验能力推进。此文档阶段不重跑引擎 gate，
+  不把旧 profiling 或两份 Luna 摘要样本说成最新性能／剧情质量。见 [RCV-124](../verification/RCV-124-experience-architecture-report.md)。

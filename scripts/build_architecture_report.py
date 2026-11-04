@@ -70,7 +70,7 @@ PURPOSE = {
  'llm/tools.py':'POV ToolRegistry 与六个默认只读工具；DM 才增加 ground-truth query。没有历史 locate/open。',
  'llm/generation_guard.py':'收集耗尽重试的生成失败，阻止真实创世路径把 stub／失败伪装成成功。',
  'loop/turn.py':'主交易网关：duplicate/preflight、权限、资源裁定、策略、后台、publish 和对话缓存恢复。',
- 'loop/strategy.py':'Author 的 JSON 联合创作与可选工具／多轮会话；Hybrid 的 prose-first + structure，保留 frozen prose。',
+ 'loop/strategy.py':'Author 联合创作，结构变更后再写最终正文；Hybrid 结构先行、校验后散文。共用上下文、工具研究与局部修复。',
  'loop/resources.py':'解析登记资源意图；确定性判断支付／不足／等待，再约束作者及最终余额。',
  'loop/entity_resolve.py':'验证前解析名字到实体引用并补齐新实体声明；随后仍须通过普通作者权限检查。',
  'loop/narration_guard.py':'拒绝明显重复最近已发布正文；不是通用结果一致性或事实审查器。',
@@ -117,7 +117,7 @@ PURPOSE = {
 SYS_INFO = {
  'ontology':('事实底座','FactGraph：entities / facts / relations；状态变更带 source_event 与时态。','提供最底层事实，不替其他系统决定玩家权限。'),
  'place':('地点与移动','状态写共享 FactGraph：Place、contained_by、adjacent_to、located_in。','包含区域／城镇／地点层级；可见路线与合法移动另外受 SceneCapabilities 限制。'),
- 'character':('人物与关系','Person 实体、sketch/goal/mood/state 事实、关系状态写共享图。','NPC 私有目标不能因为共用图就成为玩家已知。'),
+ 'character':('人物与关系','Person 实体、sketch/goal/mood/state 事实、关系状态写共享图。','当前角色卡读取 state 及主角对其态度，保持关系方向；私人目标不自动成为玩家已知。'),
  'object':('物品与归属','Object 实体与 held_by 关系写共享图。','普通作者交接限于当前可见背包、人物与地点，不开放任意造资产。'),
  'faction':('势力与成员','Faction 实体、member/rank/group 相关关系／事实写共享图。','普通玩家回合的 factions 写入受额外策略约束，系统支持不等于作者可任意调用。'),
  'knowledge':('知识与通信来源','knows:<fact_key> 等认知事实写共享图；belief 与 canonical truth 可不同。','heard_player 只能由宿主签发的精确 statement receipt 支持；听到不等于内容为真。'),
@@ -186,20 +186,20 @@ def system_contracts():
 
 
 def build():
-    parser=argparse.ArgumentParser();parser.add_argument('--output',default='docs/reports/2026-10-26/architecture-status.html');parser.add_argument('--date',default='2026-10-26');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--output',default='docs/reports/2026-11-04/architecture-status.html');parser.add_argument('--date',default='2026-11-04');args=parser.parse_args()
     files=inventory();systems=system_contracts()
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip()
     perf=json.loads((ROOT/'docs/verification/rcv119-assessment.json').read_text())
     count_events=len({v for s in systems if s['name']!='interpretive_memory' for v in s['events']})
     content=[]
-    body=note('接下来优先优化什么？','先补“原始输入 → 可授权读取的来源 → 逐步查证”这条闭环，并同步推进结果裁定后的最终正文。保留已验证的事务与来源底座；性能优化从减少重复投影和控制上下文增长入手。')
-    body+='<div class="cards three">'+card('底座已经具备', '<p>事件溯源、14 个默认系统、严格普通作者边界、同回合原子保存、撤回／冷重开、带来源的分段与递归摘要。</p><span class="badge good">实现 + 回归证据</span>')+card('核心体验仍有断点','<p>普通行动原 input 尚无完整同事务档案；旧原文无法让模型逐步 locate/open；修正结构后正文仍可能保留旧结果。</p><span class="badge warn">优先补闭环</span>')+card('长期运行需正视规模','<p>5,000 条未摘要旁白产生约 161 万字符上下文。单回合反复重放和复制历史，背景模拟仍依附前台同步运行。</p><span class="badge warn">有测量，未完成治理</span>')+'</div>'
-    body+=table(['问题','当前判断','应采取的动作'],[
-      ['B1 / profiling 是否还暂停？','用户已明确解除旧 HOLD。','按当前边界继续实现与验证，无需再次申请旧暂停解除。'],
-      ['是否需要重做数据库／上向量服务？','目前 SQLite／FTS／NumPy 已可用。','先统一来源身份和读取授权；向量只生成候选。'],
-      ['是否应该继续堆摘要？','摘要来源链已经补齐，语义仍会失真或遗漏。','让摘要提供导航，再读原文；保留“未找到／未核实”状态。'],
-      ['主要验收障碍？','本地开发无权限阻塞；远程 API 凭据和 Chromium 缺失。','对应验收单独记录；不把环境缺口放大为停止整个项目。'],
+    body=note('游戏体验优先，已经开始落实','先让行动反馈说到做到，再让人物带着上回合的状态继续回应。本轮已实现结果修正后重写正文、Hybrid 结构先行，以及 NPC 状态／关系连续性。下一重点是任务和承诺的实际后果；原文查证仍保留，但不再阻塞这些玩法改进。')
+    body+='<div class="cards three">'+card('行动反馈 · 已实现', '<p>Hybrid 先校验结构、再写正文；默认 Author 的结构发生修正时才重写。保存和恢复使用同一份最终正文。</p><span class="badge good">RCV-122 · 离线通过</span>')+card('人物连续性 · 已实现','<p>当前角色卡带回已保存的 state 与主角对其态度；收剑、受伤、等答复不再只存着而缺席下一次角色卡。</p><span class="badge good">RCV-123 · 零额外调用</span>')+card('下一步 · 任务与后果','<p>复用 Lore／director，从一条局部任务的接取、实际推进到赴约／失约和 NPC 反应做多回合闭环。</p><span class="badge warn">设计中，尚未新增实现</span>')+'</div>'
+    body+=table(['体验问题','现状','接续方向'],[
+      ['为什么前几项看起来全是安全？','原先队列侧重来源、权限与恢复底座；用户已要求重新排序。','保留既有基础，开发资源转向行动、人物、任务和节奏。'],
+      ['现在还需要堆模块吗？','已有地图、人物、物品、知识、任务、导演、时间和叙事等 14 个默认系统。','优先接好已有系统之间的反馈链路，避免另造一套世界／任务引擎。'],
+      ['等待会增加吗？','无修正 Author 仍一次，Hybrid 仍两次；Author 结构改变时多一次最终写作。','先保证反馈正确，再按阶段耗时与调用次数优化。NPC 卡片本次零额外调用。'],
+      ['记忆是不是不做了？','仍有需求，但目前尚无完整 locate/open 原文查证。','依赖只约束该能力自身；不挡住其他可独立完成的玩法。'],
     ])
     content.append(section('overview','01','现状判断与优化方向','这是代码现状报告。实现、离线回归、原生模型样本和未来设计分别标注。',body))
 
@@ -245,7 +245,7 @@ def build():
        ('02','恢复检查与快照','run_turn 先检查已提交 action 和请求指纹；新请求创建 EventBatch，读取同一 snapshot/revision，再注册最终 payload validators。','loop/turn.py','run_turn'),
        ('03','宿主前置裁定','登记资源存在时 prepare_resources 解析意图并确定性裁定余额／等待；准备 variation 与已过滤的安全作者交接。','loop/resources.py','prepare_resources'),
        ('04','上下文与生成','produce_turn → strategy.produce；assemble_context 做 POV、系统注入、摘要、事实锚点和能力范围；Author 可调用六个只读工具。','loop/strategy.py','AuthorStrategy'),
-       ('05','候选验证与修复','实体引用补齐 → 系统 validate + narration/resource/authority 检查。局部 repair_sections；有些普通错误耗尽后可丢 section，权限类错误严格拒绝。','loop/turn.py','produce_turn'),
+       ('05','校验与最终正文','实体引用补齐 → 规则校验 → 局部修复；Hybrid 或 Author 结构变化后生成最终正文，只返回文本。正文格式可重试一次，不重执行效果；未通过的完整行动不发布。','loop/turn.py','produce_turn'),
        ('06','暂存前台事件','apply_turn 依 owner.to_events 转结构为事件；旁白另外记录 narration_recorded，同一 turn。opt-in 私有解释绑定该 narration。此时仍未写入 durable store。','loop/turn.py','_run_turn_staged'),
        ('07','同步后台','digest → director → cascade → catch-up → lore → 离场 demote → density；各 hook savepoint，追加后按需 project；最后场景推进。','loop/turn.py','_backstage_call'),
        ('08','最终事务','重新核对裁定余额、制作 result sidecar。batch.publish → EventStore.append_many：revision、完整投影 preflight、最终事件权限校验，然后 events/receipt/sidecar 同事务提交。','engine/store.py','append_many'),
@@ -321,16 +321,16 @@ def build():
     body+=note('并非只有“写一段开场白”','创世是多步骤结构生成与事务发布；后续优化应保留其失败不产生伪成功存档的边界。资源规则仍为显式 opt-in 场景配置。')
     content.append(section('genesis','07','创世、导入与配置如何进入世界','单独于普通行动主链，但最终复用同一套事件与投影底座。',body))
 
-    body='<div class="cards two">'+card('AuthorStrategy · 甲','<p><b>上下文 → JSON 候选（正文 + sections）→ 校验／局部修复。</b>新回合在 provider 支持时可进入工具循环；repair 通常复用消息链。可选多轮对话与压缩，成功 publish 后才 commit_to_thread。</p><p>优点：结构与正文一起产生、工具可查询当前 POV。限制：修复结构仍不自动证明正文对应最终裁定。</p>'+ref('loop/strategy.py','AuthorStrategy'))+card('HybridStrategy · 丙','<p><b>先 prose → 再为 prose 生成结构 → 修复结构。</b>第一份 prose 存在 _frozen_prose，修复时通常继续复用；某些 narration 级修复另处理。</p><p>已复现风险：moves 被修为空，正文仍宣称付钱渡河成功。需要真正的结果说明 → 最终正文阶段。</p>'+ref('loop/strategy.py','HybridStrategy'))+'</div>'
+    body='<div class="cards two">'+card('AuthorStrategy · 甲','<p><b>上下文 → 正文＋结构候选 → 校验／局部修复 → 必要时最终正文。</b>结构没有变化时保持一次作者调用；结构改变后才追加一次散文生成。工具研究与多轮缓存复用既有路径，成功 publish 后只记最终正文。</p><p>默认路径兼顾等待时间，但没有增加一轮独立语义裁判，不能证明任意正文都完全忠实。</p>'+ref('loop/strategy.py','AuthorStrategy'))+card('HybridStrategy · 丙','<p><b>结构提议 → 校验／结构修复 → 最终散文。</b>复用 Author 的上下文、工具和修复，不再冻结先写的正文。无修复时仍为两次作者调用，失败结构不消耗最终正文调用。</p><p>最终阶段只返回字符串，不重做付款／移动；空白、JSON 混入或明显重复可有界重写一次。</p>'+ref('loop/strategy.py','HybridStrategy'))+'</div>'
     body+=table(['上下文组成','当前实现','注意点'],[
       ['POV 与能力','pov_world + SceneCapabilities + public_place_observations','共享读边界先确定可见内容；不能把 canonical 图直接交给玩家。'],
       ['stable','总概要、较老分段摘要、稳定规则与长期设定','摘要帮助保持方向，不能证明精确原话。'],
-      ['scene','最近两个 raw bucket、尚未摘要的旧原文、当前人物／地点、事实锚点和安全交接','保留未摘要原文避免静默遗忘，但故障长局会不断增长。'],
+      ['scene','最近两个 raw bucket、尚未摘要的旧原文、人物状态／心情／主角对其态度、地点、事实锚点与安全交接','人物卡不倒置关系方向；未摘要历史长期积压仍会增长。'],
       ['volatile recall','kernel.recall → memory.rank → top k 文本，默认 k=6','候选来自各系统当前 recall；day 近似、importance 默认 5；不是 Archive 原文逐步检索。'],
       ['工具','map_query / recall_query / characters_query / factions_query / ambient_query / codex_query','默认 6 个；DM 才增加 dm_world_query。轮数设置默认 12，可配置。'],
       ['provider','OpenAI-compatible／DeepSeek／Zhipu／Anthropic／Fake','工具能力以 supports_tools() 为准；Fake 仅证明接线，适配器存在不代表已联网验证。'],
     ])
-    body+=note('现有防护不是完备语义裁判','narration_guard 检测明显重复；capabilities 对特定旅行矛盾有检查；resources 约束确定性余额。这些有价值，但尚不能覆盖任意正文与全部最终事件的语义一致性。','amber')
+    body+=note('流程正确不等于故事一定好','已修复结构修正后继续冻结旧正文的机制问题。现有检查能识别格式和明显重复，不能完整判断语义或文笔；NPC 卡片可证明资料进入提示，不能证明模型一定写好回应。需要独立的受控真实剧情评审。','amber')
     content.append(section('author','08','模型、上下文与工具回路','同一世界资料经过不同的安全投影和生成策略，不应混成一个“大 prompt”。',body))
 
     body=table(['证据类型','现在在哪里','能够证明','不能据此声称'],[
@@ -376,26 +376,26 @@ def build():
     content.append(section('performance','11','性能与长期运行风险','保留原始测量的版本和条件，不把回归通过数量当成长期可玩性分数。',body))
 
     priorities=[
-      ['P0 · 先做','原始输入同事务档案','新增 host-owned 原 input 来源，绑定 actor／action／turn；只与成功事件一起 publish。旧存档缺失不补造。','失败／取消零记录；duplicate 不重复；撤回冷重开一致；input 不变成 heard_player，不进公共 recap。','提供“哪天输入过什么”的第一手材料，支撑下一项。'],
-      ['P0 · 接着做','安全 source read session','以同一 snapshot 构建允许读取的 narration／本人 input／receipt 集合；引用绑定 campaign、actor、revision 和来源内容。','跨角色／跨存档／过期 revision／撤回重写／private ref 拒绝；所有读操作零世界写入。','避免把旧 Archive 键和全库向量直接暴露给模型。'],
-      ['P0 · 同级目标','结果先行最终正文','结构化效果经过规则裁定后，生成受限 outcome 描述，再写最终 prose。复用已有资源 resolution，改造 Hybrid frozen-prose。','余额不足、非法移动、物品未交接、交流未听到时正文不得称成功；修正文不二次扣款；取消和响应恢复一致。','消除“账修对了、故事仍错”的核心体验问题。'],
-      ['P1 · 依赖来源协议','B1 逐步原文查证','接入现有 ToolRegistry：locate → open → 前后文／重查 → 带来源答案；向量仅作为可选候选。','摘要漏词、相同句子、同名人物、跨天重访、缺失原 input；引用必须对得上实际打开的文字。','让长程记忆真正可核查，取代无止境加摘要。'],
-      ['P1 · 依赖测量与正确性','上下文预算／投影成本','按阶段剖析、有限积压任务、revision-scoped 缓存；工具打开内容在有界预算内分页。','长期摘要故障仍可找回原文；撤回／peer update 不返回旧投影；性能比较使用同一负载。','控制 161 万字符式增长及重复 O(history) 工作。'],
-      ['P2 · 后续闭环','一位 NPC 的持续行动','经历 → 来源知识 → 私人解释 → 行为提议 → 宿主裁定；再考虑持久异步调度。','误解／澄清／失约／传播延迟；NPC 不共享玩家全知；重试不重复后果。','先把一个角色做实，再扩大世界自主性。'],
+      ['已实现 · RCV-122','行动结果与正文同步','Hybrid 结构先行；Author 结构变化后再写正文；最终写作只返回字符串。','229 项专项、2185 项全量；真实模型语义质量未新增验证。','先消除玩家看到成功、存档却没有成功的机制问题。'],
+      ['已实现 · RCV-123','人物连续性','现有角色卡读取当前 state 和有方向的主角态度；共用作者提示。','197 项专项；冷重开、撤回、离场、当前值替换；零额外模型调用。','让人物从眼前的姿态和关系接着回应。'],
+      ['P0 · 下一项','任务／承诺的局部后果闭环','复用 Lore 的阶段与期限和 director 调度；先审计已有实现，再接实际事件与可见反应。','按时赴约、晚到、拒绝、真实交付、口头声称完成、撤回改选；账本与人物反应一致。','让玩家的选择对后续局面有意义，而非只换一段描写。'],
+      ['P1 · 接着做','节奏与等待时间','同一负载测作者／修复／后台／投影开销，减少重复工作与无意义生成。','20／100 回合统计调用、修复、上下文和耗时；不以离线 Python 时间冒充模型延迟。','控制长局成本，也允许安静但有意义的互动。'],
+      ['P1 · 独立推进','原文查证体验','输入来源与读取集合 → locate/open/邻文 → 引用；复用 SQLite／FTS，不增加默认权重下载。','摘要漏词、同名人物、跨日重访、原话缺失；回答引用真实打开的内容。','在玩家想回忆细节时帮到玩家，不再成为全部玩法的前置工作。'],
+      ['P2 · 扩大闭环','一位 NPC 的持续行动','已有目标 → 有限行为提议 → 规则处理 → 玩家可观察后果；之后再扩大世界模拟。','误解、澄清、失约、离场再会；不凭空宣称远处事情已发生。','先做出一个会延续行动的角色，再讨论大规模自治。'],
     ]
-    body=table(['顺序','切片','实现结构','验收条件','为何优先'],priorities)
-    body+=note('建议本轮报告后的第一项','先实现成功回合的原 input 同事务保存，并为后续 source session 留出明确的类型与身份字段。它比先接向量召回更基础；“结果先行最终正文”应作为同级产品主线，不能继续被小界面改动挤掉。')
-    content.append(section('roadmap','12','下一阶段优化顺序与验收标准','这是尚未实现的工作建议；优先级是根据当前源码和反例做出的工程判断。',body))
+    body=table(['顺序','切片','实现结构','验收条件','玩家价值'],priorities)
+    body+=note('完整的体验迭代清单','<a href="../../designs/PLAY_EXPERIENCE_PLAN.md">PLAY_EXPERIENCE_PLAN.md</a> 分清本轮已实现、下一实现、长期设计和验收尺度。原文查证的依赖只约束该切片，不再挤占所有游戏体验工作。')
+    content.append(section('roadmap','12','下一阶段优化顺序与验收标准','按用户最新要求重新排序：已完成的首切片与尚未实现的后续项分别标注。',body))
 
     body=table(['证据层级','当前记录','可以支持的结论','不覆盖'],[
-      ['当前代码','RCV-120 / 03cabc4；本报告按该 HEAD 审读','模块归属、函数结构、主要调用顺序与现有开关','未运行路径的实际质量与所有并发情形。'],
-      ['完整确定性回归','2026-10-25：2171 passed, 1 deselected；127.06s','该版本在当前离线门禁下的协议与回归表现','真实 embedding、远程 provider、长期剧情质量。'],
-      ['新 scope 专项','RCV-120：71 passed；修前 23 failed / 5 passed','过滤发生在排名前，空集合／重开／陈旧向量／字面查询等','actor ACL、统一 revision、不可变引用身份。'],
+      ['当前代码',f'RCV-123 / {sha[:7]}；本报告按该 HEAD 审读','模块归属、函数结构、主要调用顺序与现有开关','未运行路径的实际质量与所有并发情形。'],
+      ['完整确定性回归','2026-11-04：2191 passed, 1 deselected；见 RCV-123','该版本在当前离线门禁下的协议与回归表现','真实 embedding、远程 provider、长期剧情质量。'],
+      ['本轮体验专项','RCV-122：229 passed；RCV-123：197 passed','结构先行、修正后最终正文、人物当前状态和恢复','真实模型语义、长期可玩性和视觉浏览器验收。'],
       ['Luna medium 原生样本','RCV-118：2 份真实生成，逐请求精确回放，零格式修复','这两份响应可经生产摘要校验、来源绑定、保存和冷重开','远程 HTTP transport、工具调用策略或长局智能。'],
-      ['性能与反例','RCV-119：100 / 1000 / 5000 条临时合成历史','重放成本、上下文增长、旧 ID 与 Hybrid 风险','高负载在线服务和真实模型吞吐承诺。'],
-      ['本报告验证','当前阶段只读源码、实际 Registry 契约与 AST 索引，生成自包含 HTML','报告链接／结构／交互可独立检查；不修改引擎行为','不把历史 gate 写成本轮重新执行。'],
+      ['性能与反例','RCV-119：100 / 1000 / 5000 条临时合成历史','历史重放成本、上下文增长与旧问题反例；Hybrid 冻结正文已在 RCV-122 改造','高负载在线服务和真实模型吞吐承诺。'],
+      ['本报告验证','当前生产切片完成后更新模块／流程／优先级；实际 Registry 契约与 AST 索引','报告链接、符号位置和交互逻辑核验；本阶段没有再修改运行行为','未进行 Chromium 视觉渲染；不重新借用旧模型样本证明新叙事质量。'],
     ])
-    body+='<div class="refs">'+''.join(f'<a href="../../verification/{p}">{title}</a>' for p,title in [('RCV-117-recap-source-chain.md','RCV-117 来源链'),('RCV-118-independent-recap-jobs.md','RCV-118 摘要维护与 Luna'),('RCV-119-current-environment-assessment.md','RCV-119 重新评估'),('RCV-120-retrieval-scope.md','RCV-120 检索范围')])+'</div>'
+    body+='<div class="refs">'+''.join(f'<a href="../../verification/{p}">{title}</a>' for p,title in [('RCV-117-recap-source-chain.md','RCV-117 来源链'),('RCV-118-independent-recap-jobs.md','RCV-118 摘要维护与 Luna'),('RCV-119-current-environment-assessment.md','RCV-119 重新评估'),('RCV-120-retrieval-scope.md','RCV-120 检索范围'),('RCV-122-outcome-narration.md','RCV-122 最终正文'),('RCV-123-character-continuity.md','RCV-123 人物连续性')])+'</div>'
     content.append(section('evidence','13','验收证据、版本与限制','所有实测成绩保留其产生日期和版本；此报告没有运行真实模型或上传存档。',body))
 
     groupcards='<div class="cards three">'
@@ -424,10 +424,10 @@ def build():
     content.append(section('catalog','14','完整模块索引与代码导航','搜索职责或符号；展开后查看真实类／函数／方法及源码行号。',body))
 
     toc=[('overview','判断与优先级'),('architecture','整体架构'),('objects','核心数据结构'),('flow','回合调用流程'),('backstage','后台世界钩子'),('systems','领域系统详解'),('genesis','创世与导入'),('author','作者与上下文'),('memory','记忆与原文查证'),('boundaries','存储与权限'),('performance','性能与规模'),('roadmap','优化路线'),('evidence','验证证据'),('catalog','完整模块索引')]
-    payload={'source_head':sha,'branch':branch,'date':args.date,'modules':files,'systems':systems,'note':'Static inventory + reviewed semantics. Prior benchmark, no fresh full test run.'}
+    payload={'source_head':sha,'branch':branch,'date':args.date,'modules':files,'systems':systems,'note':'Reviewed at RCV-123. Full offline gate rerun on 2026-11-04; performance and native samples retain their historical versions.'}
     data=json.dumps(payload,ensure_ascii=False).replace('<','\\u003c')
     css=CSS
-    html_out='''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>llm-rpg-engine · 架构现状与优化路线</title><style>'''+css+'''</style></head><body><a class="skip" href="#overview">跳到正文</a><aside class="sidebar"><a class="brand" href="#top"><span class="brand-mark">RPG</span><b>ENGINE ATLAS</b></a><p>架构现状 / 模块 / 调用链</p><nav aria-label="报告目录">'''+''.join(f'<a href="#{i}"><span>{n:02}</span>{name}</a>' for n,(i,name) in enumerate(toc,1))+'''</nav><div class="sidebar-foot">SELF-CONTAINED REPORT<br>本地阅读 · 无外部资源<br>源码与设计分别标注</div></aside><main id="top"><header class="hero"><div class="eyebrow">SYSTEM REVIEW · '''+esc(args.date)+''' · 上海时间</div><h1>从一次行动，<br>到一个可回放的世界。</h1><p class="hero-sub">llm-rpg-engine 当前架构、完整模块结构与下一阶段优化分析</p><div class="hero-meta"><span>源码 '''+sha[:7]+'''</span><span>'''+esc(branch)+'''</span><span>RCV-120 基线</span></div><div class="stats"><div><b>14<span> + 1</span></b><small>默认系统 + 私有解释 opt-in</small></div><div><b>'''+str(len(files))+'''</b><small>源码实现模块</small></div><div><b>'''+str(count_events)+'''</b><small>默认注册事件类型</small></div><div><b>2,171</b><small>上次完整 gate 通过 · 非本轮重跑</small></div></div></header><div class="report-body">'''+''.join(content)+'''<footer><b>阅读终点，也是实施起点。</b><p>先补可查证的第一手来源，再让检索与最终正文围绕经裁定的事实运行。所有代码仍保留在当前接续分支，报告不发布任何运行服务。</p><p class="muted">源码 HEAD：'''+sha+''' · 报告生成器：scripts/build_architecture_report.py</p><a href="#top">返回顶部 ↑</a></footer></div></main><script id="report-data" type="application/json">'''+data+'''</script><script>'''+JS+'''</script><noscript><style>.flow-panel[hidden]{display:block!important}</style><p class="no-js">JavaScript 未启用：目录与折叠模块仍可使用；全部调用路径已展开显示。</p></noscript></body></html>'''
+    html_out='''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>llm-rpg-engine · 架构现状与优化路线</title><style>'''+css+'''</style></head><body><a class="skip" href="#overview">跳到正文</a><aside class="sidebar"><a class="brand" href="#top"><span class="brand-mark">RPG</span><b>ENGINE ATLAS</b></a><p>架构现状 / 模块 / 调用链</p><nav aria-label="报告目录">'''+''.join(f'<a href="#{i}"><span>{n:02}</span>{name}</a>' for n,(i,name) in enumerate(toc,1))+'''</nav><div class="sidebar-foot">SELF-CONTAINED REPORT<br>本地阅读 · 无外部资源<br>源码与设计分别标注</div></aside><main id="top"><header class="hero"><div class="eyebrow">SYSTEM REVIEW · '''+esc(args.date)+''' · 上海时间</div><h1>从一次行动，<br>到一个可回放的世界。</h1><p class="hero-sub">llm-rpg-engine 当前架构、完整模块结构与下一阶段优化分析</p><div class="hero-meta"><span>源码 '''+sha[:7]+'''</span><span>'''+esc(branch)+'''</span><span>RCV-123 · 体验优先</span></div><div class="stats"><div><b>14<span> + 1</span></b><small>默认系统 + 私有解释 opt-in</small></div><div><b>'''+str(len(files))+'''</b><small>源码实现模块</small></div><div><b>'''+str(count_events)+'''</b><small>默认注册事件类型</small></div><div><b>2,191</b><small>本轮完整 gate 通过 · RCV-123</small></div></div></header><div class="report-body">'''+''.join(content)+'''<footer><b>阅读终点，也是实施起点。</b><p>下一步围绕任务与承诺的真实后果继续推进。先让行动有反馈、人物有延续、选择影响后续局面；再扩大记忆与世界自治。</p><p class="muted">源码 HEAD：'''+sha+''' · 报告生成器：scripts/build_architecture_report.py</p><a href="#top">返回顶部 ↑</a></footer></div></main><script id="report-data" type="application/json">'''+data+'''</script><script>'''+JS+'''</script><noscript><style>.flow-panel[hidden]{display:block!important}</style><p class="no-js">JavaScript 未启用：目录与折叠模块仍可使用；全部调用路径已展开显示。</p></noscript></body></html>'''
     dest=ROOT/args.output;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(html_out)
     print(json.dumps({'output':str(dest),'source_head':sha,'modules':len(files),'systems':len(systems),'default_events':count_events,'bytes':dest.stat().st_size},ensure_ascii=False))
 

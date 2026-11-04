@@ -19,7 +19,8 @@
 
 8. [RCV-120 验证记录](../verification/RCV-120-retrieval-scope.md)：混合检索先限定候选再排序，完整 2171 passed。
 
-9. [当前架构 HTML](../reports/2026-10-26/architecture-status.html)：模块结构、调用路径与优化路线；[RCV-121 核验](../verification/RCV-121-architecture-report.md)。
+9. [当前架构与体验优化 HTML](../reports/2026-11-04/architecture-status.html)：模块结构、最新调用路径与体验优先路线；[RCV-124 核验](../verification/RCV-124-experience-architecture-report.md)。
+   [2026-10-26 历史版本](../reports/2026-10-26/architecture-status.html)与 [RCV-121](../verification/RCV-121-architecture-report.md)保留供对照。
 
 10. [RCV-122 结果先行正文](../verification/RCV-122-outcome-narration.md)：Hybrid 改造与默认作者修正后的正文同步。
 
@@ -34,6 +35,8 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-11-04：RCV-124 更新 HTML 为体验优先版，按 RCV-123 生产源码核验；完整引擎 gate 已在 RCV-123 重跑得到 **2191 passed / 1 deselected**。
 
 - 2026-11-04：用户将玩法体验提升为首要队列。RCV-122 已落地结果确定后的最终正文；RCV-123 已补 NPC 状态连续性，后续转向任务／承诺后果。
 
