@@ -19,7 +19,7 @@
 
 8. [RCV-120 验证记录](../verification/RCV-120-retrieval-scope.md)：混合检索先限定候选再排序，完整 2171 passed。
 
-9. [当前架构与体验优化 HTML](../reports/2026-11-04/architecture-status.html)：模块结构、最新调用路径与体验优先路线；[RCV-124 核验](../verification/RCV-124-experience-architecture-report.md)。
+9. [当前架构与体验优化 HTML](../reports/2026-11-04/architecture-status.html)：模块结构、最新调用路径与体验优先路线；[RCV-126 核验](../verification/RCV-126-delivery-architecture-report.md)。
    [2026-10-26 历史版本](../reports/2026-10-26/architecture-status.html)与 [RCV-121](../verification/RCV-121-architecture-report.md)保留供对照。
 
 10. [RCV-122 结果先行正文](../verification/RCV-122-outcome-narration.md)：Hybrid 改造与默认作者修正后的正文同步。
@@ -35,6 +35,8 @@
 - 不提交密钥、用户 campaign 数据、临时日志或完整恢复包。
 
 ## 最近交付
+
+- 2026-11-04：RCV-126 将 HTML 同步到交付闭环 `f9127cf`，97模块、872符号，完整回归2220通过与Terra样本分层展示。
 
 - 2026-11-04：[RCV-125 交付约定与任务后果](../verification/RCV-125-delivery-outcomes.md)：实际转移结算、
   迟交可补救、明确放弃、最近六条公开结局；Terra 5 回合／10 条原生响应通过，人物丰富度仍需改善。

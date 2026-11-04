@@ -60,6 +60,7 @@ PURPOSE = {
  'kernel/assembler.py':'收集各系统 inject() 的 Fragment 并按稳定层顺序渲染。',
  'kernel/recall.py':'对已给定 world 扇出各系统 recall()，合并 RecallHit 并排序。',
  'kernel/clock.py':'纯游戏时间运算；不依赖真实墙钟推进世界。',
+ 'kernel/quest_outcomes.py':'明确单件交付条件、实际转移证据、迟交／放弃结算与玩家账本文案；复用既有任务、物品和时钟事件。',
  'kernel/observability.py':'Noop／可选 Langfuse tracer；带凭据的遥测是独立外部能力，本报告未启用。',
  'facts/entity.py':'实体 ID、类型、追踪层级、attrs。',
  'facts/fact.py':'事实与关系的有效时间区间、摄入 turn、source_event 和 secrecy。',
@@ -126,7 +127,7 @@ SYS_INFO = {
  'time':('游戏时钟','主要更新 world.meta 的 day/band 与时间相关事实；独立 slice 为空。','游戏时钟由事件推进，与机器运行多久无直接等价关系。'),
  'narrative':('旁白与摘要','scenes 原文桶、super_summary、summarized_through_index，以及逐桶／递归来源。','长期保存的 narration 原文不因摘要生成而从事件库删除；注入上下文才发生替换。'),
  'scene':('场景序号','主要更新 meta.scene / scene_no；独立 slice 为空。','位置或天数变化后登记 scene_advanced，不是单独地图存储。'),
- 'lore':('任务与长期线索','lines 任务字典与 gen 生成状态；暗／明／了结及期限／终局相关事件。','任务线与普通世界事实分开；明账可显示，隐藏骨架不直接给玩家。'),
+ 'lore':('任务与长期线索','lines 任务字典与 gen 生成状态；暗／明／了结，单件交付 objective 与宿主 resolution、最近六条公开结局。','任务线与普通世界事实分开；明账可显示，隐藏骨架不直接给玩家。'),
  'codex':('世界设定典','entries：题目、类型、正文等公开设定块。','供查询与设定一致性使用，不是角色原话或行动生效证明。'),
  'resources':('资源裁定','按场景规则配置并校验 before/after/outcome；余额写共享图。','已具先裁定的局部基础；未覆盖所有行动的最终 prose 同步。'),
  'interpretive_memory':('私有解释 · opt-in','by_actor：以 actor 分组的解释记录及 host-bound 来源。','默认不注册；本地固定生成器实验，不是已完成的生产 NPC 心智。'),
@@ -193,8 +194,8 @@ def build():
     perf=json.loads((ROOT/'docs/verification/rcv119-assessment.json').read_text())
     count_events=len({v for s in systems if s['name']!='interpretive_memory' for v in s['events']})
     content=[]
-    body=note('游戏体验优先，已经开始落实','先让行动反馈说到做到，再让人物带着上回合的状态继续回应。本轮已实现结果修正后重写正文、Hybrid 结构先行，以及 NPC 状态／关系连续性。下一重点是任务和承诺的实际后果；原文查证仍保留，但不再阻塞这些玩法改进。')
-    body+='<div class="cards three">'+card('行动反馈 · 已实现', '<p>Hybrid 先校验结构、再写正文；默认 Author 的结构发生修正时才重写。保存和恢复使用同一份最终正文。</p><span class="badge good">RCV-122 · 离线通过</span>')+card('人物连续性 · 已实现','<p>当前角色卡带回已保存的 state 与主角对其态度；收剑、受伤、等答复不再只存着而缺席下一次角色卡。</p><span class="badge good">RCV-123 · 零额外调用</span>')+card('下一步 · 任务与后果','<p>复用 Lore／director，从一条局部任务的接取、实际推进到赴约／失约和 NPC 反应做多回合闭环。</p><span class="badge warn">设计中，尚未新增实现</span>')+'</div>'
+    body=note('游戏体验优先，持续实装并测试','行动结果与正文同步、人物状态延续之后，已接通单件交付任务：接取、实际交付、迟交与放弃，结局留在下一回合。Terra 连续游玩验证了这条闭环；下一重点是局面推进、节奏与等待，原文查证仍保留。')
+    body+='<div class="cards three">'+card('行动反馈 · 已实现', '<p>Hybrid 先校验结构、再写正文；默认 Author 的结构发生修正时才重写。保存和恢复使用同一份最终正文。</p><span class="badge good">RCV-122 · 离线通过</span>')+card('人物连续性 · 已实现','<p>当前角色卡带回已保存的 state 与主角对其态度；收剑、受伤、等答复不再只存着而缺席下一次角色卡。</p><span class="badge good">RCV-123 · 零额外调用</span>')+card('交付与后果 · 已实现','<p>实际转移才结算；逾期可补救、放弃单独记录，最近六条公开结局延续人物反应。仍不是通用任务或自主 NPC。</p><span class="badge good">RCV-125 · Terra 5回合样本</span>')+'</div>'
     body+=table(['体验问题','现状','接续方向'],[
       ['为什么前几项看起来全是安全？','原先队列侧重来源、权限与恢复底座；用户已要求重新排序。','保留既有基础，开发资源转向行动、人物、任务和节奏。'],
       ['现在还需要堆模块吗？','已有地图、人物、物品、知识、任务、导演、时间和叙事等 14 个默认系统。','优先接好已有系统之间的反馈链路，避免另造一套世界／任务引擎。'],
@@ -245,7 +246,7 @@ def build():
        ('02','恢复检查与快照','run_turn 先检查已提交 action 和请求指纹；新请求创建 EventBatch，读取同一 snapshot/revision，再注册最终 payload validators。','loop/turn.py','run_turn'),
        ('03','宿主前置裁定','登记资源存在时 prepare_resources 解析意图并确定性裁定余额／等待；准备 variation 与已过滤的安全作者交接。','loop/resources.py','prepare_resources'),
        ('04','上下文与生成','produce_turn → strategy.produce；assemble_context 做 POV、系统注入、摘要、事实锚点和能力范围；Author 可调用六个只读工具。','loop/strategy.py','AuthorStrategy'),
-       ('05','校验与最终正文','实体引用补齐 → 规则校验 → 局部修复；Hybrid 或 Author 结构变化后生成最终正文，只返回文本。正文格式可重试一次，不重执行效果；未通过的完整行动不发布。','loop/turn.py','produce_turn'),
+       ('05','校验与最终正文','实体引用补齐 → 规则校验／局部修复 → 交付约定按真实转移与结束时钟结算 → 重验；Hybrid 或 Author 结构变化后生成最终正文，只返回文本。正文格式可重试一次，不重执行效果。','loop/turn.py','produce_turn'),
        ('06','暂存前台事件','apply_turn 依 owner.to_events 转结构为事件；旁白另外记录 narration_recorded，同一 turn。opt-in 私有解释绑定该 narration。此时仍未写入 durable store。','loop/turn.py','_run_turn_staged'),
        ('07','同步后台','digest → director → cascade → catch-up → lore → 离场 demote → density；各 hook savepoint，追加后按需 project；最后场景推进。','loop/turn.py','_backstage_call'),
        ('08','最终事务','重新核对裁定余额、制作 result sidecar。batch.publish → EventStore.append_many：revision、完整投影 preflight、最终事件权限校验，然后 events/receipt/sidecar 同事务提交。','engine/store.py','append_many'),
@@ -378,8 +379,8 @@ def build():
     priorities=[
       ['已实现 · RCV-122','行动结果与正文同步','Hybrid 结构先行；Author 结构变化后再写正文；最终写作只返回字符串。','229 项专项、2185 项全量；真实模型语义质量未新增验证。','先消除玩家看到成功、存档却没有成功的机制问题。'],
       ['已实现 · RCV-123','人物连续性','现有角色卡读取当前 state 和有方向的主角态度；共用作者提示。','197 项专项；冷重开、撤回、离场、当前值替换；零额外模型调用。','让人物从眼前的姿态和关系接着回应。'],
-      ['P0 · 下一项','任务／承诺的局部后果闭环','复用 Lore 的阶段与期限和 director 调度；先审计已有实现，再接实际事件与可见反应。','按时赴约、晚到、拒绝、真实交付、口头声称完成、撤回改选；账本与人物反应一致。','让玩家的选择对后续局面有意义，而非只换一段描写。'],
-      ['P1 · 接着做','节奏与等待时间','同一负载测作者／修复／后台／投影开销，减少重复工作与无意义生成。','20／100 回合统计调用、修复、上下文和耗时；不以离线 Python 时间冒充模型延迟。','控制长局成本，也允许安静但有意义的互动。'],
+      ['已实现 · RCV-125','单件交付约定的后果闭环','Lore 保存条件；实际物品转移自动结算，按最终时钟判迟交；最近六条公开结局延续上下文。','29 新例、117 专项；Terra 5 回合／10 响应。数量／赴约／护送与长期 NPC 行为未实现。','交了药才算交药，晚交仍可继续，放弃不冒充成功。'],
+      ['P0 · 下一项','局面推进、节奏与等待','同一负载测作者／修复／后台／投影开销，减少重复工作；提升人物反应与可回应性。','20／100 回合测调用、修复、上下文和耗时，再做 Terra 剧情评审；不以 Python 时间冒充模型延迟。','改善当前样本反应偏平淡、最后一轮推进有限的体验。'],
       ['P1 · 独立推进','原文查证体验','输入来源与读取集合 → locate/open/邻文 → 引用；复用 SQLite／FTS，不增加默认权重下载。','摘要漏词、同名人物、跨日重访、原话缺失；回答引用真实打开的内容。','在玩家想回忆细节时帮到玩家，不再成为全部玩法的前置工作。'],
       ['P2 · 扩大闭环','一位 NPC 的持续行动','已有目标 → 有限行为提议 → 规则处理 → 玩家可观察后果；之后再扩大世界模拟。','误解、澄清、失约、离场再会；不凭空宣称远处事情已发生。','先做出一个会延续行动的角色，再讨论大规模自治。'],
     ]
@@ -388,14 +389,15 @@ def build():
     content.append(section('roadmap','12','下一阶段优化顺序与验收标准','按用户最新要求重新排序：已完成的首切片与尚未实现的后续项分别标注。',body))
 
     body=table(['证据层级','当前记录','可以支持的结论','不覆盖'],[
-      ['当前代码',f'RCV-123 / {sha[:7]}；本报告按该 HEAD 审读','模块归属、函数结构、主要调用顺序与现有开关','未运行路径的实际质量与所有并发情形。'],
-      ['完整确定性回归','2026-11-04：2191 passed, 1 deselected；见 RCV-123','该版本在当前离线门禁下的协议与回归表现','真实 embedding、远程 provider、长期剧情质量。'],
-      ['本轮体验专项','RCV-122：229 passed；RCV-123：197 passed','结构先行、修正后最终正文、人物当前状态和恢复','真实模型语义、长期可玩性和视觉浏览器验收。'],
+      ['当前代码',f'RCV-125 / {sha[:7]}；本报告按该 HEAD 审读','模块归属、函数结构、主要调用顺序与现有开关','未运行路径的实际质量与所有并发情形。'],
+      ['完整确定性回归','2026-11-04：2220 passed, 1 deselected；见 RCV-125','该版本在当前离线门禁下的协议与回归表现','真实 embedding、远程 provider、长期剧情质量。'],
+      ['本轮体验专项','RCV-125：117 passed，新增29例','真实转移、迟交／放弃、结局卡、旧任务兼容与恢复','真实模型语义、长期可玩性和视觉浏览器验收。'],
+      ['Terra 原生游玩','RCV-125：5 个行动、10 条现场生成响应、精确生产请求回放','此样本中未交付不结算、迟交后果与下回合连续；机械重启／撤回通过','远端 HTTP、多次采样、后台自治、重启之后的长期正文质量；生成者自评有偏差。'],
       ['Luna medium 原生样本','RCV-118：2 份真实生成，逐请求精确回放，零格式修复','这两份响应可经生产摘要校验、来源绑定、保存和冷重开','远程 HTTP transport、工具调用策略或长局智能。'],
       ['性能与反例','RCV-119：100 / 1000 / 5000 条临时合成历史','历史重放成本、上下文增长与旧问题反例；Hybrid 冻结正文已在 RCV-122 改造','高负载在线服务和真实模型吞吐承诺。'],
       ['本报告验证','当前生产切片完成后更新模块／流程／优先级；实际 Registry 契约与 AST 索引','报告链接、符号位置和交互逻辑核验；本阶段没有再修改运行行为','未进行 Chromium 视觉渲染；不重新借用旧模型样本证明新叙事质量。'],
     ])
-    body+='<div class="refs">'+''.join(f'<a href="../../verification/{p}">{title}</a>' for p,title in [('RCV-117-recap-source-chain.md','RCV-117 来源链'),('RCV-118-independent-recap-jobs.md','RCV-118 摘要维护与 Luna'),('RCV-119-current-environment-assessment.md','RCV-119 重新评估'),('RCV-120-retrieval-scope.md','RCV-120 检索范围'),('RCV-122-outcome-narration.md','RCV-122 最终正文'),('RCV-123-character-continuity.md','RCV-123 人物连续性')])+'</div>'
+    body+='<div class="refs">'+''.join(f'<a href="../../verification/{p}">{title}</a>' for p,title in [('RCV-117-recap-source-chain.md','RCV-117 来源链'),('RCV-118-independent-recap-jobs.md','RCV-118 摘要维护与 Luna'),('RCV-119-current-environment-assessment.md','RCV-119 重新评估'),('RCV-120-retrieval-scope.md','RCV-120 检索范围'),('RCV-122-outcome-narration.md','RCV-122 最终正文'),('RCV-123-character-continuity.md','RCV-123 人物连续性'),('RCV-125-delivery-outcomes.md','RCV-125 交付与 Terra 游玩')])+'</div>'
     content.append(section('evidence','13','验收证据、版本与限制','所有实测成绩保留其产生日期和版本；此报告没有运行真实模型或上传存档。',body))
 
     groupcards='<div class="cards three">'
@@ -424,10 +426,10 @@ def build():
     content.append(section('catalog','14','完整模块索引与代码导航','搜索职责或符号；展开后查看真实类／函数／方法及源码行号。',body))
 
     toc=[('overview','判断与优先级'),('architecture','整体架构'),('objects','核心数据结构'),('flow','回合调用流程'),('backstage','后台世界钩子'),('systems','领域系统详解'),('genesis','创世与导入'),('author','作者与上下文'),('memory','记忆与原文查证'),('boundaries','存储与权限'),('performance','性能与规模'),('roadmap','优化路线'),('evidence','验证证据'),('catalog','完整模块索引')]
-    payload={'source_head':sha,'branch':branch,'date':args.date,'modules':files,'systems':systems,'note':'Reviewed at RCV-123. Full offline gate rerun on 2026-11-04; performance and native samples retain their historical versions.'}
+    payload={'source_head':sha,'branch':branch,'date':args.date,'modules':files,'systems':systems,'note':'Reviewed at RCV-125. Full offline gate and Terra gameplay samples dated 2026-11-04; performance retains the RCV-119 version.'}
     data=json.dumps(payload,ensure_ascii=False).replace('<','\\u003c')
     css=CSS
-    html_out='''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>llm-rpg-engine · 架构现状与优化路线</title><style>'''+css+'''</style></head><body><a class="skip" href="#overview">跳到正文</a><aside class="sidebar"><a class="brand" href="#top"><span class="brand-mark">RPG</span><b>ENGINE ATLAS</b></a><p>架构现状 / 模块 / 调用链</p><nav aria-label="报告目录">'''+''.join(f'<a href="#{i}"><span>{n:02}</span>{name}</a>' for n,(i,name) in enumerate(toc,1))+'''</nav><div class="sidebar-foot">SELF-CONTAINED REPORT<br>本地阅读 · 无外部资源<br>源码与设计分别标注</div></aside><main id="top"><header class="hero"><div class="eyebrow">SYSTEM REVIEW · '''+esc(args.date)+''' · 上海时间</div><h1>从一次行动，<br>到一个可回放的世界。</h1><p class="hero-sub">llm-rpg-engine 当前架构、完整模块结构与下一阶段优化分析</p><div class="hero-meta"><span>源码 '''+sha[:7]+'''</span><span>'''+esc(branch)+'''</span><span>RCV-123 · 体验优先</span></div><div class="stats"><div><b>14<span> + 1</span></b><small>默认系统 + 私有解释 opt-in</small></div><div><b>'''+str(len(files))+'''</b><small>源码实现模块</small></div><div><b>'''+str(count_events)+'''</b><small>默认注册事件类型</small></div><div><b>2,191</b><small>本轮完整 gate 通过 · RCV-123</small></div></div></header><div class="report-body">'''+''.join(content)+'''<footer><b>阅读终点，也是实施起点。</b><p>下一步围绕任务与承诺的真实后果继续推进。先让行动有反馈、人物有延续、选择影响后续局面；再扩大记忆与世界自治。</p><p class="muted">源码 HEAD：'''+sha+''' · 报告生成器：scripts/build_architecture_report.py</p><a href="#top">返回顶部 ↑</a></footer></div></main><script id="report-data" type="application/json">'''+data+'''</script><script>'''+JS+'''</script><noscript><style>.flow-panel[hidden]{display:block!important}</style><p class="no-js">JavaScript 未启用：目录与折叠模块仍可使用；全部调用路径已展开显示。</p></noscript></body></html>'''
+    html_out='''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>llm-rpg-engine · 架构现状与优化路线</title><style>'''+css+'''</style></head><body><a class="skip" href="#overview">跳到正文</a><aside class="sidebar"><a class="brand" href="#top"><span class="brand-mark">RPG</span><b>ENGINE ATLAS</b></a><p>架构现状 / 模块 / 调用链</p><nav aria-label="报告目录">'''+''.join(f'<a href="#{i}"><span>{n:02}</span>{name}</a>' for n,(i,name) in enumerate(toc,1))+'''</nav><div class="sidebar-foot">SELF-CONTAINED REPORT<br>本地阅读 · 无外部资源<br>源码与设计分别标注</div></aside><main id="top"><header class="hero"><div class="eyebrow">SYSTEM REVIEW · '''+esc(args.date)+''' · 上海时间</div><h1>从一次行动，<br>到一个可回放的世界。</h1><p class="hero-sub">llm-rpg-engine 当前架构、完整模块结构与下一阶段优化分析</p><div class="hero-meta"><span>源码 '''+sha[:7]+'''</span><span>'''+esc(branch)+'''</span><span>RCV-125 · 体验优先</span></div><div class="stats"><div><b>14<span> + 1</span></b><small>默认系统 + 私有解释 opt-in</small></div><div><b>'''+str(len(files))+'''</b><small>源码实现模块</small></div><div><b>'''+str(count_events)+'''</b><small>默认注册事件类型</small></div><div><b>2,220</b><small>本轮完整 gate 通过 · RCV-125</small></div></div></header><div class="report-body">'''+''.join(content)+'''<footer><b>阅读终点，也是实施起点。</b><p>交付任务首切片已完成。下一步实测回合节奏与等待，提升人物反应及局面推进；原文查证与更丰富的世界行为继续按切片接入。</p><p class="muted">源码 HEAD：'''+sha+''' · 报告生成器：scripts/build_architecture_report.py</p><a href="#top">返回顶部 ↑</a></footer></div></main><script id="report-data" type="application/json">'''+data+'''</script><script>'''+JS+'''</script><noscript><style>.flow-panel[hidden]{display:block!important}</style><p class="no-js">JavaScript 未启用：目录与折叠模块仍可使用；全部调用路径已展开显示。</p></noscript></body></html>'''
     dest=ROOT/args.output;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(html_out)
     print(json.dumps({'output':str(dest),'source_head':sha,'modules':len(files),'systems':len(systems),'default_events':count_events,'bytes':dest.stat().st_size},ensure_ascii=False))
 

@@ -2,15 +2,19 @@
 
 更新：2026-10-25（Asia/Shanghai）。本文件是本次跨环境交接入口，不是完整聊天逐字转录。
 
-## 当前接续：体验优先 / RCV-122–124（2026-11-04）
+## 当前接续：体验优先 / RCV-122–126（2026-11-04）
 
 用户最新要求优先游戏体验并继续实际开发，旧“先输入档案／source session”的排序后移。
 Hybrid 已改为结构规划与校验 → 最终散文；普通 Author 在结构改变后补最终正文，无变化仍一次调用。
 正文重写只改文本，不重新执行效果。详见 [RCV-122](../verification/RCV-122-outcome-narration.md)。
 RCV-123 已补当前人物 state 与主角对其态度的角色卡注入；专项 197 passed，完整 gate 2191 passed / 1 deselected（39.84s）。
-下一项优先任务／承诺的后果闭环，再做节奏与等待时间；旧 HOLD 不阻塞。
+RCV-125 已实现单件交付约定，依据实际物品转移结算，区分迟交／放弃并给下一回合近期公开结局卡。
+生产提交 `f9127cf`；新增29例，最终 gate **2220 passed / 1 deselected（40.06s）**。
+用户指定 Terra 测试：可用 `gpt-6.1-terra` 完成5回合／10条原生响应的精确请求回放，机械恢复检查通过；
+人物反应连贯但平淡，不是远端 HTTP 或长局质量证明。见 [RCV-125](../verification/RCV-125-delivery-outcomes.md)。
+下一项优先局面推进、节奏与等待时间；旧 HOLD 不阻塞。
 整体次序见 [体验优先计划](../designs/PLAY_EXPERIENCE_PLAN.md)，来源协议不再是所有玩法的前置条件。
-RCV-124 已更新[当前架构 HTML](../reports/2026-11-04/architecture-status.html)，生产源码基线 `b24c529`；
+RCV-126 已更新[当前架构 HTML](../reports/2026-11-04/architecture-status.html)，生产源码基线 `f9127cf`；
 报告保留模块／调用流程，明确新的体验优先顺序。以下 RCV-121 文档及更早“下一项”均为历史计划，以本增量和执行清单优先。
 
 ## 最新文档交付：RCV-121（2026-10-26，Asia/Shanghai）

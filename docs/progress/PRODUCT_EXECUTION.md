@@ -2324,3 +2324,8 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
   下一重点为局面反馈与节奏等待。旧任务兼容、跨日迟交经 Terra 另行实跑；有限审查未复现新回归。
   [RCV-125 验证记录](../verification/RCV-125-delivery-outcomes.md)列明协议、适用范围和原生工件。
   本地提交，无推送／部署／外部上传。
+
+- 2026-11-04：RCV-126 同步[架构 HTML](../reports/2026-11-04/architecture-status.html)至生产 `f9127cf`，
+  包含交付结算调用顺序、97模块／872符号、Terra原生样本与真实局限，后续优先局面推进和节奏等待。
+  144 ID、464链接、AST及Node交互核验通过，未进行浏览器视觉验收；此文档阶段不重复跑2220项引擎gate。
+  见 [RCV-126](../verification/RCV-126-delivery-architecture-report.md)，仅本地提交，无远程发布。
