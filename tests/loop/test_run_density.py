@@ -182,20 +182,18 @@ class TestSeeding:
                              provider=provider, day=1, scene="s1", turn=1)
         assert events == []
 
-    def test_seeded_even_if_zero_skeletons(self):
-        """If provider returns 0 skeletons, still marks seeded."""
+    def test_failed_seed_waits_then_retries_on_next_day(self):
         r, store, world = _seed_world(density=0.3)
-        # Provider returns empty batch
-        provider = FakeLLMProvider(json_responses=[{"lines": []}])
-
-        events = run_density(r, store, world, "hero",
-                             provider=provider, day=1, scene="s1", turn=1)
-
-        types = [e["type"] for e in events]
-        assert "lore_seeded" in types
-
-        new_world = project(r, store.iter_events())
-        assert new_world["systems"]["lore"]["gen"]["town1"]["seeded"] is True
+        empty = FakeLLMProvider(json_responses=[{"lines": []}])
+        events = run_density(r, store, world, "hero", provider=empty, day=1, scene="s1", turn=1)
+        assert [event["type"] for event in events] == ["lore_seed_deferred"]
+        reopened = project(r, store.iter_events())
+        good = FakeLLMProvider(json_responses=[_canned_batch_response(3)])
+        assert not run_density(r, store, reopened, "hero", provider=good, day=1, scene="s1", turn=2)
+        assert not good.calls
+        events = run_density(r, store, reopened, "hero", provider=good, day=2, scene="s1", turn=3)
+        assert events[-1]["type"] == "lore_seeded"
+        assert project(r, store.iter_events())["systems"]["lore"]["gen"]["town1"]["seeded"]
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +204,7 @@ class TestRefresh:
     def _seeded_world(self, density=0.3, seed_day=1):
         """Seed town1 and return world + store."""
         r, store, world = _seed_world(density=density)
-        provider = FakeLLMProvider(json_responses=[{"lines": []}])
+        provider = FakeLLMProvider(json_responses=[_canned_batch_response(3)])
         run_density(r, store, world, "hero",
                     provider=provider, day=seed_day, scene="s1", turn=1)
         world = project(r, store.iter_events())

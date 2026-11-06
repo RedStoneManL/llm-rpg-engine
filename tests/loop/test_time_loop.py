@@ -219,6 +219,11 @@ def test_run_catchup_budget_caps_calls():
     import loop.time as tmod
     run_catchup(reg, store, world, prev_scene, new_scene, provider=prov)
     assert len(prov.calls) == tmod.CATCHUP_BUDGET
+    reloaded = project(reg, store.iter_events())
+    assert set(reloaded['systems']['time']['pending']) == {'npc4', 'npc5'}
+    run_catchup(reg, store, reloaded, new_scene, new_scene, provider=prov)
+    assert len(prov.calls) == 6
+    assert not project(reg, store.iter_events())['systems']['time']['pending']
 
 
 # ---------------------------------------------------------------------------

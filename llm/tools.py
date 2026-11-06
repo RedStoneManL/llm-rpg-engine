@@ -736,6 +736,12 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     interface; execute() catches every exception (DD3).
     """
     scene = {**scene, '_allow_pov_shift': dm}
+    if dm:
+        from context.access import current_public_people, pov_world
+        visible = pov_world(world, scene, pov=scene.get('protagonist'), redact_facts=True)
+        graph = visible.get('systems', {}).get('ontology')
+        scene['present'] = sorted(set(scene.get('present') or []) |
+                                  current_public_people(graph, scene, scene.get('day') or 1))
     from engine.history import author_source_tools
     tools: list[Tool] = author_source_tools(scene.get("protagonist"))
 

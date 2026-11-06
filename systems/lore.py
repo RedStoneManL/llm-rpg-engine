@@ -52,7 +52,7 @@ class LoreSystem(ContextSystem):
                 "quest_demoted",
                 "quest_expired", "quest_finale_due",
                 "quest_world_resolved", "quest_catastrophe",
-                "lore_seeded", "density_refreshed"}
+                "lore_seeded", "lore_seed_deferred", "density_refreshed"}
 
     def commit_sections(self) -> set[str]:
         return {"quests"}
@@ -122,6 +122,8 @@ class LoreSystem(ContextSystem):
                 "born_day": born_day,
                 "lifespan_days": lifespan_days,
             }
+            if d.get('source_event_id'):
+                lines[lid]['source_event_id'] = d['source_event_id']
             log.debug("quest_created id=%s state=%s born_day=%s", lid, lines[lid]["state"], born_day)
             return
 
@@ -333,6 +335,11 @@ class LoreSystem(ContextSystem):
             }
             ln["pending_finale"] = False
             log.debug("quest_catastrophe id=%s by=%s", lid, ln["resolved"]["by"])
+            return
+
+        if t == "lore_seed_deferred":
+            gen = world["systems"][self.name]["gen"]
+            gen.setdefault(d["town"], {})["retry_day"] = event["day"] + 1
             return
 
         if t == "lore_seeded":

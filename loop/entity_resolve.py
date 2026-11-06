@@ -57,11 +57,10 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
     try:
         for eid in list(getattr(g, "entities", {}) or {}):
             for f in g.current_facts(eid):
-                if getattr(f, "predicate", None) == "真名":
+                if f.predicate in {"name", "真名"} and getattr(f, "secrecy", None) in (None, "public"):
                     nm = _norm(getattr(f, "value", None))
                     if nm:
                         name2id.setdefault(nm, eid)
-                    break
     except Exception:
         pass
     # this-turn cast creates (optional `name`) + places (seed/id) + facts(真名)
@@ -100,6 +99,7 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
                 elocs = g.neighbors(eid, "located_in", day)
                 if elocs and elocs[0] == here:
                     hay = _norm(" ".join(str(x) for x in (
+                        g.value_at(eid, "name", day) or "",
                         g.value_at(eid, "真名", day) or "",
                         g.value_at(eid, "sketch", day) or "")))
                     colocated.append((eid, hay))

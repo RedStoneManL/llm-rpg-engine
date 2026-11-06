@@ -75,3 +75,5 @@
 - [RCV-131 行动与交易结算](../verification/RCV-131-action-settlement.md)
 
 - [RCV-132 本地原文与 Terra 连续游玩](../verification/RCV-132-original-sources.md)
+
+- [RCV-133 NPC 来源与后台世界](../verification/RCV-133-background-and-speakers.md)

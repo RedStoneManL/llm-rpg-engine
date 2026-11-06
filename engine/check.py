@@ -84,13 +84,13 @@ PROMISE_STALE_DAYS = 30
 _EVOLUTION_TYPES = ("relationship_change", "character_development", "character_reveal")
 
 def check_thread_followup(events, proj):
-    from engine.director import _scene_ordinals
-    ords, total = _scene_ordinals(events)
+    from engine.director import thread_progress_ordinals
+    ords, advanced, total = thread_progress_ordinals(events)
     out = []
     for tid, th in proj["threads"].items():
         if th.get("dormant") or th.get("status") == "已解锁":
             continue
-        since = total - ords.get(th.get("last_advanced_scene"), 0)
+        since = total - advanced.get(tid, ords.get(th.get("last_advanced_scene"), 0))
         if since > THREAD_STALE_SCENES:
             beats = th.get("beats") or []
             out.append(_finding("thread_followup", WARN,

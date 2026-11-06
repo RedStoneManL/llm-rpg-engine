@@ -76,6 +76,15 @@ def _declared_beliefs(canonical, visible, person_id, day, *, source):
     return evidence
 
 
+def _can_converse(visible, person_id, day):
+    # New worlds may use an explicit life status. Older saves store the
+    # terminal state in the visible state facet. Only exact values count.
+    status = visible.value_at(person_id, "life_status", day)
+    if status is None:
+        status = visible.value_at(person_id, "state", day)
+    return status not in ("dead", "deceased", "死亡", "已死", "已死亡")
+
+
 def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
                              host_authorized_routes: list[dict[str, str]] | None = None,
                              player_statement_receipts: list[dict[str, object]] | None = None,
@@ -114,6 +123,8 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
             if canonical_person is not None and canonical_person.attrs.get("visibility") in {
                 "hidden", "secret", "undiscovered",
             }:
+                continue
+            if not _can_converse(visible, person_id, day):
                 continue
             observable = {}
             for predicate in ("name", "sketch", "mood", "state"):
@@ -265,6 +276,8 @@ def _arrival_public_people(world: dict, scene: dict, *,
         }:
             continue
         if location not in visible.neighbors(person_id, "located_in", day):
+            continue
+        if not _can_converse(visible, person_id, day):
             continue
         observable = {}
         for predicate in ("name", "sketch", "mood", "state"):
@@ -709,6 +722,7 @@ def npc_attribution_errors(world, scene, sections):
     casts = {c.get('id') for c in sections.get('cast') or [] if isinstance(c, dict)
              and c.get('op', 'create') == 'create' and isinstance(c.get('id'), str)}
     claims = []
+    errors = []
     for i, row in enumerate(sections.get('knowledge') or []):
         if (not isinstance(row, dict) or row.get('op', 'told') != 'told'
                 or row.get('knower') != actor or not isinstance(row.get('fact_key'), str)):
@@ -724,8 +738,11 @@ def npc_attribution_errors(world, scene, sections):
             speaker = graph.get_entity(source)
             if source != actor and (source in casts or speaker and speaker.etype == 'Person'):
                 claims.append((i, key, source, row.get('value')))
+        elif via and via != actor and via not in ('公开告示', '观察', '亲历', 'observation', 'public_notice'):
+            errors.append(ValidationError('knowledge', f'[{i}].via', 'unsupported_npc_source',
+                          '人物来源须用在场人物 ID；世界观察使用 observation，公开告示使用 public_notice。'))
     if not claims:
-        return []
+        return errors
     moves = [row for row in sections.get('moves') or [] if isinstance(row, dict) and isinstance(row.get('to'), str)]
     arrivals = frozenset(row['to'] for row in moves if row.get('who') == actor)
     present, supplied = _speaker_material(world, scene, arrival_destinations=arrivals)
@@ -733,7 +750,6 @@ def npc_attribution_errors(world, scene, sections):
                    and (m['to'] == scene.get('location') or m['to'] in arrivals))
     reports = {(r.get('subject'), r.get('predicate')): r.get('value') for r in sections.get('facts') or []
                if isinstance(r, dict) and isinstance(r.get('subject'), str) and isinstance(r.get('predicate'), str)}
-    errors = []
     for i, key, speaker, value in claims:
         if key.startswith(speaker + '.reported:'):
             # A new attributable statement, or an accurate restatement of an

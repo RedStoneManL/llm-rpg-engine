@@ -481,7 +481,7 @@ def test_summary_failure_rolls_back_only_summary_and_replay_stays_consistent(tmp
         raise
 
 
-def test_reflection_failure_before_recap_does_not_claim_recap_pending(tmp_path, monkeypatch, caplog):
+def test_reflection_failure_does_not_suppress_due_recap(tmp_path, monkeypatch, caplog):
     """Only digest's actual recap attempt may report ``pending``."""
     _disable_unrelated_backstage(monkeypatch)
     caplog.set_level(logging.ERROR)
@@ -489,7 +489,7 @@ def test_reflection_failure_before_recap_does_not_claim_recap_pending(tmp_path, 
     try:
         # Seed an aged candidate without forcing reflection on its first two
         # foreground actions.  The third action's reflection now fails before
-        # digest reaches Phase 3 recap maintenance.
+        # the independent recap operation is attempted.
         _play(engine, "s1", "PUBLIC_S1", 11, FixedRecapProvider("unused"), "reflect-1")
         _play(engine, "s2", "PUBLIC_S2", 12, FixedRecapProvider("unused"), "reflect-2")
         monkeypatch.setattr("loop.fleet.importance_mod.score", lambda *args, **kwargs: 100)
@@ -504,8 +504,8 @@ def test_reflection_failure_before_recap_does_not_claim_recap_pending(tmp_path, 
         result = _play(engine, "s3", "PUBLIC_S3", 13, recap, "reflect-3")
 
         assert reflection_calls
-        assert recap.calls == []
-        assert result.recap_status == "not_due"
+        assert recap.calls
+        assert result.recap_status == "pending"
         assert not any(event["type"] == "scene_summarized" for event in result.events)
         assert "PRIVATE_REFLECTION_EXCEPTION_BODY" not in caplog.text
     finally:

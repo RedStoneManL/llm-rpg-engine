@@ -561,7 +561,7 @@ def _run_density_inner(
     # SEEDING branch
     # -----------------------------------------------------------------------
     if not gen.get("seeded"):
-        if provider is None:
+        if provider is None or day < gen.get("retry_day", 0):
             # No provider → cannot generate; do NOT mark seeded so it seeds
             # later when a provider becomes available.
             return []
@@ -595,8 +595,12 @@ def _run_density_inner(
                     log.debug("run_density: create_lore_line failed for %s — skipped",
                               sk.get("id"), exc_info=True)
 
-        # Mark town as seeded even if 0 skeletons came back:
-        # a working provider that returned nothing shouldn't retry every turn.
+        if specs and not appended:
+            pending = kernel_event("lore_seed_deferred", day=day, scene=scene, turn=turn,
+                                   summary=f"{town} 的暗线待生成", deltas={"town": town})
+            store.append(pending)
+            return [pending]
+
         seed_ev = kernel_event(
             "lore_seeded", day=day, scene=scene,
             summary=f"density seeded: {town} ({len(appended)} lines)",

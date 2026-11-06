@@ -12,7 +12,7 @@ digest_fleet(registry, store, new_events, world, *, provider, threshold=30,
       3. For any subject whose accumulated score crosses threshold:
          a. Call memory.reflection.reflect(subject, relevant_events, provider=provider)
             → {"predicate": "arc", "value": "..."}.
-         b. Build a character_evolved arc event (predicate="arc").
+         b. Build a host-owned character_reflected event.
          c. Append it to the store.
 
   P2 recap/quest maintenance phase (new, runs after arc phase, each step non-fatal):
@@ -204,6 +204,13 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
     day = max((ev.get("day", 1) for ev in new_events), default=1)
     scene = best_ev.get("scene", "unknown")
 
+    graph = world.get('systems', {}).get('ontology')
+    person = _primary_subject(best_ev)
+    locations = graph.neighbors(person, 'located_in', day) if graph and person else []
+    venue = locations[0] if locations else scene
+    from loop.graph_utils import ancestor_of_level
+    anchor = (ancestor_of_level(graph, venue, day, 2) if graph else None) or venue
+    detail = best_ev.get('summary', '')
     ev = kernel_event(
         "quest_created",
         day=day,
@@ -213,6 +220,11 @@ def backstop_quests(world: dict, new_events: list[dict]) -> dict | None:
             "id": tid,
             "summary": best_ev.get("summary", ""),
             "state": "暗",
+            "complexity": "simple", "anchor": anchor, "l3_anchor": venue,
+            "description": detail, "trigger": "回到事件发生地调查余波",
+            "threshold": 50, "lifespan_days": 3,
+            "stages": [{"hint": f"可回到事发处核实这件事：{detail}"}],
+            "source_event_id": best_ev["id"],
         },
     )
     log.debug("backstop_quests: flagging tid=%s from event summary=%r",
@@ -257,7 +269,9 @@ def digest_fleet(
     # persistence/projection raw, but enforce the public DTO boundary at this
     # direct fleet entrypoint for every caller.
     from systems.interpretive_memory import public_event_history
-    new_events = public_event_history(new_events)
+    new_events = [ev for ev in public_event_history(new_events)
+                  if not ev.get("retracted") and ev.get("secrecy") in (None, "public")
+                  and (ev.get("deltas") or {}).get("secrecy", "public") == "public"]
     appended_all = DigestEvents()
 
     # ------------------------------------------------------------------
@@ -268,7 +282,9 @@ def digest_fleet(
 
         for ev in new_events:
             subject = _primary_subject(ev)
-            if subject is None:
+            graph = world.get('systems', {}).get('ontology')
+            person = graph.get_entity(subject) if graph else None
+            if not person or person.etype != 'Person':
                 log.debug("digest_fleet: event %s has no subject, skipping", ev.get("id"))
                 continue
 
@@ -282,10 +298,33 @@ def digest_fleet(
             else:
                 accumulator[subject] = (float(score), [ev])
 
+        # Persisted experiences between two reflections are the same inputs
+        # after reload or undo. Never count this invocation's events twice.
+        current_ids = {event['id'] for event in new_events}
+        prior = {subject: [] for subject in accumulator}
+        for event in public_event_history(store.iter_events(include_retracted=True)):
+            if event.get('retracted') or event.get('secrecy') not in (None, 'public'):
+                continue
+            subject = _primary_subject(event)
+            if subject not in prior:
+                continue
+            if event['type'] == 'character_reflected':
+                prior[subject].clear()
+            elif event['id'] not in current_ids and event['type'] in {
+                'fact_asserted', 'character_evolved', 'relationship_changed', 'character_development', 'relationship_change'
+            }:
+                delta = event.get('deltas') or {}
+                if (delta.get('secrecy', 'public') == 'public'
+                        and not str(delta.get('predicate', '')).startswith(('knows:', 'reported:', 'hidden', 'past'))):
+                    prior[subject].append(event)
+
         arc_day = max((ev.get("day", 1) for ev in new_events), default=1)
         arc_scene = new_events[0].get("scene", "fleet") if new_events else "fleet"
 
         for subject, (total_score, subject_events) in accumulator.items():
+            history = prior[subject]
+            total_score += sum(importance_mod.heuristic_floor(event) for event in history)
+            subject_events = (history + subject_events)[-24:]
             log.debug("digest_fleet: subject=%s total_score=%.1f threshold=%.1f",
                       subject, total_score, threshold)
 
@@ -296,21 +335,21 @@ def digest_fleet(
 
             try:
                 arc_delta = reflection_mod.reflect(subject, subject_events, provider=provider)
-            except ValueError as exc:
-                log.error("digest_fleet: reflection failed for subject=%s: %s", subject, exc)
+            except Exception:
+                log.warning("digest_fleet: reflection pending for subject=%s", subject)
                 continue
 
             arc_ev = kernel_event(
-                "character_evolved",
+                "character_reflected",
                 day=arc_day,
                 scene=arc_scene,
                 summary=f"{subject} arc: {arc_delta.get('value', '')}",
                 actors=[subject],
                 deltas={
                     "id": subject,
-                    "predicate": arc_delta.get("predicate", "arc"),
+                    "predicate": "arc",
+                    "source_ids": [event["id"] for event in subject_events],
                     "value": arc_delta.get("value", ""),
-                    "op": "evolve",
                 },
             )
             store.append(arc_ev)

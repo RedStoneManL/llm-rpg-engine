@@ -171,7 +171,7 @@ def run_lore(registry, store, world: dict, *, protagonist=None, previous_day=Non
         # Intermediate days have no foreground action. At the destination the
         # final day gets its usual turn roll; remote towns get a calendar tick.
         ordinary = ln.get('complexity') in ('simple', 'medium')
-        local = cur_town is not None and ln.get('anchor') == cur_town
+        local = bool(ln.get('anchor') and ln['anchor'] in (cur_town, protagonist))
         already = recorded.get(lid, set())
         idx = ln.get('stage_idx', -1)
         if ordinary and ln.get('anchor'):

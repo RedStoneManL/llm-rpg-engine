@@ -47,14 +47,32 @@ def _scene_ordinals(events):
             scenes.append(sc)
     return {sc: i + 1 for i, sc in enumerate(scenes)}, len(scenes)
 
+def thread_progress_ordinals(events):
+    """Anchor an advance to its visit, even when a venue is visited again."""
+    first_visit, advanced = {}, {}
+    visit, previous = 0, object()
+    for event in events:
+        scene = event.get("scene")
+        if scene != previous:
+            visit += 1
+            previous = scene
+            first_visit.setdefault(scene, visit)
+        if event.get("type") in {"thread_open", "thread_advance"}:
+            delta = event.get("deltas") or {}
+            tid = delta.get("id") or delta.get("thread_id")
+            if tid:
+                advanced[tid] = visit
+    return first_visit, advanced, visit
+
+
 def thread_due_scores(events, threads, oracle):
     """Per active non-dormant thread: due = scenes_since_advance / cadence(speed) * jitter."""
-    ords, total = _scene_ordinals(events)
+    ords, advanced, total = thread_progress_ordinals(events)
     scores = []
     for tid, th in threads.items():
         if th.get("status") == "已解锁" or th.get("dormant"):
             continue
-        last_ord = ords.get(th.get("last_advanced_scene"), 0)
+        last_ord = advanced.get(tid, ords.get(th.get("last_advanced_scene"), 0))
         since = total - last_ord
         cadence = SPEED_CADENCE.get(th.get("speed"), 6)
         jitter = 0.7 + 0.6 * oracle.random()

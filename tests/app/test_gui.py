@@ -825,13 +825,13 @@ def test_dashboard_undo_rebuilds_catchup_scope_from_surviving_action(tmp_path):
     dashboard.engine.cascade_provider = catchup
     second = dashboard.action(player_input="第二段观察", action_id="undo-catchup-second",
                               expected_revision=dashboard.state()["revision"])
-    assert catchup.calls == []
+    assert not any("状态推演模块" in system for system, _ in catchup.calls)
 
     dashboard.undo(expected_revision=second["revision"])
     assert dashboard.previous_scene is not None
     dashboard.action(player_input="撤销后的观察", action_id="undo-catchup-third",
                      expected_revision=dashboard.state()["revision"])
-    assert catchup.calls == []
+    assert not any("状态推演模块" in system for system, _ in catchup.calls)
     assert all(event["type"] != "character_evolved"
                for event in dashboard.engine.store.iter_events())
     dashboard.engine.store.close()

@@ -122,15 +122,15 @@ def test_digest_fleet_high_importance_triggers_reflection():
 
         assert len(arc_events) >= 1, f"Expected at least one arc event, got {arc_events}"
 
-        # The arc event must be a character_evolved event
+        # The arc event must be a character_reflected event
         arc_ev = arc_events[0]
-        assert arc_ev["type"] == "character_evolved"
+        assert arc_ev["type"] == "character_reflected"
         assert arc_ev["deltas"]["predicate"] == "arc"
         assert "ryn" in arc_ev["deltas"]["value"] or "叛徒" in arc_ev["deltas"]["value"] or arc_ev["deltas"]["value"]
 
         # The arc event should be appended to the store
         all_events = list(store.iter_events())
-        evolved = [e for e in all_events if e["type"] == "character_evolved"]
+        evolved = [e for e in all_events if e["type"] == "character_reflected"]
         assert len(evolved) >= 1
     finally:
         store.close()
@@ -148,7 +148,7 @@ def test_digest_fleet_reflection_receives_public_events_only():
             def complete(self, system, user, **kwargs): self.inputs.append(user); return super().complete(system, user, **kwargs)
         provider = Capture()
         out = digest_fleet(registry, store, [public, private], world, provider=provider, importance_provider=provider, threshold=8)
-        assert any(e['type'] == 'character_evolved' for e in out)
+        assert any(e['type'] == 'character_reflected' for e in out)
         joined = '\n'.join(provider.inputs)
         assert 'PUBLIC_CONTROL' in joined and 'PRIVATE_SENTINEL' not in joined and 'PRIVATE_MEMORY_ID' not in joined
     finally: store.close()
@@ -549,3 +549,28 @@ def test_recompress_repair_loop_uses_repaired_result():
         assert len(recap.calls) == 3
     finally:
         store.close()
+
+
+def test_separate_turns_reflect_public_experiences_and_only_write_arc():
+    from loop.fleet import digest_fleet
+    reg = _make_registry()
+    with _open_temp_store(reg) as store:
+        store.append(_make_character_created_event("aria"))
+        ids = []
+        for turn, value in enumerate(["警惕", "迟疑", "笃定"], 1):
+            event = kernel_event("character_evolved", day=1, turn=turn, scene="s",
+                                 summary=value, deltas={"id":"aria","predicate":"mood","value":value})
+            store.append(event)
+            ids.append(event["id"])
+            # At threshold on turn 2 the writer attempts to grant knowledge.
+            # The next turn retries with the original, still pending history.
+            reply = ('{"predicate":"knows:暗号","value":"秘密"}' if turn == 2
+                     else '{"predicate":"arc","value":"开始独立判断"}')
+            out = digest_fleet(reg, store, [event], project(reg, store.iter_events()),
+                               provider=FakeLLMProvider(responses=[reply, reply]),
+                               threshold=4, record_narration=False)
+            assert len(out) == (turn == 3)
+        assert out[0]["deltas"]["source_ids"] == ids
+        graph = project(reg, store.iter_events())["systems"]["ontology"]
+        assert graph.value_at("aria", "knows:暗号", 1) is None
+        assert graph.value_at("aria", "arc", 1) == "开始独立判断"

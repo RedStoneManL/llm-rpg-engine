@@ -110,13 +110,9 @@ def reflect(subject: str,
         log.debug("reflect attempt=%d raw=%r", attempt, raw[:80])
 
         result = _extract_json_object(raw)
-        if result is not None and isinstance(result, dict):
-            # Ensure required keys exist
-            if "predicate" not in result:
-                result["predicate"] = "arc"
-            if "value" not in result:
-                result["value"] = raw.strip()
-            return result
+        if (isinstance(result, dict) and result.get('predicate') == 'arc'
+                and isinstance(result.get('value'), str) and result['value'].strip()):
+            return {'predicate': 'arc', 'value': result['value'].strip()}
 
     # Both attempts failed
     raise ValueError(

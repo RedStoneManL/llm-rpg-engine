@@ -52,7 +52,7 @@ class CharacterSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"character_created", "character_evolved", "relationship_changed"}
+        return {"character_created", "character_evolved", "character_reflected", "relationship_changed"}
 
     def commit_sections(self) -> set[str]:
         return {"cast"}
@@ -106,9 +106,9 @@ class CharacterSystem(ContextSystem):
             g.get_entity(pid).attrs["last_update"] = day
             log.debug("character_created id=%s tier=%s", pid, tier)
 
-        elif t == "character_evolved":
+        elif t in {"character_evolved", "character_reflected"}:
             pid = d.get("id")
-            predicate = d.get("predicate")
+            predicate = "arc" if t == "character_reflected" else d.get("predicate")
             value = d.get("value")
             if not pid or not predicate or value is None:
                 log.warning(

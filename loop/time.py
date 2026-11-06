@@ -75,7 +75,10 @@ def stale_entering_scope(
     new_scope = set(new_scene.get("present") or [])
 
     result = []
-    for eid in sorted(new_scope - prev_scope):
+    pending = world["systems"].get("time", {}).get("pending", {})
+    due = (new_scope - prev_scope) | (new_scope & pending.keys())
+    due.discard(new_scene.get("protagonist"))
+    for eid in sorted(due, key=lambda key: (key not in pending, pending.get(key, now), key)):
         e = g.get_entity(eid)
         if e is None or e.tier != "tracked" or e.etype not in {"Person", "Place"}:
             continue
@@ -196,16 +199,24 @@ def run_catchup(
     if not ids:
         return []
 
+    appended = []
+    pending = world["systems"].get("time", {}).get("pending", {})
     if len(ids) > CATCHUP_BUDGET:
         log.info(
             "catchup: budget %d hit; %d deferred: %s",
             CATCHUP_BUDGET, len(ids) - CATCHUP_BUDGET, ids[CATCHUP_BUDGET:],
         )
+        newly_deferred = [eid for eid in ids[CATCHUP_BUDGET:] if eid not in pending]
+        if newly_deferred:
+            event = kernel_event("catchup_deferred", day=now, turn=_next_turn(store),
+                                 scene=new_scene.get("id") or "scene", summary="离场变化待补算",
+                                 deltas={"ids": newly_deferred})
+            store.append(event)
+            appended.append(event)
         ids = ids[:CATCHUP_BUDGET]
 
     g = world["systems"]["ontology"]
     turn = _next_turn(store)
-    appended = []
     scene_id = new_scene.get("id") or new_scene.get("location") or "scene"
     context = new_scene.get("summary", "") or f"当前场景 {scene_id}"
 
@@ -279,7 +290,7 @@ def run_catchup(
                     )
                     store.append(ev_mood)
                     appended.append(ev_mood)
-        else:
+        if not raw.get("changed") or eid in pending or lightweight_validate(raw, g, set()) is None:
             # changed:false or dropped → emit currency carrier so we don't re-ask
             ev_noop = kernel_event(
                 "time_advanced",

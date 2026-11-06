@@ -34,7 +34,7 @@ class TimeSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"time_advanced", "clock_advanced"}
+        return {"time_advanced", "clock_advanced", "catchup_deferred"}
 
     def commit_sections(self) -> set[str]:
         return {"clock"}
@@ -43,6 +43,11 @@ class TimeSystem(ContextSystem):
         return {}
 
     def apply(self, world: dict, event: dict) -> None:
+        if event["type"] == "catchup_deferred":
+            pending = world["systems"][self.name].setdefault("pending", {})
+            for eid in event["deltas"]["ids"]:
+                pending.setdefault(eid, event["day"])
+            return
         if event["type"] == "clock_advanced":
             # Band depends only on dbands (whole days never move the band).
             # meta.day is set by projection from event["day"]; we fold band here.
@@ -56,6 +61,7 @@ class TimeSystem(ContextSystem):
         d = event.get("deltas", {})
         pid = d.get("id")
         if pid:
+            world["systems"][self.name].get("pending", {}).pop(pid, None)
             entity = g.get_entity(pid)
             if entity is None:
                 log.warning("time_advanced dangling id=%s; last_update not stamped", pid)
