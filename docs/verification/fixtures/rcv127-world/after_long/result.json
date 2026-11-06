@@ -1,0 +1,1507 @@
+{
+  "advances": [
+    {
+      "id": "b_mill",
+      "day": 2,
+      "stage": 0
+    },
+    {
+      "id": "b_boats",
+      "day": 2,
+      "stage": 0
+    },
+    {
+      "id": "b_mill",
+      "day": 3,
+      "stage": 1
+    },
+    {
+      "id": "b_boats",
+      "day": 3,
+      "stage": 1
+    },
+    {
+      "id": "b_mill",
+      "day": 4,
+      "stage": 2
+    },
+    {
+      "id": "b_boats",
+      "day": 4,
+      "stage": 2
+    },
+    {
+      "id": "b_mill",
+      "day": 5,
+      "stage": 3
+    },
+    {
+      "id": "b_boats",
+      "day": 5,
+      "stage": 3
+    },
+    {
+      "id": "b_mill",
+      "day": 6,
+      "stage": 4
+    },
+    {
+      "id": "b_boats",
+      "day": 6,
+      "stage": 4
+    },
+    {
+      "id": "b_mill",
+      "day": 7,
+      "stage": 5
+    },
+    {
+      "id": "b_boats",
+      "day": 7,
+      "stage": 5
+    },
+    {
+      "id": "b_mill",
+      "day": 8,
+      "stage": 6
+    },
+    {
+      "id": "b_boats",
+      "day": 8,
+      "stage": 6
+    },
+    {
+      "id": "b_mill",
+      "day": 9,
+      "stage": 7
+    },
+    {
+      "id": "b_boats",
+      "day": 9,
+      "stage": 7
+    },
+    {
+      "id": "b_mill",
+      "day": 10,
+      "stage": 8
+    },
+    {
+      "id": "b_boats",
+      "day": 10,
+      "stage": 8
+    },
+    {
+      "id": "b_mill",
+      "day": 11,
+      "stage": 9
+    },
+    {
+      "id": "b_boats",
+      "day": 11,
+      "stage": 9
+    },
+    {
+      "id": "b_mill",
+      "day": 12,
+      "stage": 10
+    },
+    {
+      "id": "b_boats",
+      "day": 12,
+      "stage": 10
+    },
+    {
+      "id": "b_mill",
+      "day": 13,
+      "stage": 11
+    },
+    {
+      "id": "b_boats",
+      "day": 13,
+      "stage": 11
+    },
+    {
+      "id": "b_mill",
+      "day": 14,
+      "stage": 12
+    },
+    {
+      "id": "b_boats",
+      "day": 14,
+      "stage": 12
+    },
+    {
+      "id": "b_mill",
+      "day": 15,
+      "stage": 13
+    },
+    {
+      "id": "b_boats",
+      "day": 15,
+      "stage": 13
+    },
+    {
+      "id": "b_mill",
+      "day": 16,
+      "stage": 14
+    },
+    {
+      "id": "b_boats",
+      "day": 16,
+      "stage": 14
+    },
+    {
+      "id": "b_mill",
+      "day": 17,
+      "stage": 15
+    },
+    {
+      "id": "b_boats",
+      "day": 17,
+      "stage": 15
+    },
+    {
+      "id": "b_mill",
+      "day": 17,
+      "stage": 16
+    },
+    {
+      "id": "b_boats",
+      "day": 17,
+      "stage": 16
+    }
+  ],
+  "history": [
+    {
+      "turn": 1,
+      "day": 1,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 2,
+      "day": 1,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 3,
+      "day": 1,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 4,
+      "day": 2,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 5,
+      "day": 2,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 6,
+      "day": 2,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 7,
+      "day": 2,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 8,
+      "day": 3,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 1,
+        "b_boats": 1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 9,
+      "day": 3,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 1,
+        "b_boats": 1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 10,
+      "day": 3,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 1,
+        "b_boats": 1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 11,
+      "day": 3,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 1,
+        "b_boats": 1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 12,
+      "day": 4,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 2,
+        "b_boats": 2
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 13,
+      "day": 4,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 2,
+        "b_boats": 2
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 14,
+      "day": 4,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 2,
+        "b_boats": 2
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 15,
+      "day": 4,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 2,
+        "b_boats": 2
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 16,
+      "day": 5,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 3,
+        "b_boats": 3
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 17,
+      "day": 5,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 3,
+        "b_boats": 3
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 18,
+      "day": 5,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 3,
+        "b_boats": 3
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 19,
+      "day": 5,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 3,
+        "b_boats": 3
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 20,
+      "day": 6,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 4,
+        "b_boats": 4
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 21,
+      "day": 6,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 4,
+        "b_boats": 4
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 22,
+      "day": 6,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 4,
+        "b_boats": 4
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 23,
+      "day": 6,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 4,
+        "b_boats": 4
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 24,
+      "day": 7,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 5,
+        "b_boats": 5
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 25,
+      "day": 7,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 5,
+        "b_boats": 5
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 26,
+      "day": 7,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 5,
+        "b_boats": 5
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 27,
+      "day": 7,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 5,
+        "b_boats": 5
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 28,
+      "day": 8,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 6,
+        "b_boats": 6
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 29,
+      "day": 8,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 6,
+        "b_boats": 6
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 30,
+      "day": 8,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 6,
+        "b_boats": 6
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 31,
+      "day": 8,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 6,
+        "b_boats": 6
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 32,
+      "day": 9,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 7,
+        "b_boats": 7
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 33,
+      "day": 9,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 7,
+        "b_boats": 7
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 34,
+      "day": 9,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 7,
+        "b_boats": 7
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 35,
+      "day": 9,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 7,
+        "b_boats": 7
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 36,
+      "day": 10,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 8,
+        "b_boats": 8
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 37,
+      "day": 10,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 8,
+        "b_boats": 8
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 38,
+      "day": 10,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 8,
+        "b_boats": 8
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 39,
+      "day": 10,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 8,
+        "b_boats": 8
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 40,
+      "day": 11,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 9,
+        "b_boats": 9
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 41,
+      "day": 11,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 9,
+        "b_boats": 9
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 42,
+      "day": 11,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 9,
+        "b_boats": 9
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 43,
+      "day": 11,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 9,
+        "b_boats": 9
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 44,
+      "day": 12,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 10,
+        "b_boats": 10
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 45,
+      "day": 12,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 10,
+        "b_boats": 10
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 46,
+      "day": 12,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 10,
+        "b_boats": 10
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 47,
+      "day": 12,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 10,
+        "b_boats": 10
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 48,
+      "day": 13,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 11,
+        "b_boats": 11
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 49,
+      "day": 13,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 11,
+        "b_boats": 11
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 50,
+      "day": 13,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 11,
+        "b_boats": 11
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 51,
+      "day": 13,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 11,
+        "b_boats": 11
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 52,
+      "day": 14,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 12,
+        "b_boats": 12
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 53,
+      "day": 14,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 12,
+        "b_boats": 12
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 54,
+      "day": 14,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 12,
+        "b_boats": 12
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 55,
+      "day": 14,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 12,
+        "b_boats": 12
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 56,
+      "day": 15,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 13,
+        "b_boats": 13
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 57,
+      "day": 15,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 13,
+        "b_boats": 13
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 58,
+      "day": 15,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 13,
+        "b_boats": 13
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 59,
+      "day": 15,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 13,
+        "b_boats": 13
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 60,
+      "day": 16,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 14,
+        "b_boats": 14
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 61,
+      "day": 16,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 14,
+        "b_boats": 14
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 62,
+      "day": 16,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 14,
+        "b_boats": 14
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 63,
+      "day": 16,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 14,
+        "b_boats": 14
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 64,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 65,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 66,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 67,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 68,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 69,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 70,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 71,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 72,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 73,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 74,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 75,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 76,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 77,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 78,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 79,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 80,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 15,
+        "b_boats": 15
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 81,
+      "day": 17,
+      "band": 0,
+      "location": [
+        "b_market"
+      ],
+      "stages": {
+        "b_mill": 16,
+        "b_boats": 16
+      },
+      "main_state": "明"
+    }
+  ],
+  "request_count": 0,
+  "lines": {
+    "main_a": {
+      "id": "main_a",
+      "complexity": null,
+      "about": "查清北塔旧账的来历",
+      "secret": null,
+      "anchor": null,
+      "description": null,
+      "trigger": null,
+      "l3_anchor": null,
+      "stages": [],
+      "threshold": 50,
+      "stage_idx": -1,
+      "state": "明",
+      "clues_dropped": [],
+      "summary": "查清北塔旧账的来历",
+      "surfaced_turn": 0,
+      "born_day": 1,
+      "lifespan_days": null,
+      "last_advanced_day": 1
+    },
+    "b_mill": {
+      "id": "b_mill",
+      "complexity": "simple",
+      "about": "南桥水磨坊故障",
+      "secret": null,
+      "anchor": "b_town",
+      "description": "南桥水磨坊故障",
+      "trigger": "在南桥集市观察",
+      "l3_anchor": "b_market",
+      "stages": [
+        {
+          "hint": "水磨坊的轮轴传来断续的敲响"
+        },
+        {
+          "hint": "水磨坊的木轮停在浅水里"
+        },
+        {
+          "hint": "水磨坊门前堆起待磨的麦袋"
+        },
+        {
+          "hint": "磨坊匠人正检查断裂的木销"
+        },
+        {
+          "hint": "磨坊旁多了一堆新削的木料"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第6阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第7阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第8阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第9阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第10阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第11阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第12阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第13阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第14阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第15阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第16阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第17阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第18阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第19阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第20阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第21阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第22阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第23阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第24阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第25阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第26阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第27阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第28阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第29阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第30阶段"
+        }
+      ],
+      "threshold": 100,
+      "stage_idx": 16,
+      "state": "暗",
+      "clues_dropped": [
+        "水磨坊的轮轴传来断续的敲响",
+        "水磨坊的木轮停在浅水里",
+        "水磨坊门前堆起待磨的麦袋",
+        "磨坊匠人正检查断裂的木销",
+        "磨坊旁多了一堆新削的木料",
+        "水磨坊的变化继续演进第6阶段",
+        "水磨坊的变化继续演进第7阶段",
+        "水磨坊的变化继续演进第8阶段",
+        "水磨坊的变化继续演进第9阶段",
+        "水磨坊的变化继续演进第10阶段",
+        "水磨坊的变化继续演进第11阶段",
+        "水磨坊的变化继续演进第12阶段",
+        "水磨坊的变化继续演进第13阶段",
+        "水磨坊的变化继续演进第14阶段",
+        "水磨坊的变化继续演进第15阶段",
+        "水磨坊的变化继续演进第16阶段",
+        "水磨坊的变化继续演进第17阶段"
+      ],
+      "born_day": 1,
+      "lifespan_days": 40,
+      "last_advanced_day": 17
+    },
+    "b_boats": {
+      "id": "b_boats",
+      "complexity": "medium",
+      "about": "南桥渡船纠纷",
+      "secret": null,
+      "anchor": "b_town",
+      "description": "南桥渡船纠纷",
+      "trigger": "在南桥集市观察",
+      "l3_anchor": "b_market",
+      "stages": [
+        {
+          "hint": "渡船旁有人争论摆渡次序"
+        },
+        {
+          "hint": "渡船的缆绳被重新系到木桩上"
+        },
+        {
+          "hint": "等船的人排到了集市口"
+        },
+        {
+          "hint": "船夫在木牌上写下新的摆渡时刻"
+        },
+        {
+          "hint": "码头边有人清点等候的货物"
+        },
+        {
+          "hint": "渡船的变化继续演进第6阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第7阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第8阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第9阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第10阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第11阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第12阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第13阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第14阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第15阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第16阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第17阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第18阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第19阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第20阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第21阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第22阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第23阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第24阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第25阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第26阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第27阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第28阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第29阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第30阶段"
+        }
+      ],
+      "threshold": 100,
+      "stage_idx": 16,
+      "state": "暗",
+      "clues_dropped": [
+        "渡船旁有人争论摆渡次序",
+        "渡船的缆绳被重新系到木桩上",
+        "等船的人排到了集市口",
+        "船夫在木牌上写下新的摆渡时刻",
+        "码头边有人清点等候的货物",
+        "渡船的变化继续演进第6阶段",
+        "渡船的变化继续演进第7阶段",
+        "渡船的变化继续演进第8阶段",
+        "渡船的变化继续演进第9阶段",
+        "渡船的变化继续演进第10阶段",
+        "渡船的变化继续演进第11阶段",
+        "渡船的变化继续演进第12阶段",
+        "渡船的变化继续演进第13阶段",
+        "渡船的变化继续演进第14阶段",
+        "渡船的变化继续演进第15阶段",
+        "渡船的变化继续演进第16阶段",
+        "渡船的变化继续演进第17阶段"
+      ],
+      "born_day": 1,
+      "lifespan_days": 40,
+      "last_advanced_day": 17
+    }
+  },
+  "limitations": "Synthetic deterministic first 25 turns; run_lore active; unrelated background hooks disabled; native responses are local prompt replay, not HTTP."
+}

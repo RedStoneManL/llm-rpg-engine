@@ -1,0 +1,585 @@
+{
+  "history": [
+    {
+      "turn": 1,
+      "day": 1,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 2,
+      "day": 1,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 3,
+      "day": 1,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 4,
+      "day": 1,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 5,
+      "day": 1,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 6,
+      "day": 1,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 7,
+      "day": 1,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 8,
+      "day": 1,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 9,
+      "day": 1,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 10,
+      "day": 1,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 11,
+      "day": 1,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 12,
+      "day": 1,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 13,
+      "day": 1,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 14,
+      "day": 1,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 15,
+      "day": 1,
+      "band": 3,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": -1,
+        "b_boats": -1
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 16,
+      "day": 2,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 17,
+      "day": 2,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 18,
+      "day": 2,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 19,
+      "day": 2,
+      "band": 0,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 20,
+      "day": 2,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 21,
+      "day": 2,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 22,
+      "day": 2,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 23,
+      "day": 2,
+      "band": 1,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 24,
+      "day": 2,
+      "band": 2,
+      "location": [
+        "a_street"
+      ],
+      "stages": {
+        "b_mill": 0,
+        "b_boats": 0
+      },
+      "main_state": "明"
+    },
+    {
+      "turn": 25,
+      "day": 2,
+      "band": 2,
+      "location": [
+        "b_market"
+      ],
+      "stages": {
+        "b_mill": 1,
+        "b_boats": 1
+      },
+      "main_state": "明"
+    }
+  ],
+  "lines": {
+    "main_a": {
+      "id": "main_a",
+      "complexity": null,
+      "about": "查清北塔旧账的来历",
+      "secret": null,
+      "anchor": null,
+      "description": null,
+      "trigger": null,
+      "l3_anchor": null,
+      "stages": [],
+      "threshold": 50,
+      "stage_idx": -1,
+      "state": "明",
+      "clues_dropped": [],
+      "summary": "查清北塔旧账的来历",
+      "surfaced_turn": 0,
+      "accepted_by_player": true,
+      "born_day": 1,
+      "lifespan_days": null,
+      "last_advanced_day": 1
+    },
+    "b_mill": {
+      "id": "b_mill",
+      "complexity": "simple",
+      "about": "南桥水磨坊故障",
+      "secret": null,
+      "anchor": "b_town",
+      "description": "南桥水磨坊故障",
+      "trigger": "在南桥集市观察",
+      "l3_anchor": "b_market",
+      "stages": [
+        {
+          "hint": "水磨坊的轮轴传来断续的敲响"
+        },
+        {
+          "hint": "水磨坊的木轮停在浅水里"
+        },
+        {
+          "hint": "水磨坊门前堆起待磨的麦袋"
+        },
+        {
+          "hint": "磨坊匠人正检查断裂的木销"
+        },
+        {
+          "hint": "磨坊旁多了一堆新削的木料"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第6阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第7阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第8阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第9阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第10阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第11阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第12阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第13阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第14阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第15阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第16阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第17阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第18阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第19阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第20阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第21阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第22阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第23阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第24阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第25阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第26阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第27阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第28阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第29阶段"
+        },
+        {
+          "hint": "水磨坊的变化继续演进第30阶段"
+        }
+      ],
+      "threshold": 100,
+      "stage_idx": 1,
+      "state": "暗",
+      "clues_dropped": [
+        "水磨坊的轮轴传来断续的敲响",
+        "水磨坊的木轮停在浅水里"
+      ],
+      "born_day": 1,
+      "lifespan_days": 40,
+      "latest_clue": {
+        "text": "水磨坊的木轮停在浅水里",
+        "day": 2
+      },
+      "last_advanced_day": 2
+    },
+    "b_boats": {
+      "id": "b_boats",
+      "complexity": "medium",
+      "about": "南桥渡船纠纷",
+      "secret": null,
+      "anchor": "b_town",
+      "description": "南桥渡船纠纷",
+      "trigger": "在南桥集市观察",
+      "l3_anchor": "b_market",
+      "stages": [
+        {
+          "hint": "渡船旁有人争论摆渡次序"
+        },
+        {
+          "hint": "渡船的缆绳被重新系到木桩上"
+        },
+        {
+          "hint": "等船的人排到了集市口"
+        },
+        {
+          "hint": "船夫在木牌上写下新的摆渡时刻"
+        },
+        {
+          "hint": "码头边有人清点等候的货物"
+        },
+        {
+          "hint": "渡船的变化继续演进第6阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第7阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第8阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第9阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第10阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第11阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第12阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第13阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第14阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第15阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第16阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第17阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第18阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第19阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第20阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第21阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第22阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第23阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第24阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第25阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第26阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第27阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第28阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第29阶段"
+        },
+        {
+          "hint": "渡船的变化继续演进第30阶段"
+        }
+      ],
+      "threshold": 100,
+      "stage_idx": 1,
+      "state": "暗",
+      "clues_dropped": [
+        "渡船旁有人争论摆渡次序",
+        "渡船的缆绳被重新系到木桩上"
+      ],
+      "born_day": 1,
+      "lifespan_days": 40,
+      "latest_clue": {
+        "text": "渡船的缆绳被重新系到木桩上",
+        "day": 2
+      },
+      "last_advanced_day": 2
+    }
+  },
+  "return_request_sha256": "31852eb3fdb4c9b4fbe8108e72253cedda7e1d959addd12ed926011daf8d9b77"
+}

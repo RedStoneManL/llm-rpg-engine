@@ -951,7 +951,8 @@ def _run_turn_staged(
         # Same shape as digest/director/cascade: post-apply, tracer span, non-fatal.
         try:
             with get_tracer().span("lore", turn=turn_num_before):
-                lore_events = _backstage_call(store, run_lore, registry, store, new_world)
+                lore_events = _backstage_call(store, run_lore, registry, store, new_world,
+                                             protagonist=protagonist, previous_day=prev_day if prev_day is not None else 1)
             if lore_events:
                 new_world = project(registry, store.iter_events())
                 log.debug("run_turn: lore appended %d event(s)", len(lore_events))
@@ -1449,6 +1450,10 @@ def _run_demote_on_leave(registry, store, world: dict, protagonist: str | None,
     appended_count = 0
     for lid, ln in lines.items():
         if ln.get("state") != "明":
+            continue
+        # A promise the player accepted remains on the ledger until resolved.
+        # Ambient world lines can still be resequenced when attention shifts.
+        if ln.get('accepted_by_player'):
             continue
         anchor = ln.get("anchor")
 

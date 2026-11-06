@@ -153,6 +153,7 @@ class LoreSystem(ContextSystem):
                 "clues_dropped": [],
                 "summary": summary,
                 "surfaced_turn": event.get("turn"),
+                "accepted_by_player": True,
                 "born_day": born_day,
                 "lifespan_days": lifespan_days,
                 "last_advanced_day": born_day,
@@ -172,6 +173,8 @@ class LoreSystem(ContextSystem):
             if si is not None:
                 ln["stage_idx"] = si
             hint = d.get("hint")
+            if isinstance(hint, str) and hint:
+                ln['latest_clue'] = {'text': hint, 'day': event['day']}
             if hint and hint not in ln["clues_dropped"]:
                 ln["clues_dropped"].append(hint)
             ln["last_advanced_day"] = event.get("day")

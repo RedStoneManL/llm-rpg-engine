@@ -11,7 +11,7 @@ from kernel.events import kernel_event
 from kernel.projection import project
 from llm.provider import FakeLLMProvider
 from loop.strategy import AuthorStrategy
-from loop.turn import TurnRejected, run_turn
+from loop.turn import TurnRejected, run_turn, _run_demote_on_leave
 
 
 OBJECTIVE = {'kind': 'deliver', 'item': 'medicine', 'recipient': 'apothecary',
@@ -285,3 +285,39 @@ def test_delivery_promise_is_accepted_before_the_delivering_turn(game):
         run_turn(game.registry, game.store, game.world, _build_scene(game), '接任务并交药',
                  strategy=AuthorStrategy(), provider=FakeLLMProvider(json_responses=[proposal]), max_repairs=0)
     assert list(game.store.iter_events()) == before
+
+
+def test_waiting_away_preserves_promise_and_replays_world_ticks_on_undo(game, monkeypatch):
+    from loop.lore import create_lore_line
+    monkeypatch.setattr('loop.turn._run_demote_on_leave', _run_demote_on_leave)
+    for lid in ('mill', 'ferry'):
+        create_lore_line(game.store, {
+            'id': lid, 'complexity': 'medium', 'about': lid, 'anchor': 'stonebridge_market',
+            'l3_anchor': 'stonebridge_market', 'description': lid, 'trigger': '回访',
+            'stages': [{'hint': f'{lid} 进展{i}'} for i in range(3)], 'threshold': 100,
+        }, day=1, scene='stonebridge_market', turn=0, lifespan_days=20)
+    game.world = project(game.registry, game.store.iter_events())
+    dashboard = open_quest(game)
+    def ticks(engine):
+        return [(ev['deltas']['id'], ev['day'], ev['deltas']['stage_idx'])
+                for ev in engine.store.iter_events() if ev['type'] == 'lore_advanced']
+    text = '留在这里等两天，再决定怎么处理送药约定。'
+    rev = dashboard.state()['revision']
+    first = action(dashboard, candidate(bands=8), text=text, ident='wait-1', prose='两天过去，交药的期限已过。')
+    expected = [('mill', 2, 0), ('mill', 3, 1), ('ferry', 2, 0), ('ferry', 3, 1)]
+    assert ticks(game) == expected
+    assert '逾期' in first['state']['objectives']['active_quests'][0]['summary']
+    game.store.close()
+    reopened = build_engine(game.store.jsonl_path.parent, embedder=None)
+    try:
+        restored = PlayerDashboard(reopened, strategy=AuthorStrategy())
+        assert ticks(reopened) == expected
+        duplicate = restored.action(player_input=text, action_id='wait-1', expected_revision=rev)
+        assert duplicate['duplicate'] and ticks(reopened) == expected
+        restored.undo(expected_revision=restored.state()['revision'])
+        assert ticks(reopened) == []
+        assert [q['id'] for q in restored.state()['objectives']['active_quests']] == ['deliver_medicine']
+        action(restored, candidate(bands=8), text=text, ident='wait-again')
+        assert ticks(reopened) == expected
+    finally:
+        reopened.store.close()

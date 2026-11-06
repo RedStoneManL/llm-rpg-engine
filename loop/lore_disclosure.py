@@ -9,7 +9,7 @@ without a tool call (PUSH / station pattern):
   L0 index  (fetch_lore(line, 0)): lines whose anchor matches the current L2 town
                                     but l3_anchor is a different venue.
 
-Returns None when no active lines are in range.
+At the exact venue, up to three dated last clues can outlive ordinary expiry.
 """
 from __future__ import annotations
 
@@ -72,10 +72,17 @@ def station_push_fragment(registry, world: dict, scene: dict) -> str | None:
     lines = (world.get("systems", {}).get("lore") or {}).get("lines", {})
 
     l1_parts: list[str] = []   # at this exact venue → full L1
+    past: list[tuple[int, str, str]] = []
     l0_parts: list[str] = []   # same town, different venue → L0 index
 
     for lid, line in lines.items():
         if line.get("state") == "了结":
+            # An expired thread can leave something to investigate on return.
+            # Use only a dated, actually emitted hint at this exact venue.
+            if line.get('l3_anchor') == current_l3 and (line.get('resolved') or {}).get('by') == 'expiry':
+                clue = line.get('latest_clue')
+                if clue and type(clue['day']) is int:
+                    past.append((clue['day'], lid, clue['text']))
             continue
         # Ambient block is for 暗 lines ONLY; 明 lines live in the 明账 via LoreSystem.inject
         if line.get("state") != "暗":
@@ -102,7 +109,7 @@ def station_push_fragment(registry, world: dict, scene: dict) -> str | None:
             l0_parts.append(f"·[{lid}] {desc}")
             log.debug("station_push: L0 line=%s", lid)
 
-    if not l1_parts and not l0_parts:
+    if not l1_parts and not l0_parts and not past:
         return None
 
     # Step 4: format
@@ -114,4 +121,7 @@ def station_push_fragment(registry, world: dict, scene: dict) -> str | None:
         sections.append("【本镇其余风声】")
         sections.extend(l0_parts)
 
+    if past:
+        sections.append('【此地旧迹】过往的变化，可供现场查证。不要当作正在发生的事或角色已知的消息。')
+        sections.extend(f'·第{when}天：{hint}' for when, _, hint in sorted(past, reverse=True)[:3])
     return "\n".join(sections)

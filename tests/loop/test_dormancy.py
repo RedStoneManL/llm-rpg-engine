@@ -1,6 +1,9 @@
 """tests.loop.test_dormancy — ★6 dormancy gate for simple/medium 暗 lines.
 
-Rule (per spec):
+Scope: these original cases exercise single-day and expiry calls. Multi-day
+background progression in the normal turn path is covered in test_world_continuity.
+
+Within a day:
 - simple/medium 暗 lines anchored to town A are DORMANT when the protagonist is
   NOT in town A → run_lore SKIPS the 暗骰 advance (no lore_advanced) but still
   runs lifespan-expiry (quest_expired).

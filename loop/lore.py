@@ -1,10 +1,9 @@
 """loop.lore — lore creation helper + the per-turn 暗骰 hook (L1).
 
 create_lore_line: validate a pre-generated skeleton, append a lore_created event.
-run_lore: post-apply fleet hook (mirrors loop.director.run_director). For each
-active line, a seeded Oracle.d100() (rewind-safe via scene_seed) vs the line's
-threshold; on a pass, advance one stage and emit lore_advanced carrying that
-stage's clue. Cheap, no LLM, deterministic. Guarded by registry ownership so it
+run_lore: post-apply hook. Local and complex lines roll per turn; ordinary
+offscreen lines follow independent seeded game-day schedules. Each actual
+stage advance emits a dated lore_advanced clue. Cheap, no LLM, deterministic. Guarded by registry ownership so it
 is a clean no-op when LoreSystem is not registered.
 """
 from __future__ import annotations
@@ -76,8 +75,50 @@ def _is_protagonist_line(lid) -> bool:
     return isinstance(lid, str) and lid.startswith("pthread")
 
 
-def run_lore(registry, store, world: dict) -> list[dict]:
-    """Per-turn seeded 暗骰: advance each active line whose roll passes threshold."""
+def _stage_event(lid, stages, index, day, scene, turn, *, background=False):
+    stage = stages[index]
+    hint = stage.get("hint") if isinstance(stage, dict) else str(stage)
+    deltas = {"id": lid, "stage_idx": index, "hint": hint}
+    if background:
+        deltas["cadence"] = "world_day"
+    return kernel_event("lore_advanced", day=day, scene=scene, turn=turn,
+                        summary=f"暗线推进:{lid}→stage{index}", deltas=deltas)
+
+
+def _background_stages(line, lid, *, previous_day, until, seed, scene, turn, already):
+    """Emit actual dated stages for an elapsed interval, bounded by remaining stages.
+
+    A threshold of 50 gives one opportunity every two game days. A seeded
+    phase per line staggers different threads. Counting crossed slots directly
+    makes a single long wait and many short waits equivalent, including expiry.
+    """
+    stages = line.get("stages", [])
+    index = line.get("stage_idx", -1) + 1
+    born = line.get("born_day")
+    if previous_day is None or born is None or index >= len(stages):
+        return []
+    start = max(previous_day, born, line.get("last_advanced_day") or born)
+    lifespan = line.get("lifespan_days")
+    if lifespan is not None and not _is_protagonist_line(lid):
+        until = min(until, born + lifespan - 1)
+    rate = min(100, max(0, int(line.get("threshold", 50))))
+    if until <= start or not rate:
+        return []
+    phase = Oracle(scene_seed(seed, f"world-day:{lid}", born)).randint(0, 99)
+    start_slot = (start * rate + phase) // 100
+    end_slot = min((until * rate + phase) // 100, start_slot + len(stages) - index)
+    events = []
+    for slot in range(start_slot + 1, end_slot + 1):
+        if index in already:
+            break  # Caller provided a stale projection.
+        tick_day = (slot * 100 - phase + rate - 1) // rate
+        events.append(_stage_event(lid, stages, index, tick_day, scene, turn, background=True))
+        index += 1
+    return events
+
+
+def run_lore(registry, store, world: dict, *, protagonist=None, previous_day=None) -> list[dict]:
+    """Run local/complex turn rolls and independent calendar ticks between actions."""
     # Lazy import to avoid circular dependency: loop.lore ↔ loop.density ↔ loop.lore
     from loop.endgame import (  # noqa: PLC0415
         RESCUE_GRACE_STAGES,
@@ -100,36 +141,25 @@ def run_lore(registry, store, world: dict) -> list[dict]:
     _md = (world.get("meta", {}) or {}).get("day")
     day = _md if _md is not None else (events[-1]["day"] if events else 1)
 
-    already = {(e["deltas"].get("id"), e["deltas"].get("stage_idx"))
-               for e in events if e["type"] == "lore_advanced"}
+    # Stage indices restart at zero after demotion/resequencing. Only events
+    # from the current sequence can suppress an already emitted advance.
+    recorded = {}
+    for event in events:
+        if event['type'] == 'lore_advanced':
+            recorded.setdefault(event['deltas'].get('id'), set()).add(event['deltas'].get('stage_idx'))
+        elif event['type'] in {'lore_created', 'quest_created', 'quest_opened', 'quest_demoted'}:
+            recorded.pop(event['deltas'].get('id'), None)
 
-    # ---- Dormancy: resolve protagonist's current L2 town (★6) ----
-    # simple/medium 暗 lines whose anchor != cur_town are FROZEN (no 暗骰 advance).
-    # complex lines always brew. Expiry/finale still run for ALL lines.
-    # cur_town = None when protagonist is off-graph; all simple/medium treated dormant.
-    cur_town: str | None = None
-    g = (world.get("systems") or {}).get("ontology")
-    if g is not None:
-        # Find protagonist: first tracked Person in the ontology graph
-        protagonist_id: str | None = None
-        for eid, e in g.entities.items():
-            if getattr(e, "etype", None) == "Person" and getattr(e, "tier", None) == "tracked":
-                protagonist_id = eid
-                break
-        if protagonist_id is not None:
-            locs = g.neighbors(protagonist_id, "located_in", day)
-            if locs:
-                cur_l3 = locs[0]
-                # Walk up contained_by edges to find the L2 ancestor (town)
-                resolved = ancestor_of_level(g, cur_l3, day, 2)
-                if resolved is not None:
-                    cur_town = resolved
-                else:
-                    # Protagonist may already be at an L2 place directly
-                    ent = g.get_entity(cur_l3)
-                    if ent and getattr(ent, "attrs", {}).get("level") == 2:
-                        cur_town = cur_l3
-    log.debug("run_lore: protagonist cur_town=%s", cur_town)
+    cur_town = None
+    graph = (world.get("systems") or {}).get("ontology")
+    if graph is not None:
+        if protagonist is None:  # Compatibility with direct, pre-scene callers.
+            protagonist = ('protagonist' if graph.get_entity('protagonist') else
+                           next((eid for eid, e in graph.entities.items()
+                                 if e.etype == 'Person' and e.tier == 'tracked'), None))
+        locs = graph.neighbors(protagonist, 'located_in', day) if protagonist else []
+        if locs:
+            cur_town = ancestor_of_level(graph, locs[0], day, 2)
 
     appended: list[dict] = []
     for lid, ln in lines.items():
@@ -137,6 +167,21 @@ def run_lore(registry, store, world: dict) -> list[dict]:
             continue
         if ln.get("state", "暗") != "暗":
             continue  # only roll 暗 lines; skip 明 / 了结
+
+        # Intermediate days have no foreground action. At the destination the
+        # final day gets its usual turn roll; remote towns get a calendar tick.
+        ordinary = ln.get('complexity') in ('simple', 'medium')
+        local = cur_town is not None and ln.get('anchor') == cur_town
+        already = recorded.get(lid, set())
+        idx = ln.get('stage_idx', -1)
+        if ordinary and ln.get('anchor'):
+            elapsed = _background_stages(ln, lid, previous_day=previous_day,
+                                         until=day - 1 if local else day, seed=campaign_seed,
+                                         scene=scene, turn=next_turn, already=already)
+            for event in elapsed:
+                store.append(event)
+                appended.append(event)
+                idx = event['deltas']['stage_idx']
 
         # ---- B. Finale: pending_finale (set on a PRIOR turn by lifespan expiry) ----
         # Must be detected BEFORE the expiry block so it fires on subsequent turns,
@@ -205,38 +250,18 @@ def run_lore(registry, store, world: dict) -> list[dict]:
                 continue  # skip 暗骰-advancing this line this trip
         # ---- End expiry check ----
 
-        # ---- Dormancy gate (★6): freeze simple/medium 暗 lines when player is away ----
-        # Expiry/finale above must NOT be gated — they already ran and continued or fell through.
-        # Only the 暗骰 advance (and checkpoint rescue which only happens on advance) is frozen.
-        complexity_now = ln.get("complexity")
-        is_town_anchored = complexity_now in ("simple", "medium")
-        if is_town_anchored:
-            line_anchor = ln.get("anchor")
-            dormant = (cur_town is None) or (line_anchor != cur_town)
-            if dormant:
-                log.debug(
-                    "run_lore: %s (%s) DORMANT (cur_town=%s, anchor=%s) — skip 暗骰",
-                    lid, complexity_now, cur_town, line_anchor,
-                )
-                continue  # freeze: skip 暗骰 advance + checkpoint rescue this turn
-        # ---- End dormancy gate ----
-
+        if ordinary and not local:
+            continue  # No additional turn roll for an offscreen town.
         stages = ln.get("stages", [])
-        idx = ln.get("stage_idx", -1)
         if idx + 1 >= len(stages):
             continue  # at last stage; resolution is L4, not L1
         new_idx = idx + 1
-        if (lid, new_idx) in already:
+        if new_idx in already:
             continue  # idempotency: this stage advance is already in the store
         seed = scene_seed(campaign_seed, f"lore:{lid}", next_turn)
         roll = Oracle(seed).d100()  # 1..100
         if roll <= ln.get("threshold", 50):
-            st = stages[new_idx]
-            hint = st.get("hint") if isinstance(st, dict) else str(st)
-            ev = kernel_event("lore_advanced", day=day, scene=scene,
-                              summary=f"暗线推进:{lid}→stage{new_idx}",
-                              deltas={"id": lid, "stage_idx": new_idx, "hint": hint},
-                              turn=next_turn)
+            ev = _stage_event(lid, stages, new_idx, day, scene, next_turn)
             store.append(ev)
             appended.append(ev)
             log.debug("run_lore: %s advanced to stage %d (roll=%d<=%d)",
@@ -247,7 +272,7 @@ def run_lore(registry, store, world: dict) -> list[dict]:
             # Skip at the last stage — that uses the existing world-push surface path below.
             is_last_stage = (new_idx == len(stages) - 1)
             is_complex = ln.get("complexity") == "complex"
-            if is_complex and new_idx >= RESCUE_GRACE_STAGES and not is_last_stage:
+            if is_complex and not _is_protagonist_line(lid) and new_idx >= RESCUE_GRACE_STAGES and not is_last_stage:
                 rescue_oracle = Oracle(
                     scene_seed(campaign_seed, f"rescue:{lid}", new_idx)
                 )
