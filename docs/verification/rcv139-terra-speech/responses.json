@@ -1,0 +1,34 @@
+[
+  {
+    "key": "0:0",
+    "response": "{\"narration\": \"你对阿岚说：“青竹铃铛明晨响四次。”她抬眼看向你，轻轻点了点头。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"同场短暂交谈\"}]}"
+  },
+  {
+    "key": "0:1",
+    "response": "你对阿岚说：“青竹铃铛明晨响四次。”她抬眼看向你，轻轻点头，等你继续。"
+  },
+  {
+    "key": "0:2",
+    "response": "{\"supported\":true,\"reason\":\"正文所说原话和收件人均与已结算通信一致，人物点头无需持久状态。\"}"
+  },
+  {
+    "key": "1:0",
+    "response": "{\"narration\": \"你转向阿禾说：“赤陶水壶放在东窗。”她应了一声，顺着你指的方向看去。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"同场短暂交谈\"}]}"
+  },
+  {
+    "key": "1:1",
+    "response": "你转向阿禾说：“赤陶水壶放在东窗。”她应了一声，朝东窗看去。"
+  },
+  {
+    "key": "1:2",
+    "response": "{\"supported\":true,\"reason\":\"原话和收件人与宿主结算的通信相同，没有多余持久效果。\"}"
+  },
+  {
+    "key": "2:0",
+    "response": "{\"narration\": \"你离开客栈，沿着小路走到石桥集市。晨雾在摊位间渐渐散开。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"stonebridge_market\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"附近路程仍在晨间\"}]}"
+  },
+  {
+    "key": "2:1",
+    "response": "{\"supported\":true,\"reason\":\"移动结果为抵达集市，正文与时段一致。\"}"
+  }
+]

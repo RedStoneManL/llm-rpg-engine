@@ -139,7 +139,7 @@ def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=(),
             continue
         receipt_lines.append(
             f"- 收据 {receipt_id}：宿主已明确选定主角对当前公开同场的 {recipient} 说原话“{statement}”。"
-            "若记录该角色听到此句，只能提交逐字相同的 knowledge.heard_player（含此 receipt_id）；"
+            "这次明确发言由宿主负责逐字登记给该人，普通作者无需填写 knowledge.heard_player；"
             "它不是世界事实，也不能扩展到其他人、心理活动或未选定的话。"
         )
     if receipt_lines:

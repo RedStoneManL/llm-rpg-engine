@@ -247,3 +247,78 @@ def test_read_only_cli_question_does_not_consume_a_turn(tmp_path):
         assert engine.store.revision == revision
     finally:
         engine.store.close()
+
+
+def test_explicit_speech_omitted_by_author_is_recorded_per_utterance_and_before_departure():
+    from docs.verification.rcv130.probe import game, seed, propose, INN, MARKET, HERO
+    from engine.history import PlayerHistory
+
+    with game() as (engine, dash):
+        seed(engine, "character_created", id="keeper", op="create", name="阿岚", sketch="店主", goal="开店", tier="tracked")
+        seed(engine, "entity_moved", who="keeper", to=INN)
+        words = "等潮水退了再走。"
+        for i in range(2):
+            draft = propose("你把这句话说给阿岚。")
+            if i == 0:
+                draft["clock"] = [{"advance":True, "days":1, "bands":0, "reason":"交谈后等候"}]
+            else:
+                draft["moves"] = [{"who":HERO,"to":MARKET}]
+            engine.provider = FakeLLMProvider(json_responses=[draft], responses=[draft["narration"]])
+            initial = engine.store.revision
+            result = dash.action(player_input="我先交代一句话", action_id=f"say-{i}",
+                                 expected_revision=initial, recipient="keeper", statement=words)
+            duplicate = dash.action(player_input="我先交代一句话", action_id=f"say-{i}",
+                                    expected_revision=initial, recipient="keeper", statement=words)
+            assert duplicate["duplicate"] and duplicate["revision"] == result["revision"]
+        records = PlayerHistory(engine.store,HERO).locate(words, recipient="阿岚")["matches"]
+        assert [record["day"] for record in records] == [2, 1] and records[0]["ref"] != records[1]["ref"]
+        events = list(engine.store.iter_events())
+        last_receipt = [e for e in events if e["deltas"].get("source_kind") == "player_statement"][-1]
+        move = [e for e in events if e["type"] == "entity_moved" and e["deltas"].get("to")==MARKET][-1]
+        assert last_receipt["seq"] < move["seq"]
+        dash.undo(expected_revision=engine.store.revision)
+        assert len(PlayerHistory(engine.store,HERO).locate(words, recipient="阿岚")["matches"]) == 1
+
+
+def test_conditional_speech_is_delivered_only_after_the_actual_dated_arrival():
+    from docs.verification.rcv130.probe import game, seed, propose, INN, MARKET, HERO
+    from loop.turn import run_turn
+
+    with game() as (engine, dash):
+        seed(engine, "character_created", id="scribe", op="create", name="白禾", sketch="书记", goal="抄写", tier="tracked")
+        seed(engine, "entity_moved", who="scribe", to=MARKET)
+        scene = _build_scene(engine)
+        receipt = host_player_statement_receipt(engine.world, scene, recipient="scribe", statement="信已送达。",
+                                                arrival_destination=MARKET)
+        for move in (False, True):
+            proposal = propose("你动身。" if move else "你留在客栈。")
+            if move:
+                proposal["moves"] = [{"who":HERO,"to":MARKET,"arrive_day":2}]
+                proposal["clock"] = [{"advance":True,"days":1,"bands":0,"reason":"路程"}]
+            engine.provider = FakeLLMProvider(json_responses=[proposal], responses=[proposal["narration"]])
+            result = run_turn(engine.registry,engine.store,engine.world,scene,"前往集市" if move else "留在原地",
+                              strategy=dash.strategy,provider=engine.provider,trusted_player_statement_receipts=[receipt],
+                              enforce_player_knowledge_authority=True,enforce_player_travel=True)
+            engine.world = result.world
+            events = list(engine.store.iter_events())
+            receipts = [e for e in events if e["deltas"].get("source_kind") == "player_statement"]
+            assert len(receipts) == int(move)
+            if move:
+                arrival = next(e for e in reversed(events) if e["type"] == "entity_moved" and e["deltas"].get("who")==HERO)
+                assert receipts[0]["day"] == arrival["day"] == 2 and receipts[0]["seq"] > arrival["seq"]
+
+
+def test_final_publish_cannot_drop_host_speech_even_when_author_omitted_it(monkeypatch):
+    from docs.verification.rcv130.probe import game, seed, propose, INN
+    from loop.turn import TurnRejected
+    with game() as (engine, dash):
+        seed(engine,"character_created",id="keeper",op="create",name="阿岚",sketch="门卫",goal="值守",tier="tracked")
+        seed(engine,"entity_moved",who="keeper",to=INN)
+        owner = engine.registry.owner_of_event("knowledge_set")
+        monkeypatch.setattr(owner,"to_events",lambda *args,**kwargs: [])
+        before = engine.store.revision
+        engine.provider = FakeLLMProvider(json_responses=[propose()], responses=["你交代了原话。"])
+        with pytest.raises(TurnRejected,match="final publish violates the player-statement"):
+            dash.action(player_input="我交代一句话",action_id="omitted-event",expected_revision=before,
+                        recipient="keeper",statement="风停时开门。")
+        assert engine.store.revision == before and engine.store.get_action_receipt("omitted-event") is None

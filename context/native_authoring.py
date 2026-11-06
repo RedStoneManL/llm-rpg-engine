@@ -397,8 +397,59 @@ def host_player_statement_receipt(world: dict, scene: dict, *, recipient: str,
     }
 
 
+def delivered_receipts(scene, commit, receipts):
+    """Select host-chosen speech at the start or at the actual final arrival."""
+    actor = scene.get("protagonist")
+    moves = [move for move in commit.sections.get("moves") or []
+             if isinstance(move, dict) and move.get("who") == actor]
+    destination = moves[-1].get("to") if moves else None
+    delivered = []
+    for receipt in receipts:
+        when = receipt.get("when") if isinstance(receipt, dict) else None
+        if when == {"kind": "current_scene"} or (
+                destination is not None and when == {"kind": "matching_move", "to": destination}):
+            delivered.append(receipt)
+        elif not isinstance(when, dict) or when.get("kind") != "matching_move" or not when.get("to"):
+            raise ValueError("通信收据缺少有效的交付场景")
+    return delivered
+
+
+def bind_player_speech(commit, scene, receipts):
+    """Model declarations are optional. A matching explicit utterance belongs to the host."""
+    from kernel.turncommit import TurnCommit
+    rows = list(commit.sections.get("knowledge") or [])
+    declared = {row["receipt_id"] for row in rows if isinstance(row, dict)
+                and row.get("op") == "heard_player" and isinstance(row.get("receipt_id"), str)}
+    for receipt in delivered_receipts(scene, commit, receipts):
+        if receipt.get("id") not in declared:
+            rows.append({"op":"heard_player", "receipt_id":receipt.get("id"), "knower":receipt.get("recipient"),
+                         "speaker":receipt.get("speaker"), "statement":receipt.get("statement")})
+    if rows == (commit.sections.get("knowledge") or []):
+        return commit
+    return TurnCommit(commit.narration, {**commit.sections, "knowledge":rows})
+
+
+def order_explicit_speech(events, receipts, start_day):
+    """Current-scene words precede departure. Arrival words follow the effective move."""
+    at_start = {(r["speaker"], r["recipient"], r["statement"]) for r in receipts
+                if r.get("when") == {"kind":"current_scene"}}
+    starting, other, arriving = [], [], []
+    for event in events:
+        delta = event["deltas"]
+        if event["type"] == "knowledge_set" and delta.get("source_kind") == "player_statement":
+            key = (delta.get("via"), delta.get("knower"), delta.get("value"))
+            if key in at_start:
+                event["day"] = start_day
+                starting.append(event)
+            else:
+                arriving.append(event)
+        else:
+            other.append(event)
+    return starting + other + arriving
+
+
 def player_statement_receipt_errors(world: dict, scene: dict, commit, *,
-                                    receipts: Iterable[dict[str, object]] = ()) -> list[ValidationError]:
+                                    receipts: Iterable[dict[str, object]] = (), allow_repeat: bool = False) -> list[ValidationError]:
     """Validate the narrow host capability behind ``knowledge.heard_player``.
 
     This is deliberately usable by the ordinary turn gateway as well as the
@@ -517,7 +568,8 @@ def player_statement_receipt_errors(world: dict, scene: dict, commit, *,
             ))
             continue
         seen.add(marker)
-        if graph is not None and graph.value_at(recipient, f"knows:{fact_key}", day) is not None:
+        previous = graph.value_at(recipient, f"knows:{fact_key}", day) if graph else None
+        if previous is not None and (not allow_repeat or previous != statement):
             errors.append(ValidationError(
                 "knowledge", field, "existing_player_statement",
                 "已有该收件人的同一玩家陈述记录，不能覆盖",
@@ -539,7 +591,7 @@ def _is_player_statement_digest_key(fact_key: object) -> bool:
 
 def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iterable[dict[str, object]], *,
                                           receipts: Iterable[dict[str, object]] = (),
-                                          authorized_receipt_ids: Iterable[str] = ()) -> list[str]:
+                                          authorized_receipt_ids: Iterable[str] = (), enforce_delivery_time: bool = False) -> list[str]:
     """Fail closed if final payload events invent a player-statement record.
 
     ``produce_turn`` validates the declaration. This companion runs in the
@@ -614,6 +666,7 @@ def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iter
                  if graph is not None and isinstance(actor, str) and actor else [])
     current_location = locations[0] if len(locations) == 1 else None
     last_active_move_index: int | None = None
+    arrival_day = None
 
     for event_index, event in enumerate(events):
         if not isinstance(event, dict) or event.get("retracted"):
@@ -623,6 +676,7 @@ def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iter
             destination = deltas.get("to")
             current_location = destination if isinstance(destination, str) and destination else None
             last_active_move_index = event_index
+            arrival_day = event.get("day")
             continue
         if event.get("type") != "knowledge_set" or not isinstance(deltas, dict):
             continue
@@ -637,6 +691,11 @@ def player_statement_receipt_event_errors(world: dict, scene: dict, events: Iter
         else:
             matched.add(match)
             destination = expected[match]["destination"]
+            if enforce_delivery_time:
+                if destination is None and (last_active_move_index is not None or event.get("day") != day):
+                    errors.append("current-scene utterance must precede departure on the action-start day")
+                if destination is not None and event.get("day") != arrival_day:
+                    errors.append("arrival utterance must be dated to its actual arrival")
             if destination is not None and (
                     current_location != destination or last_active_move_index is None):
                 errors.append("final payload lacks an active effective arrival before a player-statement receipt")

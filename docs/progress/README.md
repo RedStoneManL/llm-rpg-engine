@@ -5,6 +5,8 @@
 
 当前接续分支：`handoff/codex-cloud-20261025`，不要误从旧 `main` 恢复。
 
+**当前验收至 RCV-139。** [体验与架构 HTML](../reports/2026-11-07/experience-repairs.html) · [宿主发言、百回合及最新门禁](../verification/RCV-139-host-speech-and-endurance.md)
+
 ## 阅读顺序
 
 1. [Codex Cloud 完整交接说明](CODEX_CLOUD_HANDOFF.md)：用户目标、实际能力、限制、测试环境及下一步。

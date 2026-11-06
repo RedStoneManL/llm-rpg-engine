@@ -2364,3 +2364,5 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
 - 2026-11-07：RCV-137 修复“空柜原文被用来证明找到账簿”。调查按真实观察分支，玩家可从任务簿查下一处并打开现场原文。结案单独核对证据，失败保留未结状态。门禁 2262 passed / 1 deselected。[记录](../verification/RCV-137-investigation-routes.md)。
 
 - 2026-11-07：RCV-138 直接按日期、历史收件人及原文查证，可翻页并打开邻文；普通输入框的明确回忆问题不推进回合。四回合 Terra 实际从空柜查到市场并引用原文结案。另外复现明确发言却漏收据，留给下一阶段修复。完整门禁 2264 passed / 1 deselected。[验证](../verification/RCV-138-source-questions.md)。
+
+- 2026-11-07：RCV-139 明确发言不再依赖作者填写 knowledge，开始日同场发言、抵达后发言、重复 utterance、重复请求、撤回均核验。Terra 两人短局修前遗漏和修后成功分开留档。所有后台开启的确定性百回合运行，3 条线各走 10 段、4 次冷重开，世界与角色知识一致。完整门禁 **2267 passed, 1 deselected in 53.01s**。[验收与复跑](../verification/RCV-139-host-speech-and-endurance.md)。

@@ -1,0 +1,62 @@
+{
+  "ordinary_actions": 100,
+  "cold_reopens": {
+    "25": {
+      "day": 3,
+      "stage": 1,
+      "reopened_revision": 29
+    },
+    "50": {
+      "day": 6,
+      "stage": 4,
+      "reopened_revision": 56
+    },
+    "75": {
+      "day": 8,
+      "stage": 6,
+      "reopened_revision": 81
+    },
+    "100": {
+      "day": 11,
+      "stage": 9,
+      "reopened_revision": 106
+    }
+  },
+  "hooks_disabled": [],
+  "model": "deterministic offline fixtures",
+  "active_events": 508,
+  "types": {
+    "campaign_seeded": 1,
+    "place_created": 4,
+    "place_linked": 1,
+    "character_created": 3,
+    "entity_moved": 5,
+    "lore_created": 3,
+    "variation_sampled": 100,
+    "clock_advanced": 100,
+    "quest_opened": 1,
+    "narration_recorded": 100,
+    "oracle_roll": 27,
+    "thread_open": 5,
+    "lore_seeded": 2,
+    "knowledge_set": 3,
+    "world_change": 2,
+    "lore_advanced": 30,
+    "route_changed": 2,
+    "scene_advanced": 12,
+    "scene_summarized": 49,
+    "director_fired": 15,
+    "directive_consumed": 22,
+    "recap_recompressed": 8,
+    "time_advanced": 2,
+    "quest_resolved": 1,
+    "density_refreshed": 3,
+    "thread_advance": 7
+  },
+  "foreground_provider_calls": {
+    "author": 101,
+    "prose_review": 101,
+    "final_prose": 3,
+    "evidence_review": 2
+  }
+}

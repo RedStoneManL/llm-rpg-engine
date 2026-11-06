@@ -466,6 +466,7 @@ def produce_turn(
         candidate_errors.extend(delivery_errors(commit, world))
         candidate_errors.extend(player_statement_receipt_errors(
             world, scene, commit, receipts=trusted_player_statement_receipts,
+            allow_repeat=enforce_player_knowledge_authority,
         ))
         if enforce_player_knowledge_authority:
             candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
@@ -631,6 +632,12 @@ def produce_turn(
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
     if not dropped_sections:
+        if enforce_player_knowledge_authority and trusted_player_statement_receipts:
+            from context.native_authoring import bind_player_speech
+            try:
+                commit = bind_player_speech(commit, scene, trusted_player_statement_receipts)
+            except ValueError as exc:
+                raise TurnRejected("invalid host communication receipt") from exc
         settle_investigations = getattr(strategy, "settle_investigations", None)
         if enforce_player_quest_authority and callable(settle_investigations):
             commit = settle_investigations(commit, world, provider)
@@ -687,6 +694,8 @@ def apply_turn(
     day: int,
     scene: str,
     observer: str | None = None,
+    explicit_receipts=(),
+    speech_start_day=None,
 ) -> dict:
     """Apply a TurnCommit: explode to events, append to store, project world.
 
@@ -733,6 +742,9 @@ def apply_turn(
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
+    if explicit_receipts:
+        from context.native_authoring import order_explicit_speech
+        events = order_explicit_speech(events, explicit_receipts, speech_start_day if speech_start_day is not None else day)
     if any(e['type'] in {'quest_opened', 'quest_resolved', 'item_transferred'} for e in events):
         try:
             validate_delivery_events(events, project(registry, store.iter_events()))
@@ -833,9 +845,13 @@ def _run_turn_staged(
 
         start = len(store.events)
         new_world = apply_turn(registry, store, commit, day=day, scene=scene_id,
-                               observer=protagonist if enforce_player_world_authority else None)
+                               observer=protagonist if enforce_player_world_authority else None,
+                               explicit_receipts=trusted_player_statement_receipts if enforce_player_knowledge_authority else (),
+                               speech_start_day=scene.get("day") or world["meta"].get("day") or 1)
         if (scene.get('_risk_check', {}).get('outcome') == '受挫'
-                and any(event['type'] != 'clock_advanced' for event in store.events[start:])):
+                and any(event['type'] != 'clock_advanced' and
+                        not (event['type'] == 'knowledge_set' and event['deltas'].get('source_kind') == 'player_statement')
+                        for event in store.events[start:])):
             raise TurnRejected('failed check cannot publish foreground gains')
         lead = scene.get('_investigation_lead')
         if lead:
@@ -1309,6 +1325,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             travel_world, travel_scene, events,
             receipts=trusted_player_statement_receipts,
             authorized_receipt_ids=authorized_player_statement_receipt_ids,
+            enforce_delivery_time=enforce_player_knowledge_authority,
         )
         if errors:
             raise TurnRejected("final publish violates the player-statement receipt boundary")
@@ -1419,12 +1436,17 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             host_discovery_records=host_discovery_records_for_turn,
             reveal_only_discovery_keys=reveal_only_discovery_keys,
             trusted_player_statement_receipts=trusted_player_statement_receipts)
-        authorized_player_statement_receipt_ids = tuple(
-            item['receipt_id']
-            for item in result.commit.sections.get('knowledge', [])
-            if (isinstance(item, dict) and item.get('op', 'told') == 'heard_player'
-                and isinstance(item.get('receipt_id'), str))
-        )
+        if enforce_player_knowledge_authority and trusted_player_statement_receipts:
+            from context.native_authoring import delivered_receipts
+            authorized_player_statement_receipt_ids = tuple(r["id"] for r in delivered_receipts(
+                scene, result.commit, trusted_player_statement_receipts))
+        else:
+            authorized_player_statement_receipt_ids = tuple(
+                item['receipt_id']
+                for item in result.commit.sections.get('knowledge', [])
+                if (isinstance(item, dict) and item.get('op', 'told') == 'heard_player'
+                    and isinstance(item.get('receipt_id'), str))
+            )
         graph = result.world.get('systems', {}).get('ontology')
         for (subject, predicate), value in scene.get('_resolved_values', {}).items():
             if graph.value_at(subject, predicate, result.world['meta'].get('day') or 1) != value:

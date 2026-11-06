@@ -46,7 +46,9 @@ def check_errors(commit, check):
     if not check or check["outcome"] != "受挫":
         return []
     return [ValidationError(key, "", "failed_check_effect", "检定受挫，本次只结算经过的时间。")
-            for key, rows in commit.sections.items() if key != "clock" and rows]
+            for key, rows in commit.sections.items() if key != "clock" and rows
+            and not (key == "knowledge" and isinstance(rows, list)
+                     and all(isinstance(row, dict) and row.get("op") == "heard_player" for row in rows))]
 
 
 class ChallengeSystem(ContextSystem):
