@@ -1,0 +1,218 @@
+{
+  "transcript": [
+    {
+      "turn": 1,
+      "input": "在柳溪镇街口，我当面遇见木匠林月，向她点头问好。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "街口，木匠林月停下脚步。你向她点头，她也点头回应，手里还拿着木工用的尺子。",
+        "revision": 2,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 2,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "街口，木匠林月停下脚步。你向她点头，她也点头回应，手里还拿着木工用的尺子。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "lin_yue",
+              "label": "林月（在柳溪镇街口遇见的木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "lin_yue",
+              "label": "林月（在柳溪镇街口遇见的木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "de5eaac4a4fa928b42e3c8a3"
+          }
+        }
+      },
+      "snapshot": {
+        "state": {
+          "revision": 2,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "街口，木匠林月停下脚步。你向她点头，她也点头回应，手里还拿着木工用的尺子。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "lin_yue",
+              "label": "林月（在柳溪镇街口遇见的木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "lin_yue",
+              "label": "林月（在柳溪镇街口遇见的木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "de5eaac4a4fa928b42e3c8a3"
+          }
+        },
+        "people": {
+          "protagonist": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          },
+          "lin_yue": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          }
+        },
+        "receipt_events": []
+      }
+    }
+  ]
+}

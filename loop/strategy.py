@@ -169,7 +169,7 @@ __STYLE__【narration 文风】__VERBOSITY__具体可感、不空泛；展示而
 
 【输出格式】返回**一个 JSON 对象**；下列每段都显式标了【必填】或【可选】，照此输出（文末另有一个完整范例，照抄它的结构）：
 - 【必填】narration：字符串，本回合面向玩家的叙事散文。
-- 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪；**没人移动 → 给 []**。
+- 【必填】moves：[{"who":移动的实体id, "to":目标地点id}]——谁移动到哪。首次在现场出现的新人物也要在这里记录出现地点，即使玩家和人物都站着没走。
 - 【必填】places：[{"id":..., "level":1|2|3, "kind":settlement|wilderness|dungeon|venue|region, "seed":一句话描述, "visibility":"public"}]——本回合**新出现**的地点；**没有 → 给 []**；普通玩家只能创建全新 public 前沿地点。若创建，必须在可选 links 段用恰好一条 public 边把它直连 action-start 当前位置；不得修改既有地点拓扑或实体化既有地点。
 - 【必填】cast：[{"id":..., "op":"create"|"evolve", "sketch":..., "goal":..., "name":可选}]——可创建全新的公开 NPC（不得复用任何既有 id，也不写 past/hidden）；对既有角色只可更新主角或当前公开在场人物的可观察 ``mood``/``state``。主角对当前公开人物的关系变化可用 op=relationship；**没有 → 给 []**。不得演化远方、隐藏或未发现角色，不能为普通玩家回合直接写其秘密、目标或全局关系。
 - 【必填】facts：[{"subject":实体id, "predicate":属性名, "value":值, "secrecy":"public"}]——普通玩家回合只可写主角自身的公开事实，或当前公开在场人物的 ``reported:主题`` 来源陈述；**没有 → 给 []**。局部地形/物理所见请用下方带 public_observation 的 world 段；不得为远方、隐藏地点、物品或 NPC 断言 canonical 真相，更不能写 restricted/secret。**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。
@@ -215,7 +215,8 @@ fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商�
  "facts":[{"subject":"npc_laozhe","predicate":"reported:火灾传闻","value":"我只听说镖局的人那天出现在附近","secrecy":"public"}],
  "knowledge":[{"op":"told","knower":"protagonist","fact_key":"npc_laozhe.reported:火灾传闻","value":"我只听说镖局的人那天出现在附近","via":"老者亲口"}],
  "clock":[{"advance":false,"days":0,"bands":0,"reason":"同一段对话，时间未实质推进"}]}
-——若主角移动了：moves 给 [{"who":"protagonist","to":"<地点id>"}]；若来了个有戏的新人：cast 给一条齐全的 {"id":"...","op":"create","sketch":"...","goal":"...","name":"..."}。
+——若主角移动了：moves 给 [{"who":"protagonist","to":"<地点id>"}]。
+——若正文让主人公当面遇见一个新人，同一回合用 cast.create 记录此人，并用 moves 将同一个 id 放在实际相遇的地点（当前位置或主角本回合实际抵达处）。例如在旅店见到领路人：cast 中建 guide，moves 中给 {"who":"guide","to":"该旅店的实际地点id"}。下一回合可据此再找到这个人。如果只是听说远方某个人，保留为转述，不为那个人填写本地位置。
 
 规则：
 1. 只在剧情真正发生该变化时才给对应段落；不要把布景细节（石板、树冠、手掌等）滥造成 entity。

@@ -91,6 +91,10 @@ class CharacterSystem(ContextSystem):
                           day=day, turn=turn, source_event=src)
             g.assert_fact(pid, "goal", goal,
                           day=day, turn=turn, source_event=src)
+            # The ordinary cast contract accepts a public display name. Keep it
+            # distinct from a secret identity and from the character's sketch.
+            if d.get('op') == 'create' and isinstance(d.get('name'), str) and d['name'].strip():
+                g.assert_fact(pid, 'name', d['name'].strip(), day=day, turn=turn, source_event=src)
             # Optional facets — only assert if present in deltas
             if "past" in d:
                 g.assert_fact(pid, "past", d["past"],
@@ -295,7 +299,7 @@ class CharacterSystem(ContextSystem):
                 out.append(kernel_event(
                     "character_created", day=day, scene=scene,
                     summary=f"{item.get('id', '?')} 登场",
-                    deltas=item, turn=turn,
+                    deltas={"op": "create", **item}, turn=turn,
                 ))
             elif op == "evolve":
                 out.append(kernel_event(

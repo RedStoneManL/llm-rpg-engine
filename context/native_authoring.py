@@ -85,27 +85,14 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
         for entity_id, entity in sorted(visible.entities.items()):
             if entity.etype == "Object" and actor in visible.neighbors(entity_id, "held_by", day):
                 inventory.append({"id": str(entity_id), "canonical_holder": str(actor)})
-        # ``_build_scene`` deliberately treats only tracked persons as its
-        # ordinary ``present`` cast.  A native author, however, may have just
-        # introduced a public, currently co-located source with a durable
-        # ``reported:*`` statement.  Losing that source on the next brief
-        # turns a provenance-preserving report into unusable history.  Include
-        # exactly those report-owning people (not every untracked canonical
-        # person) when their public projection says they share this scene.
+        # Tracked people get full character cards. A visible walk-on standing
+        # here can also be seen and addressed, just as in an arrival preview.
         present_ids = set(scene.get("present") or [])
         location = scene.get("location")
-        if canonical is not None and location:
-            for person_id, entity in visible.entities.items():
-                if entity.etype != "Person" or person_id == actor:
-                    continue
-                if location not in visible.neighbors(person_id, "located_in", day):
-                    continue
-                has_public_report = any(
-                    fact.predicate.startswith("reported:") and fact.secrecy == "public"
-                    for fact in canonical.current_facts(person_id)
-                )
-                if has_public_report:
-                    present_ids.add(person_id)
+        if location:
+            present_ids.update(person_id for person_id, entity in visible.entities.items()
+                               if entity.etype == "Person" and person_id != actor
+                               and location in visible.neighbors(person_id, "located_in", day))
         for person_id in sorted(present_ids):
             entity = visible.get_entity(person_id)
             if entity is None or entity.etype != "Person":
@@ -116,7 +103,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
             }:
                 continue
             observable = {}
-            for predicate in ("sketch", "mood", "state"):
+            for predicate in ("name", "sketch", "mood", "state"):
                 value = visible.value_at(person_id, predicate, day)
                 if value is not None:
                     observable[predicate] = _safe_value(value)
@@ -284,7 +271,7 @@ def _arrival_public_people(world: dict, scene: dict, *,
         if location not in visible.neighbors(person_id, "located_in", day):
             continue
         observable = {}
-        for predicate in ("sketch", "mood", "state"):
+        for predicate in ("name", "sketch", "mood", "state"):
             value = visible.value_at(person_id, predicate, day)
             if value is not None:
                 observable[predicate] = _safe_value(value)

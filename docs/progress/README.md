@@ -36,6 +36,8 @@
 
 ## 最近交付
 
+- 2026-11-07：[RCV-128 当面初遇、交谈和重访](../verification/RCV-128-encounter-continuity.md)，包含普通 GUI 与 Terra 原生回归。
+
 - 2026-11-07：[RCV-127 异地暗线与世界连续性](../verification/RCV-127-world-continuity.md)。[80 回合逐步对照](../reports/2026-11-07/world-continuity.html)展示玩家追同一条线时，两条远线的独立推进及回访。
 
 - 2026-11-04：RCV-126 将 HTML 同步到交付闭环 `f9127cf`，97模块、872符号，完整回归2220通过与Terra样本分层展示。

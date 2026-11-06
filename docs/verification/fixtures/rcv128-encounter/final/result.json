@@ -1,0 +1,935 @@
+{
+  "transcript": [
+    {
+      "turn": 1,
+      "input": "在柳溪镇街口，我当面遇见木匠林月，向她点头问好。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+        "revision": 2,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 2,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        }
+      },
+      "snapshot": {
+        "state": {
+          "revision": 2,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        },
+        "people": {
+          "protagonist": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          },
+          "carpenter_linyue": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          }
+        },
+        "receipt_events": []
+      }
+    },
+    {
+      "turn": 2,
+      "input": "我问林月：“你听说过枫桥镇的画师沈砚吗？”我只是在问，沈砚不在这里。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”",
+        "revision": 3,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 3,
+          "turn": 2,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        }
+      },
+      "snapshot": {
+        "state": {
+          "revision": 3,
+          "turn": 2,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        },
+        "people": {
+          "protagonist": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          },
+          "carpenter_linyue": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          }
+        },
+        "receipt_events": [
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "carpenter_linyue",
+              "fact_key": "protagonist.reported_player_statement:58b8cab07d3dd65988c6",
+              "value": "你听说过枫桥镇的画师沈砚吗？",
+              "via": "protagonist",
+              "source_kind": "player_statement"
+            }
+          },
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "protagonist",
+              "fact_key": "carpenter_linyue.reported:沈砚",
+              "value": "林月听人提过沈砚，但没有见过他，也不确定他现在在哪里",
+              "via": "林月亲口"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "turn": 3,
+      "input": "我沿路去枫桥镇集市。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你向林月道别，沿路来到枫桥镇集市。",
+        "revision": 4,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 4,
+          "turn": 3,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_square",
+              "label": "枫桥镇集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”",
+            "你向林月道别，沿路来到枫桥镇集市。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        }
+      },
+      "snapshot": {
+        "state": {
+          "revision": 4,
+          "turn": 3,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_square",
+              "label": "枫桥镇集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”",
+            "你向林月道别，沿路来到枫桥镇集市。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        },
+        "people": {
+          "protagonist": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "b_square"
+            ]
+          },
+          "carpenter_linyue": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          }
+        },
+        "receipt_events": [
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "carpenter_linyue",
+              "fact_key": "protagonist.reported_player_statement:58b8cab07d3dd65988c6",
+              "value": "你听说过枫桥镇的画师沈砚吗？",
+              "via": "protagonist",
+              "source_kind": "player_statement"
+            }
+          },
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "protagonist",
+              "fact_key": "carpenter_linyue.reported:沈砚",
+              "value": "林月听人提过沈砚，但没有见过他，也不确定他现在在哪里",
+              "via": "林月亲口"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "turn": 4,
+      "input": "我沿原路返回柳溪镇街口。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你沿原路回到柳溪镇街口，看见林月仍在这里。",
+        "revision": 5,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 5,
+          "turn": 4,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”",
+            "你向林月道别，沿路来到枫桥镇集市。",
+            "你沿原路回到柳溪镇街口，看见林月仍在这里。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        }
+      },
+      "snapshot": {
+        "state": {
+          "revision": 5,
+          "turn": 4,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初到镇上的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "认识两镇的居民"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "认识两镇的居民",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "柳溪镇街口，木匠林月正抱着一块木板。你向她点头，她停下脚步，也向你点了点头。",
+            "林月把木板往怀里托了托，说：“沈砚？我听人提过这个名字，可我没见过他，也说不准他现在在哪里。”",
+            "你向林月道别，沿路来到枫桥镇集市。",
+            "你沿原路回到柳溪镇街口，看见林月仍在这里。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "carpenter_linyue",
+              "label": "林月（抱着木板的柳溪镇木匠）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "07686e3314e8d9d14f540cc1"
+          }
+        },
+        "people": {
+          "protagonist": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          },
+          "carpenter_linyue": {
+            "attrs": {
+              "last_update": 1
+            },
+            "location": [
+              "a_square"
+            ]
+          }
+        },
+        "receipt_events": [
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "carpenter_linyue",
+              "fact_key": "protagonist.reported_player_statement:58b8cab07d3dd65988c6",
+              "value": "你听说过枫桥镇的画师沈砚吗？",
+              "via": "protagonist",
+              "source_kind": "player_statement"
+            }
+          },
+          {
+            "type": "knowledge_set",
+            "deltas": {
+              "knower": "protagonist",
+              "fact_key": "carpenter_linyue.reported:沈砚",
+              "value": "林月听人提过沈砚，但没有见过他，也不确定他现在在哪里",
+              "via": "林月亲口"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "person_id": "carpenter_linyue",
+  "observations": {
+    "name_visible_first": true,
+    "selected_conversation_committed": true,
+    "returned_recipient": true,
+    "remote_person_not_materialized": true,
+    "away_recipients_empty": true
+  },
+  "request_count": 4,
+  "generation": "gpt-6.1-terra local native exact-request replay",
+  "disabled_hooks": [
+    "digest_fleet",
+    "run_director",
+    "run_cascade",
+    "run_catchup",
+    "run_density",
+    "_run_demote_on_leave"
+  ],
+  "enabled": [
+    "normal PlayerDashboard",
+    "AuthorStrategy",
+    "run_lore",
+    "SQLite",
+    "host speech receipt"
+  ]
+}

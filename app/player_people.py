@@ -32,6 +32,9 @@ def player_present_people(world: dict[str, Any], scene: dict[str, Any]) -> list[
             continue
         observable = person.get("observable") if isinstance(person.get("observable"), dict) else {}
         label = observable.get("sketch") if isinstance(observable.get("sketch"), str) else person["id"]
+        name = observable.get('name')
+        if isinstance(name, str) and name.strip():
+            label = name if label in (name, person['id']) else f'{name}（{label}）'
         details = [
             {"name": label_name, "value": value}
             for key, label_name in _OBSERVABLE_LABELS.items()
