@@ -1,0 +1,29 @@
+{
+  "pickup": {
+    "status": "TurnRejected: player item change lies outside the local public authority boundary",
+    "revision_unchanged": true,
+    "holder": [
+      "stonebridge_inn"
+    ]
+  },
+  "recall": {
+    "query": "朱橘纸鹤停在第三块石头",
+    "hits": {
+      "hits": [],
+      "revision": 12
+    },
+    "in_last_eight": false,
+    "raw_narration_exists": true
+  },
+  "travel_wait": {
+    "location": {
+      "id": "stonebridge_market",
+      "label": "石桥集市",
+      "kind": "settlement"
+    },
+    "after_wait": {
+      "day": 1,
+      "band": "晨"
+    }
+  }
+}

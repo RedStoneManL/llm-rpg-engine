@@ -73,3 +73,5 @@
 - 同日：按用户要求集中进度文档；本次仅文档整理，不改变引擎行为，不将既有测试结果冒充本次重跑。
 
 - [RCV-131 行动与交易结算](../verification/RCV-131-action-settlement.md)
+
+- [RCV-132 本地原文与 Terra 连续游玩](../verification/RCV-132-original-sources.md)

@@ -35,7 +35,7 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 from app.engine import (build_engine, last_turn, new_game, projected_revision,
                         refresh_engine_world_if_advanced, reproject_engine_world, rewind)
 from app.play import _build_scene, _previous_scene_before_latest_action
-from app.player_recall import player_recall
+from app.player_recall import recall_with_sources
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
@@ -321,22 +321,9 @@ def build_player_state(engine) -> dict[str, Any]:
     narrations: list[str] = []
     narration_unavailable = False
     try:
-        history = engine.public_history()
+        narrations = engine.store.recent_player_narration()
     except ValueError:
-        # A public row that explicitly references private memory must remain
-        # fail-closed, but it should not make the rest of the read-only player
-        # state (map, inventory, tasks) unavailable.
-        history = []
         narration_unavailable = True
-    for event in history:
-        # ``public_history`` is a privacy DTO, not an active-history DTO: it
-        # intentionally retains the retracted marker for callers that need an
-        # audit view.  The player transcript must instead follow the projected
-        # world and never resurrect a rewound line on refresh/reopen.
-        if not event.get("retracted") and event.get("type") == "narration_recorded":
-            text = (event.get("deltas") or {}).get("text")
-            if isinstance(text, str):
-                narrations.append(text)
     codex = _public_codex(engine.world)
     objectives = _player_goal_and_quests(view, protagonist)
     # This is deliberately the same redacted current-scene projection used to
@@ -565,9 +552,18 @@ class PlayerDashboard:
             self._refresh_if_store_advanced()
             scene = _build_scene(self.engine)
             return {
-                "hits": player_recall(self.engine.registry, self.engine.world, scene, cleaned),
+                **recall_with_sources(self.engine, scene, cleaned),
                 "revision": projected_revision(self.engine),
             }
+
+    def open_source(self, ref):
+        from engine.history import PlayerHistory, StaleSource
+        with self.lock:
+            self._refresh_if_store_advanced()
+            try:
+                return PlayerHistory(self.engine.store, _build_scene(self.engine)['protagonist']).open(ref)
+            except StaleSource as exc:
+                raise GuiRequestError(str(exc)) from exc
 
     def set_steering(self, text: str | None) -> dict[str, Any]:
         """Set a local authoring preference without changing the campaign.
@@ -1004,6 +1000,8 @@ async function load(){try{const r=await fetch('/api/gm/state');const state=await
 })();"""
 
 
+_JS = _JS.replace('renderRecall(data.hits);', '''renderRecall(data.hits);for(const r of (data.sources||[])){const b=el('button','打开第'+r.day+'天回合'+r.turn+'的'+r.kind+'与邻文');b.onclick=async()=>{try{const d=await api('/api/recall/source?ref='+encodeURIComponent(r.ref));renderRecall([...d.before,d.source,...d.after].map(x=>(x.ref===r.ref?'〔命中〕':'')+'第'+x.day+'天 · 回合'+x.turn+' · '+x.kind+(x.recipient?' → '+x.recipient:'')+'：'+x.text))}catch(e){setStatus(e.message,true)}};$('recall-results').append(b);}''')
+
 class _QuietHandler(WSGIRequestHandler):
     def log_message(self, format, *args):
         log.info("gui http %s", format % args)
@@ -1101,6 +1099,9 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 body = _JS.encode("utf-8"); start_response("200 OK", [("Content-Type", "application/javascript; charset=utf-8"), ("Content-Length", str(len(body))), ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff")]); return [body]
             if method == "GET" and path == "/api/state":
                 return _json_response(start_response, "200 OK", dashboard.state())
+            if method == 'GET' and path == '/api/recall/source':
+                ref = parse_qs(environ.get('QUERY_STRING','')).get('ref',[''])[0]
+                return _json_response(start_response,'200 OK',dashboard.open_source(ref))
             if method == "GET" and path == "/api/recall":
                 query = parse_qs(environ.get("QUERY_STRING") or "", keep_blank_values=True).get("q", [])
                 if len(query) != 1:

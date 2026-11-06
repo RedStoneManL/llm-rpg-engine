@@ -787,24 +787,26 @@ def _run_turn_staged(
         prev_loc = _protagonist_location(world, protagonist)
         prev_day = (world.get("meta", {}) or {}).get("day")
 
-        commit, attempts, dropped_sections = produce_turn(
-            registry, world, scene, player_input,
-            strategy=strategy, provider=provider, embedder=embedder,
-            max_repairs=max_repairs, required_sections=required_sections,
-            enforce_player_travel=enforce_player_travel,
-            enforce_player_knowledge_authority=enforce_player_knowledge_authority,
-            enforce_player_world_authority=enforce_player_world_authority,
-            enforce_player_fact_authority=enforce_player_fact_authority,
-            enforce_player_entity_authority=enforce_player_entity_authority,
-            enforce_player_faction_authority=enforce_player_faction_authority,
-            enforce_player_place_authority=enforce_player_place_authority,
-            enforce_player_item_authority=enforce_player_item_authority,
-            enforce_player_quest_authority=enforce_player_quest_authority,
-            trusted_discovery_keys=trusted_discovery_keys,
-            host_discovery_records=host_discovery_records,
-            reveal_only_discovery_keys=reveal_only_discovery_keys,
-            trusted_player_statement_receipts=trusted_player_statement_receipts,
-        )
+        from engine.history import bind_author_history
+        with bind_author_history(store, protagonist):
+            commit, attempts, dropped_sections = produce_turn(
+                registry, world, scene, player_input,
+                strategy=strategy, provider=provider, embedder=embedder,
+                max_repairs=max_repairs, required_sections=required_sections,
+                enforce_player_travel=enforce_player_travel,
+                enforce_player_knowledge_authority=enforce_player_knowledge_authority,
+                enforce_player_world_authority=enforce_player_world_authority,
+                enforce_player_fact_authority=enforce_player_fact_authority,
+                enforce_player_entity_authority=enforce_player_entity_authority,
+                enforce_player_faction_authority=enforce_player_faction_authority,
+                enforce_player_place_authority=enforce_player_place_authority,
+                enforce_player_item_authority=enforce_player_item_authority,
+                enforce_player_quest_authority=enforce_player_quest_authority,
+                trusted_discovery_keys=trusted_discovery_keys,
+                host_discovery_records=host_discovery_records,
+                reveal_only_discovery_keys=reveal_only_discovery_keys,
+                trusted_player_statement_receipts=trusted_player_statement_receipts,
+            )
         if dropped_sections:
             raise TurnRejected('Action still contains invalid sections: ' + ', '.join(dropped_sections))
 
@@ -1400,7 +1402,11 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
                     'events': result.events,
                 },
             }
-        receipt = batch.publish(action_id=action_id or str(uuid4()), result_metadata=result_metadata)
+        source_record = None
+        if enforce_player_knowledge_authority and scene.get('protagonist') and player_input:
+            source_record = (scene['protagonist'], player_input)
+        receipt = batch.publish(action_id=action_id or str(uuid4()), result_metadata=result_metadata,
+                                **({'player_input_record': source_record} if source_record else {}))
     except BaseException:
         if hasattr(strategy, '__dict__'):
             strategy.__dict__.clear()

@@ -25,7 +25,7 @@ import threading
 import time
 from typing import Callable, Iterable, Any
 
-from app.player_recall import player_recall
+from app.player_recall import recall_with_sources
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
@@ -198,7 +198,8 @@ log = get_logger("app.play")
 _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
   /quit                — 退出游戏
-  /recall <关键词>       — 在记忆中搜索
+  /recall <关键词>       — 搜索已保存的原文与角色线索
+  /source <来源>        — 打开一次命中的原文及邻文
   /codex [关键词]        — 浏览公开世界设定
   /journal              — 查看最近公开叙事
   /status               — 查看当前公开位置、同场角色、背包与出口
@@ -548,12 +549,25 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         # the same POV/redaction boundary.  A guessed hidden id is not a
         # discovery mechanism.
         scene = _build_scene(engine)
-        hits = player_recall(engine.registry, engine.world, scene, q)
+        result = recall_with_sources(engine, scene, q)
+        hits = result['hits']
+        for record in result.get('sources', []):
+            out(f"原文和邻文：/source {record['ref']}")
         if hits:
             for h in hits[:5]:
                 out(f"[recall] {h}")
         else:
             out("[recall] 无")
+        return False
+
+    elif verb == 'source':
+        from engine.history import PlayerHistory, StaleSource
+        try:
+            data = PlayerHistory(engine.store, _build_scene(engine)['protagonist']).open(arg.strip())
+            for r in [*data['before'],data['source'],*data['after']]:
+                out(f"{'〔命中〕' if r is data['source'] else ''}第{r['day']}天 · 回合{r['turn']} · {r['kind']}：{r['text']}")
+        except StaleSource as exc:
+            out(str(exc))
         return False
 
     elif verb == "codex":

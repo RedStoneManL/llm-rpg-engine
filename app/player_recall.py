@@ -29,3 +29,14 @@ def player_recall(registry, world: dict, scene: dict, query: str, *, limit: int 
         hit.text for hit in kernel_recall(registry, query.strip(), visible_world, k=limit)
         if isinstance(getattr(hit, "text", None), str)
     ][:limit]
+
+
+def recall_with_sources(engine, scene, query):
+    from engine.history import PlayerHistory
+    records = PlayerHistory(engine.store,scene.get('protagonist')).search(query)
+    hits = [f"[第{r['day']}天 · 回合{r['turn']} · {r['kind']}] {r['text'][:180]}" for r in records]
+    hits.extend(player_recall(engine.registry,engine.world,scene,query))
+    result = {'hits':hits[:10]}
+    if records:
+        result['sources'] = records
+    return result

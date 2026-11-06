@@ -196,12 +196,7 @@ def build_engine(
 
 def last_turn(engine: Engine) -> int:
     """Return the maximum turn number across all (non-retracted) events, or 0 if none."""
-    max_t = 0
-    for ev in engine.store.iter_events():
-        t = ev.get("turn") or 0
-        if t > max_t:
-            max_t = t
-    return max_t
+    return engine.store.next_turn() - 1
 
 
 def last_turn_and_revision(engine: Engine) -> tuple[int, int]:

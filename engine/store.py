@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_day ON events(day);
 CREATE INDEX IF NOT EXISTS idx_events_scene ON events(scene);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+CREATE INDEX IF NOT EXISTS idx_active_turn ON events(turn) WHERE retracted=0;
 CREATE TABLE IF NOT EXISTS store_revision (
     singleton INTEGER PRIMARY KEY CHECK(singleton=1), revision INTEGER NOT NULL
 );
@@ -31,6 +32,10 @@ CREATE TABLE IF NOT EXISTS action_receipts (
     action_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
     first_seq INTEGER NOT NULL, last_seq INTEGER NOT NULL, revision INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS player_inputs (
+    action_id TEXT PRIMARY KEY, actor TEXT NOT NULL, body TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS player_inputs_actor ON player_inputs(actor);
 CREATE TABLE IF NOT EXISTS action_result_metadata (
     action_id TEXT PRIMARY KEY, metadata TEXT NOT NULL
 );
@@ -61,6 +66,8 @@ class EventStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
+        from engine.history import prepare_history_index
+        self.history_indexed = prepare_history_index(self._conn)
         self.preflight = None
         self.mirror_error = None
 
@@ -70,6 +77,26 @@ class EventStore:
     @property
     def revision(self) -> int:
         return self._conn.execute('SELECT revision FROM store_revision WHERE singleton=1').fetchone()[0]
+
+    def recent_player_narration(self, limit=8):
+        from systems.interpretive_memory import PRIVATE_EVENT_TYPES
+        private = tuple(PRIVATE_EVENT_TYPES)
+        slots = ','.join('?' for _ in private)
+        self._conn.execute('BEGIN')
+        try:
+            if self._conn.execute(f'SELECT 1 FROM events WHERE type IN ({slots}) LIMIT 1',private).fetchone():
+                unsafe = self._conn.execute(f'''SELECT 1 FROM events p,events e WHERE p.type IN ({slots})
+                    AND e.type NOT IN ({slots}) AND (p.id IN (SELECT value FROM json_each(e.thread_refs))
+                    OR p.id IN (SELECT value FROM json_each(e.chunk_ids))) LIMIT 1''', (*private,*private)).fetchone()
+                if unsafe:
+                    raise ValueError('public event references private memory')
+            rows = self._conn.execute('''SELECT json_extract(deltas,'$.text') FROM events
+                WHERE type='narration_recorded' AND retracted=0 AND (secrecy IS NULL OR secrecy IN ('null','"public"'))
+                AND json_type(deltas,'$.text')='text' AND json_extract(deltas,'$.text')!=''
+                ORDER BY seq DESC LIMIT ?''',(limit,)).fetchall()
+            return [r[0] for r in reversed(rows)]
+        finally:
+            self._conn.rollback()
 
     def next_turn(self) -> int:
         return self._conn.execute('SELECT COALESCE(MAX(turn),0)+1 FROM events WHERE retracted=0').fetchone()[0]
@@ -190,7 +217,7 @@ class EventStore:
             raise
 
     def append_many(self, events, *, expected_revision=None, action_id=None,
-                    preflight=None, final_validate=None, retractions=(), result_metadata=None):
+                    preflight=None, final_validate=None, retractions=(), result_metadata=None, player_input_record=None):
         """Publish a complete proposal atomically; JSONL is a recoverable mirror.
 
         All LLM work belongs before this short transaction. The preflight callback
@@ -240,6 +267,9 @@ class EventStore:
             if action_id:
                 self._conn.execute('INSERT INTO action_receipts VALUES (?,?,?,?,?)',
                                    (action_id, fingerprint, first, last, revision))
+                if player_input_record is not None and first:
+                    self._conn.execute('INSERT INTO player_inputs VALUES (?,?,?)',
+                                       (action_id, *player_input_record))
                 if result_metadata is not None:
                     self._insert_action_result_metadata(action_id, metadata_json)
             self._conn.commit()
@@ -480,7 +510,7 @@ class EventBatch:
                     ev.pop('retracted', None)
             raise
 
-    def publish(self, *, action_id=None, result_metadata=None):
+    def publish(self, *, action_id=None, result_metadata=None, player_input_record=None):
         events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
         for validator in self.publish_validators:
             validator(events)
@@ -497,4 +527,5 @@ class EventBatch:
         return self.store.append_many(events, expected_revision=self.revision,
                                       action_id=action_id, preflight=final_preflight,
                                       final_validate=final_validate,
-                                      retractions=self.retractions, result_metadata=result_metadata)
+                                      retractions=self.retractions, result_metadata=result_metadata,
+                                      **({'player_input_record': player_input_record} if player_input_record else {}))

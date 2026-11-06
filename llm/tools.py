@@ -736,7 +736,8 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
     interface; execute() catches every exception (DD3).
     """
     scene = {**scene, '_allow_pov_shift': dm}
-    tools: list[Tool] = []
+    from engine.history import author_source_tools
+    tools: list[Tool] = author_source_tools(scene.get("protagonist"))
 
     # --- map_query: geography / topology / fog-gated place facts ---
     tools.append(Tool(

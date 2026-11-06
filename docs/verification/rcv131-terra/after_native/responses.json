@@ -1,0 +1,6 @@
+[
+  "{\"narration\": \"你弯下腰，将旧铜灯放在客栈脚边。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"items\": [{\"op\": \"transfer\", \"item\": \"old_brass_lantern\", \"to\": \"stonebridge_inn\"}], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"放下铜灯只需片刻\"}]}",
+  "{\"narration\": \"你从脚边捡起旧铜灯，重新拿在手里。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"items\": [{\"op\": \"transfer\", \"item\": \"old_brass_lantern\", \"to\": \"protagonist\"}], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"捡起自己的铜灯只需片刻\"}]}",
+  "{\"narration\": \"你提着铜灯，沿客栈外的小路来到石桥集市。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"stonebridge_market\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短途步行尚未跨时段\"}]}",
+  "{\"narration\": \"你在集市等过白天与夜晚，直到第二天中午。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": true, \"days\": 1, \"bands\": 1, \"reason\": \"从今天早晨等到明天中午\"}]}"
+]
