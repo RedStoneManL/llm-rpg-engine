@@ -28,7 +28,7 @@ import json
 import hashlib
 from typing import Any
 from uuid import uuid4
-from loop.resources import prepare_resources, validate_resources
+from loop.resources import explicit_wait, prepare_resources, validate_resources
 from loop.narration_guard import validate_narration
 from context.capabilities import (discovery_grant_errors, player_turn_knowledge_errors,
                                   player_turn_knowledge_event_errors,
@@ -327,18 +327,8 @@ def advanced_day(world: dict, commit) -> int:
     Public — also used by app.play in compare mode so the 甲 commit stamps at
     the correct post-advance day rather than the pre-turn scene day.
     """
-    meta = world.get("meta", {})
-    cur_day = meta.get("day") or 1
-    cur_band = meta.get("band") or 0
-    decl = commit.sections.get("clock") or []
-    if (isinstance(decl, list) and decl and isinstance(decl[0], dict)
-            and decl[0].get("advance")):
-        ddays = int(decl[0].get("days", 0) or 0)
-        dbands = int(decl[0].get("bands", 0) or 0)
-    else:
-        ddays = dbands = 0
-    new_day, _new_band = _clock.advance(cur_day, cur_band, ddays, dbands)
-    return new_day
+    from kernel.action_effects import turn_end
+    return turn_end(world, commit.sections.get('clock'))[0]
 
 
 def produce_turn(
@@ -1292,10 +1282,31 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         strategy.reset()
     old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
     try:
+        wait = explicit_wait(player_input, world)
+        if wait:
+            scene = {**scene, '_resolved_clock':wait, '_resolution_prompt':f'等待结束时钟：{wait}。按此时刻写本次 clock。'}
+        payment, goods = None, None
+        def validate_purchase(events):
+            actual = [e for e in events if e['type'] == 'purchase_received' and not e.get('retracted')]
+            if actual != ([goods] if goods else []):
+                raise TurnRejected('purchase receipt differs from the settled exchange')
+            paid = [e for e in events if e['type'] == 'resources_resolved' and not e.get('retracted')
+                    and e['deltas'].get('purchase')]
+            if paid != ([payment] if payment else []):
+                raise TurnRejected('purchase has no matching payment')
+        batch.add_publish_validator(validate_purchase)
         if registry.owner_of_event('resources_resolved') is not None:
             resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
             if resolution:
                 batch.append(resolution)
+                purchase = resolution['deltas'].get('purchase')
+                if purchase:
+                    payment = copy.deepcopy(resolution)
+                    payment['turn'] = batch.turn
+                    goods = kernel_event('purchase_received', day=resolution['day'], scene=resolution['scene'],
+                                         turn=batch.turn, summary='购买并收到' + purchase['label'],
+                                         deltas={**purchase, 'payment_id': resolution['id']})
+                    batch.append(goods)
                 world = project(registry, batch.iter_events())
                 scene = {**scene, '_resolved_values':expected, '_resolution_prompt':prompt,
                          '_resolved_clock':resolution['deltas'].get('wait_until')}

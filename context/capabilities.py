@@ -18,6 +18,7 @@ import hashlib
 from typing import Any
 
 from context.access import current_public_people, pov_world
+from kernel.action_effects import transfer_sequence, turn_end
 from systems.knowledge import knows, place_discovery_key, route_discovery_key
 from kernel.contextsystem import ValidationError
 from loop.graph_utils import ancestor_of_level
@@ -826,53 +827,25 @@ def _ordinary_item_authority(world: dict, scene: dict) -> tuple[str | None, froz
     return actor, inventory, frozenset(local_targets)
 
 
-def player_turn_item_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
-    """Allow ordinary play to hand current inventory to public local targets.
-
-    The player-facing UI and authoring brief expose inventory, not the whole
-    object graph.  Constraining this section to a transfer from that inventory
-    keeps a useful normal action (give/drop an item) without letting ordinary
-    prose create assets or rewrite possession in remote/hidden scenes.
-    """
-    actor, inventory, targets = _ordinary_item_authority(world, scene)
-    if actor is None:
+def _item_sequence_errors(rows, world, scene):
+    actor, _, targets = _ordinary_item_authority(world, scene)
+    if not actor or not rows:
         return []
-    errors: list[ValidationError] = []
-    for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("items") or []):
-        if not isinstance(item, dict):
-            errors.append(_player_item_error("items", f"[{index}]",
-                                             "普通玩家回合的物品操作必须是本地公开交接。"))
-            continue
-        if (item.get("op") != "transfer" or item.get("item") not in inventory
-                or item.get("to") not in targets):
-            errors.append(_player_item_error(
-                "items", f"[{index}]",
-                "普通玩家回合只能把主角当前持有物品交给当前公开人物，或放在当前位置。",
-            ))
-    return errors
+    view = pov_world(world, scene, pov=actor)
+    graph = view.get('systems', {}).get('ontology')
+    day = scene.get('day') or world.get('meta', {}).get('day') or 1
+    return [_player_item_error('items', f'[{i}]', '按顺序交接手中物品，或拾回自己留在当前位置的物品。')
+            for i in transfer_sequence(graph, day, actor, scene.get('location'), targets, rows)]
 
 
-def player_turn_item_event_errors(events: list[dict], world: dict, scene: dict) -> list[ValidationError]:
-    """Final-payload companion for :func:`player_turn_item_errors`."""
-    actor, inventory, targets = _ordinary_item_authority(world, scene)
-    if actor is None:
-        return []
-    errors: list[ValidationError] = []
-    for index, event in enumerate(events):
-        if not isinstance(event, dict) or event.get("retracted"):
-            continue
-        event_type = event.get("type")
-        if event_type not in {"object_created", "item_transferred"}:
-            continue
-        delta = event.get("deltas")
-        valid = (event_type == "item_transferred" and isinstance(delta, dict)
-                 and delta.get("item") in inventory and delta.get("to") in targets)
-        if not valid:
-            errors.append(_player_item_error(
-                "items", f"event[{index}]",
-                "普通玩家回合的最终物品事件越过了本地公开背包边界。",
-            ))
-    return errors
+def player_turn_item_errors(commit, world, scene):
+    return _item_sequence_errors(commit.sections.get('items') or [], world, scene)
+
+
+def player_turn_item_event_errors(events, world, scene):
+    rows = [{**(e.get('deltas') or {}), 'op': 'transfer' if e['type'] == 'item_transferred' else 'create'}
+            for e in events if not e.get('retracted') and e['type'] in {'item_transferred', 'object_created'}]
+    return _item_sequence_errors(rows, world, scene)
 
 
 def _player_quest_error(section: str, field: str, hint: str) -> ValidationError:
@@ -1177,6 +1150,15 @@ def validate_protagonist_moves(
     allowed = capability.allowed_move_ids | {capability.location}
     errors: list[ValidationError] = []
     requires_narration_rewrite = narration_rewrite_from is not None
+    actor_moves = [row for row in commit.sections.get('moves') or [] if isinstance(row, dict) and row.get('who') == capability.actor]
+    if len(actor_moves) > 1:
+        errors.append(ValidationError('moves', '', 'outside_scene_capability', '一次普通行动只选一个目的地；抵达后再选择下一段。'))
+        requires_narration_rewrite = True
+    end_day = turn_end(world, commit.sections.get('clock'))[0]
+    for row in actor_moves:
+        if 'arrive_day' in row and row['arrive_day'] != end_day:
+            errors.append(ValidationError('moves', 'arrive_day', 'outside_scene_capability', '抵达日期须与本回合结束时钟一致。'))
+            requires_narration_rewrite = True
     for index, move in enumerate((getattr(commit, "sections", {}) or {}).get("moves") or []):
         if not isinstance(move, dict) or move.get("who") != capability.actor:
             continue
@@ -1267,6 +1249,11 @@ def validate_protagonist_move_events(events: list[dict], world: dict, scene: dic
     # events marked retracted are not allowed to create a discoverable place or
     # route for an otherwise invalid move.
     active_events = [event for event in events if not event.get("retracted")]
+    clock = [e['deltas'] for e in active_events if e['type'] == 'clock_advanced']
+    end_day = turn_end(world, clock)[0]
+    moves = [e for e in active_events if e['type'] == 'entity_moved' and e['deltas'].get('who') == capability.actor]
+    if len(moves) > 1 or any(e['day'] != end_day for e in moves):
+        errors.append(ValidationError('moves', '', 'outside_scene_capability', '最终移动必须是同一时钟下的一段合法旅程。'))
     grant_values = {}
     for event in active_events:
         delta = event.get("deltas") or {}

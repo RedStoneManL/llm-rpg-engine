@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import copy
 
-from kernel.clock import advance, band_name
+from kernel.clock import band_name
+from kernel.action_effects import turn_end
 from kernel.contextsystem import ValidationError
 from kernel.turncommit import TurnCommit
 
@@ -37,12 +38,7 @@ def _rows(commit, key):
 
 
 def _time(world, commit=None):
-    meta = world.get('meta', {})
-    day, band = meta.get('day') or 1, meta.get('band') or 0
-    if commit is not None:
-        for row in _rows(commit, 'clock')[:1]:
-            if row.get('advance'):
-                day, band = advance(day, band, row.get('days', 0), row.get('bands', 0))
+    day, band = turn_end(world, commit.sections.get('clock') if commit else None)
     return {'day': day, 'band': band}
 
 

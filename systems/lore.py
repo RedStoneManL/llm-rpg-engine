@@ -379,7 +379,12 @@ class LoreSystem(ContextSystem):
             return []
         errs: list[ValidationError] = []
         lines = (world.get("systems", {}).get(self.name) or {}).get("lines", {})
+        claimed = set()
         for i, item in enumerate(decl or []):
+            if item.get('op') == 'open' and isinstance(item.get('id'), str):
+                if item['id'] in claimed:
+                    errs.append(ValidationError(section, f'[{i}].id', 'duplicate_id', '不同委托必须分配不同标识。'))
+                claimed.add(item['id'])
             op = item.get("op")
             if 'objective' in item:
                 problems = (objective_problems(item['objective'], world) if op == 'open'

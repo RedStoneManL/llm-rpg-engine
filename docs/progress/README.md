@@ -71,3 +71,5 @@
 - 2026-10-25：`e8caf7b470e67c0706fbd8c87f513ada9a2f2b96` 已推送至上述分支，远端 SHA 已核对。
   生产基线为 RCV-116 `45c270d`；全新独立虚拟环境离线门禁为 **2107 passed, 1 deselected in 32.12s**。
 - 同日：按用户要求集中进度文档；本次仅文档整理，不改变引擎行为，不将既有测试结果冒充本次重跑。
+
+- [RCV-131 行动与交易结算](../verification/RCV-131-action-settlement.md)

@@ -18,6 +18,7 @@ from typing import Any
 
 from kernel.contextsystem import ContextSystem, ValidationError, Fragment, RecallHit
 from kernel.events import kernel_event
+from kernel.action_effects import possessions_at
 from facts.graph import FactGraph
 from engine.log import get_logger
 
@@ -42,7 +43,7 @@ class ObjectSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"object_created", "item_transferred"}
+        return {"object_created", "item_transferred", "purchase_received"}
 
     def commit_sections(self) -> set[str]:
         return {"items"}
@@ -59,6 +60,17 @@ class ObjectSystem(ContextSystem):
         g: FactGraph = world["systems"]["ontology"]
         d = event.get("deltas", {})
         t = event["type"]
+
+        if t == 'purchase_received':
+            # Both the payment and this host-emitted receipt belong to one batch.
+            if not all(isinstance(d.get(k), str) and d[k] for k in ('id','label','to','payment_id')):
+                raise ValueError('invalid purchase receipt')
+            if g.get_entity(d['id']) or not g.get_entity(d['to']):
+                raise ValueError('purchase destination/item conflict')
+            g.add_entity(d['id'], 'Object', label=d['label'])
+            g.add_relation(d['id'], 'held_by', d['to'], day=event['day'], turn=event.get('turn') or 0,
+                           source_event=event['id'])
+            return
 
         if t == "object_created":
             oid = d.get("id")
@@ -84,11 +96,14 @@ class ObjectSystem(ContextSystem):
                 )
                 return False
             # held_by is single-valued — supersedes prior holder (default supersede=True)
+            previous = g.neighbors(item, 'held_by', event['day'])
+            destination = g.get_entity(to)
+            attrs = {'dropped_by': previous[0]} if previous and destination and destination.etype == 'Place' else {}
             g.add_relation(
                 item, "held_by", to,
                 day=event["day"],
                 turn=event.get("turn") or 0,
-                source_event=event["id"],
+                source_event=event["id"], **attrs,
             )
             log.debug("item_transferred item=%s to=%s", item, to)
 
@@ -217,18 +232,18 @@ class ObjectSystem(ContextSystem):
             return None
         day = scene.get("day", 0)
 
-        held: list[str] = []
-        for eid, entity in g.entities.items():
-            if entity.etype != "Object":
-                continue
-            holders = g.neighbors(eid, "held_by", day)
-            if who in holders:
-                held.append(eid)
-
-        if not held:
+        possessions = possessions_at(g, day)
+        held = [item for item, pos in possessions.items() if pos.holder == who]
+        dropped = [item for item, pos in possessions.items()
+                   if pos.holder == scene.get('location') and pos.dropped_by == who]
+        parts = []
+        if held:
+            parts.append('持有物品：' + '、'.join(held))
+        if dropped:
+            parts.append('你放在此处、可拾回的物品：' + '、'.join(dropped))
+        if not parts:
             return None
-
-        text = "持有物品：" + "、".join(held)
+        text = '\n'.join(parts)
         return Fragment(
             system="object",
             layer="scene",
