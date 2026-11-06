@@ -1,0 +1,268 @@
+{
+  "before": {
+    "state": {
+      "revision": 3,
+      "turn": 2,
+      "scene": {
+        "day": 1,
+        "time": {
+          "day": 1,
+          "band": "晨"
+        },
+        "location": {
+          "id": "a_square",
+          "label": "柳溪镇街口",
+          "kind": "settlement"
+        },
+        "exits": [
+          {
+            "id": "b_square",
+            "label": "枫桥镇集市",
+            "kind": "settlement"
+          }
+        ],
+        "exit_costs": {
+          "b_square": "1"
+        },
+        "discovery_available": false
+      },
+      "map": {
+        "nodes": [
+          {
+            "id": "a_square",
+            "label": "柳溪镇街口",
+            "kind": "settlement"
+          },
+          {
+            "id": "b_square",
+            "label": "枫桥镇集市",
+            "kind": "settlement"
+          }
+        ],
+        "edges": [
+          {
+            "from": "a_square",
+            "to": "b_square",
+            "cost": "1"
+          }
+        ]
+      },
+      "character": {
+        "id": "protagonist",
+        "facts": [
+          {
+            "name": "sketch",
+            "value": "一位初到镇上的旅人"
+          },
+          {
+            "name": "goal",
+            "value": "认识两镇的居民"
+          }
+        ]
+      },
+      "objectives": {
+        "long_term_goal": "认识两镇的居民",
+        "active_quests": [],
+        "completed_quests": []
+      },
+      "inventory": [],
+      "narration": [
+        "街口，木匠林月停下脚步。你向她点头，她也点头回应，手里还拿着木工用的尺子。",
+        "林月把尺子收拢在掌心，想了想说：“我听人提过这个名字，说他在枫桥画画；我自己没见过他。”"
+      ],
+      "narration_unavailable": false,
+      "codex": [],
+      "present_people": [
+        {
+          "id": "lin_yue",
+          "label": "林月（在柳溪镇街口遇见的木匠）",
+          "observables": []
+        }
+      ],
+      "observations": [],
+      "resource_outcome": null,
+      "speech_recipients": [
+        {
+          "id": "lin_yue",
+          "label": "林月（在柳溪镇街口遇见的木匠）"
+        }
+      ],
+      "session": {
+        "soft_direction": null,
+        "campaign_key": "13fbbb9ce70d30e20996fc03"
+      }
+    },
+    "people": {
+      "protagonist": {
+        "attrs": {
+          "last_update": 1
+        },
+        "location": [
+          "a_square"
+        ]
+      },
+      "lin_yue": {
+        "attrs": {
+          "last_update": 1
+        },
+        "location": [
+          "a_square"
+        ]
+      }
+    },
+    "receipt_events": [
+      {
+        "type": "knowledge_set",
+        "deltas": {
+          "knower": "lin_yue",
+          "fact_key": "protagonist.reported_player_statement:58b8cab07d3dd65988c6",
+          "value": "你听说过枫桥镇的画师沈砚吗？",
+          "via": "protagonist",
+          "source_kind": "player_statement"
+        }
+      },
+      {
+        "type": "knowledge_set",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "lin_yue.reported:沈砚",
+          "value": "我听人提过这个名字，说他在枫桥画画；我自己没见过他",
+          "via": "林月亲口"
+        }
+      }
+    ]
+  },
+  "after": {
+    "state": {
+      "revision": 3,
+      "turn": 2,
+      "scene": {
+        "day": 1,
+        "time": {
+          "day": 1,
+          "band": "晨"
+        },
+        "location": {
+          "id": "a_square",
+          "label": "柳溪镇街口",
+          "kind": "settlement"
+        },
+        "exits": [
+          {
+            "id": "b_square",
+            "label": "枫桥镇集市",
+            "kind": "settlement"
+          }
+        ],
+        "exit_costs": {
+          "b_square": "1"
+        },
+        "discovery_available": false
+      },
+      "map": {
+        "nodes": [
+          {
+            "id": "a_square",
+            "label": "柳溪镇街口",
+            "kind": "settlement"
+          },
+          {
+            "id": "b_square",
+            "label": "枫桥镇集市",
+            "kind": "settlement"
+          }
+        ],
+        "edges": [
+          {
+            "from": "a_square",
+            "to": "b_square",
+            "cost": "1"
+          }
+        ]
+      },
+      "character": {
+        "id": "protagonist",
+        "facts": [
+          {
+            "name": "sketch",
+            "value": "一位初到镇上的旅人"
+          },
+          {
+            "name": "goal",
+            "value": "认识两镇的居民"
+          }
+        ]
+      },
+      "objectives": {
+        "long_term_goal": "认识两镇的居民",
+        "active_quests": [],
+        "completed_quests": []
+      },
+      "inventory": [],
+      "narration": [
+        "街口，木匠林月停下脚步。你向她点头，她也点头回应，手里还拿着木工用的尺子。",
+        "林月把尺子收拢在掌心，想了想说：“我听人提过这个名字，说他在枫桥画画；我自己没见过他。”"
+      ],
+      "narration_unavailable": false,
+      "codex": [],
+      "present_people": [
+        {
+          "id": "lin_yue",
+          "label": "林月（在柳溪镇街口遇见的木匠）",
+          "observables": []
+        }
+      ],
+      "observations": [],
+      "resource_outcome": null,
+      "speech_recipients": [
+        {
+          "id": "lin_yue",
+          "label": "林月（在柳溪镇街口遇见的木匠）"
+        }
+      ],
+      "session": {
+        "soft_direction": null,
+        "campaign_key": "13fbbb9ce70d30e20996fc03"
+      }
+    },
+    "people": {
+      "protagonist": {
+        "attrs": {
+          "last_update": 1
+        },
+        "location": [
+          "a_square"
+        ]
+      },
+      "lin_yue": {
+        "attrs": {
+          "last_update": 1
+        },
+        "location": [
+          "a_square"
+        ]
+      }
+    },
+    "receipt_events": [
+      {
+        "type": "knowledge_set",
+        "deltas": {
+          "knower": "lin_yue",
+          "fact_key": "protagonist.reported_player_statement:58b8cab07d3dd65988c6",
+          "value": "你听说过枫桥镇的画师沈砚吗？",
+          "via": "protagonist",
+          "source_kind": "player_statement"
+        }
+      },
+      {
+        "type": "knowledge_set",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "lin_yue.reported:沈砚",
+          "value": "我听人提过这个名字，说他在枫桥画画；我自己没见过他",
+          "via": "林月亲口"
+        }
+      }
+    ]
+  }
+}

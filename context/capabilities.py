@@ -17,7 +17,7 @@ from dataclasses import dataclass
 import hashlib
 from typing import Any
 
-from context.access import pov_world
+from context.access import current_public_people, pov_world
 from systems.knowledge import knows, place_discovery_key, route_discovery_key
 from kernel.contextsystem import ValidationError
 from loop.graph_utils import ancestor_of_level
@@ -432,13 +432,8 @@ def _ordinary_fact_subjects(world: dict, scene: dict) -> tuple[str | None, froze
         return None, frozenset()
     view = pov_world(world, scene, pov=actor, redact_facts=True)
     graph = view.get("systems", {}).get("ontology")
-    people: set[str] = set()
-    if graph is not None:
-        for person_id in scene.get("present") or []:
-            entity = graph.get_entity(person_id) if isinstance(person_id, str) else None
-            if entity is not None and entity.etype == "Person":
-                people.add(person_id)
-    return actor, frozenset(people)
+    day = scene.get('day') or world.get('meta', {}).get('day') or 1
+    return actor, frozenset(current_public_people(graph, scene, day))
 
 
 def _player_fact_error(section: str, field: str, hint: str) -> ValidationError:

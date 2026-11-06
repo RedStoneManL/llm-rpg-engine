@@ -1,6 +1,8 @@
 """Tests for loop.time: current_day, detect_jump, stale_entering_scope, run_catchup."""
 from __future__ import annotations
 
+import pytest
+
 from kernel.registry import Registry
 from kernel.projection import project
 from kernel.events import kernel_event
@@ -633,3 +635,21 @@ def test_run_catchup_blank_populace_mood_not_emitted():
     assert "place_evolved" in types
     # populace_shifted must NOT be emitted for a blank/whitespace-only mood
     assert "populace_shifted" not in types
+
+
+@pytest.mark.parametrize('predicate', ['knows:gate.code', 'reported:password'])
+def test_offscreen_catchup_cannot_manufacture_speech_or_belief(predicate):
+    reg = _full_reg()
+    store = _store(reg)
+    store.append(_person('npc', 1))
+    store.append(kernel_event('time_advanced', day=5, scene='s', turn=2, summary='五天后', deltas={'to_day':5}))
+    world = project(reg, store.iter_events())
+    before = {'protagonist':'hero','present':[]}
+    after = {'protagonist':'hero','present':['npc'],'id':'s','summary':'仅主持人知道的口令-胡桃'}
+    provider = KeyedCatchup({'npc':{'changed':True,'predicate':predicate,'value':'胡桃'}})
+    events = run_catchup(reg, store, world, before, after, provider=provider)
+    assert [e['type'] for e in events] == ['time_advanced']
+    assert provider.calls and all('仅主持人知道的口令' not in msg for msg in provider.calls)
+    projected = project(reg, store.iter_events())
+    assert projected['systems']['ontology'].value_at('npc', predicate, 5) is None
+    store.close()

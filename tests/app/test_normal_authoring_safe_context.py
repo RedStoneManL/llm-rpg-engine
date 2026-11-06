@@ -79,9 +79,9 @@ def test_cli_author_strategy_receives_only_safe_conditional_arrival_material(tmp
         play_loop(engine, inputs=["去集市看看", "/quit"], out=out.append, max_repairs=0)
         prompt = _prompt(provider)
         assert "【条件化抵达材料】" in prompt
-        assert "market_witness" in prompt and PUBLIC_WORDS in prompt
+        assert "market_witness" in prompt and PUBLIC_WORDS not in prompt
         assert "若本回合 moves 同时使 protagonist 合法抵达 stonebridge_market" in prompt
-        assert "自动新建 heard_player" in prompt
+        assert any("宿主已明确签发的 heard_player" in sys for sys, _ in provider.calls)
         assert PRIVATE_SENTINEL not in prompt and "hidden_arrival_person" not in prompt
         assert engine.world["systems"]["ontology"].neighbors("protagonist", "located_in", 1) == ["stonebridge_market"]
     finally:
@@ -98,8 +98,12 @@ def test_normal_gui_author_strategy_uses_same_safe_projection_without_serializin
                                     expected_revision=initial["revision"])
         prompt = _prompt(provider)
         assert response["state"]["scene"]["location"]["id"] == "stonebridge_market"
-        assert "【条件化抵达材料】" in prompt and PUBLIC_WORDS in prompt
+        assert "【条件化抵达材料】" in prompt and PUBLIC_WORDS not in prompt
         assert PRIVATE_SENTINEL not in prompt and "hidden_arrival_person" not in prompt
+        # Once arrival really committed, the same recipient can recall the words.
+        from context.assembler import safe_authoring_handoff
+        reached = safe_authoring_handoff(engine.world, _build_scene(engine), trusted_events=list(engine.store.iter_events()))
+        assert PUBLIC_WORDS in reached
         metadata = engine.store.get_action_result_metadata("normal-safe-context")
         assert "_trusted_authoring_events" not in json.dumps(metadata, ensure_ascii=False)
     finally:
@@ -145,7 +149,7 @@ def test_compare_authors_receive_the_same_safe_projection_before_final_apply(tmp
                   max_repairs=0)
         prompts = [user for _, user in provider.calls if "[player] 去集市看看" in user]
         assert len(prompts) >= 2
-        assert all("【条件化抵达材料】" in prompt and PUBLIC_WORDS in prompt for prompt in prompts[:2])
+        assert all("【条件化抵达材料】" in prompt and PUBLIC_WORDS not in prompt for prompt in prompts[:2])
         assert all(PRIVATE_SENTINEL not in prompt and "hidden_arrival_person" not in prompt
                    for prompt in prompts[:2])
     finally:
@@ -167,7 +171,7 @@ def test_cli_player_words_do_not_create_a_receipt_without_a_host_capability(tmp_
         play_loop(engine, inputs=[f"我只对洛恩说：{statement}", "/quit"], out=output.append, max_repairs=0)
         assert engine.store.revision == before
         assert "世界保持原状" in "\n".join(output)
-        assert "自动新建 heard_player" in _prompt(provider)
+        assert any("宿主已明确签发的 heard_player" in sys for sys, _ in provider.calls)
     finally:
         engine.store.close()
 

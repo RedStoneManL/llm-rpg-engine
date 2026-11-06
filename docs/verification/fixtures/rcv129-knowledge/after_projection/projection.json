@@ -1,0 +1,105 @@
+{
+  "world_and_beliefs": {
+    "day": 1,
+    "location": [
+      "a_square"
+    ],
+    "world_value": "公告说渡船停航",
+    "beliefs": {
+      "alice": "旧告示说渡船全天通航",
+      "bob": "听说渡船仅在上午通航"
+    },
+    "knowledge_events": [
+      {
+        "knower": "alice",
+        "fact_key": "a_square.ferry_status",
+        "value": "旧告示说渡船全天通航",
+        "via": "旧告示"
+      },
+      {
+        "knower": "bob",
+        "fact_key": "a_square.ferry_status",
+        "value": "听说渡船仅在上午通航",
+        "via": "传闻"
+      }
+    ]
+  },
+  "scene": {
+    "protagonist": "protagonist",
+    "present": [
+      "alice"
+    ],
+    "day": 1,
+    "id": "a_square",
+    "location": "a_square"
+  },
+  "context": {
+    "scene_time": {
+      "day": 1,
+      "band": "晨"
+    },
+    "stateful_inventory": [],
+    "present_people": [
+      {
+        "id": "alice",
+        "observable": {
+          "sketch": "柳溪的杂货商阿岚"
+        },
+        "speakable_evidence": [
+          {
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "source": "present_npc_declared_knowledge",
+            "confidence": "declared"
+          }
+        ],
+        "absence_meaning": "not_supplied_not_npc_unknown"
+      }
+    ],
+    "conditional_arrivals": [
+      {
+        "condition": "仅当本 TurnCommit 同时提交该主角的对应合法移动后，以下人物才是抵达时可呈现的场景材料；它不是行动开始时主角已知的事实。",
+        "move": {
+          "who": "protagonist",
+          "to": "b_square"
+        },
+        "location": {
+          "id": "b_square",
+          "label": "枫桥镇集市",
+          "kind": "settlement"
+        },
+        "present_people": [
+          {
+            "id": "bob",
+            "observable": {
+              "sketch": "枫桥的船工白禾"
+            },
+            "speakable_evidence": [
+              {
+                "fact_key": "a_square.ferry_status",
+                "value": "听说渡船仅在上午通航",
+                "source": "arrival_npc_declared_knowledge",
+                "confidence": "declared"
+              }
+            ],
+            "absence_meaning": "not_supplied_not_npc_unknown"
+          }
+        ]
+      }
+    ],
+    "communication_receipts": [],
+    "host_authorized_routes": [],
+    "public_place_observations": [],
+    "current_player_intent": null,
+    "deadline": {
+      "status": "not_scheduled",
+      "rule": "角色目标文本不是可计算截止时间；没有宿主记录时不得推定日期或剩余时段。"
+    },
+    "answering_policy": {
+      "missing_evidence": "未提供材料不等于 NPC 不知；不要断言不知道、不要捏造答案，应保留为待调查或请求宿主裁定。",
+      "new_information": "正常作者仍可创作普通公开场景、人物和带来源陈述。需要持久化的新陈述可由本回合新建的公开人物，或本 brief 中当前可见的既存人物，使用一个此前不存在的 public reported:<topic> 事实记录，并以同值的 knowledge.told（via 为该人物 id）交给主角；conditional_arrivals 中的既存人物也仅在同一提交含其对应移动时可这样使用。它表示‘此人这样说’，不是对既存世界真相的覆写。既存人物旧事实只能逐字复述 speakable_evidence，不能覆盖旧 reported:*；不得引入 hidden/past 或 secret/restricted 内容。",
+      "item_state": "若叙事改变物品持有人或持有地点，必须提交 items.transfer；临时动作若没有可寻址目的地，不得声称已改变 canonical 持有状态。"
+    }
+  },
+  "rendered_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 b_square（枫桥镇集市），抵达后可出现：bob。\n- 仅抵达 b_square 后，人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。"
+}

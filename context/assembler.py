@@ -65,24 +65,33 @@ def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=(),
     arrivals = safe.get("conditional_arrivals", [])
     lines: list[str] = []
 
-    def evidence_lines(people, *, prefix: str) -> list[str]:
+    recipients = {r['recipient'] for r in safe.get('communication_receipts', [])
+                  if isinstance(r, dict) and isinstance(r.get('recipient'), str)
+                  and isinstance(r.get('when'), dict) and r['when'].get('kind') == 'current_scene'}
+
+    def evidence_lines(people, *, prefix: str, preview=False) -> list[str]:
         rendered: list[str] = []
         for person in people:
             if not isinstance(person, dict) or not isinstance(person.get("id"), str):
+                continue
+            if recipients and person['id'] not in recipients:
                 continue
             for evidence in person.get("speakable_evidence", []):
                 if not isinstance(evidence, dict):
                     continue
                 key, value, source = evidence.get("fact_key"), evidence.get("value"), evidence.get("source")
-                if not all(isinstance(item, str) and item for item in (key, value, source)):
+                if (not all(isinstance(item, str) and item for item in (key, source))
+                        or not isinstance(value, (str, int, float, bool))):
                     continue
                 if source == "recipient_heard_player_statement":
+                    if preview:
+                        continue  # Private words become relevant once the recipient is actually here.
                     rendered.append(
                         f"- {prefix}{person['id']} 已被可信事件验证为听过主角原话：{value}"
                         "（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。"
                     )
                 else:
-                    rendered.append(f"- {prefix}{person['id']} 的公开可归因材料：{key} = {value}（{source}）。")
+                    rendered.append(f"- {prefix}{person['id']} 自己可陈述的材料：{key} = {value}（{source}，保留此人的认知和出处）。")
         return rendered
 
     current_evidence = evidence_lines(current_people, prefix="当前同场人物 ")
@@ -110,7 +119,7 @@ def safe_authoring_handoff(world: dict, scene: dict, *, trusted_events=(),
             f"- 若本回合 moves 同时使 {actor} 合法抵达 {destination}（{label}），抵达后可出现："
             + "、".join(person_ids) + "。"
         )
-        arrival_lines.extend(evidence_lines(people, prefix=f"仅抵达 {destination} 后，人物 "))
+        arrival_lines.extend(evidence_lines(people, prefix=f"仅抵达 {destination} 后，人物 ", preview=True))
     if arrival_lines:
         lines.append("【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。")
         lines.extend(arrival_lines)

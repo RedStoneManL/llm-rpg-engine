@@ -95,3 +95,23 @@ def pov_world(world, scene, *, pov=None, redact_facts=True):
                            or knows(graph, pov, route_discovery_key(r.src, r.dst), day) is True)]
     view.reindex_facts()
     return {**world, 'systems': {**world['systems'], 'ontology': view}}
+
+
+def current_public_people(visible, scene, day):
+    """People observable in this scene, shared by dialogue and ordinary writes."""
+    actor, location = scene.get('protagonist'), scene.get('location')
+    if visible is None or not actor:
+        return set()
+    # A scene with a physical location must agree with the stored positions.
+    # Abstract legacy scenes can still supply an explicit cast list.
+    declared = set(scene.get('present') or [])
+    place = visible.get_entity(location) if isinstance(location, str) else None
+    people = set()
+    for pid, entity in visible.entities.items():
+        if (pid == actor or entity.etype != 'Person'
+                or entity.attrs.get('visibility') in {'hidden', 'secret', 'undiscovered'}):
+            continue
+        positions = visible.neighbors(pid, 'located_in', day)
+        if location in positions or (place is None and not positions and pid in declared):
+            people.add(pid)
+    return people

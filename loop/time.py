@@ -94,7 +94,7 @@ _CATCHUP_SYSTEM = """\
 你是 TRPG 世界引擎的角色/地点状态推演模块。
 一个被追踪的角色或地点离开镜头一段时间后，请推演它在此期间发生的变化。
 只输出一个 JSON 对象（不要任何散文/代码块）。
-对于角色：predicate（属性名，如 mood/arc/状态）和 value（新值，中文）。
+对于角色：依据此人自己的资料推演 mood/arc/状态与 value。获知消息和作证需要独立的来源，本次只推演状态。
 对于地点：state（地点新状态，中文）和 populace_mood（民众情绪，可选，中文）。
 note 字段简短描述变化原因。changed:false 表示实质未变（只是时间流逝）。"""
 
@@ -143,6 +143,8 @@ def _catchup_validate(kind: str):
         if kind == "Person":
             if not (isinstance(obj.get("predicate"), str) and obj["predicate"].strip()):
                 errs.append('when "changed" is true for a character, provide a non-empty "predicate"')
+            elif obj['predicate'].strip().startswith(('knows:', 'reported:', 'reported_player_statement:')):
+                errs.append('角色离场状态推演不能授予新知识或代写证言；只推演本人状态。')
             if not (isinstance(obj.get("value"), str) and obj["value"].strip()):
                 errs.append('when "changed" is true for a character, provide a non-empty "value"')
         else:
@@ -212,10 +214,15 @@ def run_catchup(
         kind = "Person" if e.etype == "Person" else "Place"
         span = now - e.attrs.get("last_update", now)
 
+        prompt_context = context
+        if kind == 'Person':
+            own_state = {p: value for p in ('sketch', 'goal', 'mood', 'state', 'arc')
+                         if (value := g.value_at(eid, p, now)) is not None}
+            prompt_context = f'该角色自身资料：{own_state}'
         obj, errors = complete_structured(
             cp,
             system=_CATCHUP_SYSTEM,
-            user=_catchup_prompt(eid, kind, span, context),
+            user=_catchup_prompt(eid, kind, span, prompt_context),
             validate=_catchup_validate(kind),
             max_repairs=1,
             schema_reminder='Required: "changed" (boolean). If true — character: "predicate"+"value"; place: "state" (all Chinese). Optional: "populace_mood", "note".',

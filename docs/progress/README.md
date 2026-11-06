@@ -36,6 +36,8 @@
 
 ## 最近交付
 
+- 2026-11-07：[RCV-129 主持人与 NPC 信息边界](../verification/RCV-129-npc-information.md)，含过时认知、多来源证言、仅收件人原话、离场状态更新及真实游玩。
+
 - 2026-11-07：[RCV-128 当面初遇、交谈和重访](../verification/RCV-128-encounter-continuity.md)，包含普通 GUI 与 Terra 原生回归。
 
 - 2026-11-07：[RCV-127 异地暗线与世界连续性](../verification/RCV-127-world-continuity.md)。[80 回合逐步对照](../reports/2026-11-07/world-continuity.html)展示玩家追同一条线时，两条远线的独立推进及回访。

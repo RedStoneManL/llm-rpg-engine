@@ -42,7 +42,8 @@ from context.capabilities import (discovery_grant_errors, player_turn_knowledge_
                                   validate_protagonist_move_events, validate_protagonist_moves,
                                   HostDiscoveryGrant, host_discovery_records,
                                   validate_host_nearby_discovery_grant)
-from context.native_authoring import (player_statement_receipt_errors,
+from context.native_authoring import (npc_attribution_errors, npc_attribution_event_errors,
+                                      player_statement_receipt_errors,
                                       player_statement_receipt_event_errors)
 
 from engine.store import ActionAlreadyCommitted, EventBatch, RevisionConflict
@@ -478,6 +479,7 @@ def produce_turn(
         ))
         if enforce_player_knowledge_authority:
             candidate_errors.extend(player_turn_knowledge_errors(commit, scene.get("protagonist")))
+            candidate_errors.extend(npc_attribution_errors(world, scene, commit.sections))
         if enforce_player_world_authority:
             candidate_errors.extend(player_turn_world_errors(
                 commit, world, scene, trusted_keys=trusted_discovery_keys,
@@ -1225,6 +1227,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
     if enforce_player_knowledge_authority:
         def validate_player_knowledge_payload(events):
             errors = player_turn_knowledge_event_errors(events, travel_scene.get("protagonist"))
+            errors.extend(npc_attribution_event_errors(travel_world, travel_scene, events))
             if errors:
                 raise TurnRejected("final publish violates the player knowledge authority boundary")
         batch.add_publish_validator(validate_player_knowledge_payload)

@@ -1,0 +1,737 @@
+{
+  "completed": [
+    {
+      "turn": 1,
+      "action": {
+        "text": "我只向阿岚说：“请记住：橘色纸鹤停在第三块石头上。”我心里想：UNSPOKEN_我猜铃铛藏在柳树下，没有说出口。",
+        "recipient": "alice",
+        "statement": "请记住：橘色纸鹤停在第三块石头上。"
+      },
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。",
+        "revision": 2,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 2,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位过路的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解渡船情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解渡船情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "673ae68bd8361a8ea43443a6"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "author_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n- 当前同场人物 alice 已被可信事件验证为听过主角原话：请记住：橘色纸鹤停在第三块石头上。（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 b_square（枫桥镇集市），抵达后可出现：bob。\n- 仅抵达 b_square 后，人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。",
+        "location": [
+          "a_square"
+        ],
+        "world_value": "公告说渡船停航",
+        "beliefs": {
+          "alice": "旧告示说渡船全天通航",
+          "bob": "听说渡船仅在上午通航"
+        },
+        "knowledge_events": [
+          {
+            "knower": "alice",
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "via": "旧告示"
+          },
+          {
+            "knower": "bob",
+            "fact_key": "a_square.ferry_status",
+            "value": "听说渡船仅在上午通航",
+            "via": "传闻"
+          },
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+            "value": "请记住：橘色纸鹤停在第三块石头上。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          }
+        ]
+      }
+    },
+    {
+      "turn": 2,
+      "action": {
+        "text": "我问阿岚，她对渡船现在的情况了解多少？"
+      },
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "阿岚答道：“旧告示上说渡船全天通航，不过我不敢保证现在还是这样。”",
+        "revision": 3,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 3,
+          "turn": 2,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位过路的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解渡船情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解渡船情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。",
+            "阿岚答道：“旧告示上说渡船全天通航，不过我不敢保证现在还是这样。”"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "673ae68bd8361a8ea43443a6"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "author_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n- 当前同场人物 alice 已被可信事件验证为听过主角原话：请记住：橘色纸鹤停在第三块石头上。（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。\n- 当前同场人物 alice 自己可陈述的材料：alice.reported:渡船 = 旧告示上说渡船全天通航，不过我不敢保证现在还是这样（present_npc_persisted_report，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 b_square（枫桥镇集市），抵达后可出现：bob。\n- 仅抵达 b_square 后，人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。",
+        "location": [
+          "a_square"
+        ],
+        "world_value": "公告说渡船停航",
+        "beliefs": {
+          "alice": "旧告示说渡船全天通航",
+          "bob": "听说渡船仅在上午通航"
+        },
+        "knowledge_events": [
+          {
+            "knower": "alice",
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "via": "旧告示"
+          },
+          {
+            "knower": "bob",
+            "fact_key": "a_square.ferry_status",
+            "value": "听说渡船仅在上午通航",
+            "via": "传闻"
+          },
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+            "value": "请记住：橘色纸鹤停在第三块石头上。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "alice.reported:渡船",
+            "value": "旧告示上说渡船全天通航，不过我不敢保证现在还是这样",
+            "via": "阿岚亲口"
+          }
+        ]
+      }
+    },
+    {
+      "turn": 3,
+      "action": {
+        "text": "我去枫桥镇集市。"
+      },
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你向阿岚告别，沿路走到枫桥镇集市。",
+        "revision": 4,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 4,
+          "turn": 3,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_square",
+              "label": "枫桥镇集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位过路的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解渡船情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解渡船情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。",
+            "阿岚答道：“旧告示上说渡船全天通航，不过我不敢保证现在还是这样。”",
+            "你向阿岚告别，沿路走到枫桥镇集市。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "bob",
+              "label": "枫桥的船工白禾",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "bob",
+              "label": "枫桥的船工白禾"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "673ae68bd8361a8ea43443a6"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "author_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 a_square（柳溪镇街口），抵达后可出现：alice。\n- 仅抵达 a_square 后，人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。\n- 仅抵达 a_square 后，人物 alice 自己可陈述的材料：alice.reported:渡船 = 旧告示上说渡船全天通航，不过我不敢保证现在还是这样（arrival_npc_persisted_report，保留此人的认知和出处）。",
+        "location": [
+          "b_square"
+        ],
+        "world_value": "公告说渡船停航",
+        "beliefs": {
+          "alice": "旧告示说渡船全天通航",
+          "bob": "听说渡船仅在上午通航"
+        },
+        "knowledge_events": [
+          {
+            "knower": "alice",
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "via": "旧告示"
+          },
+          {
+            "knower": "bob",
+            "fact_key": "a_square.ferry_status",
+            "value": "听说渡船仅在上午通航",
+            "via": "传闻"
+          },
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+            "value": "请记住：橘色纸鹤停在第三块石头上。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "alice.reported:渡船",
+            "value": "旧告示上说渡船全天通航，不过我不敢保证现在还是这样",
+            "via": "阿岚亲口"
+          }
+        ]
+      }
+    },
+    {
+      "turn": 4,
+      "action": {
+        "text": "我问白禾，他对渡船现在的情况了解多少？"
+      },
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "白禾答道：“我听说渡船只在上午通航。今天是否照常，我还不清楚。”",
+        "revision": 5,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 5,
+          "turn": 4,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_square",
+              "label": "枫桥镇集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位过路的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解渡船情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解渡船情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。",
+            "阿岚答道：“旧告示上说渡船全天通航，不过我不敢保证现在还是这样。”",
+            "你向阿岚告别，沿路走到枫桥镇集市。",
+            "白禾答道：“我听说渡船只在上午通航。今天是否照常，我还不清楚。”"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "bob",
+              "label": "枫桥的船工白禾",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "bob",
+              "label": "枫桥的船工白禾"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "673ae68bd8361a8ea43443a6"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "author_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n- 当前同场人物 bob 自己可陈述的材料：bob.reported:渡船 = 我听说渡船只在上午通航；今天是否照常，我还不清楚（present_npc_persisted_report，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 a_square（柳溪镇街口），抵达后可出现：alice。\n- 仅抵达 a_square 后，人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。\n- 仅抵达 a_square 后，人物 alice 自己可陈述的材料：alice.reported:渡船 = 旧告示上说渡船全天通航，不过我不敢保证现在还是这样（arrival_npc_persisted_report，保留此人的认知和出处）。",
+        "location": [
+          "b_square"
+        ],
+        "world_value": "公告说渡船停航",
+        "beliefs": {
+          "alice": "旧告示说渡船全天通航",
+          "bob": "听说渡船仅在上午通航"
+        },
+        "knowledge_events": [
+          {
+            "knower": "alice",
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "via": "旧告示"
+          },
+          {
+            "knower": "bob",
+            "fact_key": "a_square.ferry_status",
+            "value": "听说渡船仅在上午通航",
+            "via": "传闻"
+          },
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+            "value": "请记住：橘色纸鹤停在第三块石头上。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "alice.reported:渡船",
+            "value": "旧告示上说渡船全天通航，不过我不敢保证现在还是这样",
+            "via": "阿岚亲口"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "bob.reported:渡船",
+            "value": "我听说渡船只在上午通航；今天是否照常，我还不清楚",
+            "via": "白禾亲口"
+          }
+        ]
+      }
+    },
+    {
+      "turn": 5,
+      "action": {
+        "text": "我返回柳溪镇街口。"
+      },
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你离开枫桥集市，沿原路回到柳溪镇街口。",
+        "revision": 6,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 6,
+          "turn": 5,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇街口",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇街口",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_square",
+                "label": "枫桥镇集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_square",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位过路的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解渡船情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解渡船情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你只把纸鹤的那句话说给阿岚听。她点点头，没有追问。",
+            "阿岚答道：“旧告示上说渡船全天通航，不过我不敢保证现在还是这样。”",
+            "你向阿岚告别，沿路走到枫桥镇集市。",
+            "白禾答道：“我听说渡船只在上午通航。今天是否照常，我还不清楚。”",
+            "你离开枫桥集市，沿原路回到柳溪镇街口。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪的杂货商阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "673ae68bd8361a8ea43443a6"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "author_handoff": "【安全交谈材料·当前场景】\n- 当前同场人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n- 当前同场人物 alice 已被可信事件验证为听过主角原话：请记住：橘色纸鹤停在第三块石头上。（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。\n- 当前同场人物 alice 自己可陈述的材料：alice.reported:渡船 = 旧告示上说渡船全天通航，不过我不敢保证现在还是这样（present_npc_persisted_report，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 b_square（枫桥镇集市），抵达后可出现：bob。\n- 仅抵达 b_square 后，人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船仅在上午通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。\n- 仅抵达 b_square 后，人物 bob 自己可陈述的材料：bob.reported:渡船 = 我听说渡船只在上午通航；今天是否照常，我还不清楚（arrival_npc_persisted_report，保留此人的认知和出处）。",
+        "location": [
+          "a_square"
+        ],
+        "world_value": "公告说渡船停航",
+        "beliefs": {
+          "alice": "旧告示说渡船全天通航",
+          "bob": "听说渡船仅在上午通航"
+        },
+        "knowledge_events": [
+          {
+            "knower": "alice",
+            "fact_key": "a_square.ferry_status",
+            "value": "旧告示说渡船全天通航",
+            "via": "旧告示"
+          },
+          {
+            "knower": "bob",
+            "fact_key": "a_square.ferry_status",
+            "value": "听说渡船仅在上午通航",
+            "via": "传闻"
+          },
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+            "value": "请记住：橘色纸鹤停在第三块石头上。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "alice.reported:渡船",
+            "value": "旧告示上说渡船全天通航，不过我不敢保证现在还是这样",
+            "via": "阿岚亲口"
+          },
+          {
+            "knower": "protagonist",
+            "fact_key": "bob.reported:渡船",
+            "value": "我听说渡船只在上午通航；今天是否照常，我还不清楚",
+            "via": "白禾亲口"
+          }
+        ]
+      }
+    }
+  ]
+}

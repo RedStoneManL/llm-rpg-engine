@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from context.access import pov_world
+from context.access import current_public_people, pov_world
 from context.capabilities import scene_capabilities
 from context.place_observations import public_place_observations
 from kernel.contextsystem import ValidationError
@@ -34,8 +34,8 @@ def _current_public_fact(graph, fact_key: str, day: int):
     if "." not in fact_key:
         return None
     subject, predicate = fact_key.split(".", 1)
-    for fact in graph.current_facts(subject):
-        if fact.predicate == predicate and fact.secrecy == "public":
+    for fact in graph.fact_history(subject, predicate):
+        if fact.valid_at(day) and fact.secrecy == "public":
             return fact
     return None
 
@@ -56,6 +56,24 @@ def _is_public_subject_in_view(canonical, visible, subject: str) -> bool:
     return canonical_subject is not None and canonical_subject.attrs.get("visibility") not in {
         "hidden", "secret", "undiscovered",
     }
+
+
+def _declared_beliefs(canonical, visible, person_id, day, *, source):
+    """Public topic is the disclosure gate. The speaker supplies the value."""
+    evidence = []
+    for belief in canonical.current_facts(person_id):
+        if (not belief.predicate.startswith('knows:') or not belief.valid_at(day)
+                or belief.secrecy in {'secret', 'restricted'}
+                or not isinstance(belief.value, (str, int, float, bool))):
+            continue
+        key = belief.predicate[len('knows:'):]
+        if _current_public_fact(canonical, key, day) is None:
+            continue
+        subject = key.split('.', 1)[0]
+        if _is_public_subject_in_view(canonical, visible, subject):
+            evidence.append({'fact_key': key, 'value': belief.value,
+                             'source': source, 'confidence': 'declared'})
+    return evidence
 
 
 def native_authoring_context(world: dict, scene: dict, *, player_input: str | None = None,
@@ -87,12 +105,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                 inventory.append({"id": str(entity_id), "canonical_holder": str(actor)})
         # Tracked people get full character cards. A visible walk-on standing
         # here can also be seen and addressed, just as in an arrival preview.
-        present_ids = set(scene.get("present") or [])
-        location = scene.get("location")
-        if location:
-            present_ids.update(person_id for person_id, entity in visible.entities.items()
-                               if entity.etype == "Person" and person_id != actor
-                               and location in visible.neighbors(person_id, "located_in", day))
+        present_ids = current_public_people(visible, scene, day)
         for person_id in sorted(present_ids):
             entity = visible.get_entity(person_id)
             if entity is None or entity.etype != "Person":
@@ -109,26 +122,9 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
                     observable[predicate] = _safe_value(value)
             evidence = []
             if canonical is not None:
-                seen_evidence: set[str] = set()
-                for fact in canonical.current_facts(person_id):
-                    if not fact.predicate.startswith("knows:"):
-                        continue
-                    fact_key = fact.predicate[len("knows:"):]
-                    public_fact = _current_public_fact(canonical, fact_key, day)
-                    subject = fact_key.split(".", 1)[0] if "." in fact_key else None
-                    # Reuse the same POV projection as player state.  A fact
-                    # must not reveal a canonical subject absent from that
-                    # projection, even if the fact itself says public.
-                    if (public_fact is None or subject is None
-                            or not _is_public_subject_in_view(canonical, visible, subject)):
-                        continue
-                    evidence.append({
-                        "fact_key": fact_key,
-                        "value": _safe_value(public_fact.value),
-                        "source": "present_npc_declared_knowledge",
-                        "confidence": "declared",
-                    })
-                    seen_evidence.add(fact_key)
+                evidence = _declared_beliefs(canonical, visible, person_id, day,
+                                            source='present_npc_declared_knowledge')
+                seen_evidence = {entry['fact_key'] for entry in evidence}
                 evidence.extend(_recipient_player_statement_evidence(
                     canonical, visible, person_id, actor, trusted_event_index,
                 ))
@@ -275,24 +271,9 @@ def _arrival_public_people(world: dict, scene: dict, *,
             value = visible.value_at(person_id, predicate, day)
             if value is not None:
                 observable[predicate] = _safe_value(value)
-        evidence = []
-        seen_evidence: set[str] = set()
-        for fact in canonical.current_facts(person_id):
-            if not fact.predicate.startswith("knows:"):
-                continue
-            fact_key = fact.predicate[len("knows:"):]
-            public_fact = _current_public_fact(canonical, fact_key, day)
-            subject = fact_key.split(".", 1)[0] if "." in fact_key else None
-            if (public_fact is None or subject is None
-                    or not _is_public_subject_in_view(canonical, visible, subject)):
-                continue
-            evidence.append({
-                "fact_key": fact_key,
-                "value": _safe_value(public_fact.value),
-                "source": "arrival_npc_declared_knowledge",
-                "confidence": "declared",
-            })
-            seen_evidence.add(fact_key)
+        evidence = _declared_beliefs(canonical, visible, person_id, day,
+                                    source='arrival_npc_declared_knowledge')
+        seen_evidence = {entry['fact_key'] for entry in evidence}
         evidence.extend(_recipient_player_statement_evidence(
             canonical, visible, person_id, actor, trusted_event_index,
         ))
@@ -686,11 +667,11 @@ def _native_new_ids(commit) -> tuple[set[str], set[str], set[str]]:
     return people, places, entities
 
 
-def _native_speakable_sources(world: dict, scene: dict, *,
+def _speaker_material(world: dict, scene: dict, *,
                               arrival_destinations: frozenset[str] = frozenset(),
-                              trusted_events: Iterable[dict[str, object]] = ()) -> dict[str, tuple[Any, str]]:
-    """Map supplied public facts to speakers usable in this exact proposal."""
-    supplied: dict[str, tuple[Any, str]] = {}
+                              trusted_events: Iterable[dict[str, object]] = ()) -> tuple[set[str], dict[str, dict[str, Any]]]:
+    """Index each topic by speaker. Two witnesses may disagree."""
+    supplied: dict[str, dict[str, Any]] = {}
     context = native_authoring_context(world, scene, trusted_events=trusted_events)
     people = list(context.get("present_people", []))
     for arrival in context.get("conditional_arrivals", []):
@@ -710,30 +691,83 @@ def _native_speakable_sources(world: dict, scene: dict, *,
                     and evidence.get("source") == "recipient_heard_player_statement"):
                 continue
             if isinstance(evidence, dict) and isinstance(evidence.get("fact_key"), str):
-                supplied[evidence["fact_key"]] = (evidence.get("value"), speaker)
-    return supplied
+                supplied.setdefault(evidence["fact_key"], {})[speaker] = evidence.get("value")
+    return {p["id"] for p in people if isinstance(p.get("id"), str)}, supplied
 
 
-def _native_visible_speakers(world: dict, scene: dict, *,
-                             arrival_destinations: frozenset[str] = frozenset(),
-                             trusted_events: Iterable[dict[str, object]] = ()) -> set[str]:
-    """Return only the sources explicitly present in the redacted brief.
+def npc_attribution_errors(world, scene, sections):
+    """Check ordinary protagonist knowledge that names a specific NPC source.
 
-    Presence here is a capability, not a claim about every canonical person at
-    the location.  Reusing ``native_authoring_context`` keeps policy and the
-    material actually handed to the author on the same POV boundary.
+    An eyewitness may give an account of their own without being right about
+    the world. An attribution to an existing world topic needs that speaker's
+    matching belief. Observation and host-issued speech have separate paths.
     """
-    context = native_authoring_context(world, scene, trusted_events=trusted_events)
-    people = list(context.get("present_people", []))
-    for arrival in context.get("conditional_arrivals", []):
-        move = arrival.get("move") if isinstance(arrival, dict) else None
-        if isinstance(move, dict) and move.get("to") in arrival_destinations:
-            people.extend(arrival.get("present_people", []))
-    return {
-        person["id"]
-        for person in people
-        if isinstance(person, dict) and isinstance(person.get("id"), str)
-    }
+    actor = scene.get('protagonist')
+    graph = world.get('systems', {}).get('ontology')
+    if not actor or graph is None:
+        return []
+    casts = {c.get('id') for c in sections.get('cast') or [] if isinstance(c, dict)
+             and c.get('op', 'create') == 'create' and isinstance(c.get('id'), str)}
+    claims = []
+    for i, row in enumerate(sections.get('knowledge') or []):
+        if (not isinstance(row, dict) or row.get('op', 'told') != 'told'
+                or row.get('knower') != actor or not isinstance(row.get('fact_key'), str)):
+            continue
+        key, via = row['fact_key'], row.get('via')
+        entity = graph.get_entity(via) if isinstance(via, str) else None
+        if isinstance(via, str) and (via in casts or entity and entity.etype == 'Person') and via != actor:
+            claims.append((i, key, via, row.get('value')))
+        elif '.reported:' in key:
+            # Legacy via strings (e.g. “林月亲口”) can accompany a source-
+            # scoped report. Its subject, not the prose label, owns the report.
+            source = key.split('.reported:', 1)[0]
+            speaker = graph.get_entity(source)
+            if source != actor and (source in casts or speaker and speaker.etype == 'Person'):
+                claims.append((i, key, source, row.get('value')))
+    if not claims:
+        return []
+    moves = [row for row in sections.get('moves') or [] if isinstance(row, dict) and isinstance(row.get('to'), str)]
+    arrivals = frozenset(row['to'] for row in moves if row.get('who') == actor)
+    present, supplied = _speaker_material(world, scene, arrival_destinations=arrivals)
+    present.update(m['who'] for m in moves if isinstance(m.get('who'), str) and m['who'] in casts
+                   and (m['to'] == scene.get('location') or m['to'] in arrivals))
+    reports = {(r.get('subject'), r.get('predicate')): r.get('value') for r in sections.get('facts') or []
+               if isinstance(r, dict) and isinstance(r.get('subject'), str) and isinstance(r.get('predicate'), str)}
+    errors = []
+    for i, key, speaker, value in claims:
+        if key.startswith(speaker + '.reported:'):
+            # A new attributable statement, or an accurate restatement of an
+            # existing one, concerns what the speaker says, not world truth.
+            predicate = key[len(speaker) + 1:]
+            old = graph.value_at(speaker, predicate, scene.get('day') or 1)
+            declared = reports.get((speaker, predicate), value)
+            valid = (speaker in present and type(declared) is type(value) and declared == value
+                     and (old is None or type(old) is type(value) and old == value))
+        else:
+            belief = supplied.get(key, {}).get(speaker)
+            valid = speaker in present and belief is not None and type(belief) is type(value) and belief == value
+        if not valid:
+            errors.append(ValidationError('knowledge', f'[{i}]', 'unsupported_npc_source',
+                        '此人物须实际在场，且世界话题须与他自己的已知值相符；新说法用该人物自己的 reported: 陈述。'))
+    return errors
+
+
+def npc_attribution_event_errors(world, scene, events):
+    """Recheck the speaker and value on the actual events about to publish."""
+    sections = {'cast': [], 'moves': [], 'facts': [], 'knowledge': []}
+    for event in events:
+        if event.get('retracted'):
+            continue
+        delta = event.get('deltas') or {}
+        if event['type'] == 'character_created':
+            sections['cast'].append(delta)
+        elif event['type'] == 'entity_moved':
+            sections['moves'].append(delta)
+        elif event['type'] == 'fact_asserted':
+            sections['facts'].append(delta)
+        elif event['type'] == 'knowledge_set' and delta.get('source_kind') != 'player_statement':
+            sections['knowledge'].append(delta)
+    return npc_attribution_errors(world, scene, sections)
 
 
 def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
@@ -872,11 +906,7 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
     committed_arrival_destinations = frozenset(
         destination for destination in protagonist_destinations if isinstance(destination, str)
     )
-    supplied = _native_speakable_sources(
-        world, scene, arrival_destinations=committed_arrival_destinations,
-        trusted_events=trusted_events,
-    )
-    visible_speakers = _native_visible_speakers(
+    visible_speakers, supplied = _speaker_material(
         world, scene, arrival_destinations=committed_arrival_destinations,
         trusted_events=trusted_events,
     )
@@ -905,9 +935,14 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
             if existing_report:
                 reports[fact_key] = (fact.get("value"), subject)
                 continue
-            supplied_value = supplied.get(fact_key)
-            if supplied_value is None or fact.get("value") != supplied_value[0] or fact.get("secrecy") != "public":
-                errors.append("native author may change an existing fact only by exactly recording supplied public speakable evidence")
+            # A witness can tell the player a mistaken belief. Reasserting a
+            # world fact additionally requires the current public truth itself.
+            value = fact.get('value')
+            truth = _current_public_fact(graph, fact_key, scene.get('day') or world.get('meta', {}).get('day') or 1)
+            if (truth is None or type(value) is not type(truth.value) or value != truth.value
+                    or fact.get('secrecy') != 'public' or not any(
+                        type(value) is type(v) and value == v for v in supplied.get(fact_key, {}).values())):
+                errors.append('existing public fact must match both world truth and supplied speaker evidence')
             continue
         if subject not in new_ids:
             errors.append("native author facts must concern a same-turn new public entity or supplied evidence")
@@ -995,8 +1030,10 @@ def native_authoring_policy_errors(world: dict, scene: dict, commit, *,
             if item.get("value") != value or item.get("via") != source:
                 errors.append("a new report must be told with its exact value and source id in via")
         elif key in supplied:
-            value, source = supplied[key]
-            if item.get("value") != value or item.get("via") != source:
+            source = item.get('via')
+            beliefs = supplied[key]
+            if (not isinstance(source, str) or source not in beliefs
+                    or type(item.get('value')) is not type(beliefs[source]) or item.get('value') != beliefs[source]):
                 errors.append("supplied evidence must retain its exact value and present-speaker source")
         else:
             errors.append("native author knowledge must come from this-turn report or supplied speakable evidence")

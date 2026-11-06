@@ -1,0 +1,78 @@
+{
+  "before": {
+    "day": 1,
+    "location": [
+      "a_square"
+    ],
+    "world_value": "公告说渡船停航",
+    "beliefs": {
+      "alice": "旧告示说渡船全天通航",
+      "bob": "听说渡船仅在上午通航"
+    },
+    "knowledge_events": [
+      {
+        "knower": "alice",
+        "fact_key": "a_square.ferry_status",
+        "value": "旧告示说渡船全天通航",
+        "via": "旧告示"
+      },
+      {
+        "knower": "bob",
+        "fact_key": "a_square.ferry_status",
+        "value": "听说渡船仅在上午通航",
+        "via": "传闻"
+      },
+      {
+        "knower": "alice",
+        "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+        "value": "请记住：橘色纸鹤停在第三块石头上。",
+        "via": "protagonist",
+        "source_kind": "player_statement"
+      },
+      {
+        "knower": "protagonist",
+        "fact_key": "alice.reported:渡船",
+        "value": "我看过的旧告示说渡船全天通航；现在是不是还这样，我不敢保证",
+        "via": "阿岚亲口"
+      }
+    ]
+  },
+  "after": {
+    "day": 1,
+    "location": [
+      "a_square"
+    ],
+    "world_value": "公告说渡船停航",
+    "beliefs": {
+      "alice": "旧告示说渡船全天通航",
+      "bob": "听说渡船仅在上午通航"
+    },
+    "knowledge_events": [
+      {
+        "knower": "alice",
+        "fact_key": "a_square.ferry_status",
+        "value": "旧告示说渡船全天通航",
+        "via": "旧告示"
+      },
+      {
+        "knower": "bob",
+        "fact_key": "a_square.ferry_status",
+        "value": "听说渡船仅在上午通航",
+        "via": "传闻"
+      },
+      {
+        "knower": "alice",
+        "fact_key": "protagonist.reported_player_statement:60b6a4453550edf100f2",
+        "value": "请记住：橘色纸鹤停在第三块石头上。",
+        "via": "protagonist",
+        "source_kind": "player_statement"
+      },
+      {
+        "knower": "protagonist",
+        "fact_key": "alice.reported:渡船",
+        "value": "我看过的旧告示说渡船全天通航；现在是不是还这样，我不敢保证",
+        "via": "阿岚亲口"
+      }
+    ]
+  }
+}
