@@ -1,0 +1,194 @@
+{
+  "before": {
+    "day": 3,
+    "band": 0,
+    "location": [
+      "a_square"
+    ],
+    "allowed_destinations": [
+      "b_market",
+      "c_hill"
+    ],
+    "speech_recipients": [
+      {
+        "id": "alice",
+        "label": "柳溪广场的守桥人阿岚"
+      }
+    ],
+    "lines": {
+      "bridge": {
+        "stage_idx": 1,
+        "clues": [
+          "道路被漫水暂时封闭",
+          "水退后道路恢复通行"
+        ],
+        "last_advanced_day": 3
+      },
+      "market": {
+        "stage_idx": 1,
+        "clues": [
+          "菜摊开始收拢篷布",
+          "集市上出现一排空菜筐"
+        ],
+        "last_advanced_day": 3
+      },
+      "hill": {
+        "stage_idx": 1,
+        "clues": [
+          "驿站门边多了一只信筒",
+          "驿站里有人整理信件"
+        ],
+        "last_advanced_day": 3
+      }
+    },
+    "stage_events": [
+      {
+        "id": "bridge",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "market",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "hill",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "bridge",
+        "stage": 1,
+        "day": 3
+      },
+      {
+        "id": "market",
+        "stage": 1,
+        "day": 3
+      },
+      {
+        "id": "hill",
+        "stage": 1,
+        "day": 3
+      }
+    ],
+    "route_events": [
+      {
+        "day": 2,
+        "deltas": {
+          "a": "a_square",
+          "b": "b_market",
+          "passable": false,
+          "line": "bridge"
+        }
+      },
+      {
+        "day": 3,
+        "deltas": {
+          "a": "a_square",
+          "b": "b_market",
+          "passable": true,
+          "line": "bridge"
+        }
+      }
+    ],
+    "speech_events": []
+  },
+  "after": {
+    "day": 3,
+    "band": 0,
+    "location": [
+      "a_square"
+    ],
+    "allowed_destinations": [
+      "b_market",
+      "c_hill"
+    ],
+    "speech_recipients": [
+      {
+        "id": "alice",
+        "label": "柳溪广场的守桥人阿岚"
+      }
+    ],
+    "lines": {
+      "bridge": {
+        "stage_idx": 1,
+        "clues": [
+          "道路被漫水暂时封闭",
+          "水退后道路恢复通行"
+        ],
+        "last_advanced_day": 3
+      },
+      "market": {
+        "stage_idx": 1,
+        "clues": [
+          "菜摊开始收拢篷布",
+          "集市上出现一排空菜筐"
+        ],
+        "last_advanced_day": 3
+      },
+      "hill": {
+        "stage_idx": 1,
+        "clues": [
+          "驿站门边多了一只信筒",
+          "驿站里有人整理信件"
+        ],
+        "last_advanced_day": 3
+      }
+    },
+    "stage_events": [
+      {
+        "id": "bridge",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "market",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "hill",
+        "stage": 0,
+        "day": 2
+      },
+      {
+        "id": "bridge",
+        "stage": 1,
+        "day": 3
+      },
+      {
+        "id": "market",
+        "stage": 1,
+        "day": 3
+      },
+      {
+        "id": "hill",
+        "stage": 1,
+        "day": 3
+      }
+    ],
+    "route_events": [
+      {
+        "day": 2,
+        "deltas": {
+          "a": "a_square",
+          "b": "b_market",
+          "passable": false,
+          "line": "bridge"
+        }
+      },
+      {
+        "day": 3,
+        "deltas": {
+          "a": "a_square",
+          "b": "b_market",
+          "passable": true,
+          "line": "bridge"
+        }
+      }
+    ],
+    "speech_events": []
+  }
+}

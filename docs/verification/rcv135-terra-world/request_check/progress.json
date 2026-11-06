@@ -1,0 +1,42 @@
+{
+  "transcript": [],
+  "pending_action": "我留在柳溪镇广场，观察周围。",
+  "turn": 1,
+  "before": {
+    "day": 1,
+    "band": null,
+    "location": [
+      "a_square"
+    ],
+    "allowed_destinations": [
+      "b_market",
+      "c_hill"
+    ],
+    "speech_recipients": [
+      {
+        "id": "alice",
+        "label": "柳溪广场的守桥人阿岚"
+      }
+    ],
+    "lines": {
+      "bridge": {
+        "stage_idx": -1,
+        "clues": [],
+        "last_advanced_day": null
+      },
+      "market": {
+        "stage_idx": -1,
+        "clues": [],
+        "last_advanced_day": null
+      },
+      "hill": {
+        "stage_idx": -1,
+        "clues": [],
+        "last_advanced_day": null
+      }
+    },
+    "stage_events": [],
+    "route_events": [],
+    "speech_events": []
+  }
+}

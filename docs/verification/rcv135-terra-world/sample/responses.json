@@ -1,0 +1,9 @@
+[
+  "{\"narration\": \"你留在柳溪镇广场，朝通往两处的道路看了看。守桥人阿岚也在广场上。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂观察未跨时段\"}]}",
+  "{\"supported\": true, \"reason\": \"只描述原地观察与已在场人物，未声称未提交的状态变化。\"}",
+  "{\"narration\": \"你留在广场，等到第二天早晨。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": true, \"days\": 1, \"bands\": 0, \"reason\": \"从今天早晨等待至明天早晨\"}]}",
+  "{\"supported\": true, \"reason\": \"留在原地并等到第二天早晨，与地点及时间结果一致。\"}",
+  "{\"narration\": \"你朝通往枫桥的道路望去，漫水使道路暂时封闭。你留在广场，没有往那边走。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"原地观察道路，只需片刻\"}]}",
+  "{\"supported\": true, \"reason\": \"道路漫水封闭有本地材料支持，正文留在广场且无移动。\"}",
+  "{\"narration\": \"你留在广场，等过白昼与夜晚，直到第三天早晨。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": true, \"days\": 1, \"bands\": 0, \"reason\": \"从第二天早晨等到第三天早晨\"}]}"
+]

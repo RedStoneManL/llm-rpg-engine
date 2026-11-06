@@ -1,0 +1,1870 @@
+{
+  "transcript": [
+    {
+      "turn": 1,
+      "action": "我留在柳溪镇广场，观察周围。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+        "revision": 15,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 15,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "b_market": "1",
+              "c_hill": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 1,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "b_market",
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": -1,
+            "clues": [],
+            "last_advanced_day": null
+          },
+          "market": {
+            "stage_idx": -1,
+            "clues": [],
+            "last_advanced_day": null
+          },
+          "hill": {
+            "stage_idx": -1,
+            "clues": [],
+            "last_advanced_day": null
+          }
+        },
+        "stage_events": [],
+        "route_events": [],
+        "speech_events": []
+      },
+      "request_start": 0,
+      "request_end": 2
+    },
+    {
+      "turn": 2,
+      "action": "我留在广场等到明天早晨。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+        "revision": 16,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 16,
+          "turn": 2,
+          "scene": {
+            "day": 2,
+            "time": {
+              "day": 2,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 2,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 0,
+            "clues": [
+              "道路被漫水暂时封闭"
+            ],
+            "last_advanced_day": 2
+          },
+          "market": {
+            "stage_idx": 0,
+            "clues": [
+              "菜摊开始收拢篷布"
+            ],
+            "last_advanced_day": 2
+          },
+          "hill": {
+            "stage_idx": 0,
+            "clues": [
+              "驿站门边多了一只信筒"
+            ],
+            "last_advanced_day": 2
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 2,
+      "request_end": 4
+    },
+    {
+      "turn": 3,
+      "action": "我观察通往枫桥的道路，暂不前往。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+        "revision": 17,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 17,
+          "turn": 3,
+          "scene": {
+            "day": 2,
+            "time": {
+              "day": 2,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 2,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 0,
+            "clues": [
+              "道路被漫水暂时封闭"
+            ],
+            "last_advanced_day": 2
+          },
+          "market": {
+            "stage_idx": 0,
+            "clues": [
+              "菜摊开始收拢篷布"
+            ],
+            "last_advanced_day": 2
+          },
+          "hill": {
+            "stage_idx": 0,
+            "clues": [
+              "驿站门边多了一只信筒"
+            ],
+            "last_advanced_day": 2
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 4,
+      "request_end": 6
+    },
+    {
+      "turn": 4,
+      "action": "我仍留在广场，等到明天早晨。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+        "revision": 18,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 18,
+          "turn": 4,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1",
+              "b_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "b_market",
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 6,
+      "request_end": 8
+    },
+    {
+      "turn": 5,
+      "action": "我沿路去枫桥集市。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。",
+        "revision": 19,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 19,
+          "turn": 5,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_market",
+              "label": "枫桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+            "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "bob",
+              "label": "枫桥集市的卖菜人白禾",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "bob",
+              "label": "枫桥集市的卖菜人白禾"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "b_market"
+        ],
+        "allowed_destinations": [
+          "a_square"
+        ],
+        "speech_recipients": [
+          {
+            "id": "bob",
+            "label": "枫桥集市的卖菜人白禾"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 8,
+      "request_end": 10
+    },
+    {
+      "turn": 6,
+      "action": "我在集市观察周围。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。",
+        "revision": 20,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 20,
+          "turn": 6,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "b_market",
+              "label": "枫桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "a_square": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+            "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。",
+            "你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "bob",
+              "label": "枫桥集市的卖菜人白禾",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "bob",
+              "label": "枫桥集市的卖菜人白禾"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "b_market"
+        ],
+        "allowed_destinations": [
+          "a_square"
+        ],
+        "speech_recipients": [
+          {
+            "id": "bob",
+            "label": "枫桥集市的卖菜人白禾"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 10,
+      "request_end": 12
+    },
+    {
+      "turn": 7,
+      "action": "我沿路返回柳溪镇广场。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你离开枫桥集市，沿原路回到柳溪镇广场。",
+        "revision": 21,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 21,
+          "turn": 7,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1",
+              "b_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+            "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。",
+            "你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。",
+            "你离开枫桥集市，沿原路回到柳溪镇广场。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "b_market",
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": []
+      },
+      "request_start": 12,
+      "request_end": 14
+    },
+    {
+      "turn": 8,
+      "action": "我向广场守桥人阿岚说：“请记住我还会回来。”",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你对阿岚说：“请记住我还会回来。”她点了点头，望着你，等你继续说下去。",
+        "revision": 22,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 22,
+          "turn": 8,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1",
+              "b_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。",
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+            "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。",
+            "你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。",
+            "你离开枫桥集市，沿原路回到柳溪镇广场。",
+            "你对阿岚说：“请记住我还会回来。”她点了点头，望着你，等你继续说下去。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "b_market",
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": [
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:791bebe258b27e46d6b3",
+            "value": "请记住我还会回来。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          }
+        ]
+      },
+      "request_start": 14,
+      "request_end": 18
+    },
+    {
+      "turn": 9,
+      "action": "我继续留在广场，观察周围。",
+      "response": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你继续留在广场。通往枫桥的道路已恢复通行，阿岚仍在你面前等着。",
+        "revision": 23,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 23,
+          "turn": 9,
+          "scene": {
+            "day": 3,
+            "time": {
+              "day": 3,
+              "band": "晨"
+            },
+            "location": {
+              "id": "a_square",
+              "label": "柳溪镇广场",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "c_hill": "1",
+              "b_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "a_square",
+                "label": "柳溪镇广场",
+                "kind": "settlement"
+              },
+              {
+                "id": "b_market",
+                "label": "枫桥集市",
+                "kind": "settlement"
+              },
+              {
+                "id": "c_hill",
+                "label": "青山驿",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "a_square",
+                "to": "c_hill",
+                "cost": "1"
+              },
+              {
+                "from": "a_square",
+                "to": "b_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "留意镇上变化的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "了解两镇的情况"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "了解两镇的情况",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [],
+          "narration": [
+            "你留在广场，等过这一天和夜晚，直到第二天早晨。",
+            "你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。",
+            "你仍留在广场，等过白天和夜晚，直到第三天早晨。",
+            "水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。",
+            "你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。",
+            "你离开枫桥集市，沿原路回到柳溪镇广场。",
+            "你对阿岚说：“请记住我还会回来。”她点了点头，望着你，等你继续说下去。",
+            "你继续留在广场。通往枫桥的道路已恢复通行，阿岚仍在你面前等着。"
+          ],
+          "narration_unavailable": false,
+          "codex": [],
+          "present_people": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "alice",
+              "label": "柳溪广场的守桥人阿岚"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "13f883ec9cb67a93afecf8c0"
+          }
+        }
+      },
+      "snapshot": {
+        "day": 3,
+        "band": 0,
+        "location": [
+          "a_square"
+        ],
+        "allowed_destinations": [
+          "b_market",
+          "c_hill"
+        ],
+        "speech_recipients": [
+          {
+            "id": "alice",
+            "label": "柳溪广场的守桥人阿岚"
+          }
+        ],
+        "lines": {
+          "bridge": {
+            "stage_idx": 1,
+            "clues": [
+              "道路被漫水暂时封闭",
+              "水退后道路恢复通行"
+            ],
+            "last_advanced_day": 3
+          },
+          "market": {
+            "stage_idx": 1,
+            "clues": [
+              "菜摊开始收拢篷布",
+              "集市上出现一排空菜筐"
+            ],
+            "last_advanced_day": 3
+          },
+          "hill": {
+            "stage_idx": 1,
+            "clues": [
+              "驿站门边多了一只信筒",
+              "驿站里有人整理信件"
+            ],
+            "last_advanced_day": 3
+          }
+        },
+        "stage_events": [
+          {
+            "id": "bridge",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "market",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "hill",
+            "stage": 0,
+            "day": 2
+          },
+          {
+            "id": "bridge",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "market",
+            "stage": 1,
+            "day": 3
+          },
+          {
+            "id": "hill",
+            "stage": 1,
+            "day": 3
+          }
+        ],
+        "route_events": [
+          {
+            "day": 2,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": false,
+              "line": "bridge"
+            }
+          },
+          {
+            "day": 3,
+            "deltas": {
+              "a": "a_square",
+              "b": "b_market",
+              "passable": true,
+              "line": "bridge"
+            }
+          }
+        ],
+        "speech_events": [
+          {
+            "knower": "alice",
+            "fact_key": "protagonist.reported_player_statement:791bebe258b27e46d6b3",
+            "value": "请记住我还会回来。",
+            "via": "protagonist",
+            "source_kind": "player_statement"
+          }
+        ]
+      },
+      "request_start": 18,
+      "request_end": 20
+    }
+  ],
+  "request_count": 20,
+  "model": "gpt-6.1-terra session generation",
+  "strategy": "GroundedAuthorStrategy",
+  "demo": false,
+  "transport": "local exact-request replay, no HTTP",
+  "disabled_hooks": [
+    "digest_fleet",
+    "run_director",
+    "run_cascade",
+    "run_catchup",
+    "run_density",
+    "_run_demote_on_leave"
+  ]
+}

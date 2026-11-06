@@ -1,0 +1,22 @@
+[
+  "{\"narration\": \"你留在柳溪镇广场，环顾通往两处的道路。守桥人阿岚也在这里。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"原地短暂观察\"}]}",
+  "{\"supported\": true, \"reason\": \"原地观察、道路及同场守桥人均有上下文支持，未声称新增移动或交易。\"}",
+  "{\"narration\": \"你留在广场，等过这一天和夜晚，直到第二天早晨。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": true, \"days\": 1, \"bands\": 0, \"reason\": \"从早晨等待到次日早晨\"}]}",
+  "{\"supported\": true, \"reason\": \"时间与位置均符合冻结结果。\"}",
+  "{\"narration\": \"你朝枫桥方向望去，道路被漫水暂时封住。你仍站在广场，没有前往。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"原地观察，只需片刻\"}]}",
+  "{\"supported\": true, \"reason\": \"漫水封路来自本地材料，叙述没有移动，符合冻结结果。\"}",
+  "{\"narration\": \"你仍留在广场，等过白天和夜晚，直到第三天早晨。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": true, \"days\": 1, \"bands\": 0, \"reason\": \"从第二天早晨等到第三天早晨\"}]}",
+  "{\"supported\": true, \"reason\": \"正文的原地等待与第3天早晨的冻结结果一致。\"}",
+  "{\"narration\": \"水退后，道路重新通了。你沿路离开柳溪广场，来到枫桥集市。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"b_market\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"沿一段路短途行走，尚未跨时段\"}]}",
+  "{\"supported\": true, \"reason\": \"道路恢复来自本地材料，抵达枫桥与已批准移动一致。\"}",
+  "{\"narration\": \"你在集市停下脚步，看见一排空菜筐。卖菜人白禾也在这里。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"原地观察只需片刻\"}]}",
+  "{\"supported\": true, \"reason\": \"空菜筐及白禾由本地材料和同场人物支持，没有额外状态变化。\"}",
+  "{\"narration\": \"你离开枫桥集市，沿原路回到柳溪镇广场。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"a_square\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短途返回尚未跨时段\"}]}",
+  "{\"supported\": true, \"reason\": \"返抵柳溪广场与已批准的移动及时间一致。\"}",
+  "{\"narration\": \"你告诉阿岚你还会回来。她点点头，目送你片刻。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"knowledge\": [{\"op\": \"heard_player\", \"receipt_id\": \"alice:protagonist.reported_player_statement:791bebe258b27e46d6b3:current\", \"knower\": \"alice\", \"speaker\": \"protagonist\", \"statement\": \"请记住我还会回来。\"}], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"当面说一句话只需片刻\"}]}",
+  "{\"supported\": false, \"reason\": \"“目送你片刻”暗示主角离开，但本回合 moves 为空且主角仍在广场，应避免暗示离开。\"}",
+  "你对阿岚说：“请记住我还会回来。”她点了点头，望着你，等你继续说下去。",
+  "{\"supported\": true, \"reason\": \"逐字发言有指定收据，人物点头等自然反应，无额外状态变化。\"}",
+  "{\"narration\": \"你继续留在广场。通往枫桥的道路已恢复通行，阿岚仍在你面前等着。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"继续观察未跨时段\"}]}",
+  "{\"supported\": true, \"reason\": \"道路恢复有当地材料支持，阿岚仍同场，正文没有新增状态变化。\"}"
+]
