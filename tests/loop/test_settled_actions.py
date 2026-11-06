@@ -81,6 +81,8 @@ def test_investigation_needs_a_post_acceptance_observation_of_the_right_feature(
             observation = {'areas':[INN], 'level':1,'public_observation':True,'visibility':'public',
                            'observation_kind':'stable_layout','observation_range':'整个院子',
                            'feature':feature,'summary':sentence}
+            if feature == '北墙梯子':
+                observation['investigation'] = {'quest':'inspect', 'result':'confirmed'}
             act(dash, '核验' + feature, propose(world=[observation]), feature)
             event = next(e for e in engine.store.iter_events() if e['summary'] == sentence)
             sources[feature] = {'source_event_id':event['id'],'quote':sentence}

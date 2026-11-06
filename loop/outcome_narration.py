@@ -61,3 +61,46 @@ def review_player_narration(strategy, commit, world, scene, player_input, provid
     # This display is derived from the same accepted ending clock and location.
     where = f"，你在{outcome['location']}" if outcome["location"] else ""
     return f"第{outcome['day']}天{outcome['band']}{where}。"
+
+
+def settle_investigation_claims(commit, world, provider):
+    """Review proposed positive findings and conclusions against their literal source."""
+    import copy
+    from kernel.turncommit import TurnCommit
+
+    lines = world.get("systems", {}).get("lore", {}).get("lines", {})
+    claims = {}
+    for index, row in enumerate(commit.sections.get("world") or []):
+        finding = row.get("investigation") or {}
+        if finding.get("result") == "confirmed":
+            line = lines[finding["quest"]]
+            claims[f"world/{index}"] = {"question": line.get("question") or line["summary"],
+                                        "source": row["summary"], "conclusion": "该观察已回答调查问题"}
+    for index, row in enumerate(commit.sections.get("quests") or []):
+        if row.get("op") == "resolve" and row.get("outcome") != "abandoned" and row.get("evidence"):
+            line = lines[row["id"]]
+            if (line.get("objective") or {}).get("kind") != "deliver":
+                claims[f"quests/{index}"] = {"question": line.get("question") or line["summary"],
+                                             "source": row["evidence"]["quote"], "conclusion": row.get("summary")}
+    if not claims:
+        return commit
+
+    def validate(obj):
+        if obj.keys() == claims.keys() and all(type(value) is bool for value in obj.values()):
+            return []
+        return ["为每个给定编号输出一个布尔值。"]
+
+    verdicts, errors = complete_structured(
+        provider, system="根据 source 原文独立判断每项 conclusion 是否成立且回答了原调查 question。"
+        "只有原文足以支持才为 true；线索、查空、传闻不能补全缺失事实。若调查本来就是核实不在场，确凿的否定证据也可以回答问题。"
+        "只输出给定编号到布尔值的 JSON 对象。", user=json.dumps(claims, ensure_ascii=False),
+        validate=validate, max_repairs=0, log_label="investigation_evidence",
+    )
+    sections = copy.deepcopy(commit.sections)
+    rejected = {key for key in claims if errors or not verdicts[key]}
+    for index, row in enumerate(sections.get("world") or []):
+        if f"world/{index}" in rejected:
+            row["investigation"]["result"] = "clue"
+    if "quests" in sections:
+        sections["quests"] = [row for index, row in enumerate(sections["quests"]) if f"quests/{index}" not in rejected]
+    return TurnCommit(commit.narration, sections)

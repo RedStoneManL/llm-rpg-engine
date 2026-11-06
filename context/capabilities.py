@@ -892,16 +892,20 @@ def _objective_available(world, scene, objective):
     if not isinstance(objective, dict):
         return False
     if objective.get('kind') == 'investigate':
-        return objective.get('place') == scene.get('location')
+        from kernel.investigations import declared_leads, objective_errors
+        if objective_errors(objective, world) or objective['place'] != scene.get('location'):
+            return False
+        available = scene_capabilities(world, scene).allowed_move_ids | {scene.get('location')}
+        return all(lead['place'] in available for lead in declared_leads(objective))
     _, inventory, targets = _ordinary_item_authority(world, scene)
     return (isinstance(objective.get('item'), str) and objective['item'] in inventory
             and isinstance(objective.get('recipient'), str) and objective['recipient'] in targets)
 
 
-def _quest_has_evidence(world, line_id, declaration):
+def _quest_has_evidence(world, line_id, declaration, actor):
     from kernel.quest_outcomes import observation_supports_resolution
     line = world['systems']['lore']['lines'].get(line_id)
-    return bool(line and observation_supports_resolution(world, line, declaration))
+    return bool(line and observation_supports_resolution(world, line, declaration, actor))
 
 
 def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
@@ -925,7 +929,7 @@ def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[Validatio
         elif op in {"advance", "resolve"}:
             valid = line_id in local_active
             if valid and op == "resolve":
-                valid = _quest_has_evidence(world, line_id, item)
+                valid = _quest_has_evidence(world, line_id, item, scene.get("protagonist"))
         else:
             # LoreSystem owns structural diagnostics for unsupported/malformed
             # ops; this boundary only needs to prevent authority laundering.
@@ -966,7 +970,7 @@ def player_turn_quest_event_errors(events: list[dict], world: dict, scene: dict)
         elif event_type in {"quest_advanced", "quest_resolved"}:
             valid = line_id in local_active
         if valid and event_type == "quest_resolved":
-            valid = _quest_has_evidence(world, line_id, delta)
+            valid = _quest_has_evidence(world, line_id, delta, scene.get("protagonist"))
         if not valid:
             errors.append(_player_quest_error(
                 "quests", f"event[{index}]",
@@ -1023,6 +1027,14 @@ def _candidate_observation_places(commit, world: dict, scene: dict, *, trusted_k
     return frozenset(allowed)
 
 
+def _check_investigation(world, scene, place, delta, field):
+    from kernel.investigations import check_finding
+    destination = {**scene, "location": place}
+    visible_places = scene_capabilities(world, destination).allowed_move_ids | {place}
+    return check_finding(world, scene["protagonist"], place, delta.get("feature"),
+                         delta["investigation"], visible_places, field)
+
+
 def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=frozenset(),
                              reveal_only_discovery_keys=frozenset()) -> list[ValidationError]:
     """Constrain ordinary-player world writes to local public observations.
@@ -1060,6 +1072,15 @@ def player_turn_world_errors(commit, world: dict, scene: dict, *, trusted_keys=f
         if type(item.get("level")) is not int or item["level"] != 1:
             errors.append(ValidationError("world", f"[{index}].level", "player_world_observation_boundary",
                                           "普通玩家的公开观察只能使用 level=1，不能触发全局级联。"))
+        if "investigation" in item:
+            areas = item.get("areas")
+            if isinstance(areas, list) and len(areas) == 1 and isinstance(areas[0], str):
+                errors.extend(_check_investigation(world, scene, areas[0], item, f"[{index}].investigation"))
+    tags = [row["investigation"].get("quest") for row in commit.sections.get("world") or []
+            if isinstance(row, dict) and isinstance(row.get("investigation"), dict)]
+    if any(isinstance(key, str) and tags.count(key) > 1 for key in tags):
+        errors.append(ValidationError("world", "", "player_world_observation_boundary",
+                                      "同一调查每回合记录一次查证结果"))
     return errors
 
 
@@ -1137,6 +1158,17 @@ def player_turn_world_event_errors(events: list[dict], world: dict, scene: dict,
                 or not isinstance(delta.get("summary"), str) or not delta["summary"].strip()):
             errors.append(ValidationError("world", f"event[{index}]", "player_world_observation_boundary",
                                           "普通玩家回合的最终 world 事件越过了本地公开观察边界。"))
+        if "investigation" in delta:
+            if delta.get("observer") != scene.get("protagonist"):
+                errors.append(ValidationError("world", f"event[{index}]", "player_world_observation_boundary",
+                                              "调查来源必须属于当前行动者"))
+            if isinstance(delta.get("place"), str):
+                errors.extend(_check_investigation(world, scene, delta["place"], delta, f"event[{index}].investigation"))
+    tagged = [e["deltas"]["investigation"].get("quest") for e in events if not e.get("retracted")
+              and e["type"] == "world_change" and isinstance(e["deltas"].get("investigation"), dict)]
+    if any(isinstance(key, str) and tagged.count(key) > 1 for key in tagged):
+        errors.append(ValidationError("world", "", "player_world_observation_boundary",
+                                      "同一调查每回合只能发布一次查证结果"))
     return errors
 
 

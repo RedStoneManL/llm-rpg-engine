@@ -2360,3 +2360,5 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
 - RCV-135 补充九回合 Terra 试玩，三地点的推进、道路关闭恢复、回访、冷重开及定向发言均核对。20 条原生响应中有一次自然正文被要求重写。[记录与重放](../verification/rcv135-terra-world/review.md)。
 
 - 2026-11-07：RCV-136 普通玩家可明示潜行、交涉、强攻检定，宿主掷骰并冻结时间代价；受挫不能写成功效果。Terra 合成普通入口核对 d100、位置、时间、物权、重复请求和冷重开。最终 Python 3.12.14 全量 **2257 passed, 1 deselected in 50.79s**。34 项逐项状态及其边界见 [体验修复报告](../reports/2026-11-07/experience-repairs.html)，[风险检定与验收](../verification/RCV-136-risk-checks.md)。
+
+- 2026-11-07：RCV-137 修复“空柜原文被用来证明找到账簿”。调查按真实观察分支，玩家可从任务簿查下一处并打开现场原文。结案单独核对证据，失败保留未结状态。门禁 2262 passed / 1 deselected。[记录](../verification/RCV-137-investigation-routes.md)。

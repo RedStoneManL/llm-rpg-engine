@@ -631,6 +631,9 @@ def produce_turn(
         commit = TurnCommit(narration=commit.narration, sections=clean_sections)
 
     if not dropped_sections:
+        settle_investigations = getattr(strategy, "settle_investigations", None)
+        if enforce_player_quest_authority and callable(settle_investigations):
+            commit = settle_investigations(commit, world, provider)
         commit = bind_delivery_outcomes(commit, world)
         if validate_candidate():
             raise TurnRejected('settled delivery outcome could not be validated')
@@ -683,6 +686,7 @@ def apply_turn(
     *,
     day: int,
     scene: str,
+    observer: str | None = None,
 ) -> dict:
     """Apply a TurnCommit: explode to events, append to store, project world.
 
@@ -722,6 +726,10 @@ def apply_turn(
         assert owner is not None
         section_events = owner.to_events(section, decl,
                                          turn=turn_num, day=day, scene=scene)
+        if observer and section == "world":
+            for event in section_events:
+                if event["type"] == "world_change" and event["deltas"].get("public_observation") is True:
+                    event["deltas"]["observer"] = observer
         events.extend(section_events)
         log.debug("apply_turn: section=%s events=%d", section, len(section_events))
 
@@ -824,10 +832,24 @@ def _run_turn_staged(
         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day
 
         start = len(store.events)
-        new_world = apply_turn(registry, store, commit, day=day, scene=scene_id)
+        new_world = apply_turn(registry, store, commit, day=day, scene=scene_id,
+                               observer=protagonist if enforce_player_world_authority else None)
         if (scene.get('_risk_check', {}).get('outcome') == '受挫'
                 and any(event['type'] != 'clock_advanced' for event in store.events[start:])):
             raise TurnRejected('failed check cannot publish foreground gains')
+        lead = scene.get('_investigation_lead')
+        if lead:
+            changes = store.events[start:]
+            if any(e['type'] == 'entity_moved' and e['deltas'].get('who') == protagonist for e in changes):
+                raise TurnRejected('查证当前设施不能同时离开此地')
+            matched = any(e['type'] == 'world_change' and e['deltas'].get('place') == lead['place']
+                          and e['deltas'].get('feature') == lead['feature']
+                          and (e['deltas'].get('investigation') or {}).get('quest') == lead['quest']
+                          for e in changes)
+            if not matched and new_world["systems"]["lore"]["lines"][lead["quest"]]["state"] == "明":
+                store.append(kernel_event('investigation_attempted', day=day, scene=scene_id, turn=store.turn,
+                                          summary='此次查证未取得可核验记录', deltas={**lead, 'actor': protagonist}))
+                new_world = project(registry, store.iter_events())
         # The visible story is part of the action, never an optional digest side
         # effect. A failing reflection hook cannot lose a successfully shown turn.
         canonical_binding = None
@@ -1359,6 +1381,17 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         # raw rows never enter a strategy scene, provider tool closure, GUI
         # host envelope, fingerprint, or result sidecar.  This also cannot
         # mint a player-statement receipt from natural-language input.
+        if enforce_player_world_authority:
+            from context.investigations import selected_lead
+            try:
+                selected = selected_lead(world, scene, player_input)
+            except ValueError as exc:
+                raise TurnRejected(str(exc)) from exc
+            if selected:
+                prompt = (f"玩家正在原地查证 {selected['quest']} 的 {selected['feature']}。"
+                          "把本次真实发现或查空记录在对应 world.investigation，不强行结案。")
+                scene = {**scene, '_investigation_lead': selected,
+                         '_resolution_prompt': (scene.get('_resolution_prompt', '') + '\n' + prompt).strip()}
         from context.assembler import safe_authoring_handoff
         scene = {
             **scene,

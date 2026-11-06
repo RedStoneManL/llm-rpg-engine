@@ -46,7 +46,7 @@ class LoreSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"lore_created", "lore_advanced",
+        return {"lore_created", "lore_advanced", "investigation_attempted",
                 "quest_created",
                 "quest_opened", "quest_surfaced", "quest_advanced", "quest_resolved",
                 "quest_demoted",
@@ -64,6 +64,16 @@ class LoreSystem(ContextSystem):
         t = event["type"]
         d = event.get("deltas", {})
         lines = world["systems"][self.name]["lines"]
+
+        if t == "investigation_attempted":
+            line = lines.get(d.get("quest"))
+            if not line or line.get("state") != "明":
+                return False
+            attempts = line.setdefault("attempts", {}).setdefault(d["actor"], [])
+            key = [d["place"], d["feature"]]
+            if key not in attempts:
+                attempts.append(key)
+            return
 
         if t == "lore_created":
             lid = d.get("id")
@@ -158,6 +168,7 @@ class LoreSystem(ContextSystem):
                 "summary": summary,
                 "surfaced_turn": event.get("turn"),
                 "accepted_by_player": True,
+                "question": summary,
                 "born_day": born_day,
                 "lifespan_days": lifespan_days,
                 "last_advanced_day": born_day,
@@ -199,6 +210,7 @@ class LoreSystem(ContextSystem):
                             lid, ln.get("state"))
                 return
             ln["state"] = "明"
+            ln.setdefault("question", ln.get("summary"))
             turn = event.get("turn")
             ln["surfaced_turn"] = turn
             ln["last_advanced_day"] = event.get("day")
@@ -536,9 +548,17 @@ class LoreSystem(ContextSystem):
             summary = quest_summary(ln, world)
             ledger_lines.append(f"  [{ln['id']}] {summary}")
             objective = ln.get('objective')
-            if isinstance(objective, dict) and objective.get('kind') == 'investigate':
-                ledger_lines.append(f"    在 {objective['place']} 核验 {objective['feature']}，记录该设施的一条公开观察。")
-            elif objective:
+            from context.investigations import alternate_action, investigation_notebook
+            notebook = investigation_notebook(world, scene, ln)
+            for lead in notebook:
+                ledger_lines.append(f"    路线 {lead['number']}：{lead['label']}的{lead['feature']}，"
+                                    f"{lead['status']}。{lead['availability']}。")
+                if "source_event_id" in lead:
+                    ledger_lines.append(f"      观察 {lead['source_event_id']}：{lead['quote']}")
+            alternative = alternate_action(world, scene, ln, notebook)
+            if alternative:
+                ledger_lines.append(f"    可以换个方法：{alternative}这只是可尝试的行动。")
+            if objective and objective.get('kind') == 'deliver':
                 ledger_lines.append(f"    交付条件：{objective['item']} → {objective['recipient']}；"
                                     "逾期不会自动失败，仍可交付或明确放弃。")
         if closed:

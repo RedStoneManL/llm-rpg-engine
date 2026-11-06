@@ -5,7 +5,7 @@ from typing import Any
 from kernel.quest_outcomes import quest_summary
 
 
-def player_objectives(view: dict[str, Any], protagonist: str | None) -> dict[str, Any]:
+def player_objectives(view: dict[str, Any], protagonist: str | None, scene: dict | None = None) -> dict[str, Any]:
     """Return only the public goal and explicit LoreSystem task ledger.
 
     The caller supplies an already-redacted POV projection.  Dark lore, stages,
@@ -26,14 +26,23 @@ def player_objectives(view: dict[str, Any], protagonist: str | None) -> dict[str
 
     lines = ((systems.get("lore") or {}).get("lines", {})
              if isinstance(systems.get("lore"), dict) else {})
-    active: list[dict[str, str]] = []
+    active: list[dict[str, Any]] = []
     completed: list[dict[str, str]] = []
     if isinstance(lines, dict):
         for quest_id, line in sorted(lines.items()):
             if not isinstance(quest_id, str) or not isinstance(line, dict):
                 continue
             if line.get("state") == "明" and isinstance(line.get("summary"), str):
-                active.append({"id": quest_id, "summary": quest_summary(line, view)})
+                item = {"id": quest_id, "summary": quest_summary(line, view)}
+                if scene:
+                    from context.investigations import alternate_action, investigation_notebook
+                    leads = investigation_notebook(view, scene, line)
+                    if leads:
+                        item["leads"] = leads
+                        alternative = alternate_action(view, scene, line, leads)
+                        if alternative:
+                            item["alternative"] = alternative
+                active.append(item)
                 continue
             resolved = line.get("resolved")
             summary = resolved.get("summary") if isinstance(resolved, dict) else None

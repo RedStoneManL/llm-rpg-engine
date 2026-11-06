@@ -273,7 +273,7 @@ def _public_codex(world: dict[str, Any]) -> list[dict[str, str]]:
             for item in entries if isinstance(item, dict)]
 
 
-def _player_goal_and_quests(view: dict[str, Any], protagonist: str | None) -> dict[str, Any]:
+def _player_goal_and_quests(view: dict[str, Any], protagonist: str | None, scene=None) -> dict[str, Any]:
     """Return the small, player-facing long-horizon slice for the dashboard.
 
     ``view`` is already the protagonist's POV projection.  The goal is read
@@ -281,7 +281,7 @@ def _player_goal_and_quests(view: dict[str, Any], protagonist: str | None) -> di
     LoreSystem's already-public 明-state one-line ledger, never a lore line's
     hidden fields, stages, or raw event provenance.
     """
-    return player_objectives(view, protagonist)
+    return player_objectives(view, protagonist, scene)
 
 
 def build_player_state(engine) -> dict[str, Any]:
@@ -325,10 +325,16 @@ def build_player_state(engine) -> dict[str, Any]:
     except ValueError:
         narration_unavailable = True
     codex = _public_codex(engine.world)
-    objectives = _player_goal_and_quests(view, protagonist)
+    objectives = _player_goal_and_quests(view, protagonist, scene)
     # This is deliberately the same redacted current-scene projection used to
     # decide whether a host may issue a ``heard_player`` receipt.  It exposes
     # no arbitrary NPC beliefs and never includes arrival-only recipients.
+    from engine.history import PlayerHistory
+    reader = PlayerHistory(engine.store, protagonist)
+    for quest in objectives["active_quests"]:
+        for lead in quest.get("leads", []):
+            if "source_event_id" in lead:
+                lead["ref"] = reader.source_ref(projected_revision(engine), lead["source_event_id"])
     present_people = player_present_people(engine.world, scene)
     speech_recipients = [{"id": person["id"], "label": person["label"]} for person in present_people]
     observations = player_place_observations(engine.world, scene)
@@ -943,9 +949,12 @@ _JS = _JS.replace(
     "clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>$('inventory').append(el('li',x.label)));",
     r"""clear($('inventory'));if(!s.inventory.length)$('inventory').append(el('li','背包为空。'));s.inventory.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='inventory-suggestion';button.addEventListener('click',()=>suggestInventoryItem(x.label));item.append(document.createTextNode(`${x.label} `),button);$('inventory').append(item)});""",
 )
+_JS = _JS.replace("function suggestQuest(", """function fillInvestigation(text){if(!state||busy||pending())return;const input=$('action-input');input.value=text;input.focus();input.dispatchEvent(new Event('input'))}
+async function openInvestigationSource(ref){try{const d=await api('/api/recall/source?ref='+encodeURIComponent(ref));renderRecall([...d.before,d.source,...d.after].map(x=>(x.ref===ref?'〔命中〕':'')+'第'+x.day+'天 · 回合'+x.turn+' · '+x.kind+'：'+x.text));$('recall-results').scrollIntoView({block:'nearest'})}catch(e){setStatus(e.message,true)}}
+function suggestQuest(""")
 _JS = _JS.replace(
     "active.forEach(x=>quests.append(el('li',`${x.summary}（${x.id}）`)));",
-    r"""active.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='quest-suggestion';button.addEventListener('click',()=>suggestQuest(x.summary));item.append(document.createTextNode(`${x.summary}（${x.id}） `),button);quests.append(item)});""",
+    r"""active.forEach(x=>{const item=el('li'),button=el('button','填入行动');button.type='button';button.className='quest-suggestion';button.addEventListener('click',()=>suggestQuest(x.summary));item.append(document.createTextNode(`${x.summary}（${x.id}） `),button);for(const lead of x.leads||[]){const p=el('p',`${lead.label} · ${lead.feature} · ${lead.status}（${lead.availability}）`);if(lead.quote)p.append(el('q',lead.quote));if(lead.ref){const open=el('button','打开现场原文');open.type='button';open.onclick=()=>openInvestigationSource(lead.ref);p.append(open)}if(lead.action){const choice=el('button',lead.action);choice.type='button';choice.addEventListener('click',()=>fillInvestigation(lead.action));p.append(choice)}item.append(p)}if(x.alternative){const b=el('button',x.alternative);b.type='button';b.addEventListener('click',()=>fillInvestigation(x.alternative));item.append(b)}quests.append(item)});""",
 )
 _JS = _JS.replace(
     "const pendingKey='llm-rpg.offline-player.pending-action.v1';",

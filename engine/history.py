@@ -15,17 +15,30 @@ class StaleSource(ValueError):
 
 
 def prepare_history_index(db):
-    if db.execute("SELECT 1 FROM sqlite_master WHERE name='play_history_insert'").fetchone():
+    def current():
+        trigger = db.execute("SELECT sql FROM sqlite_master WHERE name='play_history_insert'").fetchone()
+        return trigger and "world_change" in trigger[0]
+
+    if current():
         return True
     db.execute('BEGIN IMMEDIATE')
     try:
-        if not db.execute("SELECT 1 FROM sqlite_master WHERE name='play_history_insert'").fetchone():
-            db.execute("CREATE VIRTUAL TABLE play_history_fts USING fts5(body, tokenize='trigram')")
-            body = "CASE WHEN type='narration_recorded' THEN json_extract(deltas,'$.text') ELSE json_extract(deltas,'$.value') END"
-            included = "(type='narration_recorded' OR (type='knowledge_set' AND json_extract(deltas,'$.source_kind')='player_statement'))"
-            db.execute(f'INSERT INTO play_history_fts(rowid,body) SELECT seq,{body} FROM events WHERE {included}')
-            db.execute(f'''CREATE TRIGGER play_history_insert AFTER INSERT ON events BEGIN
-                INSERT INTO play_history_fts(rowid,body) SELECT seq,{body} FROM events WHERE seq=new.seq AND {included}; END''')
+        if not current():
+            existed = db.execute("SELECT 1 FROM sqlite_master WHERE name='play_history_fts'").fetchone()
+            db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS play_history_fts USING fts5(body, tokenize='trigram')")
+            body = """CASE type WHEN 'narration_recorded' THEN json_extract(deltas,'$.text')
+                        WHEN 'world_change' THEN summary ELSE json_extract(deltas,'$.value') END"""
+            observations = """(type='world_change' AND json_extract(deltas,'$.public_observation')=1
+                               AND json_extract(deltas,'$.visibility')='public')"""
+            included = f"""(type='narration_recorded' OR {observations}
+                        OR (type='knowledge_set' AND json_extract(deltas,'$.source_kind')='player_statement'))"""
+            # Upgrade the old derived index without touching canonical event rows.
+            db.execute(f"INSERT OR REPLACE INTO play_history_fts(rowid,body) SELECT seq,{body} FROM events "
+                       f"WHERE {observations if existed else included}")
+            db.execute('DROP TRIGGER IF EXISTS play_history_insert')
+            db.execute(f"""CREATE TRIGGER play_history_insert AFTER INSERT ON events BEGIN
+                INSERT INTO play_history_fts(rowid,body) SELECT seq,{body} FROM events
+                WHERE seq=new.seq AND {included}; END""")
         db.commit()
         return True
     except sqlite3.OperationalError as exc:
@@ -45,7 +58,7 @@ class PlayerHistory:
         self.db = store._conn
         self.scope = str(Path(store.db_path).resolve())
 
-    def _ref(self, revision, event_id):
+    def source_ref(self, revision, event_id):
         data = json.dumps([self.scope,self.actor,revision,event_id], ensure_ascii=False).encode()
         return f'{revision}:{event_id}:{hashlib.sha256(data).hexdigest()[:24]}'
 
@@ -53,11 +66,22 @@ class PlayerHistory:
         private = tuple(PRIVATE_EVENT_TYPES)
         placeholders = ','.join('?' for _ in private)
         rows = self.db.execute(f'''WITH sources AS (
-            SELECT e.id,e.type,e.day,e.turn,e.seq * 2 + 1 AS ordinal,e.seq,e.deltas FROM events e
+            SELECT e.id,e.type,e.day,e.turn,e.seq * 2 + 1 AS ordinal,e.seq,
+                CASE WHEN e.type='world_change' THEN json_set(e.deltas,'$.text',e.summary)
+                     ELSE e.deltas END AS deltas FROM events e
             WHERE e.retracted=0 AND (e.secrecy IS NULL OR e.secrecy IN ('null','"public"'))
             AND (e.type='narration_recorded' OR (e.type='knowledge_set'
                 AND json_extract(e.deltas,'$.source_kind')='player_statement'
-                AND json_extract(e.deltas,'$.via')=?))
+                AND json_extract(e.deltas,'$.via')=?) OR (e.type='world_change'
+                AND json_extract(e.deltas,'$.public_observation')=1 AND json_extract(e.deltas,'$.visibility')='public'
+                AND json_extract(e.deltas,'$.source')='author_world' AND json_extract(e.deltas,'$.level')=1
+                AND json_extract(e.deltas,'$.observation_kind') IN ('stable_layout','single_observation')
+                AND json_type(e.deltas,'$.observation_range')='text' AND trim(json_extract(e.deltas,'$.observation_range'))!=''
+                AND (json_type(e.deltas,'$.observer') IS NULL OR json_extract(e.deltas,'$.observer')=?)
+                AND EXISTS (SELECT 1 FROM player_inputs i JOIN action_receipts r USING(action_id)
+                            WHERE i.actor=? AND e.seq BETWEEN r.first_seq AND r.last_seq
+                            AND NOT EXISTS (SELECT 1 FROM events gone WHERE gone.retracted!=0
+                                            AND gone.seq BETWEEN r.first_seq AND r.last_seq))))
             AND NOT EXISTS (SELECT 1 FROM events p WHERE p.type IN ({placeholders}) AND
                 (p.id IN (SELECT value FROM json_each(e.thread_refs)) OR p.id IN (SELECT value FROM json_each(e.chunk_ids))))
             UNION ALL
@@ -69,7 +93,7 @@ class PlayerHistory:
             WHERE i.actor=? AND NOT EXISTS (SELECT 1 FROM events gone
                 WHERE gone.seq BETWEEN r.first_seq AND r.last_seq AND gone.retracted!=0))
             SELECT * FROM sources e WHERE ({condition})
-            ORDER BY ordinal {'DESC' if descending else 'ASC'}''', (self.actor,*private,self.actor,*args))
+            ORDER BY ordinal {'DESC' if descending else 'ASC'}''', (self.actor, self.actor, self.actor, *private, self.actor, *args))
         records = []
         for row in rows:
             delta = json.loads(row['deltas']); speech = row['type'] == 'knowledge_set'
@@ -79,9 +103,11 @@ class PlayerHistory:
             if speech and (not isinstance(delta.get('knower'), str) or not delta['knower']
                            or delta.get('fact_key') != player_statement_fact_key(self.actor,text)):
                 continue
-            records.append({'kind':{'player_input':'玩家输入','knowledge_set':'通信收据','narration_recorded':'公开旁白'}[row['type']],'day':row['day'],'turn':row['turn'],
+            records.append({'kind':{'world_change':'现场观察','player_input':'玩家输入','knowledge_set':'通信收据','narration_recorded':'公开旁白'}[row['type']],'day':row['day'],'turn':row['turn'],
                             'seq':row['ordinal'],'text':text,'recipient':delta.get('knower') if speech else None,
-                            'ref':self._ref(revision,row['id'])})
+                            'ref':self.source_ref(revision,row['id'])})
+            if row['type'] == 'world_change':
+                records[-1].update(source_event_id=row['id'], place=delta['place'], feature=delta.get('feature'))
             if len(records) >= limit:
                 break
         return records
@@ -115,7 +141,7 @@ class PlayerHistory:
         try:
             revision=self.store.revision
             parts=ref.split(':')
-            if len(parts)!=3 or ref!=self._ref(revision,parts[1]):
+            if len(parts)!=3 or ref!=self.source_ref(revision,parts[1]):
                 raise StaleSource('来源版本或角色已变化，请重新检索。')
             def rows(condition, args, limit, descending=False):
                 return self._records(condition=condition,args=args,revision=revision,limit=limit,descending=descending)

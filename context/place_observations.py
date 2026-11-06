@@ -58,6 +58,7 @@ def public_place_observations(world: dict[str, Any], scene: dict[str, Any]) -> l
         observation_range = item.get("observation_range")
         if (
             item.get("public_observation") is not True
+            or item.get("observer") not in (None, actor)
             or item.get("visibility") != "public"
             or kind not in _OBSERVATION_KINDS
             or not isinstance(place, str)

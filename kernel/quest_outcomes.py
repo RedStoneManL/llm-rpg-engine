@@ -15,12 +15,8 @@ from kernel.turncommit import TurnCommit
 
 def objective_problems(value, world):
     if isinstance(value, dict) and value.get('kind') == 'investigate':
-        graph = world.get('systems', {}).get('ontology')
-        place = graph.get_entity(value.get('place')) if graph and isinstance(value.get('place'), str) else None
-        if (place and place.etype == 'Place' and isinstance(value.get('feature'), str)
-                and value['feature'].strip() and set(value) == {'kind', 'place', 'feature'}):
-            return []
-        return ['调查条件须明确已存在的 place 及非空 feature']
+        from kernel.investigations import objective_errors
+        return objective_errors(value, world)
     if (not isinstance(value, dict) or value.get('kind') != 'deliver'
             or set(value) - {'kind', 'item', 'recipient', 'due'}):
         return ['objective 必须为 deliver 交付约定，字段为 kind/item/recipient/可选 due']
@@ -65,22 +61,17 @@ def _delivery_basis(commit, line, world):
     return None
 
 
-def observation_supports_resolution(world, line, row):
-    """Read a real post-acceptance observation from the active projection."""
+def observation_supports_resolution(world, line, row, actor):
+    from kernel.investigations import case_leads
     goal = line.get('objective') or {}
     if goal.get('kind') == 'deliver' or row.get('outcome') == 'abandoned':
         return True
     evidence = row.get('evidence')
     if not isinstance(evidence, dict) or not isinstance(evidence.get('quote'), str):
         return False
-    for change in world.get('systems', {}).get('cascade', {}).get('changes', []):
-        if (change.get('public_observation') is True and change.get('visibility') == 'public'
-                and change.get('event_id') == evidence.get('source_event_id')
-                and change.get('summary') == evidence['quote']
-                and (change.get('turn') or 0) > (line.get('surfaced_turn') or 0)):
-            return not goal or (goal.get('kind') == 'investigate' and goal['place'] == change.get('place')
-                                and goal['feature'] == change.get('feature'))
-    return False
+    return any(change and change['investigation']['result'] == 'confirmed'
+               and change['event_id'] == evidence.get('source_event_id') and change['summary'] == evidence['quote']
+               for change in case_leads(world, line, actor).values())
 
 
 def delivery_errors(commit, world):

@@ -128,12 +128,17 @@ class CascadeSystem(ContextSystem):
                     "scene": event.get("scene"),
                     "source": d.get("source"),
                     "visibility": d.get("visibility"),
-                    "public_observation": d.get("public_observation") is True,
+                    "public_observation": (d.get("public_observation") is True
+                                           and event.get("secrecy") in (None, "public")),
                     "observation_kind": d.get("observation_kind"),
                     "observation_range": d.get("observation_range"),
                     "feature": d.get("feature"),
                     "discovery_clue_id": d.get("discovery_clue_id"),
                 }
+                if "observer" in d:
+                    entry["observer"] = d["observer"]
+                if "investigation" in d:
+                    entry["investigation"] = d["investigation"]
                 slice_["changes"].append(entry)
                 entity = g.get_entity(place)
                 if entity is None:
@@ -264,6 +269,8 @@ class CascadeSystem(ContextSystem):
                         "observation_range": item.get("observation_range"),
                         **({"feature":item["feature"].strip()} if isinstance(item.get("feature"), str) and item["feature"].strip() else {}),
                     })
+                if item.get("public_observation") is True and "investigation" in item:
+                    deltas["investigation"] = item["investigation"]
                 out.append(kernel_event(
                     "world_change", day=day, scene=scene, summary=summary,
                     deltas=deltas,

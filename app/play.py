@@ -376,10 +376,19 @@ def _print_player_status(engine, out: Callable) -> None:
     exits = [f"{place.label}（成本 {costs.get(tuple(sorted((capability.location or '', place.id))), '1')}）"
              for place in capability.exits]
     out(f"[状态] 已知出口：{'、'.join(exits) if exits else '无'}")
-    objectives = player_objectives(view, protagonist)
+    objectives = player_objectives(view, protagonist, scene)
     out(f"[状态] 长期目标：{objectives['long_term_goal'] or '未设定'}")
     active = [item['summary'] for item in objectives['active_quests']]
     out(f"[状态] 公开任务：{'、'.join(active) if active else '无'}")
+    for item in objectives['active_quests']:
+        if item.get('alternative'):
+            out(f"  换个方法：{item['alternative']}")
+        for lead in item.get('leads', []):
+            out(f"  {lead['label']} · {lead['feature']}：{lead['status']}。{lead.get('action') or lead['availability']}")
+            if 'quote' in lead:
+                from engine.history import PlayerHistory
+                ref = PlayerHistory(engine.store, protagonist).source_ref(projected_revision(engine), lead['source_event_id'])
+                out(f"    第{lead['day']}天 · 回合{lead['turn']}：{lead['quote']}  /source {ref}")
     completed = [item['summary'] for item in objectives['completed_quests']]
     out(f"[状态] 已结任务：{'、'.join(completed) if completed else '无'}")
 

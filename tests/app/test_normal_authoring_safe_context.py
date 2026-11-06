@@ -408,6 +408,7 @@ def test_normal_gui_persists_local_public_observation_and_mode_bound_recovery(tm
                   if event.get("type") == "world_change" and event.get("turn") == first["state"]["turn"]]
         assert len(events) == 1
         assert events[0]["deltas"] == {
+            "observer": "protagonist",
             "place": "stonebridge_inn", "level": 1, "summary": "脚边石阶有浅浅湿痕。",
             "source": "author_world", "visibility": "public", "public_observation": True,
             "observation_kind": "single_observation", "observation_range": "主角脚边两步内",

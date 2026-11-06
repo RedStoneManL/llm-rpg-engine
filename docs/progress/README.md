@@ -83,3 +83,5 @@
 - [RCV-135 调查、队列与历史状态](../verification/RCV-135-experience-mechanisms.md)
 
 - [体验修复现状与 34 项逐项结果](../reports/2026-11-07/experience-repairs.html) · [RCV-136 风险检定与最终门禁](../verification/RCV-136-risk-checks.md) · [Terra 长期世界样本](../verification/rcv135-terra-world/review.md)
+
+- [RCV-137 调查分支与现场原文](../verification/RCV-137-investigation-routes.md)
