@@ -333,6 +333,8 @@ def build_player_state(engine) -> dict[str, Any]:
     speech_recipients = [{"id": person["id"], "label": person["label"]} for person in present_people]
     observations = player_place_observations(engine.world, scene)
     resource_outcome = player_resource_outcome(engine.world, protagonist)
+    from systems.challenge import check_text
+    latest_check = engine.world.get('systems', {}).get('challenge', {}).get(protagonist)
     # Boolean capability only: it tells the UI whether a *publicly grounded*
     # nearby-clue action exists, never which hidden destination qualifies.
     discovery_available = host_nearby_discovery_grant(engine.world, scene) is not None
@@ -353,6 +355,7 @@ def build_player_state(engine) -> dict[str, Any]:
         "present_people": present_people,
         "observations": observations,
         "resource_outcome": resource_outcome,
+        "latest_check": check_text(latest_check) if latest_check else None,
         "speech_recipients": speech_recipients,
     }
 
@@ -1000,6 +1003,8 @@ async function load(){try{const r=await fetch('/api/gm/state');const state=await
 })();"""
 
 
+_INDEX = _INDEX.replace('<form id="action-form">', '<details><summary>进行风险检定</summary><p>例如：检定 潜行 普通 绕过守卫。可选潜行、交涉、强攻及容易、普通、困难。成功耗一个时段，受挫或付出代价耗两个时段。付款另行结算。</p></details><p id="risk-outcome" aria-live="polite" hidden></p><form id="action-form">')
+_JS = _JS.replace("renderResourceOutcome(s.resource_outcome);", "renderResourceOutcome(s.resource_outcome);$('risk-outcome').hidden=!s.latest_check;$('risk-outcome').textContent=s.latest_check?'最近检定：'+s.latest_check:'';")
 _JS = _JS.replace('renderRecall(data.hits);', '''renderRecall(data.hits);for(const r of (data.sources||[])){const b=el('button','打开第'+r.day+'天回合'+r.turn+'的'+r.kind+'与邻文');b.onclick=async()=>{try{const d=await api('/api/recall/source?ref='+encodeURIComponent(r.ref));renderRecall([...d.before,d.source,...d.after].map(x=>(x.ref===r.ref?'〔命中〕':'')+'第'+x.day+'天 · 回合'+x.turn+' · '+x.kind+(x.recipient?' → '+x.recipient:'')+'：'+x.text))}catch(e){setStatus(e.message,true)}};$('recall-results').append(b);}''')
 
 class _QuietHandler(WSGIRequestHandler):

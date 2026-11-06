@@ -60,3 +60,15 @@ def test_offline_preview_reports_malformed_sources():
 def test_offline_preview_rejects_unsupported_card_role():
     with pytest.raises(ValueError, match="card_as"):
         preview_sillytavern(card_as="gm")
+
+
+def test_disabled_book_entries_never_reach_conversion_and_enabled_keywords_do():
+    book = {"entries":{
+        "disabled":{"disable":True, "key":["暗语甲"], "content":"停用的秘密甲"},
+        "enabled":{"key":["铃响"], "content":"门户会打开"}}}
+    assert preview_sillytavern(world_book=book)["world_book_entries"] == 1
+    provider = FakeLLMProvider(json_responses=[{"world_premise":{"tone":"夜访"}}])
+    convert_sillytavern(provider, world_book=book)
+    prompt = "\n".join(user for _, user in provider.calls)
+    assert "停用的秘密甲" not in prompt and "暗语甲" not in prompt
+    assert "铃响" in prompt and "门户会打开" in prompt

@@ -117,6 +117,8 @@ def build_engine(
     registry.register(LoreSystem())
     registry.register(CodexSystem())
     registry.register(ResourceSystem())
+    from systems.challenge import ChallengeSystem
+    registry.register(ChallengeSystem())
     memory_generator = None
     if enable_interpretive_memory:
         # Opt-in must happen before opening/projecting the store, so a reopened

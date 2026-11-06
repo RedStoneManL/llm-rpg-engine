@@ -1355,7 +1355,7 @@ def test_build_world_summary_uses_sketches_and_abouts():
     npcs_summary = {
         "npcs": [
             {"id": "npc_0", "role": "商人", "sketch": "戴兜帽的旅人，目光深邃"},
-            {"id": "npc_1", "role": "侍卫", "sketch": "身披铠甲的老兵"},
+            {"id": "npc_1", "role": "侍卫", "sketch": "身披铠甲的老兵", "location":"venue_1"},
         ]
     }
     threads_summary = {
@@ -1366,8 +1366,9 @@ def test_build_world_summary_uses_sketches_and_abouts():
              "anchor": "town_0", "about": "失踪商队的下落"},
         ]
     }
-    summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
+    summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary, {"goal":"找回家书"})
     # Must contain NPC sketches (not npc_0/npc_1 ids)
+    assert "找回家书" in summary and "身披铠甲的老兵（在铁铺）" in summary
     assert "戴兜帽的旅人，目光深邃" in summary, "NPC sketch 0 missing from world summary"
     assert "身披铠甲的老兵" in summary, "NPC sketch 1 missing from world summary"
     assert "npc_0" not in summary, "Entity id npc_0 must not appear in world summary"

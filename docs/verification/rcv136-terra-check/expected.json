@@ -1,0 +1,33 @@
+{
+  "seed": 2,
+  "check": {
+    "id": "ev_539b7f16942b",
+    "type": "action_checked",
+    "day": 1,
+    "scene": "stonebridge_inn",
+    "arc": null,
+    "actors": [
+      "protagonist"
+    ],
+    "summary": "潜行（困难）：d100 掷出 58，成功线 35，受挫。耗时 2 个时段。",
+    "deltas": {
+      "actor": "protagonist",
+      "approach": "潜行",
+      "difficulty": "困难",
+      "roll": 58,
+      "threshold": 35,
+      "outcome": "受挫",
+      "bands": 2,
+      "end_clock": {
+        "day": 1,
+        "band": 2
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  }
+}

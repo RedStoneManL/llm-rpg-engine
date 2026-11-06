@@ -507,6 +507,8 @@ def produce_turn(
         candidate_errors.extend(validate_resources(
             commit, scene.get('_resolved_values', {}), scene.get('_resolved_clock'), world,
         ))
+        from systems.challenge import check_errors
+        candidate_errors.extend(check_errors(commit, scene.get('_risk_check')))
         candidate_errors.extend(validate_narration(commit, world))
         return candidate_errors
 
@@ -821,7 +823,11 @@ def _run_turn_staged(
         scene_id = scene.get("id") or scene.get("location") or "scene"
         day = advanced_day(world, commit)   # clock delta -> this turn stamps at post-advance day
 
+        start = len(store.events)
         new_world = apply_turn(registry, store, commit, day=day, scene=scene_id)
+        if (scene.get('_risk_check', {}).get('outcome') == '受挫'
+                and any(event['type'] != 'clock_advanced' for event in store.events[start:])):
+            raise TurnRejected('failed check cannot publish foreground gains')
         # The visible story is part of the action, never an optional digest side
         # effect. A failing reflection hook cannot lose a successfully shown turn.
         canonical_binding = None
@@ -1292,8 +1298,30 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         strategy.reset()
     old_state = copy.deepcopy(getattr(strategy, '__dict__', {}))
     try:
+        check = None
+        if registry.owner_of_event('action_checked') is not None and scene.get('protagonist'):
+            from systems.challenge import resolve_check
+            try:
+                check = resolve_check(player_input, world, scene, batch.turn)
+            except ValueError as exc:
+                raise TurnRejected(str(exc)) from exc
+        if check:
+            from loop.resources import configured_resources
+            actor = scene['protagonist']
+            _, balances = configured_resources(world, actor, scene.get('day') or 1)
+            delta = check['deltas']
+            batch.append(check)
+            scene = {**scene, '_risk_check': delta, '_resolved_clock': delta['end_clock'],
+                     '_resolved_values': {(actor, key): value for key, value in balances.items()},
+                     '_resolution_prompt': check['summary'] + "按此结果和时间叙述；受挫时只声明 clock。"}
+        if registry.owner_of_event('action_checked') is not None:
+            def verify_check(events):
+                rows = [event for event in events if event['type'] == 'action_checked']
+                if rows != ([check] if check else []):
+                    raise TurnRejected('risk check differs from its host ruling')
+            batch.add_publish_validator(verify_check)
         wait = explicit_wait(player_input, world)
-        if wait:
+        if wait and not check:
             scene = {**scene, '_resolved_clock':wait, '_resolution_prompt':f'等待结束时钟：{wait}。按此时刻写本次 clock。'}
         payment, goods = None, None
         def validate_purchase(events):
@@ -1305,7 +1333,7 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
             if paid != ([payment] if payment else []):
                 raise TurnRejected('purchase has no matching payment')
         batch.add_publish_validator(validate_purchase)
-        if registry.owner_of_event('resources_resolved') is not None:
+        if not check and registry.owner_of_event('resources_resolved') is not None:
             resolution, expected, prompt = prepare_resources(world, scene, player_input, provider, batch.turn)
             if resolution:
                 batch.append(resolution)

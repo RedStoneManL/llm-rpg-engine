@@ -102,15 +102,20 @@ def resolve_resource_intent(intent, resources, rules, *, subject, day, band, sce
     return event, {(subject, key): value for key, value in expected.items()}, prompt
 
 
+def configured_resources(world, hero, day):
+    graph = world.get("systems", {}).get("ontology")
+    entity = graph.get_entity(hero) if graph and hero else None
+    rules = entity.attrs.get("fact_rules", {}) if entity else {}
+    balances = {key: graph.value_at(hero, key, day) for key, rule in rules.items()
+                if isinstance(rule, dict) and rule.get("resource")}
+    return rules, balances
+
+
 def prepare_resources(world, scene, action, provider, turn):
-    graph=world.get('systems',{}).get('ontology')
-    hero=scene.get('protagonist')
-    entity=graph.get_entity(hero) if graph and hero else None
-    rules=entity.attrs.get('fact_rules',{}) if entity else {}
-    day=scene.get('day') or 1
-    band=world.get('meta',{}).get('band') or 0
-    resources={key:graph.value_at(hero,key,day) for key,rule in rules.items()
-               if isinstance(rule,dict) and rule.get('resource')}
+    hero = scene.get('protagonist')
+    day = scene.get('day') or 1
+    band = world.get('meta', {}).get('band') or 0
+    rules, resources = configured_resources(world, hero, day)
     if not resources:
         return None, {}, ''
     if any(not isinstance(v,(int,float)) or isinstance(v,bool) or not math.isfinite(v) for v in resources.values()):

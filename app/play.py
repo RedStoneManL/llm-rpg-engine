@@ -142,6 +142,10 @@ def _print_turn_status(result, out: Callable, *, protagonist: str | None = None)
         out("[摘要] 已更新。")
     elif recap_status == "pending":
         out("[摘要] 更新尚未完成；本回合已保存。")
+    check = result.world.get('systems', {}).get('challenge', {}).get(protagonist) if getattr(result, 'world', None) else None
+    if check and check['turn'] == turn:
+        from systems.challenge import check_text
+        out(f"[检定] {check_text(check)}")
     outcome = player_resource_outcome(getattr(result, "world", {}), protagonist)
     if outcome is not None:
         verdict = "已扣除" if outcome["outcome"] == "spent" else "余额不足，未扣除"
@@ -214,6 +218,7 @@ OOC 指令 (以 / 开头):
   //steer <方向>        — 软转向后续叙事；//steer clear 清除（不改写世界）
   /verbosity [级别]    — 查询或设置叙事详细程度（concise|medium|rich）
   /style [文风]        — 查询或设置叙事文风/笔调（如「日式轻小说」；/style clear 清空）
+  检定 潜行 普通 绕过守卫 — 明示风险行动；另可选交涉、强攻和容易／困难。
   /help                — 显示此帮助
 """
 
