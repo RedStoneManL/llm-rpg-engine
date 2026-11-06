@@ -204,7 +204,8 @@ fact_key 尽量用 "实体.属性" 形式（如 "断桥.是否可通行"、"商�
 - advance: 推进当前地点的本地明态任务，或未绑定地点的玩家公开任务；不能推进远方账目
 - resolve: 收束同样范围内的本地明态任务；不能收束远方账目
 - 明确承诺交付自己持有的一件物品时，open 还要记录 objective:{"kind":"deliver","item":"物品ID","recipient":"在场人物或当前地点ID","due":{"day":1,"band":1}}；due 可省略，band 为0晨/1中午/2下午/3夜，截止时段含边界。条件必须来自已接受的约定，不要自行添加期限；先接取、后续回合交付。
-- 人物转述在 knowledge.via 使用人物 ID，记录该人实际相信的值。目击与公开告示分别用 observation 和 public_notice；未获证实的新说法用人物自己的 reported: 话题。
+- NPC 的 declared 表示这人相信；告示、传闻保持原来的出处。没有目击凭据时不能让人物说自己亲眼见过。人物转述在 knowledge.via 使用人物 ID，记录该人实际相信的值。目击与公开告示分别用 observation 和 public_notice；未获证实的新说法用人物自己的 reported: 话题。
+- 调查约定可用 objective={"kind":"investigate","place":"当前地点ID","feature":"可观察对象"}。观察 world.feature 用同一对象名。结案引用接取后实际记录的 evidence={"source_event_id":"观察的事件ID","quote":"观察原文"}，同范围的井和梯子是不同对象。缺少证据应继续查验。
 - 交付任务必须有 items transfer 到约定接收者才算完成，口头声称不算交付。实际转移会由宿主自动结算，可省略 resolve；不要自己填写 resolution。逾期仍可交付，不自动失败；玩家明确放弃时才用 resolve + outcome:"abandoned"，不要把放弃写成成功。
 - 【任务·近期结局】用于延续人物反应与后果，不得再次扣物品、重复发奖励或擅自完成其他任务。
 无任务变化时省略本段。

@@ -181,3 +181,16 @@ def test_thread_surface_directive_is_injected():
     frag = ds.inject({"protagonist": "hero", "day": 2}, world)
     assert frag is not None
     assert "暗线" in frag.text and "复仇宿敌" in frag.text
+
+
+def test_same_turn_directives_are_delivered_and_acknowledged_individually():
+    from systems.director import next_directive
+    director = DirectorSystem()
+    world = {"systems":{"director":director.empty_state()}}
+    for name in ("港口", "磨坊"):
+        director.apply(world, {"type":"director_fired","id":name,"turn":7,"scene":"s",
+                               "deltas":{"event_type":name}})
+    state = world["systems"]["director"]
+    assert next_directive(state)["source_event_id"] == "港口"
+    director.apply(world, {"type":"directive_consumed","deltas":{"source_event_id":"港口"}})
+    assert next_directive(state)["source_event_id"] == "磨坊"

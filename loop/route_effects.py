@@ -3,7 +3,9 @@ from kernel.events import kernel_event
 
 
 def local_routes(graph, venues, day):
-    scope = set(venues)
+    scope = {venue for venue in venues if isinstance(venue, str)
+             and (entity := graph.get_entity(venue))
+             and entity.attrs.get("visibility") not in {"secret", "hidden", "undiscovered"}}
     return sorted({tuple(sorted((r.src, r.dst))) for r in graph.relations
                    if r.rel == "adjacent_to" and r.valid_at(day) and r.src in scope and r.dst in scope
                    and not r.attrs.get("discovery_clue_id")})
@@ -29,7 +31,7 @@ def apply_stage_effects(store, world, stage_events):
         stages = line["stages"]
         stage = stages[delta["stage_idx"]]
         effect = stage.get("route_effect") if isinstance(stage, dict) else None
-        if not effect or not line.get("route_effects_enabled"):
+        if not isinstance(effect, dict) or not line.get("route_effects_enabled"):
             continue
         candidates = local_routes(graph, (effect.get("a"), effect.get("b")), event["day"])
         if not allowed_effect(effect, candidates):

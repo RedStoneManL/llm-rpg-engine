@@ -8,6 +8,7 @@ from llm.structured import complete_structured
 
 _REVIEW = """你负责核对本回合会展示给玩家的正文。结果已冻结，你不能修改世界。
 逐项检查正文声称的移动、物品交接、付款、任务完成、时间变化、角色获知消息和亲历来源。
+只有 belief/declared、public_notice 或 attributed_information 时，不足以让说话者宣称亲眼目击相应事件。
 判断实际发生、拟议、条件、否定和转述的区别。环境描写、自然对白无需逐字对应事件。
 现有地点/手中物品不等于本回合移动/交易。未列为成果的意图不能当作已经完成。
 输出 JSON {"supported":true或false,"reason":"有矛盾时指出具体句子及与哪条结果冲突"}。"""
@@ -33,7 +34,16 @@ def _outcome(world, scene, sections):
 def review_player_narration(strategy, commit, world, scene, player_input, provider):
     outcome = _outcome(world, scene, commit.sections)
     proposed = commit.narration
+    buckets = world.get("systems", {}).get("narrative", {}).get("scenes", [])
+    previous = next((bucket["raw"][-1] for bucket in reversed(buckets) if bucket.get("raw")), None)
     for attempt in range(2):
+        if previous and proposed.strip() == previous.strip():
+            if attempt:
+                break
+            proposed = strategy.finalize_narration(
+                commit, provider=provider, repair="上次正文与这次逐字相同。根据现场给出一个具体可查验的方向；"
+                "没有新发现时可以直说，不能改变已经冻结的结果。")
+            continue
         material = json.dumps({"intent": player_input, "start_context": strategy._pending_user,
                                "outcome": outcome, "prose": proposed}, ensure_ascii=False)
         reply, errors = complete_structured(

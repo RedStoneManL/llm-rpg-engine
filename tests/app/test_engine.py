@@ -311,8 +311,8 @@ def test_refresh_if_advanced_keeps_an_after_snapshot_peer_publish_for_next_read(
     peer = build_engine(campaign, provider=FakeLLMProvider(), embedder=None)
     original_snapshot = engine.store.snapshot
 
-    def snapshot_then_peer_publish():
-        revision, history = original_snapshot()
+    def snapshot_then_peer_publish(**kwargs):
+        revision, history = original_snapshot(**kwargs)
         peer.store.append_many([kernel_event(
             "narration_recorded", day=1, scene="s1", turn=1,
             summary="peer after passive snapshot", deltas={"text": "PEER_PASSIVE_SNAPSHOT_RACE"},

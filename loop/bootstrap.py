@@ -317,7 +317,7 @@ def bootstrap_world(engine, pitch: str = "", *, spec=None, attempt: int = 0, pro
         # -----------------------------------------------------------------------
         _progress(8, _TOTAL_STEPS, "开场")
         with get_tracer().span("gen_opening", step="opening"):
-            world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
+            world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary, protagonist_authored)
             # Resolve the first venue's human-readable name so the prompt never shows an id
             first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
             opening_evs, narration = gen_opening(
@@ -398,7 +398,7 @@ def _read_last_seq(store) -> int | None:
 
 
 def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
-                          npcs_summary: dict, threads_summary: dict) -> str:
+                          npcs_summary: dict, threads_summary: dict, protagonist: dict | None = None) -> str:
     """Build a compact world summary string for gen_opening's world_summary arg."""
     region_names = ", ".join(r["name"] for r in regions_summary.get("regions", []))
 
@@ -417,7 +417,12 @@ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
         venue_names_map.get(vid, vid) for vid in venue_ids
     )
 
-    npc_sketches = ", ".join(n["sketch"] for n in npcs_summary.get("npcs", []))
+    npc_sketches = "；".join(
+        n["sketch"] + (f"（在{venue_names_map[n['location']]}）" if n.get("location") in venue_names_map else "")
+        for n in npcs_summary.get("npcs", [])
+    )
+    actor = protagonist or {}
+    actor_goal = "；".join(str(actor[k]) for k in ("name", "goal", "objective") if actor.get(k))
     thread_abouts = "; ".join(
         t["about"] for t in threads_summary.get("threads", [])
     )
@@ -427,7 +432,7 @@ def _build_world_summary(frame: dict, regions_summary: dict, local_map: dict,
         f"核心冲突：{frame['central_conflict']}\n"
         f"大区域：{region_names}\n"
         f"起始小镇：{town_name}，场所：{venue_display}\n"
-        f"开场NPC：{npc_sketches}\n"
+        f"主角与目标：{actor_goal}\n开场NPC：{npc_sketches}\n"
         f"暗线：{thread_abouts}"
     )
 
@@ -543,7 +548,7 @@ def reroll_step(engine, prev_result: dict, step: str, *, progress=None) -> dict:
     new_state["threads_summary"] = threads_summary
 
     # Re-run opening
-    world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary)
+    world_summary = _build_world_summary(frame, regions_summary, local_map, npcs_summary, threads_summary, protagonist_authored)
     first_venue = local_map["venues"][0]
     first_venue_name = local_map.get("venue_names", {}).get(first_venue, first_venue)
     opening_evs, narration = gen_opening(

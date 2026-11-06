@@ -671,9 +671,11 @@ def _dm_world_query_fn(world: dict, scene: dict) -> Callable:
     tier/attrs and ALL currently-valid facts (any secrecy) at their TRUE values.
     Never exposed in the player-facing POV registry — only when dm=True.
     """
-    def fn(q: str) -> dict:
+    def fn(q: str, day: int | None = None, turn: int | None = None) -> dict:
         graph = world["systems"]["ontology"]
-        day = scene.get("day", 1)
+        day = scene.get("day", 1) if day is None else day
+        if type(day) is not int or day < 1 or turn is not None and (type(turn) is not int or turn < 0):
+            return {"error":"day 和 turn 必须为有效游戏日期与回合"}
 
         matches: list[dict[str, Any]] = []
         for eid, entity in graph.entities.items():
@@ -683,13 +685,18 @@ def _dm_world_query_fn(world: dict, scene: dict) -> Callable:
             rec: dict[str, Any] = {
                 "id": eid, "etype": entity.etype, "tier": entity.tier,
             }
-            if entity.attrs:
+            if entity.attrs and turn is None:
                 rec["attrs"] = dict(entity.attrs)
             facts = [
                 {"predicate": f.predicate, "value": f.value, "secrecy": f.secrecy}
                 for f in graph.facts
                 if f.subject == eid and f.valid_at(day)
             ]
+            if turn is not None:
+                predicates = sorted({fact.predicate for fact in graph.facts if fact.subject == eid})
+                facts = [{"predicate": pred, "value": fact.value, "secrecy": fact.secrecy,
+                          "source_event_id": fact.source_event, "turn": fact.ingest_turn}
+                         for pred in predicates if (fact := graph.fact_at_turn(eid, pred, day, turn))]
             if facts:
                 rec["facts"] = facts
             matches.append(rec)
@@ -933,6 +940,8 @@ def build_tool_registry(registry, world: dict, scene: dict, *, dm: bool = False)
             parameters={
                 "type": "object",
                 "properties": {
+                    "day": {"type":"integer","minimum":1},
+                    "turn": {"type":"integer","minimum":0,"description":"按此回合查询事实的当时版本及来源"},
                     "q": {
                         "type": "string",
                         "description": "Substring to search across entity ids and seeds.",

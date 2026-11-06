@@ -61,7 +61,9 @@ class PlayerHistory:
             AND NOT EXISTS (SELECT 1 FROM events p WHERE p.type IN ({placeholders}) AND
                 (p.id IN (SELECT value FROM json_each(e.thread_refs)) OR p.id IN (SELECT value FROM json_each(e.chunk_ids))))
             UNION ALL
-            SELECT 'input-' || e.id,'player_input',e.day,e.turn,e.seq * 2,e.seq,json_object('text',i.body)
+            SELECT 'input-' || e.id,'player_input',
+                COALESCE((SELECT MAX(prev.day) FROM events prev WHERE prev.seq<e.seq AND prev.retracted=0),1),
+                e.turn,e.seq * 2,e.seq,json_object('text',i.body)
             FROM player_inputs i JOIN action_receipts r USING(action_id)
             JOIN events e ON e.seq=r.first_seq
             WHERE i.actor=? AND NOT EXISTS (SELECT 1 FROM events gone

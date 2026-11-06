@@ -52,15 +52,17 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         return v if isinstance(v, list) else []
 
     # ---- build name -> id map -------------------------------------------------
-    name2id: dict[str, str] = {}
+    name2ids: dict[str, set[str]] = {}
     # existing entities carrying a 真名 fact
     try:
         for eid in list(getattr(g, "entities", {}) or {}):
+            if g.entities[eid].attrs.get("visibility") in {"hidden","secret","undiscovered"}:
+                continue
             for f in g.current_facts(eid):
                 if f.predicate in {"name", "真名"} and getattr(f, "secrecy", None) in (None, "public"):
                     nm = _norm(getattr(f, "value", None))
                     if nm:
-                        name2id.setdefault(nm, eid)
+                        name2ids.setdefault(nm, set()).add(eid)
     except Exception:
         pass
     # this-turn cast creates (optional `name`) + places (seed/id) + facts(真名)
@@ -68,17 +70,17 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         if isinstance(c, dict) and c.get("op", "create") == "create" and c.get("id"):
             nm = _norm(c.get("name"))
             if nm:
-                name2id.setdefault(nm, c["id"])
+                name2ids.setdefault(nm, set()).add(c["id"])
     for p in _items("places"):
         if isinstance(p, dict) and p.get("id"):
             nm = _norm(p.get("seed")) or _norm(p.get("name"))
             if nm:
-                name2id.setdefault(nm, p["id"])
+                name2ids.setdefault(nm, set()).add(p["id"])
     for fct in _items("facts"):
         if isinstance(fct, dict) and fct.get("predicate") == "真名" and fct.get("subject"):
             nm = _norm(fct.get("value"))
             if nm:
-                name2id.setdefault(nm, fct["subject"])
+                name2ids.setdefault(nm, set()).add(fct["subject"])
 
     # ---- co-located NPCs (for #I3 dedup) --------------------------------------
     # A name-ref like "老学者" that describes an NPC already standing in the scene
@@ -94,7 +96,7 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
             here = plocs[0] if plocs else None
         if here:
             for eid, e in g.entities.items():
-                if e.etype != "Person" or eid == protag:
+                if e.etype != "Person" or eid == protag or e.attrs.get("visibility") in {"hidden","secret","undiscovered"}:
                     continue
                 elocs = g.neighbors(eid, "located_in", day)
                 if elocs and elocs[0] == here:
@@ -111,10 +113,8 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         # certainly that NPC; resolve to it rather than minting a duplicate. (#I3)
         if len(ref_norm) < 2:
             return None
-        for eid, hay in colocated:
-            if hay and ref_norm in hay:
-                return eid
-        return None
+        matches = [eid for eid, hay in colocated if ref_norm in hay]
+        return matches[0] if len(matches) == 1 else None
 
     # ids that will exist after this commit applies (so refs to them resolve)
     pending: set[str] = set()
@@ -171,15 +171,19 @@ def _augment(commit, world, *, scene: str, day: int) -> list:
         if _exists(r):
             return r
         nm = _norm(r)
-        if nm in name2id:
-            return name2id[nm]
+        if nm in name2ids:
+            candidates = name2ids[nm]
+            nearby = candidates & {eid for eid, _ in colocated} if kind == "person" else set()
+            matches = nearby or candidates
+            # A raw unresolved ref is diagnosed by the section owner/repair.
+            return next(iter(matches)) if len(matches) == 1 else r
         if kind == "person":
             match = _colocated_match(nm)
             if match:
-                name2id[nm] = match
+                name2ids[nm] = {match}
                 return match
         mid = _mint(kind, r)
-        name2id[nm] = mid
+        name2ids[nm] = {mid}
         return mid
 
     for m in _items("moves"):

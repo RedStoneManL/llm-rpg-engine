@@ -131,6 +131,7 @@ class CascadeSystem(ContextSystem):
                     "public_observation": d.get("public_observation") is True,
                     "observation_kind": d.get("observation_kind"),
                     "observation_range": d.get("observation_range"),
+                    "feature": d.get("feature"),
                     "discovery_clue_id": d.get("discovery_clue_id"),
                 }
                 slice_["changes"].append(entry)
@@ -261,6 +262,7 @@ class CascadeSystem(ContextSystem):
                         "public_observation": True,
                         "observation_kind": item.get("observation_kind"),
                         "observation_range": item.get("observation_range"),
+                        **({"feature":item["feature"].strip()} if isinstance(item.get("feature"), str) and item["feature"].strip() else {}),
                     })
                 out.append(kernel_event(
                     "world_change", day=day, scene=scene, summary=summary,

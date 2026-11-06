@@ -888,6 +888,22 @@ def _ordinary_quest_authority(world: dict, scene: dict) -> tuple[set[str], set[s
     return fresh, local_dark, local_active
 
 
+def _objective_available(world, scene, objective):
+    if not isinstance(objective, dict):
+        return False
+    if objective.get('kind') == 'investigate':
+        return objective.get('place') == scene.get('location')
+    _, inventory, targets = _ordinary_item_authority(world, scene)
+    return (isinstance(objective.get('item'), str) and objective['item'] in inventory
+            and isinstance(objective.get('recipient'), str) and objective['recipient'] in targets)
+
+
+def _quest_has_evidence(world, line_id, declaration):
+    from kernel.quest_outcomes import observation_supports_resolution
+    line = world['systems']['lore']['lines'].get(line_id)
+    return bool(line and observation_supports_resolution(world, line, declaration))
+
+
 def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[ValidationError]:
     """Keep ordinary task-ledger changes tied to public local play."""
     existing, local_dark, local_active = _ordinary_quest_authority(world, scene)
@@ -903,15 +919,13 @@ def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[Validatio
         if op == "open":
             valid = isinstance(line_id, str) and bool(line_id) and line_id not in existing
             if 'objective' in item:
-                _, inventory, targets = _ordinary_item_authority(world, scene)
-                objective = item['objective']
-                valid = (valid and isinstance(objective, dict)
-                         and isinstance(objective.get('item'), str) and isinstance(objective.get('recipient'), str)
-                         and objective.get('item') in inventory and objective.get('recipient') in targets)
+                valid = valid and _objective_available(world, scene, item['objective'])
         elif op == "surface":
             valid = line_id in local_dark
         elif op in {"advance", "resolve"}:
             valid = line_id in local_active
+            if valid and op == "resolve":
+                valid = _quest_has_evidence(world, line_id, item)
         else:
             # LoreSystem owns structural diagnostics for unsupported/malformed
             # ops; this boundary only needs to prevent authority laundering.
@@ -919,7 +933,7 @@ def player_turn_quest_errors(commit, world: dict, scene: dict) -> list[Validatio
         if not valid:
             errors.append(_player_quest_error(
                 "quests", f"[{index}]",
-                "普通玩家回合只能接取新公开任务，或变更当前地点已披露的暗线／本地明态任务。",
+                "普通玩家回合只能接取新公开任务，或变更当前地点已披露的暗线／本地明态任务；完成调查须引用接取后实际观察的 source_event_id 和原文。",
             ))
     return errors
 
@@ -946,15 +960,13 @@ def player_turn_quest_event_errors(events: list[dict], world: dict, scene: dict)
             valid = (isinstance(line_id, str) and bool(line_id) and line_id not in existing
                      and isinstance(delta.get("summary"), str) and bool(delta.get("summary")))
             if 'objective' in delta:
-                _, inventory, targets = _ordinary_item_authority(world, scene)
-                objective = delta['objective']
-                valid = (valid and isinstance(objective, dict)
-                         and isinstance(objective.get('item'), str) and isinstance(objective.get('recipient'), str)
-                         and objective.get('item') in inventory and objective.get('recipient') in targets)
+                valid = valid and _objective_available(world, scene, delta['objective'])
         elif event_type == "quest_surfaced":
             valid = line_id in local_dark
         elif event_type in {"quest_advanced", "quest_resolved"}:
             valid = line_id in local_active
+        if valid and event_type == "quest_resolved":
+            valid = _quest_has_evidence(world, line_id, delta)
         if not valid:
             errors.append(_player_quest_error(
                 "quests", f"event[{index}]",

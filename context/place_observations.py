@@ -78,14 +78,15 @@ def public_place_observations(world: dict[str, Any], scene: dict[str, Any]) -> l
             "scene": str(item.get("scene") or ""),
             "kind": kind,
             "range": observation_range.strip(),
+            **({"feature":item["feature"]} if isinstance(item.get("feature"), str) else {}),
             "summary": summary.strip(),
         })
 
-    stable: dict[tuple[str, str], dict[str, Any]] = {}
+    stable: dict[tuple[str, str, str], dict[str, Any]] = {}
     transient: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in eligible:
         if item["kind"] == "stable_layout":
-            stable[(item["place"], item["range"])] = item
+            stable[(item["place"], item["range"], item.get("feature") or item["summary"])] = item
         else:
             transient[item["place"]].append(item)
 

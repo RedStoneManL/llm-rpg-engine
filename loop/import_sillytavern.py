@@ -43,6 +43,16 @@ def _validate_spec_shape(obj) -> list:
     return []
 
 
+def _world_book_entries(book):
+    entries = book.get("entries") if isinstance(book, dict) else None
+    values = entries.values() if isinstance(entries, dict) else ()
+    for entry in values:
+        if (not isinstance(entry, dict) or entry.get("disable") or entry.get("enabled") is False
+                or not isinstance(entry.get("content"), str) or not entry["content"].strip()):
+            continue
+        yield entry
+
+
 def preview_sillytavern(*, world_book=None, character_card=None, card_as: str = "protagonist") -> dict:
     """Describe offline-importable structure without a provider or source text.
 
@@ -53,9 +63,7 @@ def preview_sillytavern(*, world_book=None, character_card=None, card_as: str = 
         raise ValueError("card_as must be protagonist or npc")
     card = _card_to_protagonist(character_card) if character_card is not None else {}
     entries = world_book.get("entries") if isinstance(world_book, dict) else None
-    values = entries.values() if isinstance(entries, dict) else ()
-    readable = sum(1 for item in values if isinstance(item, dict)
-                   and isinstance(item.get("content"), str) and item["content"].strip())
+    readable = sum(1 for _ in _world_book_entries(world_book))
     issues = []
     if world_book is not None:
         if not isinstance(entries, dict):
@@ -93,11 +101,14 @@ def convert_sillytavern(provider, *, world_book=None, character_card=None,
     # 2. World-book -> world/factions/npcs/threads via LLM translation.
     if world_book is not None:
         entries = []
-        wb_entries = world_book.get("entries") if isinstance(world_book, dict) else None
-        if isinstance(wb_entries, dict):
-            for v in wb_entries.values():
-                if isinstance(v, dict) and isinstance(v.get("content"), str) and v["content"].strip():
-                    entries.append(v["content"].strip())
+        for entry in _world_book_entries(world_book):
+            keys = entry.get("key") or []
+            if isinstance(keys, str):
+                keys = [keys]
+            keys = [key.strip() for key in keys if isinstance(key, str) and key.strip()] if isinstance(keys, list) else []
+            prefix = ("仅在这些词触发时使用，转换为带 trigger 的线索：" + "、".join(keys) + "。"
+                      if keys and not entry.get("constant") else "")
+            entries.append(prefix + entry["content"].strip())
         if entries and provider is not None:
             user = (
                 "下面是酒馆世界书的条目内容，请翻译为我们的 genesis spec JSON。\n"

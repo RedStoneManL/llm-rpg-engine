@@ -1391,9 +1391,9 @@ def test_cli_status_keeps_snapshot_revision_when_peer_publishes_after_passive_re
     before = engine.world["_revision"]
     injected = False
 
-    def snapshot_then_peer_publish():
+    def snapshot_then_peer_publish(**kwargs):
         nonlocal injected
-        revision, history = original_snapshot()
+        revision, history = original_snapshot(**kwargs)
         if not injected:
             injected = True
             peer.store.append_many([kernel_event(

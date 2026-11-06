@@ -204,12 +204,12 @@ class EventStore:
             self._conn.rollback()
             raise
 
-    def snapshot(self):
+    def snapshot(self, *, if_changed_from=None):
         """Read events and revision from one SQLite snapshot, then release it."""
         self._conn.execute('BEGIN')
         try:
             revision = self.revision
-            events = list(self.iter_events(include_retracted=True))
+            events = None if revision == if_changed_from else list(self.iter_events(include_retracted=True))
             self._conn.commit()
             return revision, events
         except BaseException:

@@ -80,8 +80,16 @@ def stale_entering_scope(
     due.discard(new_scene.get("protagonist"))
     for eid in sorted(due, key=lambda key: (key not in pending, pending.get(key, now), key)):
         e = g.get_entity(eid)
-        if e is None or e.tier != "tracked" or e.etype not in {"Person", "Place"}:
+        if e is None or e.etype not in {"Person", "Place"}:
             continue
+        if e.tier != "tracked":
+            # A walk-on who has testified or received a message has a durable
+            # connection to play. Other incidental figures stay lightweight.
+            engaged = e.etype == "Person" and any(
+                fact.predicate.startswith(("reported:", "knows:reported_player_statement:"))
+                or ".reported_player_statement:" in fact.predicate for fact in g.current_facts(eid))
+            if not engaged:
+                continue
         lu = e.attrs.get("last_update")
         if lu is None or lu >= now:
             continue
@@ -243,7 +251,8 @@ def run_catchup(
         # Harness owns the id — override whatever the model returned
         raw = {**raw, "id": eid}
 
-        if raw.get("changed") and lightweight_validate(raw, g, set()) is not None:
+        changed = bool(raw.get("changed")) and lightweight_validate(raw, g, set()) is not None
+        if changed:
             if kind == "Person":
                 ev = kernel_event(
                     "character_evolved",
@@ -290,7 +299,7 @@ def run_catchup(
                     )
                     store.append(ev_mood)
                     appended.append(ev_mood)
-        if not raw.get("changed") or eid in pending or lightweight_validate(raw, g, set()) is None:
+        if not changed or eid in pending:
             # changed:false or dropped → emit currency carrier so we don't re-ask
             ev_noop = kernel_event(
                 "time_advanced",

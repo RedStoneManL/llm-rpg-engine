@@ -115,6 +115,13 @@ class FactGraph:
                 return f.value
         return None
 
+    def fact_at_turn(self, subject: str, predicate: str, day: int, turn: int) -> Fact | None:
+        """Version in force by this turn; the record carries its source event."""
+        for fact in reversed(self._fact_history.get((subject, predicate), [])):
+            if (fact.event_time_start, fact.ingest_turn) <= (day, turn):
+                return fact
+        return None
+
     def fact_history(self, subject: str, predicate: str) -> list[Fact]:
         """All fact records for (subject, predicate), ordered by assertion time."""
         return list(self._fact_history.get((subject, predicate), []))

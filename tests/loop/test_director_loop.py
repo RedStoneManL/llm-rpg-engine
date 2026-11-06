@@ -194,13 +194,14 @@ def test_dormant_fire_advances_due_thread_when_band_full(monkeypatch):
     for n, sp in enumerate(("快", "快", "快"), start=1):
         store.append(kernel_event("thread_open", day=1, scene="s1", summary="t",
                      deltas={"id": f"pre{n}", "status": "活跃", "speed": sp,
-                             "dormant": False, "trait": f"x{n}", "archetype": f"a{n}",
+                             "dormant": False, "trait": f"x{n}", "archetype": f"a{n}", "beats":["旧物公开展出"],
                              "last_advanced_scene": "s1"}, turn=1))
     for i in range(2, 9):
         store.append(_action(i, f"s{i}"))  # many scenes pass → threads overdue
     world = project(reg, store.iter_events())
     appended = run_director(reg, store, world)
-    assert any(e["type"] == "thread_advance" for e in appended)
+    advance = next(e for e in appended if e["type"] == "thread_advance")
+    assert advance["deltas"]["beat"] == "旧物公开展出"
 
 
 def test_consumed_directive_not_reinjected_after_reproject():

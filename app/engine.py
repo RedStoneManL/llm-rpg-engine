@@ -257,8 +257,8 @@ def refresh_engine_world_if_advanced(engine: Engine) -> bool:
     this snapshot, retaining the older, correctly labelled projection is safe;
     the next read will observe the newer complete snapshot.
     """
-    revision, history = engine.store.snapshot()
-    if projected_revision(engine) == revision:
+    revision, history = engine.store.snapshot(if_changed_from=projected_revision(engine))
+    if history is None:
         return False
     _replace_world_from_snapshot(engine, revision, history)
     return True

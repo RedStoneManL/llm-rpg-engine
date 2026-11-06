@@ -79,3 +79,5 @@
 - [RCV-133 NPC 来源与后台世界](../verification/RCV-133-background-and-speakers.md)
 
 - [RCV-134 正文裁决与跨线道路后果](../verification/RCV-134-grounded-world.md)
+
+- [RCV-135 调查、队列与历史状态](../verification/RCV-135-experience-mechanisms.md)

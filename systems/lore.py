@@ -242,6 +242,8 @@ class LoreSystem(ContextSystem):
                 "by": d.get("by"),
                 "summary": d.get("summary"),
             }
+            if 'evidence' in d:
+                ln['resolved']['evidence'] = copy.deepcopy(d['evidence'])
             if 'resolution' in d:
                 ln['resolved']['resolution'] = copy.deepcopy(d['resolution'])
             log.debug("quest_resolved id=%s by=%s", lid, d.get("by"))
@@ -496,7 +498,7 @@ class LoreSystem(ContextSystem):
                 deltas["summary"] = item["summary"]
             if op == "resolve":
                 deltas["by"] = "player"
-                for field in ('outcome', 'resolution'):
+                for field in ('outcome', 'resolution', 'evidence'):
                     if field in item:
                         deltas[field] = copy.deepcopy(item[field])
             if op == 'open' and 'objective' in item:
@@ -534,7 +536,9 @@ class LoreSystem(ContextSystem):
             summary = quest_summary(ln, world)
             ledger_lines.append(f"  [{ln['id']}] {summary}")
             objective = ln.get('objective')
-            if objective:
+            if isinstance(objective, dict) and objective.get('kind') == 'investigate':
+                ledger_lines.append(f"    在 {objective['place']} 核验 {objective['feature']}，记录该设施的一条公开观察。")
+            elif objective:
                 ledger_lines.append(f"    交付条件：{objective['item']} → {objective['recipient']}；"
                                     "逾期不会自动失败，仍可交付或明确放弃。")
         if closed:

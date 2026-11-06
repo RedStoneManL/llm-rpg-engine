@@ -58,7 +58,7 @@ def _is_public_subject_in_view(canonical, visible, subject: str) -> bool:
     }
 
 
-def _declared_beliefs(canonical, visible, person_id, day, *, source):
+def _declared_beliefs(canonical, visible, person_id, day, *, source, event_index=None):
     """Public topic is the disclosure gate. The speaker supplies the value."""
     evidence = []
     for belief in canonical.current_facts(person_id):
@@ -71,8 +71,19 @@ def _declared_beliefs(canonical, visible, person_id, day, *, source):
             continue
         subject = key.split('.', 1)[0]
         if _is_public_subject_in_view(canonical, visible, subject):
-            evidence.append({'fact_key': key, 'value': belief.value,
-                             'source': source, 'confidence': 'declared'})
+            entry = {'fact_key': key, 'value': belief.value, 'source': source, 'confidence': 'declared'}
+            event = (event_index or {}).get(belief.source_event)
+            if event and event.get('type') == 'knowledge_set' and event.get('secrecy') in (None, 'public'):
+                delta = event.get('deltas') or {}
+                if delta.get('knower') == person_id and delta.get('fact_key') == key:
+                    # A communication origin is evidence of receiving a claim;
+                    # no free-text source label can certify witnessing the event.
+                    via = delta.get('via')
+                    if via in ('public_notice', '公开告示'):
+                        entry['basis'] = 'public_notice'
+                    elif isinstance(via, str) and via and via != person_id:
+                        entry['basis'] = 'attributed_information'
+            evidence.append(entry)
     return evidence
 
 
@@ -134,7 +145,7 @@ def native_authoring_context(world: dict, scene: dict, *, player_input: str | No
             evidence = []
             if canonical is not None:
                 evidence = _declared_beliefs(canonical, visible, person_id, day,
-                                            source='present_npc_declared_knowledge')
+                                            source='present_npc_declared_knowledge', event_index=trusted_event_index)
                 seen_evidence = {entry['fact_key'] for entry in evidence}
                 evidence.extend(_recipient_player_statement_evidence(
                     canonical, visible, person_id, actor, trusted_event_index,
@@ -285,7 +296,7 @@ def _arrival_public_people(world: dict, scene: dict, *,
             if value is not None:
                 observable[predicate] = _safe_value(value)
         evidence = _declared_beliefs(canonical, visible, person_id, day,
-                                    source='arrival_npc_declared_knowledge')
+                                    source='arrival_npc_declared_knowledge', event_index=trusted_event_index)
         seen_evidence = {entry['fact_key'] for entry in evidence}
         evidence.extend(_recipient_player_statement_evidence(
             canonical, visible, person_id, actor, trusted_event_index,

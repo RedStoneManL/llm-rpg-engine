@@ -39,14 +39,6 @@ def compute_pacing(events):
 SPEED_CADENCE = {"快": 3, "中": 6, "慢": 12}
 MIN_ACTIVE_THREADS = 2
 
-def _scene_ordinals(events):
-    scenes = []
-    for ev in events:
-        sc = ev.get("scene")
-        if not scenes or scenes[-1] != sc:
-            scenes.append(sc)
-    return {sc: i + 1 for i, sc in enumerate(scenes)}, len(scenes)
-
 def thread_progress_ordinals(events):
     """Anchor an advance to its visit, even when a venue is visited again."""
     first_visit, advanced = {}, {}

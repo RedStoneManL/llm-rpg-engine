@@ -508,7 +508,7 @@ def gen_npcs(
             },
         ))
 
-        summary_npcs.append({"id": npc_id, "role": role, "sketch": sketch})
+        summary_npcs.append({"id": npc_id, "role": role, "sketch": sketch, "location": venue_id})
 
     summary: dict = {"npcs": summary_npcs}
     return events, summary

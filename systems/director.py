@@ -20,6 +20,12 @@ from engine.log import get_logger
 log = get_logger("systems.director")
 
 
+def next_directive(state):
+    watermark = state.get("consumed_through_turn", 0)
+    return next((row for row in state.get("pending", [])
+                 if not row.get("consumed") and row.get("turn", 0) > watermark), None)
+
+
 class DirectorSystem(ContextSystem):
     name = "director"
 
@@ -58,6 +64,7 @@ class DirectorSystem(ContextSystem):
                 "twist_hint": d.get("twist_hint"),
                 "turn": event.get("turn") or 0,
                 "scene": event.get("scene"),
+                "source_event_id": event["id"],
                 "consumed": False,
             }
             slice_ = world["systems"][self.name]
@@ -66,6 +73,13 @@ class DirectorSystem(ContextSystem):
                       directive["event_type"], directive["twist"], directive["turn"])
             return
         if t == "directive_consumed":
+            if "source_event_id" in d:
+                for row in world["systems"][self.name]["pending"]:
+                    if row.get("source_event_id") == d["source_event_id"]:
+                        row["consumed"] = True
+                        break
+                return
+            # Legacy receipts acknowledged all directives through one turn.
             through_turn = d.get("through_turn")
             if through_turn is not None:
                 slice_ = world["systems"][self.name]
@@ -89,6 +103,8 @@ class DirectorSystem(ContextSystem):
                 "archetype": d.get("archetype"),
                 "event_type": d.get("event_type"),
                 "last_advanced_scene": d.get("last_advanced_scene", event.get("scene")),
+                "beats": [beat for beat in d.get("beats", []) if isinstance(beat, str) and beat.strip()],
+                "beat_index": 0,
             }
             log.debug("thread_open id=%s dormant=%s", tid, threads[tid]["dormant"])
             return
@@ -96,6 +112,14 @@ class DirectorSystem(ContextSystem):
             tid = d.get("id")
             threads = world["systems"][self.name].setdefault("threads", {})
             if tid in threads:
+                th = threads[tid]
+                index = d.get("beat_index")
+                if index is not None:
+                    if (type(index) != int or index != th.get("beat_index", 0)
+                            or index >= len(th.get("beats", [])) or th["beats"][index] != d.get("beat")):
+                        return False
+                    th["beat_index"] = index + 1
+                    th["latest_beat"] = {"text": d["beat"], "source_event_id": event["id"]}
                 if "last_advanced_scene" in d:
                     threads[tid]["last_advanced_scene"] = d["last_advanced_scene"]
                 if d.get("dormant") is not None:
@@ -109,11 +133,12 @@ class DirectorSystem(ContextSystem):
                         "magnitude": "small",
                         "valence": None,
                         "event_type": th.get("archetype"),
-                        "event_hint": f"暗线浮现（{th.get('event_type') or ''}）",
+                        "event_hint": d.get("beat") or f"暗线浮现（{th.get('event_type') or ''}）",
                         "twist": th.get("trait") or "",
                         "twist_hint": "让这条暗线以一个具体细节浮出水面",
                         "turn": event.get("turn") or 0,
                         "scene": event.get("scene"),
+                        "source_event_id": event["id"],
                         "consumed": False,
                     })
                     log.debug("thread_advance surface → enqueued thread directive for %s", tid)
@@ -124,21 +149,16 @@ class DirectorSystem(ContextSystem):
     _MAG_LABEL = {"small": "小", "big": "大", "crit": "暴击(高潮)"}
 
     def inject(self, scene: dict, world: dict) -> Fragment | None:
-        """Render the newest UN-consumed directive as a backstage 导演 instruction.
+        """Render the oldest pending directive as a backstage 导演 instruction.
 
         The narrator must weave the seed (event_type + twist + magnitude) into
         prose naturally; resulting world-changes flow through the normal commit.
         A directive is shown exactly once: the director hook marks prior pending
         directives consumed at the start of its next run (see loop/director)."""
         slice_ = world.get("systems", {}).get(self.name) or {}
-        consumed_through = slice_.get("consumed_through_turn", 0)
-        pending = [
-            d for d in slice_.get("pending", [])
-            if not d.get("consumed") and d.get("turn", 0) > consumed_through
-        ]
-        if not pending:
+        d = next_directive(slice_)
+        if d is None:
             return None
-        d = pending[-1]  # newest
         magnitude_raw = d.get("magnitude") or ""
         mag_label = self._MAG_LABEL.get(magnitude_raw, magnitude_raw)
         # Include raw key so downstream checks (e.g. tests) can match either form.

@@ -56,11 +56,18 @@ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
     appended event or None."""
     threads = (world.get("systems", {}).get("director", {}) or {}).get("threads", {})
     # 1) advance a due, non-dormant thread (reuse the tested scheduler)
-    due = pick_thread_to_advance(events, threads, oracle)
+    scheduled = {tid: thread for tid, thread in threads.items()
+                 if thread.get("beat_index", 0) < len(thread.get("beats", []))}
+    due = pick_thread_to_advance(events, scheduled, oracle)
+    if due is None and len(threads) >= _MAX_THREADS:
+        due = next((tid for tid, th in scheduled.items() if th.get("dormant")), None)
     if due is not None:
+        index = threads[due].get("beat_index", 0)
+        beat = threads[due]["beats"][index]
         ev = kernel_event("thread_advance", day=day, scene=scene,
-                          summary=f"暗线推进:{due}",
-                          deltas={"id": due, "last_advanced_scene": scene},
+                          summary=f"暗线推进:{due} · {beat}",
+                          deltas={"id": due, "last_advanced_scene": scene, "beat": beat,
+                                  "beat_index": index, "surface": True, "dormant": False},
                           turn=turn)
         store.append(ev)
         return ev
@@ -84,6 +91,7 @@ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
                                       "dormant": True, "trait": trait["name"],
                                       "archetype": arch["name"],
                                       "event_type": arch.get("type"),
+                                      "beats": [arch["hook"], arch["endpoint_hint"]],
                                       "last_advanced_scene": scene},
                               turn=turn)
             store.append(ev)
@@ -94,25 +102,16 @@ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
 def run_director(registry, store, world: dict, *, scene_ordinal: int | None = None) -> list[dict]:
     events = list(store.iter_events())
 
-    # (1) Consume directives shown last turn via an event-sourced watermark.
-    # Emitting a directive_consumed event (rather than mutating the in-memory
-    # world) ensures that project() rebuilds consumed state from the event log,
-    # guaranteeing replay-safety: a fresh project() after this call will still
-    # honour the consumption watermark.
-    slice_ = world.get("systems", {}).get("director")
-    if isinstance(slice_, dict):
-        pending = slice_.get("pending", [])
-        if pending:
-            through_turn = max(d.get("turn", 0) for d in pending)
-            ev_day = events[-1]["day"] if events else 1
-            ev_scene = events[-1]["scene"] if events else "scene"
-            consumed_ev = kernel_event(
-                "directive_consumed", day=ev_day, scene=ev_scene,
-                summary=f"directive consumed through turn={through_turn}",
-                deltas={"through_turn": through_turn},
-                turn=through_turn,
-            )
-            store.append(consumed_ev)
+    # A turn shows one directive. Acknowledge only that source, so another
+    # line that became due on the same turn survives reload and gets its turn.
+    from systems.director import next_directive
+    pending = next_directive(world.get("systems", {}).get("director", {}))
+    if pending and pending.get("source_event_id"):
+        consumed = kernel_event("directive_consumed", day=events[-1]["day"] if events else 1,
+                                scene=events[-1]["scene"] if events else "scene",
+                                turn=_last_turn(events), summary="导演提示已呈现",
+                                deltas={"source_event_id": pending["source_event_id"]})
+        store.append(consumed)
 
     pacing = compute_pacing(events)
     ordinal = scene_ordinal if scene_ordinal is not None else pacing["scene_ordinal"]

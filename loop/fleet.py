@@ -302,7 +302,12 @@ def digest_fleet(
         # after reload or undo. Never count this invocation's events twice.
         current_ids = {event['id'] for event in new_events}
         prior = {subject: [] for subject in accumulator}
-        for event in public_event_history(store.iter_events(include_retracted=True)):
+        active_history = public_event_history(store.iter_events(include_retracted=True))
+        seqs = [event.get("seq") for event in active_history if event["id"] in current_ids and event.get("seq")]
+        cutoff = max(seqs) if seqs else None
+        for event in active_history:
+            if cutoff and (event.get("seq") or 0) > cutoff:
+                break
             if event.get('retracted') or event.get('secrecy') not in (None, 'public'):
                 continue
             subject = _primary_subject(event)
