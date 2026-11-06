@@ -1,0 +1,222 @@
+{
+  "wait_without_resource": {
+    "day": 1,
+    "band": "晨"
+  },
+  "two_clocks": {
+    "requested": {
+      "day": 2,
+      "band": 1
+    },
+    "actual": {
+      "day": 9,
+      "band": "中午"
+    },
+    "clock_event_day": [
+      2
+    ]
+  },
+  "travel_chain": {
+    "no_direct_edge": true,
+    "from_market": [
+      "stonebridge_inn",
+      "north_bank_old_tower"
+    ],
+    "recorded_destinations": [
+      "stonebridge_market",
+      "quarry"
+    ],
+    "final": "quarry",
+    "time": {
+      "day": 1,
+      "band": "晨"
+    }
+  },
+  "drop_pickup": {
+    "pickup": "TurnRejected: player item change lies outside the local public authority boundary",
+    "owner": [
+      "stonebridge_inn"
+    ],
+    "pickup_changed_revision": false
+  },
+  "double_gift": {
+    "accepted": true,
+    "final_holder": [
+      "lane"
+    ],
+    "recorded_recipients": [
+      "mara",
+      "lane"
+    ]
+  },
+  "buy_without_item": {
+    "coins": 5,
+    "inventory": [
+      {
+        "id": "old_brass_lantern",
+        "label": "旧铜灯"
+      }
+    ],
+    "narration": "你付了三枚钱，把绳子放入背包。"
+  },
+  "same_id_open": {
+    "open_events": 2,
+    "ledger": [
+      {
+        "id": "promise",
+        "summary": "归还旧账簿"
+      }
+    ]
+  },
+  "freeform_completion": {
+    "ledger": [
+      {
+        "id": "find_key",
+        "summary": "钥匙已找回"
+      }
+    ],
+    "inventory": [
+      {
+        "id": "old_brass_lantern",
+        "label": "旧铜灯"
+      }
+    ]
+  },
+  "valid_structure_wrong_prose": {
+    "scene": "stonebridge_inn",
+    "inventory": [
+      {
+        "id": "old_brass_lantern",
+        "label": "旧铜灯"
+      }
+    ],
+    "text": "你抵达石桥集市，把旧铜灯卖给摊主。"
+  },
+  "short_repeat": [
+    "你继续观察，暂时没有线索。",
+    "你继续观察，暂时没有线索。"
+  ],
+  "recall_old_line": {
+    "player_hits": [],
+    "in_gui_last_eight": false,
+    "original_in_sqlite": true
+  },
+  "reflection": {
+    "same_events_split_arc_count": 0,
+    "single_batch_predicates": [
+      "knows:bridge.password"
+    ],
+    "stored_belief": "朱砂"
+  },
+  "catchup_budget": {
+    "processed": [
+      "smith0",
+      "smith1",
+      "smith2",
+      "smith3"
+    ],
+    "next_turn": 0,
+    "unprocessed_last_update": 1
+  },
+  "director_revisit": {
+    "last_new_scene": 2.011,
+    "revisit_old_scene_id": 0.0
+  },
+  "name_resolution": {
+    "stored_name": "林月",
+    "resolved_moves": [
+      {
+        "who": "npc_auto_1_1",
+        "to": "stonebridge_inn"
+      }
+    ],
+    "new_ids": [
+      "npc_auto_1_1"
+    ]
+  },
+  "dead_speaker": {
+    "present": [
+      {
+        "id": "town_speaker",
+        "label": "林月（抱着陶罐的旅人）",
+        "observables": [
+          {
+            "name": "状态",
+            "value": "已死亡"
+          }
+        ]
+      }
+    ],
+    "recipients": [
+      {
+        "id": "town_speaker",
+        "label": "林月（抱着陶罐的旅人）"
+      }
+    ]
+  },
+  "speaker_alias": {
+    "by_via": {
+      "mara": "TurnRejected",
+      "玛拉亲口": "accepted"
+    },
+    "mara_belief": "只知开放",
+    "protagonist_belief": "实际封闭"
+  },
+  "layout_compaction": {
+    "at_site": [
+      "西墙有一口井"
+    ],
+    "history_count": 2
+  },
+  "backstop_flag": {
+    "state": "暗",
+    "anchor": null,
+    "stages": [],
+    "lifespan": null,
+    "local_clue": null,
+    "changes_day20": 0
+  },
+  "world_book_switch": {
+    "disabled_content_in_translation_request": true,
+    "activation_key_in_request": false
+  },
+  "normal_reflection": {
+    "result": "TurnRejected: final publish violates the player entity authority boundary",
+    "called_reflection": true,
+    "revision_unchanged": true
+  },
+  "walkon_viewpoint": {
+    "ui": [
+      {
+        "id": "potter",
+        "label": "青禾（正在捏碗的陶工）",
+        "observables": []
+      }
+    ],
+    "tool": "{\"query\": \"potter\", \"matches\": [{\"id\": \"potter\", \"co_present\": true}]}",
+    "dm_shift": "{\"error\": \"pov not in scene\"}"
+  },
+  "person_anchored": {
+    "same_day_advanced": [
+      "town_audit"
+    ]
+  },
+  "opening_brief": "世界名称：双镇\n世界基调：调查\n核心冲突：渡船迟滞\n大区域：河谷\n起始小镇：小镇，场所：客栈, 磨坊\n开场NPC：客栈老人, 磨坊木匠\n暗线：",
+  "dashboard_read": [
+    {
+      "extra_narration_events": 100,
+      "narrations_returned": 8,
+      "median_ms_5_warm_reads": 4.13
+    },
+    {
+      "extra_narration_events": 1000,
+      "narrations_returned": 8,
+      "median_ms_5_warm_reads": 28.33
+    },
+    {
+      "extra_narration_events": 5000,
+      "narrations_returned": 8,
+      "median_ms_5_warm_reads": 172.03
+    }
+  ]
+}

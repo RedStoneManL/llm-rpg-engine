@@ -1,0 +1,541 @@
+[
+  {
+    "id": "01",
+    "area": "物品与交易",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "自己放下的东西捡不回来",
+    "trigger": "在客栈把自己的铜灯放在脚边，然后立即捡起。",
+    "impact": "放下成功。拾取被拒，灯还属于客栈。相同规则也限制 NPC 主动把物品交给玩家。",
+    "question": "普通回合是否应该允许拿取自己刚放下、仍可见的物品？其他人的物品另订同意条件。",
+    "limit": "测的是普通玩家控制器。主持层可以写转移事件。",
+    "sources": [
+      "context/capabilities.py@def player_turn_item_errors"
+    ],
+    "probe": "drop_pickup"
+  },
+  {
+    "id": "02",
+    "area": "物品与交易",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "钱扣了，货没有入包",
+    "trigger": "持有 8 枚钱，明确花 3 枚买绳索。作者写“已将绳索放入背包”，没提交物品变化。",
+    "impact": "钱变为 5，背包里只有原来的灯；这句正文和交易一起成功保存。",
+    "question": "购买实物时，是否必须同时入包、记录待交货，或明确记录钱已付但交易失败的缘由？",
+    "limit": "离线作者给定具体候选，证明入口允许，不测自然出现率。",
+    "sources": [
+      "loop/resources.py@def resolve_resource_intent",
+      "context/capabilities.py@def player_turn_item_errors"
+    ],
+    "probe": "buy_without_item"
+  },
+  {
+    "id": "03",
+    "area": "物品与交易",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "一盏灯能在同一回合送两个人",
+    "trigger": "玩家只持有一盏灯，候选依次把它交给甲、乙。",
+    "impact": "两次转移均入账，最后乙持有。校验只看回合开始的背包；中途没有甲再把灯交给乙的行动依据。",
+    "question": "连续交接是否要逐次核对当前持有人？若是甲主动转交，怎样记录甲的动作？",
+    "limit": "没有复制出两盏灯。争议在第二次转移的行动权。",
+    "sources": [
+      "context/capabilities.py@def player_turn_item_event_errors",
+      "systems/object.py@class ObjectSystem"
+    ],
+    "probe": "double_gift"
+  },
+  {
+    "id": "04",
+    "area": "时间与移动",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "承诺次日中午抵达，存档却到了第九天",
+    "trigger": "已登记资源，宿主解析出的等待目标是第 2 天中午；同一候选的 clock 符合目标，但移动填了 arrive_day=9。",
+    "impact": "校验通过。时钟事件写第 2 天，GUI 显示第 9 天中午，任务期限和后台过期可能据此改变。",
+    "question": "同一次行动能否有两个不同的结束日？如果旅程真要九天，是否应在承诺或展示前重新裁定？",
+    "limit": "刻意构造冲突候选；证明可以保存，不代表旅行通常会跳七天。",
+    "sources": [
+      "systems/place.py@# Phase D: opt-in arrive_day",
+      "loop/turn.py@def advanced_day"
+    ],
+    "probe": "two_clocks"
+  },
+  {
+    "id": "05",
+    "area": "时间与移动",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "明确等待是否生效，取决于人物有没有资源栏",
+    "trigger": "普通开局没有登记资源。玩家说“等到明天中午”，候选只写“开始等候”且 clock 不动。",
+    "impact": "入口接受，世界仍是第 1 天晨。登记资源时才会进入包含 wait_until 的意图解析。",
+    "question": "明确休息、赶路、守夜到给定时间，是否都应有统一的结束时刻？",
+    "limit": "不是所有无资源角色都会等错，作者也能主动写对。",
+    "sources": [
+      "loop/resources.py@def prepare_resources",
+      "loop/resources.py@def validate_resources"
+    ],
+    "probe": "wait_without_resource"
+  },
+  {
+    "id": "06",
+    "area": "时间与移动",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "两段路分别从起点验，能走过不存在的第二段",
+    "trigger": "客栈分别通市场、采石场，市场不直通采石场。一个行动写客栈→市场→采石场。",
+    "impact": "两条移动事件都保存，最终到采石场，时段仍是晨。标记的路线成本也没有强制消耗时间。",
+    "question": "多段移动要逐段连通，还是普通行动只允许一段？路线成本是找路权重，还是实际旅行时间？",
+    "limit": "不预设成本 19 等于 19 个时段；没有第二条直连边才是明确冲突。",
+    "sources": [
+      "context/capabilities.py@def validate_protagonist_moves",
+      "systems/place.py@def navigate"
+    ],
+    "probe": "travel_chain"
+  },
+  {
+    "id": "07",
+    "area": "正文与行动",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "正文宣布到达、出售，存档却两件都没做",
+    "trigger": "结构是原地观察、没有转移；一句短正文说玩家已到集市并卖掉灯。",
+    "impact": "普通作者提交成功。GUI 同时显示这句旁白、客栈位置和包里的旧铜灯。",
+    "question": "对移动、持有、伤亡、付款等硬结果，是否要求每个成功叙述有对应事件？",
+    "limit": "RCV-122 已处理被修正的结构；这里测的是结构本身合法、正文却说了别的。",
+    "sources": [
+      "loop/turn.py@def produce_turn",
+      "loop/narration_guard.py@def validate_narration"
+    ],
+    "probe": "valid_structure_wrong_prose"
+  },
+  {
+    "id": "08",
+    "area": "正文与行动",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "短回复可以一字不变地循环",
+    "trigger": "连续两回合写“你继续观察，暂时没有线索。”",
+    "impact": "两条都发布。重复检测对不足 120 个去空白字符的正文直接放行。",
+    "question": "可以允许重复问路，但连续探索几次时，是否至少应返回新观察、明确瓶颈或可采取的动作？",
+    "limit": "措辞不同、信息增量为零的回复也不受这项字面检测覆盖。",
+    "sources": [
+      "loop/narration_guard.py@def validate_narration"
+    ],
+    "probe": "short_repeat"
+  },
+  {
+    "id": "09",
+    "area": "任务与世界",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "两个委托撞编号，账本静默丢一个",
+    "trigger": "同回合接下寻狗和归还账簿两个自由委托，作者给了相同 id。",
+    "impact": "两个开启事件均已保存，当前明账只剩“归还旧账簿”。",
+    "question": "同回合撞号应退回重写、生成新编号，还是明确合并并向玩家说明？",
+    "limit": "原始事件未删除。丢失的是第一项作为活跃任务的投影。",
+    "sources": [
+      "systems/lore.py@def validate",
+      "systems/lore.py@if t == \"quest_opened\""
+    ],
+    "probe": "same_id_open"
+  },
+  {
+    "id": "10",
+    "area": "任务与世界",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "普通调查可以靠一句“办妥”结案",
+    "trigger": "玩家说钥匙尚未找到，作者直接 resolve 自由寻钥匙任务。",
+    "impact": "已结账本写“钥匙已找回”，背包没有钥匙。只有明确绑定的交付任务才核实物品证据。",
+    "question": "哪些任务可以由 DM 叙事收束，哪些必须有关键证据、物品或玩家选择？",
+    "limit": "自由任务原本允许叙事结算，是否扩大结构化约束由你决定。",
+    "sources": [
+      "systems/lore.py@def validate",
+      "kernel/quest_outcomes.py@def delivery_errors"
+    ],
+    "probe": "freeform_completion"
+  },
+  {
+    "id": "11",
+    "area": "人物与信息",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "把 NPC 的来源 ID 改成中文，错误证言就能过",
+    "trigger": "玛拉只知“开放”，实际“封闭”。给主角登记“玛拉说封闭”，其他条件相同，只改 via。",
+    "impact": "via=mara 被拒；via=玛拉亲口 被接受。主角得到“实际封闭”，玛拉的信念依旧是“只知开放”。",
+    "question": "凡自称“某 NPC 告知”的世界事实，是否必须绑定可验证的角色 ID？文本来源能否只当玩家的笔记？",
+    "limit": "这是 RCV-129 之后的新反例。它不否定指定收件人的原话隔离已通过。",
+    "sources": [
+      "context/native_authoring.py@def npc_attribution_errors"
+    ],
+    "probe": "speaker_alias"
+  },
+  {
+    "id": "12",
+    "area": "人物与信息",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "已认识的名字被解析成第二个人",
+    "trigger": "已保存 name=林月，描述为“抱着陶罐的旅人”，本人就在现场。下一回合以“林月”作人物引用。",
+    "impact": "名称解析器查真名和描述，产生新的 npc_auto 编号，而非原来的角色。",
+    "question": "展示名、别名和真实身份各在哪里解析？有重名时要怎样让作者消歧？",
+    "limit": "测到生成候选重复身份，后续普通入口可能因其他约束拒绝；没有声称已写入两个分身。",
+    "sources": [
+      "loop/entity_resolve.py@def _augment",
+      "systems/character.py@class CharacterSystem"
+    ],
+    "probe": "name_resolution"
+  },
+  {
+    "id": "13",
+    "area": "人物与信息",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "人物状态显示“已死亡”，仍能从列表选她说话",
+    "trigger": "用既有角色状态写“已死亡”，保留原来的位置。",
+    "impact": "GUI 同时显示死亡状态和该角色的讲话选择项。",
+    "question": "死亡、昏迷、被捕、睡着等状态是否要改变可互动动作？鬼魂等题材如何例外？",
+    "limit": "现有 state 是自由文本；本项没有测试她实际上会作答。",
+    "sources": [
+      "context/access.py@def current_public_people",
+      "app/gui.py@def build_player_state"
+    ],
+    "probe": "dead_speaker"
+  },
+  {
+    "id": "14",
+    "area": "人物与信息",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "慢慢积累的经历，未必会触发人物成长",
+    "trigger": "给同一人相同的 16 条状态事件，分别逐次调用消化模块，再把 16 条一次交给它。",
+    "impact": "拆分时反思触发 0 次，合并时达到默认阈值。累加器每次调用新建。",
+    "question": "人物成长是评估‘这一次大事件’，还是评估‘过去十回合终于积累够了’？",
+    "limit": "为隔离分组效应使用相同合成事件；没有断言长局内所有人物都不会成长。",
+    "sources": [
+      "loop/fleet.py@def digest_fleet",
+      "memory/reflection.py@def should_reflect"
+    ],
+    "probe": "reflection"
+  },
+  {
+    "id": "15",
+    "area": "人物与信息",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "合法的人物反思会让整次普通行动被拒",
+    "trigger": "普通回合一次记录 16 个主角公开观察，真实 digest 触发，替身按要求返回正常 arc。另测不合规的反思 predicate。",
+    "impact": "正常 arc 在最终实体校验被拒，整回合零写入。单独运行 digest 时，反思还可写成 knows: 并在图中生成无来源信念。",
+    "question": "宿主产生的成长应使用哪条写入路径？后台失败是否应影响已经有效的前台行动？",
+    "limit": "拒绝是普通 GUI 实测；无来源信念只在组件路径实测，不把两者混称为普通玩家泄露。",
+    "sources": [
+      "loop/fleet.py@arc_ev = kernel_event",
+      "context/capabilities.py@def player_turn_entity_event_errors"
+    ],
+    "probe": "normal_reflection,reflection"
+  },
+  {
+    "id": "16",
+    "area": "任务与世界",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "一次见五个老熟人，第五个可能一直没补上状态",
+    "trigger": "五个 tracked 人物同时回到视野，均有四天没更新。预算一次处理四位。",
+    "impact": "前四个更新；下一回合五人仍同场，第五个不再属于新进入者，处理 0 个，日期还在第 1 天。",
+    "question": "预算满了是排队到稍后，还是有意放弃直到再次离场？",
+    "limit": "使用无变化的离线响应，只验证调度漏补，不评文笔。",
+    "sources": [
+      "loop/time.py@def stale_entering_scope",
+      "loop/time.py@if len(ids) > CATCHUP_BUDGET"
+    ],
+    "probe": "catchup_budget"
+  },
+  {
+    "id": "17",
+    "area": "任务与世界",
+    "evidence": "既有游玩",
+    "priority": "一起审",
+    "title": "多看几眼，整个磨坊在同一早晨连进数步",
+    "trigger": "12 回合 Terra 样本里，玩家回到南桥后留在同一个早晨观察。",
+    "impact": "几次短行动间本地两条暗线由阶段 2 到 5；木销维修、排队和货物接连变化。",
+    "question": "对慢工、病情、政治事件是否应有最短经过时间？对交谈、追逐是否仍允许按回合推进？",
+    "limit": "一个先前样本和既有本地规则；不是说每次同日行动都一定推进。",
+    "sources": [
+      "loop/lore.py@def run_lore",
+      "docs/verification/fixtures/rcv127-world/live_route/review.md"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "18",
+    "area": "任务与世界",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "主角私人暗线可能按‘远方’节奏推进",
+    "trigger": "以人而非城镇为 anchor，个人线和地点线都设为 100，主角连续在当地行动但未跨日。",
+    "impact": "普通城镇线推进，pthread 个人线不推进。创世路径确实会生成人物锚点。",
+    "question": "玩家正在追查自己的身世时，个人线应受相关行动、地点还是日期驱动？",
+    "limit": "验证的是无跨日的一次调度。个人线仍可按日历走，并非彻底冻结。",
+    "sources": [
+      "loop/lore.py@ordinary = ln.get",
+      "loop/genesis/lore.py@thread_id = f\"pthread_"
+    ],
+    "probe": "person_anchored"
+  },
+  {
+    "id": "19",
+    "area": "任务与世界",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "兜底生成了暗线，却找不到自然入口",
+    "trigger": "无公开任务时由一次人物变化触发 backstop，再把世界推进到第 20 天。",
+    "impact": "所得暗线没有地点、阶段或寿命；本地线索为空，暗线调度也没有产生变化。",
+    "question": "这是供 GM 人工接手的便签，还是应该能被玩家撞见的任务？",
+    "limit": "验证既有自动线路，GM 可以通过其他显式手段干预。",
+    "sources": [
+      "loop/fleet.py@def backstop_quests",
+      "loop/lore_disclosure.py@def station_push_fragment"
+    ],
+    "probe": "backstop_flag"
+  },
+  {
+    "id": "20",
+    "area": "任务与世界",
+    "evidence": "源码线索",
+    "priority": "一起审",
+    "title": "地区第一次内容生成失败，也会标为已播种",
+    "trigger": "首次进入新镇，模型返回零条合格暗线，流程仍追加 lore_seeded。",
+    "impact": "首次生成分支不再立即重试；后续依赖按日刷新和再次抽中。玩家可能把暂时生成失败体验为‘这镇没事可做’。",
+    "question": "空镇是世界设计结果，还是内容生成待补？两者应否以不同状态保存？",
+    "limit": "来自实际分支逻辑。刷新仍可能添加暗线，不能说小镇永远为空。",
+    "sources": [
+      "loop/density.py@# Mark town as seeded even if 0 skeletons came back"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "21",
+    "area": "任务与世界",
+    "evidence": "模块复现",
+    "priority": "可后置",
+    "title": "导演的过期评分可能因重访同名场景归零",
+    "trigger": "在线上次记为 A 场景时，比较 A→B→C→D→E→F 与最后返回 A 的旧场景 ID 历史。",
+    "impact": "相同种子下应推进分数分别为 2.011 和 0。场景序号字典用重复 ID 的最后出现位置。",
+    "question": "仍支持场景 ID 被重用的旧档或自定义场景吗？若支持，要记录实际发生的轮次吗？",
+    "limit": "默认 SceneSystem 可生成单调场景编号，普通新档未证实会碰到。",
+    "sources": [
+      "engine/director.py@def _scene_ordinals",
+      "engine/director.py@def thread_due_scores"
+    ],
+    "probe": "director_revisit"
+  },
+  {
+    "id": "22",
+    "area": "任务与世界",
+    "evidence": "玩法取舍",
+    "priority": "一起审",
+    "title": "支线虽各自推进，能否真正改变另一条线的做法",
+    "trigger": "磨坊故障、渡船改班后，再做送货任务或尝试沿旧路线赶路。",
+    "impact": "已有阶段、危机、级联和交付结算；未见把任意阶段线索自动绑定为路线通行／票价／承诺条件的通用协议。",
+    "question": "是否要挑一个闭环，例如木桥断了就必须改道，哪怕玩家不走这条支线？",
+    "limit": "这是覆盖范围判断。导演可写剧情，也已有具体世界事件，不等于全世界毫无因果。",
+    "sources": [
+      "loop/lore.py@def _stage_event",
+      "loop/endgame.py@def build_catastrophe_events",
+      "kernel/quest_outcomes.py@def bind_delivery_outcomes"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "23",
+    "area": "记忆与长局",
+    "evidence": "入口复现",
+    "priority": "先审",
+    "title": "旧原话仍在 SQLite，玩家却无法搜出来打开",
+    "trigger": "在公开旁白中放一个唯一词，随后再写八段无关旁白，查询那个词。",
+    "impact": "SQLite 中有原句；GUI 最近八段里没有，player_recall 返回空列表。",
+    "question": "既然你要求原文查证，是否把‘查到旧话 → 打开来源 → 看前后文’算作主玩法的验收条件？",
+    "limit": "使用真实读入口。和摘要质量无关，没有测试向量模型。",
+    "sources": [
+      "app/player_recall.py@def player_recall",
+      "app/gui.py@\"narration\": narrations[-8:]"
+    ],
+    "probe": "recall_old_line"
+  },
+  {
+    "id": "24",
+    "area": "记忆与长局",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "记下西墙的井，北墙的梯子从地点卡消失",
+    "trigger": "同地点、同一观察范围“整个院子”，先记录梯子，再记录井，两者没有互相取代。",
+    "impact": "两条观察都在事件历史里，地点卡只返回了井。稳定布局按地点与范围合并。",
+    "question": "哪些更新是替换旧描述，哪些应并存？能否按物件或设施分别记？",
+    "limit": "原始记录未删除；问题发生在玩家和作者常用的展示投影。",
+    "sources": [
+      "context/place_observations.py@def public_place_observations"
+    ],
+    "probe": "layout_compaction"
+  },
+  {
+    "id": "25",
+    "area": "记忆与长局",
+    "evidence": "源码线索",
+    "priority": "一起审",
+    "title": "一天内改变两次的事实，很难回答‘上午当时怎样’",
+    "trigger": "同一天上午开门、下午关门，或甲早上信东岸、午后改信西岸。",
+    "impact": "图的有效期按整天计算；事件仍有 turn 和来源，但单用 value_at(day) 无法区分日内顺序。",
+    "question": "需要回答时段内的旧状态时，是按事件序列重建，还是给图增加时段／轮次查询？",
+    "limit": "不是历史被删除。读回某个具体事件前的投影仍是可能路径。",
+    "sources": [
+      "facts/fact.py@def _valid_at",
+      "facts/graph.py@def value_at"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "26",
+    "area": "记忆与长局",
+    "evidence": "入口复现",
+    "priority": "一起审",
+    "title": "界面只显示八段正文，读成本却随全档增长",
+    "trigger": "在同一合成开局中分别添加 100、1000、5000 条旁白。先预热，再各做五次完整 dashboard.state()。",
+    "impact": "都返回八段。本次中位耗时约 4、28、172 毫秒。获取状态会读取公开历史后再截尾。",
+    "question": "你希望五千或五万事件时，刷新人物／地图面板的等待控制在多少？",
+    "limit": "只测当前机器的本地读取，含整个 state() 的开销，不是模型延迟或服务 SLA。",
+    "sources": [
+      "app/gui.py@def build_player_state",
+      "app/engine.py@def public_history"
+    ],
+    "probe": "dashboard_read"
+  },
+  {
+    "id": "27",
+    "area": "开局与叙事",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "开场提示没有直接带入主角目标，也没有把 NPC 配到各自场所",
+    "trigger": "给客栈和磨坊各设一位人物，查看用于写第一幕的世界简报。",
+    "impact": "简报列出地点与人物，但没有人物→地点映射，也没有专门传入已经生成的主角目标。可能开场就写错人，或没有可执行的第一步。",
+    "question": "用同一开局试两次：限玩家只看开场正文，能否说出首要目标、现场能找谁、现在能做什么？",
+    "limit": "已检查提示组成，没有把可能的模型错误写成已复现的创世事故；用户覆写开场另算。",
+    "sources": [
+      "loop/bootstrap.py@def _build_world_summary",
+      "loop/bootstrap.py@world_summary = _build_world_summary"
+    ],
+    "probe": "opening_brief"
+  },
+  {
+    "id": "28",
+    "area": "开局与叙事",
+    "evidence": "既有游玩",
+    "priority": "一起审",
+    "title": "调查可以保持连贯，却始终在原地打转",
+    "trigger": "此前 Terra 连续扮演作者，玩家多次查看北塔旧账。前几轮反复得到没头绪，到第五轮才出现可回应的人。",
+    "impact": "账本保住目标，并不保证调查有可验证的线索、强弱反馈，或失败后的新路径。",
+    "question": "你希望每次有效调查至少得到何种反馈？比如排除一个嫌疑、付出代价，或确定下一处可查地点。",
+    "limit": "该样本主任务种子本身只有一句目标。不能据此认定完善剧本同样会卡。",
+    "sources": [
+      "docs/verification/fixtures/rcv127-world/live_route/review.md",
+      "systems/lore.py@def inject"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "29",
+    "area": "开局与叙事",
+    "evidence": "玩法取舍",
+    "priority": "一起审",
+    "title": "偷窃、谈判、战斗和受伤，哪些后果不能随作者裁量",
+    "trigger": "用同一状态、同一难度，分别尝试行贿、潜入、强攻。",
+    "impact": "现有导演、时钟和资源规则不等价于通用行动成功／失败与代价系统。高风险行动可能缺乏玩家可理解的因果标准。",
+    "question": "你偏好自由 DM 裁定，还是要在关键行动公开约束、优势与失败代价？不同题材可分开选。",
+    "limit": "功能范围问题。没有以缺少统一战斗系统直接判定引擎错误。",
+    "sources": [
+      "docs/designs/PLAY_EXPERIENCE_PLAN.md",
+      "loop/variation.py@def prepare_variation"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "30",
+    "area": "开局与叙事",
+    "evidence": "模块复现",
+    "priority": "一起审",
+    "title": "导入世界书时，禁用条目也会送给翻译模型",
+    "trigger": "一条世界书词条标记 disable=true，并设置只在听见铃铛时触发。",
+    "impact": "翻译请求含禁用内容，未含激活关键词。如果导入者期待复用原书触发逻辑，生成的新世界可能提前采用了素材。",
+    "question": "导入是一次性提取灵感，还是要遵守禁用、触发条件和隐藏设定？",
+    "limit": "只证明翻译请求的内容，没有证明玩家正文泄露条目。",
+    "sources": [
+      "loop/import_sillytavern.py@def convert_sillytavern"
+    ],
+    "probe": "world_book_switch"
+  },
+  {
+    "id": "31",
+    "area": "人物与信息",
+    "evidence": "模块复现",
+    "priority": "可后置",
+    "title": "同一个临时人物，GUI 可交谈，GM 工具不能切到她的视角",
+    "trigger": "当前同场的陶工为 mentioned 层级。GUI 有姓名和描述，普通人物查询只返回 co_present；GM 指定她为 POV。",
+    "impact": "GM 工具报 pov not in scene。不同入口采用的‘在场’定义不同。",
+    "question": "GM 是否应能查看所有可交谈人物的认知，还是只允许 tracked？普通查询应否展示玩家已经看见的外观？",
+    "limit": "这是工具契约的分歧。没有证明普通玩家获得了 GM 秘密。",
+    "sources": [
+      "llm/tools.py@def _resolve_pov",
+      "llm/tools.py@def _characters_query_fn"
+    ],
+    "probe": "walkon_viewpoint"
+  },
+  {
+    "id": "32",
+    "area": "人物与信息",
+    "evidence": "既有游玩",
+    "priority": "一起审",
+    "title": "‘听过旧告示的说法’被写成‘我亲眼看过’",
+    "trigger": "在较早的 Terra NPC 样本中，阿岚复述旧告示时声称自己看过，种子只记录告示内容。",
+    "impact": "角色说的结论可能没变，证词的可信度却上升了。玩家做推理时，传闻与目击差别很大。",
+    "question": "关键证言是否需要区分目击、转述、推断、来源未知？当来源不明时允许怎样措辞？",
+    "limit": "此前单个真实响应；不当作当前模型必然串人。已修的两人信念覆盖是另一问题。",
+    "sources": [
+      "docs/verification/RCV-129-npc-information.md",
+      "context/native_authoring.py@def _declared_beliefs"
+    ],
+    "probe": ""
+  },
+  {
+    "id": "33",
+    "area": "任务与世界",
+    "evidence": "源码线索",
+    "priority": "可后置",
+    "title": "导演说‘暗线推进’，可能只是更新时间标记",
+    "trigger": "dormant_thread 抽到应推进的 director thread 后，检查其事件和下一轮可见的东西。",
+    "impact": "该分支记录 thread_advance 和 last_advanced_scene；它与 Lore 的阶段、揭示和具体地点后果不是同一个对象。",
+    "question": "导演线程只是节奏调度，还是每次推进都应留下可观察、可追踪的改变？",
+    "limit": "根据事件归属推断。未主张所有导演事件都没有可见效果；普通 director_fired 另有提示。",
+    "sources": [
+      "loop/director.py@def _handle_dormant",
+      "systems/director.py@if t == \"thread_advance\""
+    ],
+    "probe": ""
+  },
+  {
+    "id": "34",
+    "area": "人物与信息",
+    "evidence": "源码线索",
+    "priority": "可后置",
+    "title": "许多开局人物可能在镜头外一直保持原样",
+    "trigger": "开场生成的 NPC 默认是 mentioned，离场补演只挑进入范围的 tracked 人物。",
+    "impact": "如果一个人物始终没有提升层级，多天后回访时，这条补演机制不会替她更新状态。",
+    "question": "只需少数核心角色有独立生活，还是多次互动后应让临时人物升级为持续角色？",
+    "limit": "其他事件仍可能更新她。这项不等于所有开场 NPC 永远静止。",
+    "sources": [
+      "loop/genesis/cast.py@\"tier\": \"mentioned\"",
+      "loop/time.py@def stale_entering_scope"
+    ],
+    "probe": ""
+  }
+]

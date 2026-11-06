@@ -36,6 +36,8 @@
 
 ## 最近交付
 
+- 2026-11-07：[RCV-130 宽范围体验审计](../verification/RCV-130-play-audit.md)，[34 项可逐项裁决的评审表](../reports/2026-11-07/play-review.html)。仅审计，等待用户取舍。
+
 - 2026-11-07：[RCV-129 主持人与 NPC 信息边界](../verification/RCV-129-npc-information.md)，含过时认知、多来源证言、仅收件人原话、离场状态更新及真实游玩。
 
 - 2026-11-07：[RCV-128 当面初遇、交谈和重访](../verification/RCV-128-encounter-continuity.md)，包含普通 GUI 与 Terra 原生回归。

@@ -1,0 +1,298 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>世界引擎 · 体验问题评审清单</title><style>
+*{box-sizing:border-box}body{margin:0;color:#1c343a;background:#f6f5ee;font:16px/1.72 system-ui,sans-serif}main{max-width:998px;margin:auto;padding:38px 22px 74px}header small,.meta,small{color:#486369;font-size:13px}h1,h2,h3{line-height:1.3}h1{font:clamp(32px,6vw,54px)/1.15 Georgia,"Songti SC",serif;margin:12px 0}h2{font-size:22px;margin:30px 0 12px}h3{font-size:20px;margin:4px 0}p{margin:9px 0}.intro{max-width:74ch}.panel,.issue{border:1px solid #ccd6d0;background:#fffef8;border-radius:9px;padding:18px 22px;margin:13px 0}.quick{columns:2;list-style:none;padding:0}.quick li{break-inside:avoid;margin-bottom:6px}a{color:#09605c}button,input,select,textarea{font:inherit}input,select,button,textarea{border:1px solid #a4b5b3;border-radius:5px;background:white;padding:5px 9px;color:#183c41}button{background:#e2eeea;cursor:pointer}label{display:inline-flex;gap:7px;align-items:center;flex-wrap:wrap}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.issue{scroll-margin-top:15px;padding:17px 22px}.issue header{display:flex;gap:14px;align-items:start}.id{font:700 18px/1.6 ui-monospace,monospace;color:#277769;border-bottom:2px solid #277769}.scene{color:#425d61}.question{margin:10px 0;padding:8px 12px;background:#edf3e9;border-left:3px solid #558766}.decision{margin-top:9px}.refs a{display:inline-block;margin:0 10px 4px 0;overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:13px}summary{cursor:pointer;color:#355c61}pre{overflow:auto;font:13px/1.5 ui-monospace,monospace;background:#eff3ef;padding:8px}textarea{width:100%;height:240px}output{font-variant-numeric:tabular-nums}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #be6825}.fine{color:#51666a;font-size:14px}.meta a{margin-right:8px}.buttons{display:flex;gap:10px;flex-wrap:wrap}[hidden]{display:none!important}@media(max-width:640px){main{padding:20px 13px}.quick{columns:1}.issue,.panel{padding:14px}.filters label{width:100%}.filters select,.filters input{flex:1;min-width:0}}@media print{.filters,.buttons,.decision{display:none}.issue{break-inside:avoid}main{padding:0}} </style></head><body><main><small>llm-rpg-engine · 2026-11-07 · 源码 286333c</small><h1>世界引擎体验评审清单</h1><p class="intro">共 34 项候选。先读每项的实际触发和玩家后果，再用绿色框中的问题判断是否值得改。“先审”表示影响时间、任务、背包、来源或真实回合提交，不代表已经决定修复。</p><p class="meta"><a href="../../verification/RCV-130-play-audit.md">核验说明与重跑方法</a><a href="world-continuity.html">此前的多线长局对照</a></p><section class="panel"><h2>优先看这九项</h2><ol class="quick"><li><a href="#i01">01　自己放下的东西捡不回来</a></li><li><a href="#i02">02　钱扣了，货没有入包</a></li><li><a href="#i04">04　承诺次日中午抵达，存档却到了第九天</a></li><li><a href="#i06">06　两段路分别从起点验，能走过不存在的第二段</a></li><li><a href="#i07">07　正文宣布到达、出售，存档却两件都没做</a></li><li><a href="#i09">09　两个委托撞编号，账本静默丢一个</a></li><li><a href="#i11">11　把 NPC 的来源 ID 改成中文，错误证言就能过</a></li><li><a href="#i15">15　合法的人物反思会让整次普通行动被拒</a></li><li><a href="#i23">23　旧原话仍在 SQLite，玩家却无法搜出来打开</a></li></ol></section><section><h2>按场景评估</h2><p class="fine">入口复现使用真实普通控制器或玩家读接口及合成数据，故意给出不利候选，验证会不会被接受。模块复现指单独运行组件。既有游玩来自先前的 Terra 单样本。源码线索与玩法取舍仍需裁决。本轮门禁 2240 项通过，1 项按旧 slow 条件排除。</p><div class="filters"><label>检索<input id="search" type="search" placeholder="编号、场景或关键词"></label><label>领域<select id="area"><option value="">全部</option><option>物品与交易</option><option>时间与移动</option><option>正文与行动</option><option>任务与世界</option><option>人物与信息</option><option>记忆与长局</option><option>开局与叙事</option></select></label><label>证据<select id="evidence"><option value="">全部</option><option>入口复现</option><option>模块复现</option><option>既有游玩</option><option>源码线索</option><option>玩法取舍</option></select></label><label>优先级<select id="priority"><option value="">全部</option><option>先审</option><option>一起审</option><option>可后置</option></select></label><label>我的判断<select id="decision"><option value="">全部</option><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></div><p><output id="count">34 / 34 项</output></p><div class="buttons"><button id="reset" type="button">清除筛选</button><button id="export" type="button">生成可复制的评审摘要</button></div><div id="exportbox" hidden><label for="out">已评项目，可直接复制发回</label><textarea readonly id="out"></textarea></div><small id="saveinfo">判断记录尽量保存在当前浏览器；跨设备使用上方摘要。</small><noscript><p>下面是完整清单；启用 JavaScript 可筛选并导出判断。</p></noscript><article id="i01" class="issue" data-search="01 物品与交易 自己放下的东西捡不回来 在客栈把自己的铜灯放在脚边，然后立即捡起。 放下成功。拾取被拒，灯还属于客栈。相同规则也限制 NPC 主动把物品交给玩家。 普通回合是否应该允许拿取自己刚放下、仍可见的物品？其他人的物品另订同意条件。 测的是普通玩家控制器。主持层可以写转移事件。" data-area="物品与交易" data-evidence="入口复现" data-priority="先审"><header><span class="id">01</span><div><small>物品与交易 · 入口复现 · 先审</small><h3>自己放下的东西捡不回来</h3></div></header><p class="scene">在客栈把自己的铜灯放在脚边，然后立即捡起。</p><p>放下成功。拾取被拒，灯还属于客栈。相同规则也限制 NPC 主动把物品交给玩家。</p><div class="question">普通回合是否应该允许拿取自己刚放下、仍可见的物品？其他人的物品另订同意条件。</div><details><summary>证据边界与源码</summary><p>测的是普通玩家控制器。主持层可以写转移事件。</p><p class="refs"><a href="../../../context/capabilities.py#L829">context/capabilities.py:829</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;drop_pickup&quot;: {
+    &quot;pickup&quot;: &quot;TurnRejected: player item change lies outside the local public authority boundary&quot;,
+    &quot;owner&quot;: [
+      &quot;stonebridge_inn&quot;
+    ],
+    &quot;pickup_changed_revision&quot;: false
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第01项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i02" class="issue" data-search="02 物品与交易 钱扣了，货没有入包 持有 8 枚钱，明确花 3 枚买绳索。作者写“已将绳索放入背包”，没提交物品变化。 钱变为 5，背包里只有原来的灯；这句正文和交易一起成功保存。 购买实物时，是否必须同时入包、记录待交货，或明确记录钱已付但交易失败的缘由？ 离线作者给定具体候选，证明入口允许，不测自然出现率。" data-area="物品与交易" data-evidence="入口复现" data-priority="先审"><header><span class="id">02</span><div><small>物品与交易 · 入口复现 · 先审</small><h3>钱扣了，货没有入包</h3></div></header><p class="scene">持有 8 枚钱，明确花 3 枚买绳索。作者写“已将绳索放入背包”，没提交物品变化。</p><p>钱变为 5，背包里只有原来的灯；这句正文和交易一起成功保存。</p><div class="question">购买实物时，是否必须同时入包、记录待交货，或明确记录钱已付但交易失败的缘由？</div><details><summary>证据边界与源码</summary><p>离线作者给定具体候选，证明入口允许，不测自然出现率。</p><p class="refs"><a href="../../../loop/resources.py#L35">loop/resources.py:35</a> <a href="../../../context/capabilities.py#L829">context/capabilities.py:829</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;buy_without_item&quot;: {
+    &quot;coins&quot;: 5,
+    &quot;inventory&quot;: [
+      {
+        &quot;id&quot;: &quot;old_brass_lantern&quot;,
+        &quot;label&quot;: &quot;旧铜灯&quot;
+      }
+    ],
+    &quot;narration&quot;: &quot;你付了三枚钱，把绳子放入背包。&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第02项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i03" class="issue" data-search="03 物品与交易 一盏灯能在同一回合送两个人 玩家只持有一盏灯，候选依次把它交给甲、乙。 两次转移均入账，最后乙持有。校验只看回合开始的背包；中途没有甲再把灯交给乙的行动依据。 连续交接是否要逐次核对当前持有人？若是甲主动转交，怎样记录甲的动作？ 没有复制出两盏灯。争议在第二次转移的行动权。" data-area="物品与交易" data-evidence="入口复现" data-priority="一起审"><header><span class="id">03</span><div><small>物品与交易 · 入口复现 · 一起审</small><h3>一盏灯能在同一回合送两个人</h3></div></header><p class="scene">玩家只持有一盏灯，候选依次把它交给甲、乙。</p><p>两次转移均入账，最后乙持有。校验只看回合开始的背包；中途没有甲再把灯交给乙的行动依据。</p><div class="question">连续交接是否要逐次核对当前持有人？若是甲主动转交，怎样记录甲的动作？</div><details><summary>证据边界与源码</summary><p>没有复制出两盏灯。争议在第二次转移的行动权。</p><p class="refs"><a href="../../../context/capabilities.py#L855">context/capabilities.py:855</a> <a href="../../../systems/object.py#L29">systems/object.py:29</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;double_gift&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;final_holder&quot;: [
+      &quot;lane&quot;
+    ],
+    &quot;recorded_recipients&quot;: [
+      &quot;mara&quot;,
+      &quot;lane&quot;
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第03项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i04" class="issue" data-search="04 时间与移动 承诺次日中午抵达，存档却到了第九天 已登记资源，宿主解析出的等待目标是第 2 天中午；同一候选的 clock 符合目标，但移动填了 arrive_day=9。 校验通过。时钟事件写第 2 天，GUI 显示第 9 天中午，任务期限和后台过期可能据此改变。 同一次行动能否有两个不同的结束日？如果旅程真要九天，是否应在承诺或展示前重新裁定？ 刻意构造冲突候选；证明可以保存，不代表旅行通常会跳七天。" data-area="时间与移动" data-evidence="入口复现" data-priority="先审"><header><span class="id">04</span><div><small>时间与移动 · 入口复现 · 先审</small><h3>承诺次日中午抵达，存档却到了第九天</h3></div></header><p class="scene">已登记资源，宿主解析出的等待目标是第 2 天中午；同一候选的 clock 符合目标，但移动填了 arrive_day=9。</p><p>校验通过。时钟事件写第 2 天，GUI 显示第 9 天中午，任务期限和后台过期可能据此改变。</p><div class="question">同一次行动能否有两个不同的结束日？如果旅程真要九天，是否应在承诺或展示前重新裁定？</div><details><summary>证据边界与源码</summary><p>刻意构造冲突候选；证明可以保存，不代表旅行通常会跳七天。</p><p class="refs"><a href="../../../systems/place.py#L402">systems/place.py:402</a> <a href="../../../loop/turn.py#L319">loop/turn.py:319</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;two_clocks&quot;: {
+    &quot;requested&quot;: {
+      &quot;day&quot;: 2,
+      &quot;band&quot;: 1
+    },
+    &quot;actual&quot;: {
+      &quot;day&quot;: 9,
+      &quot;band&quot;: &quot;中午&quot;
+    },
+    &quot;clock_event_day&quot;: [
+      2
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第04项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i05" class="issue" data-search="05 时间与移动 明确等待是否生效，取决于人物有没有资源栏 普通开局没有登记资源。玩家说“等到明天中午”，候选只写“开始等候”且 clock 不动。 入口接受，世界仍是第 1 天晨。登记资源时才会进入包含 wait_until 的意图解析。 明确休息、赶路、守夜到给定时间，是否都应有统一的结束时刻？ 不是所有无资源角色都会等错，作者也能主动写对。" data-area="时间与移动" data-evidence="入口复现" data-priority="一起审"><header><span class="id">05</span><div><small>时间与移动 · 入口复现 · 一起审</small><h3>明确等待是否生效，取决于人物有没有资源栏</h3></div></header><p class="scene">普通开局没有登记资源。玩家说“等到明天中午”，候选只写“开始等候”且 clock 不动。</p><p>入口接受，世界仍是第 1 天晨。登记资源时才会进入包含 wait_until 的意图解析。</p><div class="question">明确休息、赶路、守夜到给定时间，是否都应有统一的结束时刻？</div><details><summary>证据边界与源码</summary><p>不是所有无资源角色都会等错，作者也能主动写对。</p><p class="refs"><a href="../../../loop/resources.py#L69">loop/resources.py:69</a> <a href="../../../loop/resources.py#L102">loop/resources.py:102</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;wait_without_resource&quot;: {
+    &quot;day&quot;: 1,
+    &quot;band&quot;: &quot;晨&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第05项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i06" class="issue" data-search="06 时间与移动 两段路分别从起点验，能走过不存在的第二段 客栈分别通市场、采石场，市场不直通采石场。一个行动写客栈→市场→采石场。 两条移动事件都保存，最终到采石场，时段仍是晨。标记的路线成本也没有强制消耗时间。 多段移动要逐段连通，还是普通行动只允许一段？路线成本是找路权重，还是实际旅行时间？ 不预设成本 19 等于 19 个时段；没有第二条直连边才是明确冲突。" data-area="时间与移动" data-evidence="入口复现" data-priority="先审"><header><span class="id">06</span><div><small>时间与移动 · 入口复现 · 先审</small><h3>两段路分别从起点验，能走过不存在的第二段</h3></div></header><p class="scene">客栈分别通市场、采石场，市场不直通采石场。一个行动写客栈→市场→采石场。</p><p>两条移动事件都保存，最终到采石场，时段仍是晨。标记的路线成本也没有强制消耗时间。</p><div class="question">多段移动要逐段连通，还是普通行动只允许一段？路线成本是找路权重，还是实际旅行时间？</div><details><summary>证据边界与源码</summary><p>不预设成本 19 等于 19 个时段；没有第二条直连边才是明确冲突。</p><p class="refs"><a href="../../../context/capabilities.py#L1158">context/capabilities.py:1158</a> <a href="../../../systems/place.py#L42">systems/place.py:42</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;travel_chain&quot;: {
+    &quot;no_direct_edge&quot;: true,
+    &quot;from_market&quot;: [
+      &quot;stonebridge_inn&quot;,
+      &quot;north_bank_old_tower&quot;
+    ],
+    &quot;recorded_destinations&quot;: [
+      &quot;stonebridge_market&quot;,
+      &quot;quarry&quot;
+    ],
+    &quot;final&quot;: &quot;quarry&quot;,
+    &quot;time&quot;: {
+      &quot;day&quot;: 1,
+      &quot;band&quot;: &quot;晨&quot;
+    }
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第06项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i07" class="issue" data-search="07 正文与行动 正文宣布到达、出售，存档却两件都没做 结构是原地观察、没有转移；一句短正文说玩家已到集市并卖掉灯。 普通作者提交成功。GUI 同时显示这句旁白、客栈位置和包里的旧铜灯。 对移动、持有、伤亡、付款等硬结果，是否要求每个成功叙述有对应事件？ RCV-122 已处理被修正的结构；这里测的是结构本身合法、正文却说了别的。" data-area="正文与行动" data-evidence="入口复现" data-priority="先审"><header><span class="id">07</span><div><small>正文与行动 · 入口复现 · 先审</small><h3>正文宣布到达、出售，存档却两件都没做</h3></div></header><p class="scene">结构是原地观察、没有转移；一句短正文说玩家已到集市并卖掉灯。</p><p>普通作者提交成功。GUI 同时显示这句旁白、客栈位置和包里的旧铜灯。</p><div class="question">对移动、持有、伤亡、付款等硬结果，是否要求每个成功叙述有对应事件？</div><details><summary>证据边界与源码</summary><p>RCV-122 已处理被修正的结构；这里测的是结构本身合法、正文却说了别的。</p><p class="refs"><a href="../../../loop/turn.py#L344">loop/turn.py:344</a> <a href="../../../loop/narration_guard.py#L6">loop/narration_guard.py:6</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;valid_structure_wrong_prose&quot;: {
+    &quot;scene&quot;: &quot;stonebridge_inn&quot;,
+    &quot;inventory&quot;: [
+      {
+        &quot;id&quot;: &quot;old_brass_lantern&quot;,
+        &quot;label&quot;: &quot;旧铜灯&quot;
+      }
+    ],
+    &quot;text&quot;: &quot;你抵达石桥集市，把旧铜灯卖给摊主。&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第07项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i08" class="issue" data-search="08 正文与行动 短回复可以一字不变地循环 连续两回合写“你继续观察，暂时没有线索。” 两条都发布。重复检测对不足 120 个去空白字符的正文直接放行。 可以允许重复问路，但连续探索几次时，是否至少应返回新观察、明确瓶颈或可采取的动作？ 措辞不同、信息增量为零的回复也不受这项字面检测覆盖。" data-area="正文与行动" data-evidence="入口复现" data-priority="一起审"><header><span class="id">08</span><div><small>正文与行动 · 入口复现 · 一起审</small><h3>短回复可以一字不变地循环</h3></div></header><p class="scene">连续两回合写“你继续观察，暂时没有线索。”</p><p>两条都发布。重复检测对不足 120 个去空白字符的正文直接放行。</p><div class="question">可以允许重复问路，但连续探索几次时，是否至少应返回新观察、明确瓶颈或可采取的动作？</div><details><summary>证据边界与源码</summary><p>措辞不同、信息增量为零的回复也不受这项字面检测覆盖。</p><p class="refs"><a href="../../../loop/narration_guard.py#L6">loop/narration_guard.py:6</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;short_repeat&quot;: [
+    &quot;你继续观察，暂时没有线索。&quot;,
+    &quot;你继续观察，暂时没有线索。&quot;
+  ]
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第08项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i09" class="issue" data-search="09 任务与世界 两个委托撞编号，账本静默丢一个 同回合接下寻狗和归还账簿两个自由委托，作者给了相同 id。 两个开启事件均已保存，当前明账只剩“归还旧账簿”。 同回合撞号应退回重写、生成新编号，还是明确合并并向玩家说明？ 原始事件未删除。丢失的是第一项作为活跃任务的投影。" data-area="任务与世界" data-evidence="入口复现" data-priority="先审"><header><span class="id">09</span><div><small>任务与世界 · 入口复现 · 先审</small><h3>两个委托撞编号，账本静默丢一个</h3></div></header><p class="scene">同回合接下寻狗和归还账簿两个自由委托，作者给了相同 id。</p><p>两个开启事件均已保存，当前明账只剩“归还旧账簿”。</p><div class="question">同回合撞号应退回重写、生成新编号，还是明确合并并向玩家说明？</div><details><summary>证据边界与源码</summary><p>原始事件未删除。丢失的是第一项作为活跃任务的投影。</p><p class="refs"><a href="../../../systems/lore.py#L370">systems/lore.py:370</a> <a href="../../../systems/lore.py#L128">systems/lore.py:128</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;same_id_open&quot;: {
+    &quot;open_events&quot;: 2,
+    &quot;ledger&quot;: [
+      {
+        &quot;id&quot;: &quot;promise&quot;,
+        &quot;summary&quot;: &quot;归还旧账簿&quot;
+      }
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第09项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i10" class="issue" data-search="10 任务与世界 普通调查可以靠一句“办妥”结案 玩家说钥匙尚未找到，作者直接 resolve 自由寻钥匙任务。 已结账本写“钥匙已找回”，背包没有钥匙。只有明确绑定的交付任务才核实物品证据。 哪些任务可以由 DM 叙事收束，哪些必须有关键证据、物品或玩家选择？ 自由任务原本允许叙事结算，是否扩大结构化约束由你决定。" data-area="任务与世界" data-evidence="入口复现" data-priority="一起审"><header><span class="id">10</span><div><small>任务与世界 · 入口复现 · 一起审</small><h3>普通调查可以靠一句“办妥”结案</h3></div></header><p class="scene">玩家说钥匙尚未找到，作者直接 resolve 自由寻钥匙任务。</p><p>已结账本写“钥匙已找回”，背包没有钥匙。只有明确绑定的交付任务才核实物品证据。</p><div class="question">哪些任务可以由 DM 叙事收束，哪些必须有关键证据、物品或玩家选择？</div><details><summary>证据边界与源码</summary><p>自由任务原本允许叙事结算，是否扩大结构化约束由你决定。</p><p class="refs"><a href="../../../systems/lore.py#L370">systems/lore.py:370</a> <a href="../../../kernel/quest_outcomes.py#L65">kernel/quest_outcomes.py:65</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;freeform_completion&quot;: {
+    &quot;ledger&quot;: [
+      {
+        &quot;id&quot;: &quot;find_key&quot;,
+        &quot;summary&quot;: &quot;钥匙已找回&quot;
+      }
+    ],
+    &quot;inventory&quot;: [
+      {
+        &quot;id&quot;: &quot;old_brass_lantern&quot;,
+        &quot;label&quot;: &quot;旧铜灯&quot;
+      }
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第10项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i11" class="issue" data-search="11 人物与信息 把 NPC 的来源 ID 改成中文，错误证言就能过 玛拉只知“开放”，实际“封闭”。给主角登记“玛拉说封闭”，其他条件相同，只改 via。 via=mara 被拒；via=玛拉亲口 被接受。主角得到“实际封闭”，玛拉的信念依旧是“只知开放”。 凡自称“某 NPC 告知”的世界事实，是否必须绑定可验证的角色 ID？文本来源能否只当玩家的笔记？ 这是 RCV-129 之后的新反例。它不否定指定收件人的原话隔离已通过。" data-area="人物与信息" data-evidence="入口复现" data-priority="先审"><header><span class="id">11</span><div><small>人物与信息 · 入口复现 · 先审</small><h3>把 NPC 的来源 ID 改成中文，错误证言就能过</h3></div></header><p class="scene">玛拉只知“开放”，实际“封闭”。给主角登记“玛拉说封闭”，其他条件相同，只改 via。</p><p>via=mara 被拒；via=玛拉亲口 被接受。主角得到“实际封闭”，玛拉的信念依旧是“只知开放”。</p><div class="question">凡自称“某 NPC 告知”的世界事实，是否必须绑定可验证的角色 ID？文本来源能否只当玩家的笔记？</div><details><summary>证据边界与源码</summary><p>这是 RCV-129 之后的新反例。它不否定指定收件人的原话隔离已通过。</p><p class="refs"><a href="../../../context/native_authoring.py#L698">context/native_authoring.py:698</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;speaker_alias&quot;: {
+    &quot;by_via&quot;: {
+      &quot;mara&quot;: &quot;TurnRejected&quot;,
+      &quot;玛拉亲口&quot;: &quot;accepted&quot;
+    },
+    &quot;mara_belief&quot;: &quot;只知开放&quot;,
+    &quot;protagonist_belief&quot;: &quot;实际封闭&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第11项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i12" class="issue" data-search="12 人物与信息 已认识的名字被解析成第二个人 已保存 name=林月，描述为“抱着陶罐的旅人”，本人就在现场。下一回合以“林月”作人物引用。 名称解析器查真名和描述，产生新的 npc_auto 编号，而非原来的角色。 展示名、别名和真实身份各在哪里解析？有重名时要怎样让作者消歧？ 测到生成候选重复身份，后续普通入口可能因其他约束拒绝；没有声称已写入两个分身。" data-area="人物与信息" data-evidence="模块复现" data-priority="一起审"><header><span class="id">12</span><div><small>人物与信息 · 模块复现 · 一起审</small><h3>已认识的名字被解析成第二个人</h3></div></header><p class="scene">已保存 name=林月，描述为“抱着陶罐的旅人”，本人就在现场。下一回合以“林月”作人物引用。</p><p>名称解析器查真名和描述，产生新的 npc_auto 编号，而非原来的角色。</p><div class="question">展示名、别名和真实身份各在哪里解析？有重名时要怎样让作者消歧？</div><details><summary>证据边界与源码</summary><p>测到生成候选重复身份，后续普通入口可能因其他约束拒绝；没有声称已写入两个分身。</p><p class="refs"><a href="../../../loop/entity_resolve.py#L44">loop/entity_resolve.py:44</a> <a href="../../../systems/character.py#L39">systems/character.py:39</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;name_resolution&quot;: {
+    &quot;stored_name&quot;: &quot;林月&quot;,
+    &quot;resolved_moves&quot;: [
+      {
+        &quot;who&quot;: &quot;npc_auto_1_1&quot;,
+        &quot;to&quot;: &quot;stonebridge_inn&quot;
+      }
+    ],
+    &quot;new_ids&quot;: [
+      &quot;npc_auto_1_1&quot;
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第12项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i13" class="issue" data-search="13 人物与信息 人物状态显示“已死亡”，仍能从列表选她说话 用既有角色状态写“已死亡”，保留原来的位置。 GUI 同时显示死亡状态和该角色的讲话选择项。 死亡、昏迷、被捕、睡着等状态是否要改变可互动动作？鬼魂等题材如何例外？ 现有 state 是自由文本；本项没有测试她实际上会作答。" data-area="人物与信息" data-evidence="入口复现" data-priority="一起审"><header><span class="id">13</span><div><small>人物与信息 · 入口复现 · 一起审</small><h3>人物状态显示“已死亡”，仍能从列表选她说话</h3></div></header><p class="scene">用既有角色状态写“已死亡”，保留原来的位置。</p><p>GUI 同时显示死亡状态和该角色的讲话选择项。</p><div class="question">死亡、昏迷、被捕、睡着等状态是否要改变可互动动作？鬼魂等题材如何例外？</div><details><summary>证据边界与源码</summary><p>现有 state 是自由文本；本项没有测试她实际上会作答。</p><p class="refs"><a href="../../../context/access.py#L100">context/access.py:100</a> <a href="../../../app/gui.py#L287">app/gui.py:287</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;dead_speaker&quot;: {
+    &quot;present&quot;: [
+      {
+        &quot;id&quot;: &quot;town_speaker&quot;,
+        &quot;label&quot;: &quot;林月（抱着陶罐的旅人）&quot;,
+        &quot;observables&quot;: [
+          {
+            &quot;name&quot;: &quot;状态&quot;,
+            &quot;value&quot;: &quot;已死亡&quot;
+          }
+        ]
+      }
+    ],
+    &quot;recipients&quot;: [
+      {
+        &quot;id&quot;: &quot;town_speaker&quot;,
+        &quot;label&quot;: &quot;林月（抱着陶罐的旅人）&quot;
+      }
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第13项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i14" class="issue" data-search="14 人物与信息 慢慢积累的经历，未必会触发人物成长 给同一人相同的 16 条状态事件，分别逐次调用消化模块，再把 16 条一次交给它。 拆分时反思触发 0 次，合并时达到默认阈值。累加器每次调用新建。 人物成长是评估‘这一次大事件’，还是评估‘过去十回合终于积累够了’？ 为隔离分组效应使用相同合成事件；没有断言长局内所有人物都不会成长。" data-area="人物与信息" data-evidence="模块复现" data-priority="一起审"><header><span class="id">14</span><div><small>人物与信息 · 模块复现 · 一起审</small><h3>慢慢积累的经历，未必会触发人物成长</h3></div></header><p class="scene">给同一人相同的 16 条状态事件，分别逐次调用消化模块，再把 16 条一次交给它。</p><p>拆分时反思触发 0 次，合并时达到默认阈值。累加器每次调用新建。</p><div class="question">人物成长是评估‘这一次大事件’，还是评估‘过去十回合终于积累够了’？</div><details><summary>证据边界与源码</summary><p>为隔离分组效应使用相同合成事件；没有断言长局内所有人物都不会成长。</p><p class="refs"><a href="../../../loop/fleet.py#L223">loop/fleet.py:223</a> <a href="../../../memory/reflection.py#L32">memory/reflection.py:32</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;reflection&quot;: {
+    &quot;same_events_split_arc_count&quot;: 0,
+    &quot;single_batch_predicates&quot;: [
+      &quot;knows:bridge.password&quot;
+    ],
+    &quot;stored_belief&quot;: &quot;朱砂&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第14项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i15" class="issue" data-search="15 人物与信息 合法的人物反思会让整次普通行动被拒 普通回合一次记录 16 个主角公开观察，真实 digest 触发，替身按要求返回正常 arc。另测不合规的反思 predicate。 正常 arc 在最终实体校验被拒，整回合零写入。单独运行 digest 时，反思还可写成 knows: 并在图中生成无来源信念。 宿主产生的成长应使用哪条写入路径？后台失败是否应影响已经有效的前台行动？ 拒绝是普通 GUI 实测；无来源信念只在组件路径实测，不把两者混称为普通玩家泄露。" data-area="人物与信息" data-evidence="入口复现" data-priority="先审"><header><span class="id">15</span><div><small>人物与信息 · 入口复现 · 先审</small><h3>合法的人物反思会让整次普通行动被拒</h3></div></header><p class="scene">普通回合一次记录 16 个主角公开观察，真实 digest 触发，替身按要求返回正常 arc。另测不合规的反思 predicate。</p><p>正常 arc 在最终实体校验被拒，整回合零写入。单独运行 digest 时，反思还可写成 knows: 并在图中生成无来源信念。</p><div class="question">宿主产生的成长应使用哪条写入路径？后台失败是否应影响已经有效的前台行动？</div><details><summary>证据边界与源码</summary><p>拒绝是普通 GUI 实测；无来源信念只在组件路径实测，不把两者混称为普通玩家泄露。</p><p class="refs"><a href="../../../loop/fleet.py#L303">loop/fleet.py:303</a> <a href="../../../context/capabilities.py#L576">context/capabilities.py:576</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;normal_reflection&quot;: {
+    &quot;result&quot;: &quot;TurnRejected: final publish violates the player entity authority boundary&quot;,
+    &quot;called_reflection&quot;: true,
+    &quot;revision_unchanged&quot;: true
+  },
+  &quot;reflection&quot;: {
+    &quot;same_events_split_arc_count&quot;: 0,
+    &quot;single_batch_predicates&quot;: [
+      &quot;knows:bridge.password&quot;
+    ],
+    &quot;stored_belief&quot;: &quot;朱砂&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第15项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i16" class="issue" data-search="16 任务与世界 一次见五个老熟人，第五个可能一直没补上状态 五个 tracked 人物同时回到视野，均有四天没更新。预算一次处理四位。 前四个更新；下一回合五人仍同场，第五个不再属于新进入者，处理 0 个，日期还在第 1 天。 预算满了是排队到稍后，还是有意放弃直到再次离场？ 使用无变化的离线响应，只验证调度漏补，不评文笔。" data-area="任务与世界" data-evidence="模块复现" data-priority="一起审"><header><span class="id">16</span><div><small>任务与世界 · 模块复现 · 一起审</small><h3>一次见五个老熟人，第五个可能一直没补上状态</h3></div></header><p class="scene">五个 tracked 人物同时回到视野，均有四天没更新。预算一次处理四位。</p><p>前四个更新；下一回合五人仍同场，第五个不再属于新进入者，处理 0 个，日期还在第 1 天。</p><div class="question">预算满了是排队到稍后，还是有意放弃直到再次离场？</div><details><summary>证据边界与源码</summary><p>使用无变化的离线响应，只验证调度漏补，不评文笔。</p><p class="refs"><a href="../../../loop/time.py#L51">loop/time.py:51</a> <a href="../../../loop/time.py#L199">loop/time.py:199</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;catchup_budget&quot;: {
+    &quot;processed&quot;: [
+      &quot;smith0&quot;,
+      &quot;smith1&quot;,
+      &quot;smith2&quot;,
+      &quot;smith3&quot;
+    ],
+    &quot;next_turn&quot;: 0,
+    &quot;unprocessed_last_update&quot;: 1
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第16项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i17" class="issue" data-search="17 任务与世界 多看几眼，整个磨坊在同一早晨连进数步 12 回合 Terra 样本里，玩家回到南桥后留在同一个早晨观察。 几次短行动间本地两条暗线由阶段 2 到 5；木销维修、排队和货物接连变化。 对慢工、病情、政治事件是否应有最短经过时间？对交谈、追逐是否仍允许按回合推进？ 一个先前样本和既有本地规则；不是说每次同日行动都一定推进。" data-area="任务与世界" data-evidence="既有游玩" data-priority="一起审"><header><span class="id">17</span><div><small>任务与世界 · 既有游玩 · 一起审</small><h3>多看几眼，整个磨坊在同一早晨连进数步</h3></div></header><p class="scene">12 回合 Terra 样本里，玩家回到南桥后留在同一个早晨观察。</p><p>几次短行动间本地两条暗线由阶段 2 到 5；木销维修、排队和货物接连变化。</p><div class="question">对慢工、病情、政治事件是否应有最短经过时间？对交谈、追逐是否仍允许按回合推进？</div><details><summary>证据边界与源码</summary><p>一个先前样本和既有本地规则；不是说每次同日行动都一定推进。</p><p class="refs"><a href="../../../loop/lore.py#L120">loop/lore.py:120</a> <a href="../../../docs/verification/fixtures/rcv127-world/live_route/review.md">docs/verification/fixtures/rcv127-world/live_route/review.md</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第17项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i18" class="issue" data-search="18 任务与世界 主角私人暗线可能按‘远方’节奏推进 以人而非城镇为 anchor，个人线和地点线都设为 100，主角连续在当地行动但未跨日。 普通城镇线推进，pthread 个人线不推进。创世路径确实会生成人物锚点。 玩家正在追查自己的身世时，个人线应受相关行动、地点还是日期驱动？ 验证的是无跨日的一次调度。个人线仍可按日历走，并非彻底冻结。" data-area="任务与世界" data-evidence="模块复现" data-priority="一起审"><header><span class="id">18</span><div><small>任务与世界 · 模块复现 · 一起审</small><h3>主角私人暗线可能按‘远方’节奏推进</h3></div></header><p class="scene">以人而非城镇为 anchor，个人线和地点线都设为 100，主角连续在当地行动但未跨日。</p><p>普通城镇线推进，pthread 个人线不推进。创世路径确实会生成人物锚点。</p><div class="question">玩家正在追查自己的身世时，个人线应受相关行动、地点还是日期驱动？</div><details><summary>证据边界与源码</summary><p>验证的是无跨日的一次调度。个人线仍可按日历走，并非彻底冻结。</p><p class="refs"><a href="../../../loop/lore.py#L173">loop/lore.py:173</a> <a href="../../../loop/genesis/lore.py#L456">loop/genesis/lore.py:456</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;person_anchored&quot;: {
+    &quot;same_day_advanced&quot;: [
+      &quot;town_audit&quot;
+    ]
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第18项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i19" class="issue" data-search="19 任务与世界 兜底生成了暗线，却找不到自然入口 无公开任务时由一次人物变化触发 backstop，再把世界推进到第 20 天。 所得暗线没有地点、阶段或寿命；本地线索为空，暗线调度也没有产生变化。 这是供 GM 人工接手的便签，还是应该能被玩家撞见的任务？ 验证既有自动线路，GM 可以通过其他显式手段干预。" data-area="任务与世界" data-evidence="模块复现" data-priority="一起审"><header><span class="id">19</span><div><small>任务与世界 · 模块复现 · 一起审</small><h3>兜底生成了暗线，却找不到自然入口</h3></div></header><p class="scene">无公开任务时由一次人物变化触发 backstop，再把世界推进到第 20 天。</p><p>所得暗线没有地点、阶段或寿命；本地线索为空，暗线调度也没有产生变化。</p><div class="question">这是供 GM 人工接手的便签，还是应该能被玩家撞见的任务？</div><details><summary>证据边界与源码</summary><p>验证既有自动线路，GM 可以通过其他显式手段干预。</p><p class="refs"><a href="../../../loop/fleet.py#L157">loop/fleet.py:157</a> <a href="../../../loop/lore_disclosure.py#L40">loop/lore_disclosure.py:40</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;backstop_flag&quot;: {
+    &quot;state&quot;: &quot;暗&quot;,
+    &quot;anchor&quot;: null,
+    &quot;stages&quot;: [],
+    &quot;lifespan&quot;: null,
+    &quot;local_clue&quot;: null,
+    &quot;changes_day20&quot;: 0
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第19项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i20" class="issue" data-search="20 任务与世界 地区第一次内容生成失败，也会标为已播种 首次进入新镇，模型返回零条合格暗线，流程仍追加 lore_seeded。 首次生成分支不再立即重试；后续依赖按日刷新和再次抽中。玩家可能把暂时生成失败体验为‘这镇没事可做’。 空镇是世界设计结果，还是内容生成待补？两者应否以不同状态保存？ 来自实际分支逻辑。刷新仍可能添加暗线，不能说小镇永远为空。" data-area="任务与世界" data-evidence="源码线索" data-priority="一起审"><header><span class="id">20</span><div><small>任务与世界 · 源码线索 · 一起审</small><h3>地区第一次内容生成失败，也会标为已播种</h3></div></header><p class="scene">首次进入新镇，模型返回零条合格暗线，流程仍追加 lore_seeded。</p><p>首次生成分支不再立即重试；后续依赖按日刷新和再次抽中。玩家可能把暂时生成失败体验为‘这镇没事可做’。</p><div class="question">空镇是世界设计结果，还是内容生成待补？两者应否以不同状态保存？</div><details><summary>证据边界与源码</summary><p>来自实际分支逻辑。刷新仍可能添加暗线，不能说小镇永远为空。</p><p class="refs"><a href="../../../loop/density.py#L598">loop/density.py:598</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第20项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i21" class="issue" data-search="21 任务与世界 导演的过期评分可能因重访同名场景归零 在线上次记为 A 场景时，比较 A→B→C→D→E→F 与最后返回 A 的旧场景 ID 历史。 相同种子下应推进分数分别为 2.011 和 0。场景序号字典用重复 ID 的最后出现位置。 仍支持场景 ID 被重用的旧档或自定义场景吗？若支持，要记录实际发生的轮次吗？ 默认 SceneSystem 可生成单调场景编号，普通新档未证实会碰到。" data-area="任务与世界" data-evidence="模块复现" data-priority="可后置"><header><span class="id">21</span><div><small>任务与世界 · 模块复现 · 可后置</small><h3>导演的过期评分可能因重访同名场景归零</h3></div></header><p class="scene">在线上次记为 A 场景时，比较 A→B→C→D→E→F 与最后返回 A 的旧场景 ID 历史。</p><p>相同种子下应推进分数分别为 2.011 和 0。场景序号字典用重复 ID 的最后出现位置。</p><div class="question">仍支持场景 ID 被重用的旧档或自定义场景吗？若支持，要记录实际发生的轮次吗？</div><details><summary>证据边界与源码</summary><p>默认 SceneSystem 可生成单调场景编号，普通新档未证实会碰到。</p><p class="refs"><a href="../../../engine/director.py#L42">engine/director.py:42</a> <a href="../../../engine/director.py#L50">engine/director.py:50</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;director_revisit&quot;: {
+    &quot;last_new_scene&quot;: 2.011,
+    &quot;revisit_old_scene_id&quot;: 0.0
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第21项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i22" class="issue" data-search="22 任务与世界 支线虽各自推进，能否真正改变另一条线的做法 磨坊故障、渡船改班后，再做送货任务或尝试沿旧路线赶路。 已有阶段、危机、级联和交付结算；未见把任意阶段线索自动绑定为路线通行／票价／承诺条件的通用协议。 是否要挑一个闭环，例如木桥断了就必须改道，哪怕玩家不走这条支线？ 这是覆盖范围判断。导演可写剧情，也已有具体世界事件，不等于全世界毫无因果。" data-area="任务与世界" data-evidence="玩法取舍" data-priority="一起审"><header><span class="id">22</span><div><small>任务与世界 · 玩法取舍 · 一起审</small><h3>支线虽各自推进，能否真正改变另一条线的做法</h3></div></header><p class="scene">磨坊故障、渡船改班后，再做送货任务或尝试沿旧路线赶路。</p><p>已有阶段、危机、级联和交付结算；未见把任意阶段线索自动绑定为路线通行／票价／承诺条件的通用协议。</p><div class="question">是否要挑一个闭环，例如木桥断了就必须改道，哪怕玩家不走这条支线？</div><details><summary>证据边界与源码</summary><p>这是覆盖范围判断。导演可写剧情，也已有具体世界事件，不等于全世界毫无因果。</p><p class="refs"><a href="../../../loop/lore.py#L78">loop/lore.py:78</a> <a href="../../../loop/endgame.py#L105">loop/endgame.py:105</a> <a href="../../../kernel/quest_outcomes.py#L100">kernel/quest_outcomes.py:100</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第22项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i23" class="issue" data-search="23 记忆与长局 旧原话仍在 SQLite，玩家却无法搜出来打开 在公开旁白中放一个唯一词，随后再写八段无关旁白，查询那个词。 SQLite 中有原句；GUI 最近八段里没有，player_recall 返回空列表。 既然你要求原文查证，是否把‘查到旧话 → 打开来源 → 看前后文’算作主玩法的验收条件？ 使用真实读入口。和摘要质量无关，没有测试向量模型。" data-area="记忆与长局" data-evidence="入口复现" data-priority="先审"><header><span class="id">23</span><div><small>记忆与长局 · 入口复现 · 先审</small><h3>旧原话仍在 SQLite，玩家却无法搜出来打开</h3></div></header><p class="scene">在公开旁白中放一个唯一词，随后再写八段无关旁白，查询那个词。</p><p>SQLite 中有原句；GUI 最近八段里没有，player_recall 返回空列表。</p><div class="question">既然你要求原文查证，是否把‘查到旧话 → 打开来源 → 看前后文’算作主玩法的验收条件？</div><details><summary>证据边界与源码</summary><p>使用真实读入口。和摘要质量无关，没有测试向量模型。</p><p class="refs"><a href="../../../app/player_recall.py#L13">app/player_recall.py:13</a> <a href="../../../app/gui.py#L363">app/gui.py:363</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;recall_old_line&quot;: {
+    &quot;player_hits&quot;: [],
+    &quot;in_gui_last_eight&quot;: false,
+    &quot;original_in_sqlite&quot;: true
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第23项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i24" class="issue" data-search="24 记忆与长局 记下西墙的井，北墙的梯子从地点卡消失 同地点、同一观察范围“整个院子”，先记录梯子，再记录井，两者没有互相取代。 两条观察都在事件历史里，地点卡只返回了井。稳定布局按地点与范围合并。 哪些更新是替换旧描述，哪些应并存？能否按物件或设施分别记？ 原始记录未删除；问题发生在玩家和作者常用的展示投影。" data-area="记忆与长局" data-evidence="入口复现" data-priority="一起审"><header><span class="id">24</span><div><small>记忆与长局 · 入口复现 · 一起审</small><h3>记下西墙的井，北墙的梯子从地点卡消失</h3></div></header><p class="scene">同地点、同一观察范围“整个院子”，先记录梯子，再记录井，两者没有互相取代。</p><p>两条观察都在事件历史里，地点卡只返回了井。稳定布局按地点与范围合并。</p><div class="question">哪些更新是替换旧描述，哪些应并存？能否按物件或设施分别记？</div><details><summary>证据边界与源码</summary><p>原始记录未删除；问题发生在玩家和作者常用的展示投影。</p><p class="refs"><a href="../../../context/place_observations.py#L22">context/place_observations.py:22</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;layout_compaction&quot;: {
+    &quot;at_site&quot;: [
+      &quot;西墙有一口井&quot;
+    ],
+    &quot;history_count&quot;: 2
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第24项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i25" class="issue" data-search="25 记忆与长局 一天内改变两次的事实，很难回答‘上午当时怎样’ 同一天上午开门、下午关门，或甲早上信东岸、午后改信西岸。 图的有效期按整天计算；事件仍有 turn 和来源，但单用 value_at(day) 无法区分日内顺序。 需要回答时段内的旧状态时，是按事件序列重建，还是给图增加时段／轮次查询？ 不是历史被删除。读回某个具体事件前的投影仍是可能路径。" data-area="记忆与长局" data-evidence="源码线索" data-priority="一起审"><header><span class="id">25</span><div><small>记忆与长局 · 源码线索 · 一起审</small><h3>一天内改变两次的事实，很难回答‘上午当时怎样’</h3></div></header><p class="scene">同一天上午开门、下午关门，或甲早上信东岸、午后改信西岸。</p><p>图的有效期按整天计算；事件仍有 turn 和来源，但单用 value_at(day) 无法区分日内顺序。</p><div class="question">需要回答时段内的旧状态时，是按事件序列重建，还是给图增加时段／轮次查询？</div><details><summary>证据边界与源码</summary><p>不是历史被删除。读回某个具体事件前的投影仍是可能路径。</p><p class="refs"><a href="../../../facts/fact.py#L5">facts/fact.py:5</a> <a href="../../../facts/graph.py#L111">facts/graph.py:111</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第25项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i26" class="issue" data-search="26 记忆与长局 界面只显示八段正文，读成本却随全档增长 在同一合成开局中分别添加 100、1000、5000 条旁白。先预热，再各做五次完整 dashboard.state()。 都返回八段。本次中位耗时约 4、28、172 毫秒。获取状态会读取公开历史后再截尾。 你希望五千或五万事件时，刷新人物／地图面板的等待控制在多少？ 只测当前机器的本地读取，含整个 state() 的开销，不是模型延迟或服务 SLA。" data-area="记忆与长局" data-evidence="入口复现" data-priority="一起审"><header><span class="id">26</span><div><small>记忆与长局 · 入口复现 · 一起审</small><h3>界面只显示八段正文，读成本却随全档增长</h3></div></header><p class="scene">在同一合成开局中分别添加 100、1000、5000 条旁白。先预热，再各做五次完整 dashboard.state()。</p><p>都返回八段。本次中位耗时约 4、28、172 毫秒。获取状态会读取公开历史后再截尾。</p><div class="question">你希望五千或五万事件时，刷新人物／地图面板的等待控制在多少？</div><details><summary>证据边界与源码</summary><p>只测当前机器的本地读取，含整个 state() 的开销，不是模型延迟或服务 SLA。</p><p class="refs"><a href="../../../app/gui.py#L287">app/gui.py:287</a> <a href="../../../app/engine.py#L70">app/engine.py:70</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;dashboard_read&quot;: [
+    {
+      &quot;extra_narration_events&quot;: 100,
+      &quot;narrations_returned&quot;: 8,
+      &quot;median_ms_5_warm_reads&quot;: 4.13
+    },
+    {
+      &quot;extra_narration_events&quot;: 1000,
+      &quot;narrations_returned&quot;: 8,
+      &quot;median_ms_5_warm_reads&quot;: 28.33
+    },
+    {
+      &quot;extra_narration_events&quot;: 5000,
+      &quot;narrations_returned&quot;: 8,
+      &quot;median_ms_5_warm_reads&quot;: 172.03
+    }
+  ]
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第26项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i27" class="issue" data-search="27 开局与叙事 开场提示没有直接带入主角目标，也没有把 NPC 配到各自场所 给客栈和磨坊各设一位人物，查看用于写第一幕的世界简报。 简报列出地点与人物，但没有人物→地点映射，也没有专门传入已经生成的主角目标。可能开场就写错人，或没有可执行的第一步。 用同一开局试两次：限玩家只看开场正文，能否说出首要目标、现场能找谁、现在能做什么？ 已检查提示组成，没有把可能的模型错误写成已复现的创世事故；用户覆写开场另算。" data-area="开局与叙事" data-evidence="模块复现" data-priority="一起审"><header><span class="id">27</span><div><small>开局与叙事 · 模块复现 · 一起审</small><h3>开场提示没有直接带入主角目标，也没有把 NPC 配到各自场所</h3></div></header><p class="scene">给客栈和磨坊各设一位人物，查看用于写第一幕的世界简报。</p><p>简报列出地点与人物，但没有人物→地点映射，也没有专门传入已经生成的主角目标。可能开场就写错人，或没有可执行的第一步。</p><div class="question">用同一开局试两次：限玩家只看开场正文，能否说出首要目标、现场能找谁、现在能做什么？</div><details><summary>证据边界与源码</summary><p>已检查提示组成，没有把可能的模型错误写成已复现的创世事故；用户覆写开场另算。</p><p class="refs"><a href="../../../loop/bootstrap.py#L400">loop/bootstrap.py:400</a> <a href="../../../loop/bootstrap.py#L320">loop/bootstrap.py:320</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;opening_brief&quot;: &quot;世界名称：双镇\n世界基调：调查\n核心冲突：渡船迟滞\n大区域：河谷\n起始小镇：小镇，场所：客栈, 磨坊\n开场NPC：客栈老人, 磨坊木匠\n暗线：&quot;
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第27项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i28" class="issue" data-search="28 开局与叙事 调查可以保持连贯，却始终在原地打转 此前 Terra 连续扮演作者，玩家多次查看北塔旧账。前几轮反复得到没头绪，到第五轮才出现可回应的人。 账本保住目标，并不保证调查有可验证的线索、强弱反馈，或失败后的新路径。 你希望每次有效调查至少得到何种反馈？比如排除一个嫌疑、付出代价，或确定下一处可查地点。 该样本主任务种子本身只有一句目标。不能据此认定完善剧本同样会卡。" data-area="开局与叙事" data-evidence="既有游玩" data-priority="一起审"><header><span class="id">28</span><div><small>开局与叙事 · 既有游玩 · 一起审</small><h3>调查可以保持连贯，却始终在原地打转</h3></div></header><p class="scene">此前 Terra 连续扮演作者，玩家多次查看北塔旧账。前几轮反复得到没头绪，到第五轮才出现可回应的人。</p><p>账本保住目标，并不保证调查有可验证的线索、强弱反馈，或失败后的新路径。</p><div class="question">你希望每次有效调查至少得到何种反馈？比如排除一个嫌疑、付出代价，或确定下一处可查地点。</div><details><summary>证据边界与源码</summary><p>该样本主任务种子本身只有一句目标。不能据此认定完善剧本同样会卡。</p><p class="refs"><a href="../../../docs/verification/fixtures/rcv127-world/live_route/review.md">docs/verification/fixtures/rcv127-world/live_route/review.md</a> <a href="../../../systems/lore.py#L507">systems/lore.py:507</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第28项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i29" class="issue" data-search="29 开局与叙事 偷窃、谈判、战斗和受伤，哪些后果不能随作者裁量 用同一状态、同一难度，分别尝试行贿、潜入、强攻。 现有导演、时钟和资源规则不等价于通用行动成功／失败与代价系统。高风险行动可能缺乏玩家可理解的因果标准。 你偏好自由 DM 裁定，还是要在关键行动公开约束、优势与失败代价？不同题材可分开选。 功能范围问题。没有以缺少统一战斗系统直接判定引擎错误。" data-area="开局与叙事" data-evidence="玩法取舍" data-priority="一起审"><header><span class="id">29</span><div><small>开局与叙事 · 玩法取舍 · 一起审</small><h3>偷窃、谈判、战斗和受伤，哪些后果不能随作者裁量</h3></div></header><p class="scene">用同一状态、同一难度，分别尝试行贿、潜入、强攻。</p><p>现有导演、时钟和资源规则不等价于通用行动成功／失败与代价系统。高风险行动可能缺乏玩家可理解的因果标准。</p><div class="question">你偏好自由 DM 裁定，还是要在关键行动公开约束、优势与失败代价？不同题材可分开选。</div><details><summary>证据边界与源码</summary><p>功能范围问题。没有以缺少统一战斗系统直接判定引擎错误。</p><p class="refs"><a href="../../../docs/designs/PLAY_EXPERIENCE_PLAN.md">docs/designs/PLAY_EXPERIENCE_PLAN.md</a> <a href="../../../loop/variation.py#L10">loop/variation.py:10</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第29项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i30" class="issue" data-search="30 开局与叙事 导入世界书时，禁用条目也会送给翻译模型 一条世界书词条标记 disable=true，并设置只在听见铃铛时触发。 翻译请求含禁用内容，未含激活关键词。如果导入者期待复用原书触发逻辑，生成的新世界可能提前采用了素材。 导入是一次性提取灵感，还是要遵守禁用、触发条件和隐藏设定？ 只证明翻译请求的内容，没有证明玩家正文泄露条目。" data-area="开局与叙事" data-evidence="模块复现" data-priority="一起审"><header><span class="id">30</span><div><small>开局与叙事 · 模块复现 · 一起审</small><h3>导入世界书时，禁用条目也会送给翻译模型</h3></div></header><p class="scene">一条世界书词条标记 disable=true，并设置只在听见铃铛时触发。</p><p>翻译请求含禁用内容，未含激活关键词。如果导入者期待复用原书触发逻辑，生成的新世界可能提前采用了素材。</p><div class="question">导入是一次性提取灵感，还是要遵守禁用、触发条件和隐藏设定？</div><details><summary>证据边界与源码</summary><p>只证明翻译请求的内容，没有证明玩家正文泄露条目。</p><p class="refs"><a href="../../../loop/import_sillytavern.py#L73">loop/import_sillytavern.py:73</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;world_book_switch&quot;: {
+    &quot;disabled_content_in_translation_request&quot;: true,
+    &quot;activation_key_in_request&quot;: false
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第30项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i31" class="issue" data-search="31 人物与信息 同一个临时人物，GUI 可交谈，GM 工具不能切到她的视角 当前同场的陶工为 mentioned 层级。GUI 有姓名和描述，普通人物查询只返回 co_present；GM 指定她为 POV。 GM 工具报 pov not in scene。不同入口采用的‘在场’定义不同。 GM 是否应能查看所有可交谈人物的认知，还是只允许 tracked？普通查询应否展示玩家已经看见的外观？ 这是工具契约的分歧。没有证明普通玩家获得了 GM 秘密。" data-area="人物与信息" data-evidence="模块复现" data-priority="可后置"><header><span class="id">31</span><div><small>人物与信息 · 模块复现 · 可后置</small><h3>同一个临时人物，GUI 可交谈，GM 工具不能切到她的视角</h3></div></header><p class="scene">当前同场的陶工为 mentioned 层级。GUI 有姓名和描述，普通人物查询只返回 co_present；GM 指定她为 POV。</p><p>GM 工具报 pov not in scene。不同入口采用的‘在场’定义不同。</p><div class="question">GM 是否应能查看所有可交谈人物的认知，还是只允许 tracked？普通查询应否展示玩家已经看见的外观？</div><details><summary>证据边界与源码</summary><p>这是工具契约的分歧。没有证明普通玩家获得了 GM 秘密。</p><p class="refs"><a href="../../../llm/tools.py#L118">llm/tools.py:118</a> <a href="../../../llm/tools.py#L380">llm/tools.py:380</a></p></details><details><summary>查看本次观测数据</summary><pre>{
+  &quot;walkon_viewpoint&quot;: {
+    &quot;ui&quot;: [
+      {
+        &quot;id&quot;: &quot;potter&quot;,
+        &quot;label&quot;: &quot;青禾（正在捏碗的陶工）&quot;,
+        &quot;observables&quot;: []
+      }
+    ],
+    &quot;tool&quot;: &quot;{\&quot;query\&quot;: \&quot;potter\&quot;, \&quot;matches\&quot;: [{\&quot;id\&quot;: \&quot;potter\&quot;, \&quot;co_present\&quot;: true}]}&quot;,
+    &quot;dm_shift&quot;: &quot;{\&quot;error\&quot;: \&quot;pov not in scene\&quot;}&quot;
+  }
+}</pre></details><label class="decision">我的判断 <select class="verdict" aria-label="第31项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i32" class="issue" data-search="32 人物与信息 ‘听过旧告示的说法’被写成‘我亲眼看过’ 在较早的 Terra NPC 样本中，阿岚复述旧告示时声称自己看过，种子只记录告示内容。 角色说的结论可能没变，证词的可信度却上升了。玩家做推理时，传闻与目击差别很大。 关键证言是否需要区分目击、转述、推断、来源未知？当来源不明时允许怎样措辞？ 此前单个真实响应；不当作当前模型必然串人。已修的两人信念覆盖是另一问题。" data-area="人物与信息" data-evidence="既有游玩" data-priority="一起审"><header><span class="id">32</span><div><small>人物与信息 · 既有游玩 · 一起审</small><h3>‘听过旧告示的说法’被写成‘我亲眼看过’</h3></div></header><p class="scene">在较早的 Terra NPC 样本中，阿岚复述旧告示时声称自己看过，种子只记录告示内容。</p><p>角色说的结论可能没变，证词的可信度却上升了。玩家做推理时，传闻与目击差别很大。</p><div class="question">关键证言是否需要区分目击、转述、推断、来源未知？当来源不明时允许怎样措辞？</div><details><summary>证据边界与源码</summary><p>此前单个真实响应；不当作当前模型必然串人。已修的两人信念覆盖是另一问题。</p><p class="refs"><a href="../../../docs/verification/RCV-129-npc-information.md">docs/verification/RCV-129-npc-information.md</a> <a href="../../../context/native_authoring.py#L61">context/native_authoring.py:61</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第32项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i33" class="issue" data-search="33 任务与世界 导演说‘暗线推进’，可能只是更新时间标记 dormant_thread 抽到应推进的 director thread 后，检查其事件和下一轮可见的东西。 该分支记录 thread_advance 和 last_advanced_scene；它与 Lore 的阶段、揭示和具体地点后果不是同一个对象。 导演线程只是节奏调度，还是每次推进都应留下可观察、可追踪的改变？ 根据事件归属推断。未主张所有导演事件都没有可见效果；普通 director_fired 另有提示。" data-area="任务与世界" data-evidence="源码线索" data-priority="可后置"><header><span class="id">33</span><div><small>任务与世界 · 源码线索 · 可后置</small><h3>导演说‘暗线推进’，可能只是更新时间标记</h3></div></header><p class="scene">dormant_thread 抽到应推进的 director thread 后，检查其事件和下一轮可见的东西。</p><p>该分支记录 thread_advance 和 last_advanced_scene；它与 Lore 的阶段、揭示和具体地点后果不是同一个对象。</p><div class="question">导演线程只是节奏调度，还是每次推进都应留下可观察、可追踪的改变？</div><details><summary>证据边界与源码</summary><p>根据事件归属推断。未主张所有导演事件都没有可见效果；普通 director_fired 另有提示。</p><p class="refs"><a href="../../../loop/director.py#L53">loop/director.py:53</a> <a href="../../../systems/director.py#L95">systems/director.py:95</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第33项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article>
+<article id="i34" class="issue" data-search="34 人物与信息 许多开局人物可能在镜头外一直保持原样 开场生成的 NPC 默认是 mentioned，离场补演只挑进入范围的 tracked 人物。 如果一个人物始终没有提升层级，多天后回访时，这条补演机制不会替她更新状态。 只需少数核心角色有独立生活，还是多次互动后应让临时人物升级为持续角色？ 其他事件仍可能更新她。这项不等于所有开场 NPC 永远静止。" data-area="人物与信息" data-evidence="源码线索" data-priority="可后置"><header><span class="id">34</span><div><small>人物与信息 · 源码线索 · 可后置</small><h3>许多开局人物可能在镜头外一直保持原样</h3></div></header><p class="scene">开场生成的 NPC 默认是 mentioned，离场补演只挑进入范围的 tracked 人物。</p><p>如果一个人物始终没有提升层级，多天后回访时，这条补演机制不会替她更新状态。</p><div class="question">只需少数核心角色有独立生活，还是多次互动后应让临时人物升级为持续角色？</div><details><summary>证据边界与源码</summary><p>其他事件仍可能更新她。这项不等于所有开场 NPC 永远静止。</p><p class="refs"><a href="../../../loop/genesis/cast.py#L304">loop/genesis/cast.py:304</a> <a href="../../../loop/time.py#L51">loop/time.py:51</a></p></details><label class="decision">我的判断 <select class="verdict" aria-label="第34项判断"><option>未评估</option><option>判为问题</option><option>需要试玩</option><option>保留现状</option><option>暂不成立</option></select></label></article></section></main><script>
+const byId=id=>document.getElementById(id), cards=[...document.querySelectorAll('.issue')], controls=['search','area','evidence','priority','decision'];
+const key='llm-rpg-review-286333c-v1';let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch(_){}
+const valid=new Set(['未评估','判为问题','需要试玩','保留现状','暂不成立']);
+function refresh(){let shown=0,rated=0;const query=byId('search').value.trim().toLowerCase();for(const c of cards){const val=c.querySelector('.verdict').value;if(val!=='未评估')rated++;const pass=(!query||c.dataset.search.toLowerCase().includes(query)) && ['area','evidence','priority'].every(k=>!byId(k).value||c.dataset[k]===byId(k).value) && (!byId('decision').value||val===byId('decision').value);c.hidden=!pass;if(pass)shown++}byId('count').textContent=`显示 ${shown} / ${cards.length} 项，已评 ${rated} 项`}
+for(const c of cards){const el=c.querySelector('.verdict');el.value=valid.has(saved[c.id])?saved[c.id]:'未评估';el.addEventListener('change',()=>{saved[c.id]=el.value;try{localStorage.setItem(key,JSON.stringify(saved))}catch(_){byId('saveinfo').textContent='当前预览不支持本地保存，请生成并复制评审摘要。'}refresh();if(!byId('exportbox').hidden)exportText()})}
+for(const id of controls)byId(id).addEventListener('input',refresh);
+function clearFilters(){for(const id of controls)byId(id).value='';refresh()}
+byId('reset').addEventListener('click',clearFilters);for(const a of document.querySelectorAll('.quick a'))a.addEventListener('click',clearFilters);
+function exportText(){const rows=cards.filter(c=>c.querySelector('.verdict').value!=='未评估').map(c=>`${c.id.slice(1)} ${c.querySelector('.verdict').value} · ${c.querySelector('h3').textContent}`);byId('out').value=['llm-rpg-engine / 286333c / 体验评审',...(rows.length?rows:['尚未标记任何项目'])].join('\n');byId('exportbox').hidden=false}
+byId('export').addEventListener('click',()=>{exportText();byId('out').select()});refresh();
+</script></body></html>
