@@ -1761,7 +1761,7 @@ def _normal_gui_commit(narration="NORMAL_GUI_PROVIDER_STUB"):
             "clock": [{"advance": False, "days": 0, "bands": 0, "reason": "测试正常 GUI 接线"}]}
 
 
-def test_normal_gui_uses_author_strategy_and_injected_provider_not_demo_script(tmp_path):
+def test_normal_gui_uses_author_strategy_and_injected_provider_not_demo_script(tmp_path, supported_play_narration):
     campaign = tmp_path / "campaign"
     seed = build_dashboard(campaign, demo=True)
     seed.engine.store.close()

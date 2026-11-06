@@ -180,7 +180,7 @@ _REQUIRED_STR_FIELDS = ("about", "description", "trigger", "secret", "l3_anchor"
 GEN_MAX_REPAIRS: int = 2
 
 
-def _validate_gen_lines(lines, n: int, venues: list[str]) -> tuple[dict, list[str]]:
+def _validate_gen_lines(lines, n: int, venues: list[str], routes=()) -> tuple[dict, list[str]]:
     """Strictly validate the model's 'lines' against the required schema.
 
     Returns ``(valid_by_index, errors)``: ``valid_by_index`` maps a 0-based line
@@ -216,6 +216,10 @@ def _validate_gen_lines(lines, n: int, venues: list[str]) -> tuple[dict, list[st
             probs.append('"stages" must be a non-empty JSON array')
         else:
             for si, s in enumerate(stages):
+                if isinstance(s, dict) and "route_effect" in s:
+                    from loop.route_effects import allowed_effect
+                    if not allowed_effect(s["route_effect"], routes):
+                        probs.append(f"stage {si + 1}: route_effect must name a supplied route and boolean passable")
                 if (not isinstance(s, dict) or not isinstance(s.get("hint"), str)
                         or not s["hint"].strip()):
                     probs.append(
@@ -262,6 +266,7 @@ def generate_lore_batch(
     existing_abouts: list[str],
     specs: list[dict],
     max_repairs: int = GEN_MAX_REPAIRS,
+    routes=(),
 ) -> list[dict]:
     """Generate 暗-line quest skeletons via a strict, self-correcting LLM loop.
 
@@ -355,6 +360,9 @@ def generate_lore_batch(
     # error NAMING the missing/wrong fields → the model re-emits. Keep only
     # the lines that conform after up to `max_repairs` rounds.
     # ------------------------------------------------------------------
+    if routes:
+        user += (f"\n现有公开道路 {list(routes)}。仅当阶段本身会切断或修复其中一条道路，"
+                 '可在该阶段加 route_effect: {"a":"起点ID","b":"终点ID","passable":false或true}。')
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user}]
     valid: dict[int, dict] = {}
@@ -371,7 +379,7 @@ def generate_lore_batch(
             lines = parsed
         else:
             lines = None
-        valid, errs = _validate_gen_lines(lines, n, venues)
+        valid, errs = _validate_gen_lines(lines, n, venues, routes)
         if not errs:
             break
         log.debug("generate_lore_batch: attempt %d had %d schema error(s) for town=%s",
@@ -394,7 +402,7 @@ def generate_lore_batch(
         if ln is None:
             continue  # this line never conformed after repairs; dropped (logged above)
         about = ln["about"].strip()
-        stages = [{"hint": s["hint"].strip()}
+        stages = [{"hint": s["hint"].strip(), **({"route_effect": s["route_effect"]} if "route_effect" in s else {})}
                   for s in ln["stages"][:spec["stage_count"]]]
         # Deterministic id; resolve collisions with a counter suffix
         sid = _make_skeleton_id(town_id, about, i)
@@ -405,6 +413,7 @@ def generate_lore_batch(
         seen_ids.add(sid)
         skeletons.append({
             # engine-decided
+            "cadence":    "day",
             "id":         sid,
             "complexity": spec["complexity"],
             "anchor":     town_id,
@@ -548,6 +557,9 @@ def _run_density_inner(
     # L3 venue ids for l3_anchor coercion
     venues = _town_venues(g, town, day)
 
+    from loop.route_effects import local_routes
+    routes = local_routes(g, [town, *venues], day)
+
     # Existing active line abouts for dedup
     lines = world.get("systems", {}).get("lore", {}).get("lines", {})
     existing_abouts = [
@@ -585,7 +597,7 @@ def _run_density_inner(
                 flavor=flavor,
                 venues=venues,
                 existing_abouts=existing_abouts,
-                specs=specs,
+                specs=specs, routes=routes,
             )
             for sk in skeletons:
                 try:
@@ -637,7 +649,7 @@ def _run_density_inner(
                 flavor=flavor,
                 venues=venues,
                 existing_abouts=existing_abouts,
-                specs=specs,
+                specs=specs, routes=routes,
             )
             for sk in skeletons:
                 try:

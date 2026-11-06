@@ -1,0 +1,18 @@
+{
+  "kind": "deliberately injected, not native generation",
+  "proposal": {
+    "narration": "你抵达集市，把铜灯卖了。",
+    "moves": [],
+    "places": [],
+    "cast": [],
+    "facts": [],
+    "clock": [
+      {
+        "advance": false,
+        "days": 0,
+        "bands": 0,
+        "reason": "短暂观察"
+      }
+    ]
+  }
+}

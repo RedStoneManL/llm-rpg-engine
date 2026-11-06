@@ -176,7 +176,8 @@ class FactGraph:
 
     def relations_at(self, src: str, rel: str, day: int) -> list[Relation]:
         """All relations for (src, rel) valid at day."""
-        return [r for r in self.relations if r.src == src and r.rel == rel and r.valid_at(day)]
+        return [r for r in self.relations if r.src == src and r.rel == rel and r.valid_at(day)
+                and (rel != "adjacent_to" or r.attrs.get("passable", True))]
 
     def neighbors(self, src: str, rel: str, day: int) -> list[str]:
         """Destination entity ids for (src, rel) valid at day."""

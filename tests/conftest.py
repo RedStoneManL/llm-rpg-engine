@@ -41,3 +41,18 @@ def campaign(tmp_path) -> Path:
     d = tmp_path / "camp"
     (d / "projections").mkdir(parents=True)
     return d
+
+
+@pytest.fixture
+def supported_play_narration(monkeypatch):
+    """Other UI tests exercise their existing author draft with a passing review."""
+    from llm.provider import FakeLLMProvider
+    from loop.outcome_narration import _REVIEW
+    original = FakeLLMProvider.complete_messages
+
+    def answer_review(self, messages, **kwargs):
+        if messages[0].get("content") == _REVIEW:
+            return '{"supported":true,"reason":"本例的已核验正文"}'
+        return original(self, messages, **kwargs)
+
+    monkeypatch.setattr(FakeLLMProvider, "complete_messages", answer_review)

@@ -38,6 +38,9 @@ class ScriptedProvider:
         return r
 
     def complete_messages(self, messages):
+        from loop.outcome_narration import _REVIEW
+        if messages[0]['content'] == _REVIEW:
+            return '{"supported":true,"reason":"脚本正文与场景相符"}'
         return self._next()
 
     def complete(self, system, user, **kw):

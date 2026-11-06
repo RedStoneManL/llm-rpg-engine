@@ -57,7 +57,7 @@ def _build_engine_with_game(tmp_path, provider=None):
 # Task 2: play_loop basic turn
 # ---------------------------------------------------------------------------
 
-def test_play_loop_one_turn_outputs_narration(tmp_path):
+def test_play_loop_one_turn_outputs_narration(tmp_path, supported_play_narration):
     """feed one input line → play_loop runs one turn and collected output has narration."""
     from app.play import play_loop
 

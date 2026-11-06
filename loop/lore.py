@@ -172,6 +172,8 @@ def run_lore(registry, store, world: dict, *, protagonist=None, previous_day=Non
         # final day gets its usual turn roll; remote towns get a calendar tick.
         ordinary = ln.get('complexity') in ('simple', 'medium')
         local = bool(ln.get('anchor') and ln['anchor'] in (cur_town, protagonist))
+        if ln.get('cadence') == 'day' and ln.get('anchor') != protagonist:
+            local = False
         already = recorded.get(lid, set())
         idx = ln.get('stage_idx', -1)
         if ordinary and ln.get('anchor'):
@@ -306,6 +308,9 @@ def run_lore(registry, store, world: dict, *, protagonist=None, previous_day=Non
                 appended.append(surface_ev)
                 log.debug("run_lore: world-push surface %s (complex line at last stage %d)",
                           lid, new_idx)
+    if registry.owner_of_event("route_changed") is not None:
+        from loop.route_effects import apply_stage_effects
+        appended.extend(apply_stage_effects(store, world, appended))
     return appended
 
 

@@ -362,8 +362,11 @@ class TestBrew:
             f"Expected stage_idx=-1 immediately after seeding; got {stage_before}"
         )
 
-        # Explicit run_lore call: the pinned line must advance.
-        lore_events = run_lore(eng.registry, eng.store, eng.world)
+        # Repeated local looks leave a calendar-driven line in place. Give
+        # the generated line two actual game days (50% cadence = one slot).
+        assert not run_lore(eng.registry, eng.store, eng.world, previous_day=1)
+        eng.world["meta"]["day"] = 3
+        lore_events = run_lore(eng.registry, eng.store, eng.world, previous_day=1)
         assert lore_events, (
             f"run_lore returned no events; expected {TARGET_LID!r} to advance. "
             f"lines={list(lore_lines.keys())}"

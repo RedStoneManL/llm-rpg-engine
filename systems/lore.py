@@ -90,6 +90,8 @@ class LoreSystem(ContextSystem):
                 "born_day": born_day,
                 "lifespan_days": lifespan_days,
             }
+            lines[lid]["route_effects_enabled"] = True
+            lines[lid]["cadence"] = d.get("cadence", "turn")
             log.debug("lore_created id=%s complexity=%s born_day=%s lifespan_days=%s",
                       lid, lines[lid]["complexity"], born_day, lifespan_days)
             return

@@ -1,0 +1,36 @@
+[
+  {
+    "method": "complete_messages",
+    "messages": [
+      {
+        "role": "system",
+        "content": "你负责核对本回合会展示给玩家的正文。结果已冻结，你不能修改世界。\n逐项检查正文声称的移动、物品交接、付款、任务完成、时间变化、角色获知消息和亲历来源。\n判断实际发生、拟议、条件、否定和转述的区别。环境描写、自然对白无需逐字对应事件。\n现有地点/手中物品不等于本回合移动/交易。未列为成果的意图不能当作已经完成。\n输出 JSON {\"supported\":true或false,\"reason\":\"有矛盾时指出具体句子及与哪条结果冲突\"}。"
+      },
+      {
+        "role": "user",
+        "content": "{\"intent\": \"我只观察，不去集市，不卖灯。\", \"start_context\": \"## [stable]\\n【世界设定典·索引】（用 codex_query 工具按 标题/类别 查看全文）\\n  - [地理志] 石桥镇\\n## [scene]\\n已知实体: protagonist、stonebridge_inn、stonebridge_market、old_brass_lantern\\n当前位置：stonebridge_inn（venue）。出口：stonebridge_market（路径成本 1）\\n持有物品：old_brass_lantern\\n【此刻】第 1 天 · 晨\\n【最近剧情·原文】（延续性，每回合必看）\\n〔s1〕晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。\\n## [affordance · 本轮可声明]\\n可移动目标：stonebridge_market\\nclock（每回合必填，恰好 1 个元素）：[{\\\"advance\\\":true/false,\\\"days\\\":整天数,\\\"bands\\\":时段数,\\\"reason\\\":\\\"理由\\\"}]。当前 晨（晨→中午→下午→夜晚）；bands 是推进的时段数，可大于 3，引擎自动进位。即使时间不动（连续场景）也要 advance:false 且给 reason。\\n\\n【事实锚点·当前有效】\\nprotagonist.sketch = \\\"一位初来石桥镇的旅人\\\" （确立于第 1 天）\\nprotagonist.goal = \\\"在黎明前找到旧塔的线索\\\" （确立于第 1 天）\\n回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。\\n\\n【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。不要把主角直接移动到未列出的地点；若本回合发现新地点，须创建地点并声明从当前位置直连的 links。\\n\\n[player] 我只观察，不去集市，不卖灯。\", \"outcome\": {\"day\": 1, \"band\": \"晨\", \"location\": \"石桥客栈\", \"sections\": {\"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂观察\"}]}, \"resource_result\": null}, \"prose\": \"你抵达集市，把铜灯卖了。\"}"
+      }
+    ],
+    "kwargs": {}
+  },
+  {
+    "method": "complete",
+    "system": "你是主持人（DM），以主角视角进行沉浸式叙事。\n\n【文风】以具体可感的细节叙事，少堆空泛形容。\n【写法】\n1. 第一/第三人称散文皆可（以中文为主）；适度叙事：氛围到位即止，情节推进优先；避免长篇铺陈。\n2. 展示而非告知：设定、过往、人物关系通过此刻的细节、动作与后果自然流露，不要直接复述资料。\n3. 严守 ⚠️只约束·勿泄露 中的保密事实——绝不直接揭露，可暗示、可让其后果显现。\n4. 推进当前局面、给玩家可回应的钩子，但绝不替玩家决定下一步行动。\n5. 只输出叙事散文本身，不要任何 JSON / 结构化数据 / 元说明。\n",
+    "user": "【行动开始时的语境与玩家意图】\n## [stable]\n【世界设定典·索引】（用 codex_query 工具按 标题/类别 查看全文）\n  - [地理志] 石桥镇\n## [scene]\n已知实体: protagonist、stonebridge_inn、stonebridge_market、old_brass_lantern\n当前位置：stonebridge_inn（venue）。出口：stonebridge_market（路径成本 1）\n持有物品：old_brass_lantern\n【此刻】第 1 天 · 晨\n【最近剧情·原文】（延续性，每回合必看）\n〔s1〕晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。\n## [affordance · 本轮可声明]\n可移动目标：stonebridge_market\nclock（每回合必填，恰好 1 个元素）：[{\"advance\":true/false,\"days\":整天数,\"bands\":时段数,\"reason\":\"理由\"}]。当前 晨（晨→中午→下午→夜晚）；bands 是推进的时段数，可大于 3，引擎自动进位。即使时间不动（连续场景）也要 advance:false 且给 reason。\n\n【事实锚点·当前有效】\nprotagonist.sketch = \"一位初来石桥镇的旅人\" （确立于第 1 天）\nprotagonist.goal = \"在黎明前找到旧塔的线索\" （确立于第 1 天）\n回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。\n\n【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。不要把主角直接移动到未列出的地点；若本回合发现新地点，须创建地点并声明从当前位置直连的 links。\n\n[player] 我只观察，不去集市，不卖灯。\n\n【本回合已通过校验的结果】\n{\"cast\": [], \"clock\": [{\"advance\": false, \"bands\": 0, \"days\": 0, \"reason\": \"短暂观察\"}], \"facts\": [], \"moves\": [], \"places\": []}\n\n以上是本回合唯一可以叙述为已完成的状态变化；语境里的路线、猜测和行动意图不等于成功。资源以语境内宿主已裁定结果为准，不再扣账。未列出的移动、交接、任务完成或信息传播不能补写成成功。NPC 的原话回忆必须有提供的来源；来源陈述不升级为世界事实。现在写最终正文：直接回应这一次行动，用人物反应、可感细节与后果推动局面；允许自然对白，不增造持久效果，不替玩家决定下一步，不展示结构、校验过程或内部 id。\n\n【正文重写要求·结果不变】\n“你抵达集市”与空 moves 及最终位置石桥客栈矛盾；“把铜灯卖了”没有对应物品交接或交易成果。",
+    "kwargs": {}
+  },
+  {
+    "method": "complete_messages",
+    "messages": [
+      {
+        "role": "system",
+        "content": "你负责核对本回合会展示给玩家的正文。结果已冻结，你不能修改世界。\n逐项检查正文声称的移动、物品交接、付款、任务完成、时间变化、角色获知消息和亲历来源。\n判断实际发生、拟议、条件、否定和转述的区别。环境描写、自然对白无需逐字对应事件。\n现有地点/手中物品不等于本回合移动/交易。未列为成果的意图不能当作已经完成。\n输出 JSON {\"supported\":true或false,\"reason\":\"有矛盾时指出具体句子及与哪条结果冲突\"}。"
+      },
+      {
+        "role": "user",
+        "content": "{\"intent\": \"我只观察，不去集市，不卖灯。\", \"start_context\": \"## [stable]\\n【世界设定典·索引】（用 codex_query 工具按 标题/类别 查看全文）\\n  - [地理志] 石桥镇\\n## [scene]\\n已知实体: protagonist、stonebridge_inn、stonebridge_market、old_brass_lantern\\n当前位置：stonebridge_inn（venue）。出口：stonebridge_market（路径成本 1）\\n持有物品：old_brass_lantern\\n【此刻】第 1 天 · 晨\\n【最近剧情·原文】（延续性，每回合必看）\\n〔s1〕晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。\\n## [affordance · 本轮可声明]\\n可移动目标：stonebridge_market\\nclock（每回合必填，恰好 1 个元素）：[{\\\"advance\\\":true/false,\\\"days\\\":整天数,\\\"bands\\\":时段数,\\\"reason\\\":\\\"理由\\\"}]。当前 晨（晨→中午→下午→夜晚）；bands 是推进的时段数，可大于 3，引擎自动进位。即使时间不动（连续场景）也要 advance:false 且给 reason。\\n\\n【事实锚点·当前有效】\\nprotagonist.sketch = \\\"一位初来石桥镇的旅人\\\" （确立于第 1 天）\\nprotagonist.goal = \\\"在黎明前找到旧塔的线索\\\" （确立于第 1 天）\\n回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。\\n\\n【行动能力】主角 protagonist 当前在 stonebridge_inn；本回合仅可移动到：stonebridge_market（石桥集市）。不要把主角直接移动到未列出的地点；若本回合发现新地点，须创建地点并声明从当前位置直连的 links。\\n\\n[player] 我只观察，不去集市，不卖灯。\", \"outcome\": {\"day\": 1, \"band\": \"晨\", \"location\": \"石桥客栈\", \"sections\": {\"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂观察\"}]}, \"resource_result\": null}, \"prose\": \"你留在客栈里，望着门外的晨雾。通往集市的小路渐渐清晰起来，旧铜灯仍在你手边。\"}"
+      }
+    ],
+    "kwargs": {}
+  }
+]

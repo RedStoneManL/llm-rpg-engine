@@ -661,6 +661,14 @@ def produce_turn(
             repair_text = build_repair_request(final_errors)
             attempts += 1
 
+    review = getattr(strategy, 'review_narration', None)
+    if not dropped_sections and callable(review):
+        from kernel.turncommit import TurnCommit
+        prose = review(copy.deepcopy(commit), world, scene, player_input, provider)
+        commit = TurnCommit(narration=prose, sections=commit.sections)
+        if validate_candidate():
+            raise TurnRejected('reviewed narration conflicts with the frozen outcome')
+
     log.debug("produce_turn: done repair_attempts=%d dropped=%s", attempts, dropped_sections)
     # Persistent conversation is advanced only by run_turn after durable commit.
     return commit, attempts, dropped_sections

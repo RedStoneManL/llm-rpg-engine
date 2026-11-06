@@ -97,7 +97,7 @@ class PlaceSystem(ContextSystem):
         return {"ontology"}
 
     def event_types(self) -> set[str]:
-        return {"place_created", "place_linked", "place_materialized", "entity_moved"}
+        return {"place_created", "place_linked", "place_materialized", "entity_moved", "route_changed"}
 
     def commit_sections(self) -> set[str]:
         return {"places", "moves", "links", "materialize"}
@@ -154,6 +154,17 @@ class PlaceSystem(ContextSystem):
                 # Phase D: stamp last_update on materialization
                 e.attrs["last_update"] = event["day"]
             log.debug("place_materialized id=%s", pid)
+
+        elif t == "route_changed":
+            a, b = d["a"], d["b"]
+            edges = [r for r in g.relations if r.rel == "adjacent_to" and r.valid_at(event["day"])
+                     and (r.src, r.dst) in ((a, b), (b, a))]
+            if len(edges) != 2 or type(d.get("passable")) is not bool:
+                return False
+            for edge in edges:
+                attrs = {**edge.attrs, "passable": d["passable"]}
+                g.add_relation(edge.src, edge.rel, edge.dst, day=event["day"], turn=event.get("turn") or 0,
+                               source_event=event["id"], supersede=False, **attrs)
 
         elif t == "place_linked":
             a, b = d.get("a"), d.get("b")

@@ -148,7 +148,7 @@ def test_play_loop_pure_arrow_keys_skipped_no_turn(tmp_path):
     )
 
 
-def test_play_loop_mixed_escape_plus_text_runs_turn(tmp_path):
+def test_play_loop_mixed_escape_plus_text_runs_turn(tmp_path, supported_play_narration):
     """A line with a leading escape then real text is salvaged and runs a turn."""
     from app.play import play_loop
 
@@ -167,7 +167,7 @@ def test_play_loop_mixed_escape_plus_text_runs_turn(tmp_path):
     )
 
 
-def test_play_loop_normal_line_runs_turn(tmp_path):
+def test_play_loop_normal_line_runs_turn(tmp_path, supported_play_narration):
     """A clean Chinese input line runs a normal turn unchanged."""
     from app.play import play_loop
 
@@ -224,7 +224,7 @@ def test_play_loop_pure_c0_control_skipped(tmp_path):
     )
 
 
-def test_play_loop_multiple_noise_lines_then_real_turn(tmp_path):
+def test_play_loop_multiple_noise_lines_then_real_turn(tmp_path, supported_play_narration):
     """Multiple noise lines are all skipped; the first real line still runs."""
     from app.play import play_loop
 

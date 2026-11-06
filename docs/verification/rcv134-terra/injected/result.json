@@ -1,0 +1,124 @@
+{
+  "mode": "injected",
+  "author_is_injected": true,
+  "strategy": "GroundedAuthorStrategy",
+  "demo": false,
+  "action": "我只观察，不去集市，不卖灯。",
+  "response": {
+    "ok": true,
+    "duplicate": false,
+    "narration": "你留在客栈里，望着门外的晨雾。通往集市的小路渐渐清晰起来，旧铜灯仍在你手边。",
+    "revision": 2,
+    "recap_status": "not_due",
+    "state": {
+      "revision": 2,
+      "turn": 1,
+      "scene": {
+        "day": 1,
+        "time": {
+          "day": 1,
+          "band": "晨"
+        },
+        "location": {
+          "id": "stonebridge_inn",
+          "label": "石桥客栈",
+          "kind": "venue"
+        },
+        "exits": [
+          {
+            "id": "stonebridge_market",
+            "label": "石桥集市",
+            "kind": "settlement"
+          }
+        ],
+        "exit_costs": {
+          "stonebridge_market": "1"
+        },
+        "discovery_available": false
+      },
+      "map": {
+        "nodes": [
+          {
+            "id": "stonebridge_inn",
+            "label": "石桥客栈",
+            "kind": "venue"
+          },
+          {
+            "id": "stonebridge_market",
+            "label": "石桥集市",
+            "kind": "settlement"
+          }
+        ],
+        "edges": [
+          {
+            "from": "stonebridge_inn",
+            "to": "stonebridge_market",
+            "cost": "1"
+          }
+        ]
+      },
+      "character": {
+        "id": "protagonist",
+        "facts": [
+          {
+            "name": "sketch",
+            "value": "一位初来石桥镇的旅人"
+          },
+          {
+            "name": "goal",
+            "value": "在黎明前找到旧塔的线索"
+          }
+        ]
+      },
+      "objectives": {
+        "long_term_goal": "在黎明前找到旧塔的线索",
+        "active_quests": [],
+        "completed_quests": []
+      },
+      "inventory": [
+        {
+          "id": "old_brass_lantern",
+          "label": "旧铜灯"
+        }
+      ],
+      "narration": [
+        "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+        "你留在客栈里，望着门外的晨雾。通往集市的小路渐渐清晰起来，旧铜灯仍在你手边。"
+      ],
+      "narration_unavailable": false,
+      "codex": [
+        {
+          "id": "stonebridge",
+          "kind": "地理志",
+          "title": "石桥镇",
+          "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+        }
+      ],
+      "present_people": [],
+      "observations": [],
+      "resource_outcome": null,
+      "speech_recipients": [],
+      "session": {
+        "soft_direction": null,
+        "campaign_key": "b402acc7951c40e0341fdc15"
+      }
+    }
+  },
+  "published_narration": "你留在客栈里，望着门外的晨雾。通往集市的小路渐渐清晰起来，旧铜灯仍在你手边。",
+  "location": [
+    "stonebridge_inn"
+  ],
+  "lamp_holder": [
+    "protagonist"
+  ],
+  "native_call_count": 3,
+  "transport": "local exact production request replay, not HTTP",
+  "disabled_hooks": [
+    "digest_fleet",
+    "run_director",
+    "run_cascade",
+    "run_catchup",
+    "run_density",
+    "_run_demote_on_leave"
+  ]
+}

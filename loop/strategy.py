@@ -714,3 +714,10 @@ class HybridStrategy(AuthorStrategy):
         # Narration validation is meaningful only after final composition. This
         # internal placeholder never reaches run_turn/apply when validation fails.
         return TurnCommit(narration="（本回合结果待定。）", sections=proposal.sections)
+
+class GroundedAuthorStrategy(AuthorStrategy):
+    """Ordinary play checks each final draft independently before publication."""
+
+    def review_narration(self, commit, world, scene, player_input, provider):
+        from loop.outcome_narration import review_player_narration
+        return review_player_narration(self, commit, world, scene, player_input, provider)

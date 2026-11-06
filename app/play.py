@@ -186,7 +186,7 @@ from kernel.observability import get_tracer
 from kernel.projection import project
 from loop.turn import run_turn, apply_turn, advanced_day, REQUIRED_SECTIONS
 from loop.compare import run_compare
-from loop.strategy import AuthorStrategy
+from loop.strategy import AuthorStrategy, GroundedAuthorStrategy
 from app.engine import (rewind as _rewind, last_turn as _last_turn,
                         last_turn_and_revision as _last_turn_and_revision,
                         projected_revision, reproject_engine_world,
@@ -771,7 +771,7 @@ def play_loop(
                          to the LLM until it passes or the cap is hit.
     """
     if strategy is None:
-        strategy = AuthorStrategy()
+        strategy = GroundedAuthorStrategy()
 
     compare_mode = [bool(compare)]  # mutable flag
     # Session-local, non-event preference.  It is never written to the store,

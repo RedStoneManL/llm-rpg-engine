@@ -77,3 +77,5 @@
 - [RCV-132 本地原文与 Terra 连续游玩](../verification/RCV-132-original-sources.md)
 
 - [RCV-133 NPC 来源与后台世界](../verification/RCV-133-background-and-speakers.md)
+
+- [RCV-134 正文裁决与跨线道路后果](../verification/RCV-134-grounded-world.md)

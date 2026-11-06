@@ -261,7 +261,7 @@ class TestPlayLoopFraming:
         # The input text must follow the marker
         assert "看看四周" in combined
 
-    def test_echo_input_false_suppresses_player_echo(self, tmp_path):
+    def test_echo_input_false_suppresses_player_echo(self, tmp_path, supported_play_narration):
         """With echo_input=False (an interactive readline '▶ 你：' prompt already
         showed the line), play_loop must NOT re-echo — otherwise it appears twice."""
         from app.play import play_loop
@@ -277,7 +277,7 @@ class TestPlayLoopFraming:
         )
         assert "你环顾四周" in combined   # DM narration still printed
 
-    def test_dm_narration_under_dm_header(self, tmp_path):
+    def test_dm_narration_under_dm_header(self, tmp_path, supported_play_narration):
         """The DM narration must appear under a [DM] header."""
         collected = self._run_one_turn(tmp_path, ["看看四周", "/quit"])
         combined = "\n".join(collected)

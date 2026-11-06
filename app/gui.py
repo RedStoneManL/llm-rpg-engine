@@ -50,7 +50,7 @@ from kernel.events import kernel_event
 from kernel.turncommit import TurnCommit
 from llm.provider import FakeLLMProvider
 from loop.turn import REQUIRED_SECTIONS, run_turn
-from loop.strategy import AuthorStrategy
+from loop.strategy import AuthorStrategy, GroundedAuthorStrategy
 
 
 log = logging.getLogger(__name__)
@@ -1176,7 +1176,7 @@ def build_dashboard(campaign_dir: str | Path, *, demo: bool = False, provider=No
     if not any(engine.store.iter_events()):
         engine.store.close()
         raise GuiRequestError(_SAVED_CAMPAIGN_REQUIRED_MESSAGE)
-    return PlayerDashboard(engine, strategy=strategy or AuthorStrategy(), max_repairs=max_repairs, demo=False)
+    return PlayerDashboard(engine, strategy=strategy or GroundedAuthorStrategy(), max_repairs=max_repairs, demo=False)
 
 
 def build_new_game_dashboard(campaign_dir: str | Path, *, provider, pitch: str = "",
