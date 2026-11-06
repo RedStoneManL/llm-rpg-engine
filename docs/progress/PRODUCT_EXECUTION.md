@@ -2362,3 +2362,5 @@ RCV-75～77 的可恢复代码检查点已再次核对如下（均为本地 `wor
 - 2026-11-07：RCV-136 普通玩家可明示潜行、交涉、强攻检定，宿主掷骰并冻结时间代价；受挫不能写成功效果。Terra 合成普通入口核对 d100、位置、时间、物权、重复请求和冷重开。最终 Python 3.12.14 全量 **2257 passed, 1 deselected in 50.79s**。34 项逐项状态及其边界见 [体验修复报告](../reports/2026-11-07/experience-repairs.html)，[风险检定与验收](../verification/RCV-136-risk-checks.md)。
 
 - 2026-11-07：RCV-137 修复“空柜原文被用来证明找到账簿”。调查按真实观察分支，玩家可从任务簿查下一处并打开现场原文。结案单独核对证据，失败保留未结状态。门禁 2262 passed / 1 deselected。[记录](../verification/RCV-137-investigation-routes.md)。
+
+- 2026-11-07：RCV-138 直接按日期、历史收件人及原文查证，可翻页并打开邻文；普通输入框的明确回忆问题不推进回合。四回合 Terra 实际从空柜查到市场并引用原文结案。另外复现明确发言却漏收据，留给下一阶段修复。完整门禁 2264 passed / 1 deselected。[验证](../verification/RCV-138-source-questions.md)。

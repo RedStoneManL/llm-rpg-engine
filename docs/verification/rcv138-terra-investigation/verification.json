@@ -1,0 +1,260 @@
+{
+  "reopened_state": {
+    "revision": 6,
+    "turn": 4,
+    "scene": {
+      "day": 1,
+      "time": {
+        "day": 1,
+        "band": "晨"
+      },
+      "location": {
+        "id": "stonebridge_market",
+        "label": "石桥集市",
+        "kind": "settlement"
+      },
+      "exits": [
+        {
+          "id": "stonebridge_inn",
+          "label": "石桥客栈",
+          "kind": "venue"
+        }
+      ],
+      "exit_costs": {
+        "stonebridge_inn": "1"
+      },
+      "discovery_available": false
+    },
+    "map": {
+      "nodes": [
+        {
+          "id": "stonebridge_inn",
+          "label": "石桥客栈",
+          "kind": "venue"
+        },
+        {
+          "id": "stonebridge_market",
+          "label": "石桥集市",
+          "kind": "settlement"
+        }
+      ],
+      "edges": [
+        {
+          "from": "stonebridge_inn",
+          "to": "stonebridge_market",
+          "cost": "1"
+        }
+      ]
+    },
+    "character": {
+      "id": "protagonist",
+      "facts": [
+        {
+          "name": "sketch",
+          "value": "一位初来石桥镇的旅人"
+        },
+        {
+          "name": "goal",
+          "value": "在黎明前找到旧塔的线索"
+        }
+      ]
+    },
+    "objectives": {
+      "long_term_goal": "在黎明前找到旧塔的线索",
+      "active_quests": [],
+      "completed_quests": [
+        {
+          "id": "books",
+          "summary": "寄存簿记载旧账簿寄存在七号柜"
+        }
+      ]
+    },
+    "inventory": [
+      {
+        "id": "old_brass_lantern",
+        "label": "旧铜灯"
+      }
+    ],
+    "narration": [
+      "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+      "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+      "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+      "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。",
+      "你对照旧柜里的收条和寄存簿，把调查结果记下来：寄存簿写明旧账簿寄存在七号柜。账簿的存放处有了记录，这项调查就此结案；你还没有取出账簿。"
+    ],
+    "narration_unavailable": false,
+    "codex": [
+      {
+        "id": "stonebridge",
+        "kind": "地理志",
+        "title": "石桥镇",
+        "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+      }
+    ],
+    "present_people": [],
+    "observations": [
+      {
+        "place": "石桥客栈",
+        "is_current": false,
+        "kind": "现场观察",
+        "range": "旧柜内部",
+        "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。"
+      },
+      {
+        "place": "这里",
+        "is_current": true,
+        "kind": "现场观察",
+        "range": "寄存簿对应条目",
+        "summary": "寄存簿写明旧账簿寄存在七号柜。"
+      }
+    ],
+    "resource_outcome": null,
+    "latest_check": null,
+    "speech_recipients": [],
+    "session": {
+      "soft_direction": null,
+      "campaign_key": "89ac32772ad54aa51020241f"
+    }
+  },
+  "investigation_events": [
+    {
+      "seq": 18,
+      "id": "ev_17dc6423f012",
+      "type": "world_change",
+      "day": 1,
+      "scene": "stonebridge_inn",
+      "arc": null,
+      "actors": [],
+      "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+      "deltas": {
+        "place": "stonebridge_inn",
+        "level": 1,
+        "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+        "source": "author_world",
+        "visibility": "public",
+        "public_observation": true,
+        "observation_kind": "single_observation",
+        "observation_range": "旧柜内部",
+        "feature": "旧柜",
+        "investigation": {
+          "quest": "books",
+          "result": "clue",
+          "follow_up": {
+            "place": "stonebridge_market",
+            "feature": "寄存簿"
+          }
+        },
+        "observer": "protagonist"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 1,
+      "retracted": false
+    },
+    {
+      "seq": 25,
+      "id": "ev_511686f8108f",
+      "type": "world_change",
+      "day": 1,
+      "scene": "s2",
+      "arc": null,
+      "actors": [],
+      "summary": "寄存簿写明旧账簿寄存在七号柜。",
+      "deltas": {
+        "place": "stonebridge_market",
+        "level": 1,
+        "summary": "寄存簿写明旧账簿寄存在七号柜。",
+        "source": "author_world",
+        "visibility": "public",
+        "public_observation": true,
+        "observation_kind": "single_observation",
+        "observation_range": "寄存簿对应条目",
+        "feature": "寄存簿",
+        "investigation": {
+          "quest": "books",
+          "result": "confirmed"
+        },
+        "observer": "protagonist"
+      },
+      "thread_refs": [],
+      "chunk_ids": [],
+      "secrecy": null,
+      "roll": null,
+      "turn": 3,
+      "retracted": false
+    }
+  ],
+  "resolved_event": {
+    "seq": 28,
+    "id": "ev_4dc7a08e799a",
+    "type": "quest_resolved",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "resolve books",
+    "deltas": {
+      "id": "books",
+      "summary": "寄存簿记载旧账簿寄存在七号柜",
+      "by": "player",
+      "evidence": {
+        "source_event_id": "ev_511686f8108f",
+        "quote": "寄存簿写明旧账簿寄存在七号柜。"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  "source_opened": {
+    "source": {
+      "kind": "现场观察",
+      "day": 1,
+      "turn": 3,
+      "seq": 51,
+      "text": "寄存簿写明旧账簿寄存在七号柜。",
+      "recipient": null,
+      "ref": "5:ev_511686f8108f:579be64c760a695d66320db4",
+      "source_event_id": "ev_511686f8108f",
+      "place": "stonebridge_market",
+      "feature": "寄存簿"
+    },
+    "before": [
+      {
+        "kind": "公开旁白",
+        "day": 1,
+        "turn": 2,
+        "seq": 45,
+        "text": "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+        "recipient": null,
+        "ref": "5:ev_d47c7ae8f6b2:f9e0135a4b7d4ab02dd685af"
+      },
+      {
+        "kind": "玩家输入",
+        "day": 1,
+        "turn": 3,
+        "seq": 48,
+        "text": "查证 books 2",
+        "recipient": null,
+        "ref": "5:input-ev_7e52954e38db:d976797424c7645b9580d134"
+      }
+    ],
+    "after": [
+      {
+        "kind": "公开旁白",
+        "day": 1,
+        "turn": 3,
+        "seq": 53,
+        "text": "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。",
+        "recipient": null,
+        "ref": "5:ev_c03fd6f20ef6:f28554ef76e5280d4e377e21"
+      }
+    ],
+    "revision": 5
+  }
+}

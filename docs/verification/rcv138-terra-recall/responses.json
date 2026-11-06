@@ -1,0 +1,34 @@
+[
+  {
+    "key": "0:0",
+    "response": "{\"narration\": \"你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂交谈\"}]}"
+  },
+  {
+    "key": "0:1",
+    "response": "{\"supported\":true,\"reason\":\"宿主授权对阿岚说出逐字原话，正文没有增加其他交流或移动。\"}"
+  },
+  {
+    "key": "1:0",
+    "response": "{\"narration\": \"你转向阿禾，告诉她：“白瓷茶盏放在西窗。”她抬起头，朝西窗的方向看了一眼。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂交谈\"}]}"
+  },
+  {
+    "key": "1:1",
+    "response": "{\"supported\":true,\"reason\":\"对阿禾所说的句子与宿主指定原话一致，目光动作不改变世界状态。\"}"
+  },
+  {
+    "key": "2:0",
+    "response": "{\"narration\": \"你离开客栈，沿小路走到石桥集市。晨雾还在路边徘徊，摊位已陆续摆出来。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"stonebridge_market\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"附近路程仍在晨间\"}]}"
+  },
+  {
+    "key": "2:1",
+    "response": "{\"supported\":true,\"reason\":\"正文中抵达集市与已记录的移动及晨间时段一致。\"}"
+  },
+  {
+    "key": "3:0",
+    "response": "{\"narration\": \"你循原路回到客栈，阿岚和阿禾仍在屋里。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"stonebridge_inn\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"往返仍在晨间\"}]}"
+  },
+  {
+    "key": "3:1",
+    "response": "{\"supported\":true,\"reason\":\"移动已抵达客栈，条件化抵达材料列出两人可在场。\"}"
+  }
+]

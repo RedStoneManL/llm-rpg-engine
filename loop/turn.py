@@ -1474,8 +1474,14 @@ def run_turn(registry, store, world, scene, player_input, *, strategy, provider,
         source_record = None
         if enforce_player_knowledge_authority and scene.get('protagonist') and player_input:
             source_record = (scene['protagonist'], player_input)
+        if source_record and trusted_player_statement_receipts:
+            from engine.history import public_speech_names
+            speech_names = public_speech_names(world, scene, trusted_player_statement_receipts, batch.events)
+        else:
+            speech_names = []
         receipt = batch.publish(action_id=action_id or str(uuid4()), result_metadata=result_metadata,
-                                **({'player_input_record': source_record} if source_record else {}))
+                                **({'player_input_record': source_record} if source_record else {}),
+                                **({'speech_names': speech_names} if speech_names else {}))
     except BaseException:
         if hasattr(strategy, '__dict__'):
             strategy.__dict__.clear()

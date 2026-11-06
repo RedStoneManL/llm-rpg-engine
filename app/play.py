@@ -25,7 +25,7 @@ import threading
 import time
 from typing import Callable, Iterable, Any
 
-from app.player_recall import recall_with_sources
+from app.player_recall import recall_with_sources, source_question
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
@@ -202,7 +202,7 @@ log = get_logger("app.play")
 _HELP_TEXT = """\
 OOC 指令 (以 / 开头):
   /quit                — 退出游戏
-  /recall <关键词>       — 搜索已保存的原文与角色线索
+  /recall <关键词或问题> — 如“第二天我对阿岚说了什么”；也可用 日期=2 收件人=角色ID
   /source <来源>        — 打开一次命中的原文及邻文
   /codex [关键词]        — 浏览公开世界设定
   /journal              — 查看最近公开叙事
@@ -563,10 +563,17 @@ def dispatch_ooc(cmd: str, engine, *, out: Callable, compare_mode: list,
         # the same POV/redaction boundary.  A guessed hidden id is not a
         # discovery mechanism.
         scene = _build_scene(engine)
-        result = recall_with_sources(engine, scene, q)
+        try:
+            result = recall_with_sources(engine, scene, q)
+        except ValueError as exc:
+            out(f"[recall] {exc}")
+            return False
         hits = result['hits']
         for record in result.get('sources', []):
             out(f"原文和邻文：/source {record['ref']}")
+        if result.get('next_before'):
+            base = ' '.join(token for token in q.split() if not token.startswith('续页='))
+            out(f"更早的原文：/recall {base} 续页={result['next_before']}")
         if hits:
             for h in hits[:5]:
                 out(f"[recall] {h}")
@@ -820,6 +827,10 @@ def play_loop(
         # scene construction so every player-facing read uses one current POV
         # projection and any author cache cannot carry stale history forward.
         prev_scene = _refresh_if_store_advanced(engine, prev_scene, strategy)
+
+        question = source_question(line)
+        if question:
+            line = "/recall " + question
 
         # ``/speak`` is deliberately a turn-producing command, not an OOC
         # parser for ordinary prose.  The user supplies both recipient and

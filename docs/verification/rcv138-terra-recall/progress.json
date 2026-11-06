@@ -1,0 +1,487 @@
+{
+  "turn": 4,
+  "results": [
+    {
+      "input": "我向阿岚说话。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。",
+        "revision": 6,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 6,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_inn",
+              "label": "石桥客栈",
+              "kind": "venue"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）",
+              "observables": []
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）"
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "e006424afcc9750b7a0693c8"
+          }
+        }
+      }
+    },
+    {
+      "input": "我向阿禾说话。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你转向阿禾，告诉她：“白瓷茶盏放在西窗。”她抬起头，朝西窗的方向看了一眼。",
+        "revision": 7,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 7,
+          "turn": 2,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_inn",
+              "label": "石桥客栈",
+              "kind": "venue"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。",
+            "你转向阿禾，告诉她：“白瓷茶盏放在西窗。”她抬起头，朝西窗的方向看了一眼。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）",
+              "observables": []
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）"
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "e006424afcc9750b7a0693c8"
+          }
+        }
+      }
+    },
+    {
+      "input": "我前往石桥集市。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你离开客栈，沿小路走到石桥集市。晨雾还在路边徘徊，摊位已陆续摆出来。",
+        "revision": 8,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 8,
+          "turn": 3,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_market",
+              "label": "石桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_inn": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。",
+            "你转向阿禾，告诉她：“白瓷茶盏放在西窗。”她抬起头，朝西窗的方向看了一眼。",
+            "你离开客栈，沿小路走到石桥集市。晨雾还在路边徘徊，摊位已陆续摆出来。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "e006424afcc9750b7a0693c8"
+          }
+        }
+      }
+    },
+    {
+      "input": "我回客栈。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你循原路回到客栈，阿岚和阿禾仍在屋里。",
+        "revision": 9,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 9,
+          "turn": 4,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_inn",
+              "label": "石桥客栈",
+              "kind": "venue"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你对阿岚说：“紫檀风铃今晚响三次。”阿岚看着你，等你继续。",
+            "你转向阿禾，告诉她：“白瓷茶盏放在西窗。”她抬起头，朝西窗的方向看了一眼。",
+            "你离开客栈，沿小路走到石桥集市。晨雾还在路边徘徊，摊位已陆续摆出来。",
+            "你循原路回到客栈，阿岚和阿禾仍在屋里。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）",
+              "observables": []
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）",
+              "observables": []
+            }
+          ],
+          "observations": [],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [
+            {
+              "id": "npc_he_24",
+              "label": "阿禾（阿禾在客栈）"
+            },
+            {
+              "id": "npc_lan_17",
+              "label": "阿岚（阿岚在客栈）"
+            }
+          ],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "e006424afcc9750b7a0693c8"
+          }
+        }
+      }
+    }
+  ]
+}

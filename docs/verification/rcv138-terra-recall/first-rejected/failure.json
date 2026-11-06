@@ -1,0 +1,5 @@
+{
+  "turn": 0,
+  "type": "TurnRejected",
+  "error": "player-to-NPC knowledge lacks a valid host communication receipt"
+}

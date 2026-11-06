@@ -35,7 +35,7 @@ from wsgiref.simple_server import WSGIRequestHandler, make_server
 from app.engine import (build_engine, last_turn, new_game, projected_revision,
                         refresh_engine_world_if_advanced, reproject_engine_world, rewind)
 from app.play import _build_scene, _previous_scene_before_latest_action
-from app.player_recall import recall_with_sources
+from app.player_recall import recall_with_sources, source_question
 from app.player_objectives import player_objectives
 from app.player_character import player_character_facts
 from app.player_people import player_present_people
@@ -550,7 +550,7 @@ class PlayerDashboard:
         if refresh_engine_world_if_advanced(self.engine):
             self._rebuild_controller_after_refresh()
 
-    def recall(self, query: str) -> dict[str, Any]:
+    def recall(self, query: str, *, before=None) -> dict[str, Any]:
         """Run the shared, read-only player POV recall query for this session."""
         if not isinstance(query, str) or not query.strip():
             raise GuiRequestError("请输入要回忆的关键词。")
@@ -560,10 +560,11 @@ class PlayerDashboard:
         with self.lock:
             self._refresh_if_store_advanced()
             scene = _build_scene(self.engine)
-            return {
-                **recall_with_sources(self.engine, scene, cleaned),
-                "revision": projected_revision(self.engine),
-            }
+            try:
+                result = recall_with_sources(self.engine, scene, cleaned, before=before)
+            except ValueError as exc:
+                raise GuiRequestError(str(exc)) from exc
+            return {"revision": projected_revision(self.engine), **result}
 
     def open_source(self, ref):
         from engine.history import PlayerHistory, StaleSource
@@ -664,6 +665,12 @@ class PlayerDashboard:
                                           stored.trusted_player_statement_receipts,
                                           stored.discovery_attempt, stored.discovery_semantic_id)
             else:
+                question = source_question(player_input)
+                if question and recipient is None and not discovery_attempt:
+                    lookup = self.recall(question)
+                    state = self.state()
+                    return {"ok":True, "read_only":True, "state":state, "revision":state["revision"],
+                            "recall_query":question, "recall":lookup}
                 scene = _build_scene(self.engine)
                 try:
                     receipts = (() if recipient is None else (
@@ -840,7 +847,7 @@ _INDEX = _INDEX.replace('<button id="resume-action" type="button" class="subtle"
 _INDEX = _INDEX.replace('<div id="codex"></div>', '<label for="codex-search">搜索公开设定（标题、类别、正文）</label><input id="codex-search" type="search" placeholder="例如：地理、旧塔"><div id="codex"></div>')
 _INDEX = _INDEX.replace(
     '<article class="panel codex">',
-    '<article class="panel recall"><h2>回忆已知线索</h2><form id="recall-form"><label for="recall-query">只搜索当前主角已知的公开资料</label><input id="recall-query" type="search" maxlength="320" placeholder="例如：石桥、封门"><button id="search-recall" type="submit" class="subtle">查询回忆</button></form><ul id="recall-results"><li>输入关键词以查询已知线索。</li></ul></article><article class="panel codex">',
+    '<article class="panel recall"><h2>回忆已知线索</h2><form id="recall-form"><label for="recall-query">可输入关键词，或问“第2天我对谁说了什么”</label><input id="recall-query" type="search" maxlength="320" placeholder="例如：石桥、封门"><button id="search-recall" type="submit" class="subtle">查询回忆</button></form><ul id="recall-results"><li>输入关键词以查询已知线索。</li></ul></article><article class="panel codex">',
 )
 _INDEX = _INDEX.replace('<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article>', '<article class="panel"><h2>背包</h2><ul id="inventory"></ul></article><article class="panel"><h2>目标与任务</h2><p id="long-term-goal"></p><h3>进行中</h3><ul id="active-quests"></ul><h3>已结任务</h3><ul id="completed-quests"></ul></article>')
 _INDEX = _INDEX.replace('<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article>', '<article class="panel"><h2>角色状态</h2><dl id="character"></dl></article><article class="panel"><h2>最近资源结算</h2><p id="resource-outcome"></p></article><article class="panel"><h2>当前可交谈角色</h2><ul id="present-people"></ul></article>')
@@ -1014,7 +1021,14 @@ async function load(){try{const r=await fetch('/api/gm/state');const state=await
 
 _INDEX = _INDEX.replace('<form id="action-form">', '<details><summary>进行风险检定</summary><p>例如：检定 潜行 普通 绕过守卫。可选潜行、交涉、强攻及容易、普通、困难。成功耗一个时段，受挫或付出代价耗两个时段。付款另行结算。</p></details><p id="risk-outcome" aria-live="polite" hidden></p><form id="action-form">')
 _JS = _JS.replace("renderResourceOutcome(s.resource_outcome);", "renderResourceOutcome(s.resource_outcome);$('risk-outcome').hidden=!s.latest_check;$('risk-outcome').textContent=s.latest_check?'最近检定：'+s.latest_check:'';")
-_JS = _JS.replace('renderRecall(data.hits);', '''renderRecall(data.hits);for(const r of (data.sources||[])){const b=el('button','打开第'+r.day+'天回合'+r.turn+'的'+r.kind+'与邻文');b.onclick=async()=>{try{const d=await api('/api/recall/source?ref='+encodeURIComponent(r.ref));renderRecall([...d.before,d.source,...d.after].map(x=>(x.ref===r.ref?'〔命中〕':'')+'第'+x.day+'天 · 回合'+x.turn+' · '+x.kind+(x.recipient?' → '+x.recipient:'')+'：'+x.text))}catch(e){setStatus(e.message,true)}};$('recall-results').append(b);}''')
+_JS = _JS.replace('async function submitRecall(){', 'async function submitRecall(before=null){')
+_JS = _JS.replace('encodeURIComponent(query)}`)', "encodeURIComponent(query)}${before?'&before='+encodeURIComponent(before):''}`)")
+_JS = _JS.replace("function renderRecall(hits){", """function renderSourceResults(data,query){renderRecall(data.hits);
+for(const r of (data.sources||[])){const b=el('button','打开第'+r.day+'天回合'+r.turn+'的'+r.kind+'与邻文');b.onclick=()=>openInvestigationSource(r.ref);$('recall-results').append(b);}
+if(data.next_before){const more=el('button','查看更早的原文');more.onclick=()=>{if($('recall-query').value.trim()===query)submitRecall(data.next_before);else setStatus('查询条件已变化，请重新查询。',true)};$('recall-results').append(more);}}
+function renderRecall(hits){""")
+_JS = _JS.replace("renderRecall(data.hits);setStatus(", "renderSourceResults(data,query);setStatus(")
+_JS = _JS.replace("setStatus(d.duplicate?'已恢复此前保存的行动。'", """if(d.read_only){$('recall-query').value=d.recall_query;renderSourceResults(d.recall,d.recall_query);$('recall-results').scrollIntoView({block:'nearest'});setStatus('已查阅存档原文。');return}setStatus(d.duplicate?'已恢复此前保存的行动。'""")
 
 class _QuietHandler(WSGIRequestHandler):
     def log_message(self, format, *args):
@@ -1117,10 +1131,11 @@ def make_app(dashboard: PlayerDashboard | GmDashboard, *, mode: str = "player"):
                 ref = parse_qs(environ.get('QUERY_STRING','')).get('ref',[''])[0]
                 return _json_response(start_response,'200 OK',dashboard.open_source(ref))
             if method == "GET" and path == "/api/recall":
-                query = parse_qs(environ.get("QUERY_STRING") or "", keep_blank_values=True).get("q", [])
+                params = parse_qs(environ.get("QUERY_STRING") or "", keep_blank_values=True)
+                query = params.get("q", [])
                 if len(query) != 1:
                     raise GuiRequestError("请输入要回忆的关键词。")
-                return _json_response(start_response, "200 OK", dashboard.recall(query[0]))
+                return _json_response(start_response, "200 OK", dashboard.recall(query[0], before=params.get("before", [None])[0]))
             if method == "POST" and path == "/api/action":
                 _require_same_origin_json(environ)
                 data = _read_json_request(environ, minimum=0, maximum=(_MAX_ACTION_BYTES * 2) + 1024,

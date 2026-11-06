@@ -32,10 +32,15 @@ CREATE TABLE IF NOT EXISTS action_receipts (
     action_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
     first_seq INTEGER NOT NULL, last_seq INTEGER NOT NULL, revision INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_receipt_last ON action_receipts(last_seq) WHERE first_seq>0;
 CREATE TABLE IF NOT EXISTS player_inputs (
     action_id TEXT PRIMARY KEY, actor TEXT NOT NULL, body TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS player_inputs_actor ON player_inputs(actor);
+CREATE TABLE IF NOT EXISTS speech_names (
+    event_id TEXT PRIMARY KEY, label TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_speech_label ON speech_names(label);
 CREATE TABLE IF NOT EXISTS action_result_metadata (
     action_id TEXT PRIMARY KEY, metadata TEXT NOT NULL
 );
@@ -217,7 +222,7 @@ class EventStore:
             raise
 
     def append_many(self, events, *, expected_revision=None, action_id=None,
-                    preflight=None, final_validate=None, retractions=(), result_metadata=None, player_input_record=None):
+                    preflight=None, final_validate=None, retractions=(), result_metadata=None, player_input_record=None, speech_names=()):
         """Publish a complete proposal atomically; JSONL is a recoverable mirror.
 
         All LLM work belongs before this short transaction. The preflight callback
@@ -270,6 +275,8 @@ class EventStore:
                 if player_input_record is not None and first:
                     self._conn.execute('INSERT INTO player_inputs VALUES (?,?,?)',
                                        (action_id, *player_input_record))
+                if speech_names:
+                    self._conn.executemany('INSERT INTO speech_names VALUES (?,?)', speech_names)
                 if result_metadata is not None:
                     self._insert_action_result_metadata(action_id, metadata_json)
             self._conn.commit()
@@ -510,7 +517,7 @@ class EventBatch:
                     ev.pop('retracted', None)
             raise
 
-    def publish(self, *, action_id=None, result_metadata=None, player_input_record=None):
+    def publish(self, *, action_id=None, result_metadata=None, player_input_record=None, speech_names=()):
         events = [{k:v for k,v in ev.items() if k != 'seq'} for ev in self.events]
         for validator in self.publish_validators:
             validator(events)
@@ -528,4 +535,5 @@ class EventBatch:
                                       action_id=action_id, preflight=final_preflight,
                                       final_validate=final_validate,
                                       retractions=self.retractions, result_metadata=result_metadata,
-                                      **({'player_input_record': player_input_record} if player_input_record else {}))
+                                      **({'player_input_record': player_input_record} if player_input_record else {}),
+                                      **({'speech_names': speech_names} if speech_names else {}))

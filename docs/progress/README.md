@@ -85,3 +85,5 @@
 - [体验修复现状与 34 项逐项结果](../reports/2026-11-07/experience-repairs.html) · [RCV-136 风险检定与最终门禁](../verification/RCV-136-risk-checks.md) · [Terra 长期世界样本](../verification/rcv135-terra-world/review.md)
 
 - [RCV-137 调查分支与现场原文](../verification/RCV-137-investigation-routes.md)
+
+- [RCV-138 按日期和收件人查原文及 Terra 调查](../verification/RCV-138-source-questions.md)

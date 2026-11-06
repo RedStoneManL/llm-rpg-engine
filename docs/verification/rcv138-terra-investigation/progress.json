@@ -1,0 +1,746 @@
+{
+  "turn": 4,
+  "results": [
+    {
+      "input": "查证 books 1",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+        "revision": 3,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 3,
+          "turn": 1,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_inn",
+              "label": "石桥客栈",
+              "kind": "venue"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_market": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [
+              {
+                "id": "books",
+                "summary": "找到账簿的存放处",
+                "leads": [
+                  {
+                    "number": 1,
+                    "place": "stonebridge_inn",
+                    "label": "石桥客栈",
+                    "feature": "旧柜",
+                    "status": "有线索，待核实",
+                    "source_event_id": "ev_17dc6423f012",
+                    "quote": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+                    "day": 1,
+                    "turn": 1,
+                    "availability": "在场",
+                    "action": "查证 books 1",
+                    "ref": "3:ev_17dc6423f012:2e8a84eadc8e4816da83b609"
+                  },
+                  {
+                    "number": 2,
+                    "place": "stonebridge_market",
+                    "label": "石桥集市",
+                    "feature": "寄存簿",
+                    "status": "待查",
+                    "availability": "下一步可去石桥集市",
+                    "action": "前往石桥集市。"
+                  }
+                ]
+              }
+            ],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [],
+          "observations": [
+            {
+              "place": "这里",
+              "is_current": true,
+              "kind": "现场观察",
+              "range": "旧柜内部",
+              "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。"
+            }
+          ],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "89ac32772ad54aa51020241f"
+          }
+        }
+      }
+    },
+    {
+      "input": "前往石桥集市。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+        "revision": 4,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 4,
+          "turn": 2,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_market",
+              "label": "石桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_inn": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [
+              {
+                "id": "books",
+                "summary": "找到账簿的存放处",
+                "leads": [
+                  {
+                    "number": 1,
+                    "place": "stonebridge_inn",
+                    "label": "石桥客栈",
+                    "feature": "旧柜",
+                    "status": "有线索，待核实",
+                    "source_event_id": "ev_17dc6423f012",
+                    "quote": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+                    "day": 1,
+                    "turn": 1,
+                    "availability": "下一步可去石桥客栈",
+                    "action": "前往石桥客栈。",
+                    "ref": "4:ev_17dc6423f012:dc1811915a634e62c777730f"
+                  },
+                  {
+                    "number": 2,
+                    "place": "stonebridge_market",
+                    "label": "石桥集市",
+                    "feature": "寄存簿",
+                    "status": "待查",
+                    "availability": "在场",
+                    "action": "查证 books 2"
+                  }
+                ]
+              }
+            ],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+            "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [],
+          "observations": [
+            {
+              "place": "石桥客栈",
+              "is_current": false,
+              "kind": "现场观察",
+              "range": "旧柜内部",
+              "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。"
+            }
+          ],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "89ac32772ad54aa51020241f"
+          }
+        }
+      }
+    },
+    {
+      "input": "查证 books 2",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。",
+        "revision": 5,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 5,
+          "turn": 3,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_market",
+              "label": "石桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_inn": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [
+              {
+                "id": "books",
+                "summary": "找到账簿的存放处",
+                "leads": [
+                  {
+                    "number": 1,
+                    "place": "stonebridge_inn",
+                    "label": "石桥客栈",
+                    "feature": "旧柜",
+                    "status": "有线索，待核实",
+                    "source_event_id": "ev_17dc6423f012",
+                    "quote": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+                    "day": 1,
+                    "turn": 1,
+                    "availability": "下一步可去石桥客栈",
+                    "action": "前往石桥客栈。",
+                    "ref": "5:ev_17dc6423f012:5e70196eabd98cab7b3d9f6b"
+                  },
+                  {
+                    "number": 2,
+                    "place": "stonebridge_market",
+                    "label": "石桥集市",
+                    "feature": "寄存簿",
+                    "status": "有可核验的证据",
+                    "source_event_id": "ev_511686f8108f",
+                    "quote": "寄存簿写明旧账簿寄存在七号柜。",
+                    "day": 1,
+                    "turn": 3,
+                    "availability": "在场",
+                    "ref": "5:ev_511686f8108f:579be64c760a695d66320db4"
+                  }
+                ]
+              }
+            ],
+            "completed_quests": []
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+            "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+            "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [],
+          "observations": [
+            {
+              "place": "石桥客栈",
+              "is_current": false,
+              "kind": "现场观察",
+              "range": "旧柜内部",
+              "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。"
+            },
+            {
+              "place": "这里",
+              "is_current": true,
+              "kind": "现场观察",
+              "range": "寄存簿对应条目",
+              "summary": "寄存簿写明旧账簿寄存在七号柜。"
+            }
+          ],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "89ac32772ad54aa51020241f"
+          }
+        }
+      }
+    },
+    {
+      "input": "我整理证据，按寄存簿原文结案。",
+      "result": {
+        "ok": true,
+        "duplicate": false,
+        "narration": "你对照旧柜里的收条和寄存簿，把调查结果记下来：寄存簿写明旧账簿寄存在七号柜。账簿的存放处有了记录，这项调查就此结案；你还没有取出账簿。",
+        "revision": 6,
+        "recap_status": "not_due",
+        "state": {
+          "revision": 6,
+          "turn": 4,
+          "scene": {
+            "day": 1,
+            "time": {
+              "day": 1,
+              "band": "晨"
+            },
+            "location": {
+              "id": "stonebridge_market",
+              "label": "石桥集市",
+              "kind": "settlement"
+            },
+            "exits": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              }
+            ],
+            "exit_costs": {
+              "stonebridge_inn": "1"
+            },
+            "discovery_available": false
+          },
+          "map": {
+            "nodes": [
+              {
+                "id": "stonebridge_inn",
+                "label": "石桥客栈",
+                "kind": "venue"
+              },
+              {
+                "id": "stonebridge_market",
+                "label": "石桥集市",
+                "kind": "settlement"
+              }
+            ],
+            "edges": [
+              {
+                "from": "stonebridge_inn",
+                "to": "stonebridge_market",
+                "cost": "1"
+              }
+            ]
+          },
+          "character": {
+            "id": "protagonist",
+            "facts": [
+              {
+                "name": "sketch",
+                "value": "一位初来石桥镇的旅人"
+              },
+              {
+                "name": "goal",
+                "value": "在黎明前找到旧塔的线索"
+              }
+            ]
+          },
+          "objectives": {
+            "long_term_goal": "在黎明前找到旧塔的线索",
+            "active_quests": [],
+            "completed_quests": [
+              {
+                "id": "books",
+                "summary": "寄存簿记载旧账簿寄存在七号柜"
+              }
+            ]
+          },
+          "inventory": [
+            {
+              "id": "old_brass_lantern",
+              "label": "旧铜灯"
+            }
+          ],
+          "narration": [
+            "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+            "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+            "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+            "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。",
+            "你对照旧柜里的收条和寄存簿，把调查结果记下来：寄存簿写明旧账簿寄存在七号柜。账簿的存放处有了记录，这项调查就此结案；你还没有取出账簿。"
+          ],
+          "narration_unavailable": false,
+          "codex": [
+            {
+              "id": "stonebridge",
+              "kind": "地理志",
+              "title": "石桥镇",
+              "body": "河谷中的商旅小镇，旧塔耸立在北岸。"
+            }
+          ],
+          "present_people": [],
+          "observations": [
+            {
+              "place": "石桥客栈",
+              "is_current": false,
+              "kind": "现场观察",
+              "range": "旧柜内部",
+              "summary": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。"
+            },
+            {
+              "place": "这里",
+              "is_current": true,
+              "kind": "现场观察",
+              "range": "寄存簿对应条目",
+              "summary": "寄存簿写明旧账簿寄存在七号柜。"
+            }
+          ],
+          "resource_outcome": null,
+          "latest_check": null,
+          "speech_recipients": [],
+          "session": {
+            "soft_direction": null,
+            "campaign_key": "89ac32772ad54aa51020241f"
+          }
+        }
+      }
+    }
+  ],
+  "cold_reopen_leads": [
+    {
+      "number": 1,
+      "place": "stonebridge_inn",
+      "label": "石桥客栈",
+      "feature": "旧柜",
+      "status": "有线索，待核实",
+      "source_event_id": "ev_17dc6423f012",
+      "quote": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+      "day": 1,
+      "turn": 1,
+      "availability": "在场",
+      "action": "查证 books 1",
+      "ref": "3:ev_17dc6423f012:2e8a84eadc8e4816da83b609"
+    },
+    {
+      "number": 2,
+      "place": "stonebridge_market",
+      "label": "石桥集市",
+      "feature": "寄存簿",
+      "status": "待查",
+      "availability": "下一步可去石桥集市",
+      "action": "前往石桥集市。"
+    }
+  ],
+  "sources": [
+    {
+      "source": {
+        "kind": "现场观察",
+        "day": 1,
+        "turn": 1,
+        "seq": 37,
+        "text": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+        "recipient": null,
+        "ref": "3:ev_17dc6423f012:2e8a84eadc8e4816da83b609",
+        "source_event_id": "ev_17dc6423f012",
+        "place": "stonebridge_inn",
+        "feature": "旧柜"
+      },
+      "before": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 0,
+          "seq": 31,
+          "text": "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+          "recipient": null,
+          "ref": "3:ev_85c11e54eeec:90065ede9f20fbd7c1b37234"
+        },
+        {
+          "kind": "玩家输入",
+          "day": 1,
+          "turn": 1,
+          "seq": 34,
+          "text": "查证 books 1",
+          "recipient": null,
+          "ref": "3:input-ev_426061782f65:86d838be1dfe0a65aa3fbdfa"
+        }
+      ],
+      "after": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 1,
+          "seq": 39,
+          "text": "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+          "recipient": null,
+          "ref": "3:ev_84bc390b3291:4f96662784adab78e5a85a90"
+        }
+      ],
+      "revision": 3
+    },
+    {
+      "source": {
+        "kind": "现场观察",
+        "day": 1,
+        "turn": 1,
+        "seq": 37,
+        "text": "柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。",
+        "recipient": null,
+        "ref": "5:ev_17dc6423f012:5e70196eabd98cab7b3d9f6b",
+        "source_event_id": "ev_17dc6423f012",
+        "place": "stonebridge_inn",
+        "feature": "旧柜"
+      },
+      "before": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 0,
+          "seq": 31,
+          "text": "晨雾笼罩石桥镇。你的旧铜灯仍在手边，客栈外通往集市的小路已经醒来。",
+          "recipient": null,
+          "ref": "5:ev_85c11e54eeec:2c18a09fed94a8d60f08dc7e"
+        },
+        {
+          "kind": "玩家输入",
+          "day": 1,
+          "turn": 1,
+          "seq": 34,
+          "text": "查证 books 1",
+          "recipient": null,
+          "ref": "5:input-ev_426061782f65:355741296cb67d83ac777703"
+        }
+      ],
+      "after": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 1,
+          "seq": 39,
+          "text": "你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。",
+          "recipient": null,
+          "ref": "5:ev_84bc390b3291:6d658a3f945f8a16d0d3c0e2"
+        },
+        {
+          "kind": "玩家输入",
+          "day": 1,
+          "turn": 2,
+          "seq": 40,
+          "text": "前往石桥集市。",
+          "recipient": null,
+          "ref": "5:input-ev_f37ee7103789:0373d1a822606c0f8f47d4a0"
+        }
+      ],
+      "revision": 5
+    },
+    {
+      "source": {
+        "kind": "现场观察",
+        "day": 1,
+        "turn": 3,
+        "seq": 51,
+        "text": "寄存簿写明旧账簿寄存在七号柜。",
+        "recipient": null,
+        "ref": "5:ev_511686f8108f:579be64c760a695d66320db4",
+        "source_event_id": "ev_511686f8108f",
+        "place": "stonebridge_market",
+        "feature": "寄存簿"
+      },
+      "before": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 2,
+          "seq": 45,
+          "text": "你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。",
+          "recipient": null,
+          "ref": "5:ev_d47c7ae8f6b2:f9e0135a4b7d4ab02dd685af"
+        },
+        {
+          "kind": "玩家输入",
+          "day": 1,
+          "turn": 3,
+          "seq": 48,
+          "text": "查证 books 2",
+          "recipient": null,
+          "ref": "5:input-ev_7e52954e38db:d976797424c7645b9580d134"
+        }
+      ],
+      "after": [
+        {
+          "kind": "公开旁白",
+          "day": 1,
+          "turn": 3,
+          "seq": 53,
+          "text": "你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。",
+          "recipient": null,
+          "ref": "5:ev_c03fd6f20ef6:f28554ef76e5280d4e377e21"
+        }
+      ],
+      "revision": 5
+    }
+  ]
+}

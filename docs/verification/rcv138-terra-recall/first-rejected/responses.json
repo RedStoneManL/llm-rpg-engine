@@ -1,0 +1,6 @@
+[
+  {
+    "key": "0:0",
+    "response": "{\"narration\": \"你对阿岚说：“紫檀风铃今晚响三次。”阿岚听完，看向你，等你继续。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"短暂交谈\"}], \"knowledge\": [{\"op\": \"heard_player\", \"receipt_id\": \"npc_lan_17:protagonist.reported_player_statement:be4a96f1659c416783a1:current\", \"knower\": \"npc_lan_17\", \"fact_key\": \"protagonist.reported_player_statement\", \"value\": \"紫檀风铃今晚响三次。\"}]}"
+  }
+]

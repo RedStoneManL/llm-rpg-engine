@@ -1,0 +1,42 @@
+[
+  {
+    "key": "0:0",
+    "response": "{\"narration\": \"你拉开旧柜，里面没有账簿。柜底压着一张收条，上面写着：账簿已送往石桥集市，详情查寄存簿。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"查看柜内只花片刻\"}], \"world\": [{\"areas\": [\"stonebridge_inn\"], \"level\": 1, \"summary\": \"柜内没有账簿，柜底收条写着账簿已送往石桥集市，详情查寄存簿。\", \"public_observation\": true, \"visibility\": \"public\", \"observation_kind\": \"single_observation\", \"observation_range\": \"旧柜内部\", \"feature\": \"旧柜\", \"investigation\": {\"quest\": \"books\", \"result\": \"clue\", \"follow_up\": {\"place\": \"stonebridge_market\", \"feature\": \"寄存簿\"}}}]}"
+  },
+  {
+    "key": "0:1",
+    "response": "{\"supported\":true,\"reason\":\"旧柜查空和收条内容均由本地观察支持，正文未声称结案或移动。\"}"
+  },
+  {
+    "key": "1:0",
+    "response": "{\"narration\": \"你沿客栈外的小路走向石桥集市。晨雾还没有散尽，摊位正陆续摆开；收条提到的寄存簿还需在这里查找。\", \"moves\": [{\"who\": \"protagonist\", \"to\": \"stonebridge_market\"}], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"走到附近集市仍在晨间\"}]}"
+  },
+  {
+    "key": "1:1",
+    "response": "{\"supported\":true,\"reason\":\"已记录移动至集市，正文仍将寄存簿作为待查对象，没有声称取得结果。\"}"
+  },
+  {
+    "key": "2:0",
+    "response": "{\"narration\": \"你翻看集市的寄存簿，找到与收条对应的一行：旧账簿寄存在七号柜。字迹清楚，但这条记录本身并不等于你已经拿到了账簿。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"查阅寄存簿仍在晨间\"}], \"world\": [{\"areas\": [\"stonebridge_market\"], \"level\": 1, \"summary\": \"寄存簿写明旧账簿寄存在七号柜。\", \"public_observation\": true, \"visibility\": \"public\", \"observation_kind\": \"single_observation\", \"observation_range\": \"寄存簿对应条目\", \"feature\": \"寄存簿\", \"investigation\": {\"quest\": \"books\", \"result\": \"confirmed\"}}]}"
+  },
+  {
+    "key": "2:1",
+    "response": "{\"world/0\": true}"
+  },
+  {
+    "key": "2:2",
+    "response": "{\"supported\":true,\"reason\":\"寄存簿观察支持七号柜的记录，正文明确未声称取走账簿或完成任务。\"}"
+  },
+  {
+    "key": "3:0",
+    "response": "{\"narration\": \"你对照旧柜里的收条和寄存簿，把调查结果记下来：寄存簿写明旧账簿寄存在七号柜。账簿的存放处有了记录，这项调查就此结案；你还没有取出账簿。\", \"moves\": [], \"places\": [], \"cast\": [], \"facts\": [], \"clock\": [{\"advance\": false, \"days\": 0, \"bands\": 0, \"reason\": \"整理已有记录只花片刻\"}], \"quests\": [{\"op\": \"resolve\", \"id\": \"books\", \"summary\": \"寄存簿记载旧账簿寄存在七号柜\", \"evidence\": {\"source_event_id\": \"ev_511686f8108f\", \"quote\": \"寄存簿写明旧账簿寄存在七号柜。\"}}]}"
+  },
+  {
+    "key": "3:1",
+    "response": "{\"quests/0\": true}"
+  },
+  {
+    "key": "3:2",
+    "response": "{\"supported\":true,\"reason\":\"结案已在冻结结果中，引用的寄存簿观察支持记录；正文没有声称取得账簿。\"}"
+  }
+]

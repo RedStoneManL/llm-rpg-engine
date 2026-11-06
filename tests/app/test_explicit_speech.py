@@ -187,3 +187,63 @@ def test_gui_explicit_speech_is_visible_only_to_current_recipient_and_cold_recov
     rendered = json.dumps(reopened.state(), ensure_ascii=False)
     assert "PRIVATE_SPEECH_SENTINEL" not in rendered and "HIDDEN_SPEECH_RECIPIENT" not in rendered
     reopened.engine.store.close()
+
+
+def test_named_historical_questions_use_receipts_without_advancing_play():
+    from docs.verification.rcv130.probe import game, seed, INN, MARKET, HERO
+
+    with game() as (engine, dash):
+        for who, name in (("watch", "阿岚"), ("scribe", "白禾")):
+            seed(engine, "character_created", id=who, op="create", name=name, sketch="值班人", goal="照看名册", tier="tracked")
+            seed(engine, "entity_moved", who=who, to=INN)
+        for n, (who, quote) in enumerate([("watch", f"第{i}枚蓝印") for i in range(6)] + [("scribe","只交给白禾的红印")]):
+            receipt = host_player_statement_receipt(engine.world, _build_scene(engine), recipient=who, statement=quote)
+            proposal = _proposal(receipt, quote)
+            proposal["knowledge"][0]["knower"] = who
+            engine.provider = FakeLLMProvider(json_responses=[proposal])
+            dash.action(player_input="交代一句话", action_id=f"speech-{n}", expected_revision=engine.store.revision,
+                        recipient=who, statement=quote)
+        # The player can still use the name they heard in this scene after
+        # the NPC changes names and leaves. Later names cannot overwrite it.
+        seed(engine, "fact_asserted", subject="watch", predicate="name", value="新区名", secrecy="public")
+        seed(engine, "entity_moved", who="watch", to=MARKET)
+        path = engine.store.db_path.parent
+        provider = FakeLLMProvider()
+        reopened = build_dashboard(path, provider=provider)
+        try:
+            db = reopened.engine.store
+            revision, history = db.snapshot()
+            before_bytes = db.db_path.read_bytes()
+            query = "第一天我对阿岚说了什么？"
+            lookup = reopened.action(player_input=query, action_id="historical-question", expected_revision=revision)
+            assert lookup["read_only"]
+            page = lookup["recall"]
+            assert len(page["opened"]) == 5 and page["next_before"]
+            assert all(row["source"]["recipient"] == "watch" for row in page["opened"])
+            assert all("红印" not in text for text in page["hits"])
+            tail = reopened.recall(query + " 续页=" + page["next_before"])
+            assert len(tail["opened"]) == 1
+            assert tail["opened"][0]["source"]["text"] == "第0枚蓝印" and tail["next_before"] is None
+            dated = reopened.recall("我哪天对阿岚说过“第2枚蓝印”？")
+            assert [(r["source"]["day"], r["source"]["text"]) for r in dated["opened"]] == [(1,"第2枚蓝印")]
+            assert reopened.recall("回忆：收件人=watch 未说过的暗号")["opened"] == []
+            assert db.snapshot() == (revision, history) and db.db_path.read_bytes() == before_bytes
+            assert not provider.calls and db.get_action_receipt("historical-question") is None
+            reopened.undo(expected_revision=revision)
+            with pytest.raises(GuiRequestError, match="重新检索"):
+                reopened.recall(query, before=page["next_before"])
+        finally:
+            reopened.engine.store.close()
+
+
+def test_read_only_cli_question_does_not_consume_a_turn(tmp_path):
+    seed = build_dashboard(tmp_path, demo=True)
+    engine = seed.engine
+    revision = engine.store.revision
+    output = []
+    try:
+        play_loop(engine, inputs=["第一天我对无人说过什么？","/quit"], out=output.append)
+        assert any("找不到可核验的原文" in line for line in output)
+        assert engine.store.revision == revision
+    finally:
+        engine.store.close()
