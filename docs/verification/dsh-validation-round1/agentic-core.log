@@ -1,0 +1,12 @@
+
+ RUN  v4.1.12 /workspace/scratch/0ac227c544ca/dsh-validation-upstream/agentic/packages/dsh-agentic-roleplay-core
+
+ ✓ tests/host/memory/reflection.spec.ts (39 tests) 542ms
+ ✓ tests/host/timeline/branch.spec.ts (5 tests) 7ms
+
+ Test Files  2 passed (2)
+      Tests  44 passed (44)
+   Start at  15:20:20
+   Duration  1.92s (transform 754ms, setup 0ms, import 966ms, tests 550ms, environment 0ms)
+
+JSON report written to /workspace/scratch/0ac227c544ca/rpg-dsh-validation/docs/verification/dsh-validation-round1/agentic-core.json

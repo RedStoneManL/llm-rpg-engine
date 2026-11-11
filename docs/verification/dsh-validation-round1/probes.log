@@ -1,0 +1,11 @@
+
+ RUN  v4.1.12 /workspace/scratch/0ac227c544ca/rpg-dsh-validation/experiments/dsh-validation
+
+ ✓ probes.test.mjs (7 tests) 599ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  15:40:12
+   Duration  1.67s (transform 745ms, setup 0ms, import 930ms, tests 599ms, environment 0ms)
+
+JSON report written to /workspace/scratch/0ac227c544ca/rpg-dsh-validation/docs/verification/dsh-validation-round1/probes-tests.json

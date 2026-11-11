@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "purpose": "Admission experiments before any runtime integration",
+  "upstream": {
+    "agentic": {"repository": "Firefox2100/dsh-agentic-roleplay", "commit": "94a63f6fe658bd68ade340d9f683f4f5b5eb0efe", "declared_license": "GPL-3.0-only"},
+    "liketavern": {"repository": "Amakurai/dsh-liketavern", "commit": "d890a1bb79c0b0edf60b211fefdca649df17c632", "declared_license": "MIT"}
+  },
+  "experiments": [
+    {"id": "actor_scope", "control": "scoped repositories", "ablation": "shared perceptions", "metric": "foreign private markers in actual NPC prompt"},
+    {"id": "truth_noninterference", "control": "two worlds with identical actor perceptions", "ablation": "event text replaced with actor perception for retrieval", "metric": "recall changes when only hidden truth changes"},
+    {"id": "memory_policy", "control": "default policy", "ablations": ["flaky=false", "recent-window baseline"], "metric": "target retrieved and exact wording at 0,7,30,90,180 story days; not a narrative-quality metric"},
+    {"id": "belief_evidence", "control": "proposal validator plus real state writer", "ablation": "skip proposal validator only", "metrics": ["invalid evidence rejected", "world truth unchanged", "unrelated valid citations accepted"]},
+    {"id": "branch_rollback", "control": "snapshot plus rollback plus summary expansion", "ablations": ["skip rollback", "skip summary expansion"], "metrics": ["future information absent from child", "parent unchanged", "earlier source retained", "failed preparation unpublished"]}
+  ],
+  "limits": ["synthetic fixtures", "no live model", "no DSH boot/UI", "Linux only", "no claim of complete upstream test coverage"],
+  "admission": "No production runtime integration before invariants, own-engine adaptation tests, and relevant live-model checks pass. Test-runner success is not admission."
+}

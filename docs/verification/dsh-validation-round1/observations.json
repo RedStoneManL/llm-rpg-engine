@@ -1,0 +1,982 @@
+{
+  "evidence_level": "actual component code + SQLite/filesystem, synthetic inputs; no live LLM or DSH boot",
+  "model_calls": 0,
+  "observations": [
+    {
+      "id": "actor_scope",
+      "gate": "component_pass_only",
+      "rows": [
+        {
+          "variant": "full",
+          "foreign_memory_in_prompt": false,
+          "other_persona_in_prompt": false,
+          "prompt_utf8_bytes": 2277,
+          "recalled": [
+            {
+              "kind": "perception",
+              "id": 13
+            },
+            {
+              "kind": "perception",
+              "id": 15
+            },
+            {
+              "kind": "perception",
+              "id": 17
+            },
+            {
+              "kind": "perception",
+              "id": 23
+            }
+          ]
+        },
+        {
+          "variant": "shared",
+          "foreign_memory_in_prompt": true,
+          "other_persona_in_prompt": false,
+          "prompt_utf8_bytes": 2319,
+          "recalled": [
+            {
+              "kind": "perception",
+              "id": 20
+            },
+            {
+              "kind": "perception",
+              "id": 22
+            },
+            {
+              "kind": "perception",
+              "id": 24
+            },
+            {
+              "kind": "perception",
+              "id": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "truth_noninterference",
+      "gate": "blocked",
+      "criterion": "Changing only DM-private truth must not change NPC recall",
+      "rows": [
+        {
+          "variant": "full",
+          "identical_visible_inputs": true,
+          "same_recall": false,
+          "results": [
+            [
+              {
+                "text": "掌柜在大厅喝茶。",
+                "source": {
+                  "kind": "perception",
+                  "id": 2
+                },
+                "cues": {
+                  "people": 0,
+                  "words": 1,
+                  "place": 0
+                }
+              }
+            ],
+            [
+              {
+                "text": "一个穿灰衣的男子从库房走出来。",
+                "source": {
+                  "kind": "perception",
+                  "id": 1
+                },
+                "cues": {
+                  "people": 0,
+                  "words": 3,
+                  "place": 0
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "variant": "perception_only",
+          "identical_visible_inputs": true,
+          "same_recall": true,
+          "results": [
+            [
+              {
+                "text": "掌柜在大厅喝茶。",
+                "source": {
+                  "kind": "perception",
+                  "id": 2
+                },
+                "cues": {
+                  "people": 0,
+                  "words": 1,
+                  "place": 0
+                }
+              }
+            ],
+            [
+              {
+                "text": "掌柜在大厅喝茶。",
+                "source": {
+                  "kind": "perception",
+                  "id": 2
+                },
+                "cues": {
+                  "people": 0,
+                  "words": 1,
+                  "place": 0
+                }
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shared_situation_contract",
+      "gate": "requires_upstream_input_gate",
+      "note": "The real prompt builder trusts situation input. This is a component contract, not proof the complete plugin leaks."
+    },
+    {
+      "id": "memory_policy",
+      "gate": "policy_specific_no_blanket_adoption",
+      "rows": [
+        {
+          "days": 0,
+          "query_type": "literal",
+          "variant": "default",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 0,
+          "query_type": "literal",
+          "variant": "no_decay",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 0,
+          "query_type": "literal",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 0,
+          "query_type": "paraphrase",
+          "variant": "default",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 0,
+          "query_type": "paraphrase",
+          "variant": "no_decay",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 0,
+          "query_type": "paraphrase",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "literal",
+          "variant": "default",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "literal",
+          "variant": "no_decay",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "literal",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "paraphrase",
+          "variant": "default",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "paraphrase",
+          "variant": "no_decay",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 7,
+          "query_type": "paraphrase",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "literal",
+          "variant": "default",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "faded"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "faded"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "faded"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "literal",
+          "variant": "no_decay",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "literal",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "paraphrase",
+          "variant": "default",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "faded"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "faded"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "faded"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "faded"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "paraphrase",
+          "variant": "no_decay",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 30,
+          "query_type": "paraphrase",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 90,
+          "query_type": "literal",
+          "variant": "default",
+          "target_retrieved": true,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "记得以前处理过通行手续。",
+              "clarity": "faded"
+            }
+          ]
+        },
+        {
+          "days": 90,
+          "query_type": "literal",
+          "variant": "no_decay",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 90,
+          "query_type": "literal",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 90,
+          "query_type": "paraphrase",
+          "variant": "default",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": []
+        },
+        {
+          "days": 90,
+          "query_type": "paraphrase",
+          "variant": "no_decay",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 90,
+          "query_type": "paraphrase",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 180,
+          "query_type": "literal",
+          "variant": "default",
+          "target_retrieved": true,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "something happened, but you cannot say what",
+              "clarity": "vague"
+            }
+          ]
+        },
+        {
+          "days": 180,
+          "query_type": "literal",
+          "variant": "no_decay",
+          "target_retrieved": true,
+          "exact_wording": true,
+          "result": [
+            {
+              "text": "旧铜盒最底层有通行证，取出时别弄坏蓝色封签。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 180,
+          "query_type": "literal",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 180,
+          "query_type": "paraphrase",
+          "variant": "default",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": []
+        },
+        {
+          "days": 180,
+          "query_type": "paraphrase",
+          "variant": "no_decay",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第7次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第8次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        },
+        {
+          "days": 180,
+          "query_type": "paraphrase",
+          "variant": "recent_window",
+          "target_retrieved": false,
+          "exact_wording": false,
+          "result": [
+            {
+              "text": "大厅第18次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第19次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第20次清扫。",
+              "clarity": "clear"
+            },
+            {
+              "text": "大厅第21次清扫。",
+              "clarity": "clear"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "belief_evidence",
+      "gate": "mechanical_guards_only_semantic_validation_pending",
+      "rows": [
+        {
+          "label": "supported",
+          "variant": "full",
+          "proposal_issues": [],
+          "accepted": true,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "supported",
+          "variant": "skip_proposal_guard",
+          "proposal_issues": [],
+          "accepted": true,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "unknown_reference",
+          "variant": "full",
+          "proposal_issues": [
+            "add[0]: there is no thing it took in numbered 999999",
+            "add[0]: one passing moment is not yet a belief; rest it on things from at least two different turns, or on one event that turned the story"
+          ],
+          "accepted": false,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "unknown_reference",
+          "variant": "skip_proposal_guard",
+          "proposal_issues": [
+            "add[0]: there is no thing it took in numbered 999999",
+            "add[0]: one passing moment is not yet a belief; rest it on things from at least two different turns, or on one event that turned the story"
+          ],
+          "accepted": false,
+          "writeError": "the edit is not acceptable: beliefs[0].evidence_for: there is no perception 999999",
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "foreign_reference",
+          "variant": "full",
+          "proposal_issues": [
+            "add[0]: there is no thing it took in numbered 3",
+            "add[0]: one passing moment is not yet a belief; rest it on things from at least two different turns, or on one event that turned the story"
+          ],
+          "accepted": false,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "foreign_reference",
+          "variant": "skip_proposal_guard",
+          "proposal_issues": [
+            "add[0]: there is no thing it took in numbered 3",
+            "add[0]: one passing moment is not yet a belief; rest it on things from at least two different turns, or on one event that turned the story"
+          ],
+          "accepted": false,
+          "writeError": "the edit is not acceptable: beliefs[0].evidence_for: perception 3 is not one the character took in",
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "unrelated_reference",
+          "variant": "full",
+          "proposal_issues": [],
+          "accepted": true,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        },
+        {
+          "label": "unrelated_reference",
+          "variant": "skip_proposal_guard",
+          "proposal_issues": [],
+          "accepted": true,
+          "writeError": null,
+          "world_unchanged": true,
+          "other_actor_unchanged": true
+        }
+      ]
+    },
+    {
+      "id": "branch_rollback",
+      "gate": "component_pass_only",
+      "rows": [
+        {
+          "variant": "full",
+          "parent_unchanged": true,
+          "future_in_active": false,
+          "future_in_retrieval": false,
+          "past_preserved": true,
+          "active": [
+            "你在河边获得铜钥匙 PAST_TOKEN。"
+          ],
+          "hits": []
+        },
+        {
+          "variant": "no_rollback",
+          "parent_unchanged": true,
+          "future_in_active": true,
+          "future_in_retrieval": true,
+          "past_preserved": true,
+          "active": [
+            "你有铜钥匙 PAST_TOKEN，后来约定在钟楼密会 FUTURE_TOKEN。"
+          ],
+          "hits": [
+            "后来约定在钟楼密会 FUTURE_TOKEN。",
+            "你有铜钥匙 PAST_TOKEN，后来约定在钟楼密会 FUTURE_TOKEN。"
+          ]
+        },
+        {
+          "variant": "no_summary_expansion",
+          "parent_unchanged": true,
+          "future_in_active": true,
+          "future_in_retrieval": true,
+          "past_preserved": true,
+          "active": [
+            "你有铜钥匙 PAST_TOKEN，后来约定在钟楼密会 FUTURE_TOKEN。"
+          ],
+          "hits": [
+            "后来约定在钟楼密会 FUTURE_TOKEN。",
+            "你有铜钥匙 PAST_TOKEN，后来约定在钟楼密会 FUTURE_TOKEN。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "branch_prepare_failure",
+      "gate": "component_pass_only",
+      "parent_unchanged": true,
+      "child_published": false,
+      "staging_left": false
+    }
+  ]
+}

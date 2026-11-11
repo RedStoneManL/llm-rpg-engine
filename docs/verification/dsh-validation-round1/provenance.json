@@ -1,0 +1,40 @@
+{
+  "upstream": {
+    "agentic": {
+      "repository": "Firefox2100/dsh-agentic-roleplay",
+      "commit": "94a63f6fe658bd68ade340d9f683f4f5b5eb0efe",
+      "declared_license": "GPL-3.0-only",
+      "tracked_files_clean": true
+    },
+    "liketavern": {
+      "repository": "Amakurai/dsh-liketavern",
+      "commit": "d890a1bb79c0b0edf60b211fefdca649df17c632",
+      "declared_license": "MIT",
+      "tracked_files_clean": true
+    }
+  },
+  "files_sha256": {
+    "agentic_license": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "tavern_license": "6a627ffb57884e6f24f5935f422df557a897a1e8a180d6e4c6aba9e86e36b778",
+    "agentic_recall": "edcbdf6f321a19bad4d5912b61c845b5491224068f578b1be88b97105f928274",
+    "agentic_context": "b9a18471e91757ccb869a7bee673912e1b0313b118f54d82d2da134c1a18e0c3",
+    "agentic_reflection": "3e63c0a3479129bde3e2ea6509efe0067f8e10dac625114963eef533dd962134",
+    "tavern_wal": "d4813d748dd15198bf6fc5fb629572c333c45b88b5e5d1d455e7c6bbeddde0fa",
+    "tavern_memory_rollback": "d0a865a1bd107f8bc0a16888c9216c4a054cd1ac55a6a76c866ebed0952bc665",
+    "tavern_story": "0b928a1f3bd458a9462b54bede51e33e9d9fe2e5528250a999f0193787fb7e72",
+    "independent_probes": "f6eb674a77a831b4f49f904385d953f846d90da66a4ae58b10cb8f0b80e1c754",
+    "experiment_plan": "6cc066c30f280832be1d439b66b568d5a271229b07bf5782be32c9da43828afe",
+    "own_boundary": "ae64b79a3626d12c77f51a45983c68eeaa57fb41901a5fbf4d56b1ea3db73139",
+    "runner": "4791e623f9253d30901dfc6550a42a13cb7f27c55021e6372b7d81bb1e149bec",
+    "probe_config": "1d2c9c5c7305ba1a68d5a84fc67955ebea45cba0f6f3bef88d510e3626b7886b",
+    "state_config": "4fce2188fb2fe7bef3402021d133d3f0c2bf3fb6cc7ddee5f080b0ddd0d1e22c"
+  },
+  "node": "v24.22.1",
+  "python": "Python 3.12.14",
+  "our_commit": "91646fb6c3cfe418709ae0f869ba985c282e2003",
+  "live_model_calls": 0,
+  "dsh_boot_tested": false,
+  "platform": "linux",
+  "setup_scripts": "disabled; component testing only",
+  "runner_dependency_lock_sha256": "263956ab9d26a76034a2dde4bc59f13df8a5b0f1c516ca96db243ccf8e055a8c"
+}

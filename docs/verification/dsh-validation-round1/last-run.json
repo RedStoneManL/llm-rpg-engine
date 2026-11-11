@@ -1,0 +1,20 @@
+[
+  {
+    "group": "liketavern-retrieval",
+    "exit_code": 0,
+    "elapsed_seconds": 4.432,
+    "log": "liketavern-retrieval.log"
+  },
+  {
+    "group": "probes",
+    "exit_code": 0,
+    "elapsed_seconds": 2.054,
+    "log": "probes.log"
+  },
+  {
+    "group": "own",
+    "exit_code": 0,
+    "elapsed_seconds": 0.852,
+    "log": "own.log"
+  }
+]

@@ -1,0 +1,14 @@
+
+ RUN  v4.1.12 /workspace/scratch/0ac227c544ca/dsh-validation-upstream/liketavern
+
+ ✓ test/memoryRecallEval.test.ts (31 tests) 2359ms
+     ✓ 最新输入问到的记忆入模，即使前文是一长段别的场景  811ms
+     ✓ 一长段场景之后问到单字名和单字名词，对应记忆入模  307ms
+     ✓ 闲聊输入时仍注入场景相关的记忆，无关短句不注入任何记忆  562ms
+
+ Test Files  1 passed (1)
+      Tests  31 passed (31)
+   Start at  15:40:07
+   Duration  3.98s (transform 872ms, setup 0ms, import 1.40s, tests 2.36s, environment 0ms)
+
+JSON report written to /workspace/scratch/0ac227c544ca/rpg-dsh-validation/docs/verification/dsh-validation-round1/liketavern-retrieval.json
