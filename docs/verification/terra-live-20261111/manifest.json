@@ -1,0 +1,59 @@
+{
+  "model": "gpt-6.1-terra",
+  "transport": "native selected-model agent via request-hashed local mailbox",
+  "external_http_model_calls": 0,
+  "disabled_hooks": [],
+  "demo": false,
+  "base_commit": "9acb6f3f301dbeaab384650b0a1d17aa5f44a81a",
+  "driver_sha256": "c9ed8e537bda74ec98c728bc2a08038b5c7d579333710f80a1ab434151cc305f",
+  "actions": [
+    {
+      "text": "我问阿岚：“你对渡船的情况了解多少？这个消息是从哪儿来的？”"
+    },
+    {
+      "text": "我只把一句话告诉阿岚。我心里猜铃铛藏在柳树下，但这句话没有说出口。",
+      "recipient": "alice",
+      "statement": "青竹铃铛明晨响四次。"
+    },
+    {
+      "text": "我沿路前往枫桥镇集市。"
+    },
+    {
+      "text": "我问白禾：“阿岚有没有托你带什么话？还有，你听说渡船什么时候开？”"
+    },
+    {
+      "text": "我留在枫桥镇等到明天早晨，再看看集市有什么变化。"
+    },
+    {
+      "text": "我走近菜摊，问摊主搬摊会不会影响今天买菜，看看接下来能做些什么。"
+    },
+    {
+      "text": "我沿路返回柳溪镇街口。"
+    },
+    {
+      "text": "我问阿岚：“我出发前让你记住的那句话，你还记得吗？你有没有告诉别人？”"
+    },
+    {
+      "text": "我在柳溪镇休息到明天早晨，留意街口和通往青山驿的方向。"
+    },
+    {
+      "text": "我把一个见面约定只告诉阿岚。",
+      "recipient": "alice",
+      "statement": "明晚在西钟楼见面，带上紫铜罗盘。"
+    },
+    {
+      "control": "undo_and_reopen"
+    },
+    {
+      "text": "我问阿岚：“我们之前定过见面的时间和地点吗？没有的话就先不约。”"
+    }
+  ],
+  "max_requests": 70,
+  "limits": [
+    "synthetic campaign",
+    "one sample",
+    "native exchange time is not API latency",
+    "no provider-reported token usage",
+    "DSH host not booted"
+  ]
+}

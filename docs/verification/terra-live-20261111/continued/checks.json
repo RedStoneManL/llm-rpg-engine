@@ -1,0 +1,66 @@
+[
+  {
+    "id": "request_response_hashes",
+    "label": "真实请求与响应逐份对应",
+    "passed": true,
+    "evidence": "35 份请求；35 份响应"
+  },
+  {
+    "id": "cold_reopen",
+    "label": "冷重开保持被检查状态",
+    "passed": true,
+    "evidence": "比较时钟、位置、认知、暗线和事件计数"
+  },
+  {
+    "id": "undo_reopen",
+    "label": "撤销后的冷重开保持状态",
+    "passed": true,
+    "evidence": "撤销后重新构造正式 dashboard"
+  },
+  {
+    "id": "retracted_context",
+    "label": "撤销的约定未进入后续模型请求",
+    "passed": true,
+    "evidence": "最后行动的 4 份实际请求；标记为紫铜罗盘"
+  },
+  {
+    "id": "retracted_recall",
+    "label": "撤销的约定不再被玩家检索",
+    "passed": true,
+    "evidence": "具体查询回包见 recall.json；需排除查询文本本身"
+  },
+  {
+    "id": "past_recall",
+    "label": "仍可查回早先原话",
+    "passed": true,
+    "evidence": "玩家正常 recall 入口"
+  },
+  {
+    "id": "host_secret_context",
+    "label": "主持层秘密未进入前台作者请求",
+    "passed": true,
+    "evidence": "15 份实际作者／正文请求"
+  },
+  {
+    "id": "unspoken_knowledge",
+    "label": "未说出口的猜想未写入 NPC 认知",
+    "passed": true,
+    "evidence": "仅检查实际认知事件；台词由人工另行审读"
+  },
+  {
+    "id": "foreign_private_knowledge",
+    "label": "白禾未获得只告诉阿岚的原话",
+    "passed": true,
+    "evidence": "后台存储检查，不等同于正文无语义泄漏"
+  },
+  {
+    "id": "offscreen_progress",
+    "label": "玩家留在枫桥时青山驿暗线仍推进",
+    "passed": true,
+    "evidence": {
+      "stage_idx": 0,
+      "status": null,
+      "last_advanced_day": 2
+    }
+  }
+]

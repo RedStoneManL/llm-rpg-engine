@@ -1,0 +1,12 @@
+{
+  "evidence": "untouched recorded response through ordinary dashboard; no new model generation",
+  "candidate_sha256": "9aacd00036c7eaf9815f14000422df2af5aa782420928f431ed80da9babcf9f2",
+  "before_errors": [
+    "player_fact_authority_boundary"
+  ],
+  "after_errors": [],
+  "published": true,
+  "stored_report": "她说若船契赶不上今天，整船人的货都要扣下",
+  "day": 2,
+  "stored_player_knowledge": "她说若船契赶不上今天，整船人的货都要扣下"
+}

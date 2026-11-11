@@ -1,0 +1,33 @@
+{
+  "index": 7,
+  "model": "gpt-6.1-terra",
+  "action": 7,
+  "request_sha256": "f46f5d2be3b62c70e81d985cfa60b3b9fd1143ebd519e2288c552387ecd20b24",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "summarize_scene",
+    "digest_fleet",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是一名剧情摘要员。把下面这一场景的全部原文压缩成一句话中文摘要。只输出 JSON，格式：{\"summary\": \"一句话摘要\"}"
+      },
+      {
+        "role": "user",
+        "content": "场景 s2 的原文如下：\n\n白禾摇摇头：「阿岚没托我带话。渡船的事，我听说只在上午通航；也只是听说，你最好再问问。」\n你在枫桥镇等过一夜。次日清晨，摊贩陆续摆开货物；一个背着包袱的女子急匆匆走来，叫住你：「你是来接船契的？货主们正等着它！」她凑近看清你的脸，蓦地一怔，连忙摇头：「抱歉，我认错人了。他也穿着一件这样的外衣。」她向人群张望，攥紧了包袱带。"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "model": "gpt-6.1-terra",
+  "selection_mechanism": "collaboration.spawn_agent explicit model argument",
+  "task_name": "/root/terra_dm_live",
+  "fork_turns": "none",
+  "role": "DM and engine-request responder",
+  "first_run_responses": 12,
+  "continuation_responses": 23,
+  "external_http_inference_calls": 0,
+  "api_reported_tokens": null,
+  "agent_access_contract": "Only current request messages and response mailbox; no campaign, scenario, test or review files"
+}

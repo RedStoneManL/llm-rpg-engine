@@ -1,0 +1,32 @@
+{
+  "index": 12,
+  "model": "gpt-6.1-terra",
+  "action": 8,
+  "request_sha256": "062e0e043724cb42ba0ab36d836b3a21a0a8356d42cdbb0f4f071b8cd695b787",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "run_catchup",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是 TRPG 世界引擎的角色/地点状态推演模块。\n一个被追踪的角色或地点离开镜头一段时间后，请推演它在此期间发生的变化。\n只输出一个 JSON 对象（不要任何散文/代码块）。\n对于角色：依据此人自己的资料推演 mood/arc/状态与 value。获知消息和作证需要独立的来源，本次只推演状态。\n对于地点：state（地点新状态，中文）和 populace_mood（民众情绪，可选，中文）。\nnote 字段简短描述变化原因。changed:false 表示实质未变（只是时间流逝）。"
+      },
+      {
+        "role": "user",
+        "content": "实体 id：alice\n类型：Person\n离开镜头已有 1 天。\n世界背景：该角色自身资料：{'sketch': '柳溪杂货商，做事稳妥，说话简短', 'goal': '照料杂货铺'}\n\n请推演「alice」在这 1 天内的变化。若有实质变化(changed:true)，给出相应字段；若无(changed:false)，直接输出 {\"changed\": false}。"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

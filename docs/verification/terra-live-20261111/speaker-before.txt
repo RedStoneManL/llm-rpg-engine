@@ -1,0 +1,75 @@
+FF.......                                                                [100%]
+=================================== FAILURES ===================================
+_ test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen[False] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-0/test_new_speaker_report_persis0')
+travel = False
+
+    @pytest.mark.parametrize('travel', [False, True])
+    def test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen(tmp_path, travel):
+        target = 'stonebridge_market' if travel else 'stonebridge_inn'
+        d = dashboard(tmp_path, candidate(target, travel))
+        try:
+>           result = d.action(player_input='我与眼前的信使交谈。', action_id='new-speaker', expected_revision=d.state()['revision'])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/app/test_same_turn_speaker.py:38:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/gui.py:711: in action
+    result = run_turn(
+loop/turn.py:1421: in run_turn
+    result = _run_turn_staged(registry, batch, world, scene, player_input,
+loop/turn.py:822: in _run_turn_staged
+    commit, attempts, dropped_sections = produce_turn(
+loop/turn.py:564: in produce_turn
+    reject_player_fact_authority_errors(errors)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+candidate_errors = [ValidationError(section='facts', field='[0].subject', code='player_fact_authority_boundary', hint='普通玩家回合不能为远端、隐藏或非当前公开人物写入 canonical 事实。')]
+
+    def reject_player_fact_authority_errors(candidate_errors):
+        if any(error.code == "player_fact_authority_boundary" for error in candidate_errors):
+            # A facts-only repair could retain prose that promoted an unseen
+            # canonical truth.  Reject rather than partially publishing it.
+>           raise TurnRejected("player fact lies outside the local public authority boundary")
+E           loop.turn.TurnRejected: player fact lies outside the local public authority boundary
+
+loop/turn.py:540: TurnRejected
+_ test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen[True] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-0/test_new_speaker_report_persis1')
+travel = True
+
+    @pytest.mark.parametrize('travel', [False, True])
+    def test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen(tmp_path, travel):
+        target = 'stonebridge_market' if travel else 'stonebridge_inn'
+        d = dashboard(tmp_path, candidate(target, travel))
+        try:
+>           result = d.action(player_input='我与眼前的信使交谈。', action_id='new-speaker', expected_revision=d.state()['revision'])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/app/test_same_turn_speaker.py:38:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/gui.py:711: in action
+    result = run_turn(
+loop/turn.py:1421: in run_turn
+    result = _run_turn_staged(registry, batch, world, scene, player_input,
+loop/turn.py:822: in _run_turn_staged
+    commit, attempts, dropped_sections = produce_turn(
+loop/turn.py:564: in produce_turn
+    reject_player_fact_authority_errors(errors)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+candidate_errors = [ValidationError(section='facts', field='[0].subject', code='player_fact_authority_boundary', hint='普通玩家回合不能为远端、隐藏或非当前公开人物写入 canonical 事实。')]
+
+    def reject_player_fact_authority_errors(candidate_errors):
+        if any(error.code == "player_fact_authority_boundary" for error in candidate_errors):
+            # A facts-only repair could retain prose that promoted an unseen
+            # canonical truth.  Reject rather than partially publishing it.
+>           raise TurnRejected("player fact lies outside the local public authority boundary")
+E           loop.turn.TurnRejected: player fact lies outside the local public authority boundary
+
+loop/turn.py:540: TurnRejected
+=========================== short test summary info ============================
+FAILED tests/app/test_same_turn_speaker.py::test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen[False]
+FAILED tests/app/test_same_turn_speaker.py::test_new_speaker_report_persists_at_current_or_arrival_and_survives_reopen[True]

@@ -1,0 +1,33 @@
+{
+  "index": 8,
+  "model": "gpt-6.1-terra",
+  "action": 7,
+  "request_sha256": "d8d75cf242eae2fbcdadc5a5ebbc62a79396f14700a31c706e31de67382086ea",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "jit_resequence",
+    "_run_demote_on_leave",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是一个 RPG 世界的剧情设计师。给定一条暗线的基本信息和当前世界状态，请为该暗线从【当前现实】续写一组新的推进阶段（stages），代表【如果无人干预，该暗线会按此轨迹自然演化】。\n输出 JSON，格式：{\"stages\": [{\"hint\": \"...\"}]}\n每条 hint 简短（20字以内），纯中文，描述世界侧的变化迹象，不是玩家动作。"
+      },
+      {
+        "role": "user",
+        "content": "暗线主题：枫桥菜摊搬迁\n隐情：None\n已知线索（clues_dropped）：菜贩把竹筐移到棚檐下\n当前世界摘要（day=2）：第2天；已有系统：ontology, place, character, object, faction, knowledge, director, cascade, time, narrative, scene, lore, codex, resources, challenge\n\n请续写该暗线从当前节点往后的默认走向（3-5个 stage），让暗骰能接着自走。只输出 JSON。"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

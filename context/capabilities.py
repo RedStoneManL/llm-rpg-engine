@@ -453,6 +453,8 @@ def player_turn_fact_errors(commit, world: dict, scene: dict) -> list[Validation
     actor, people = _ordinary_fact_subjects(world, scene)
     if actor is None:
         return []
+    from context.native_authoring import turn_speaker_material
+    people, _ = turn_speaker_material(world, scene, getattr(commit, "sections", {}) or {})
     errors: list[ValidationError] = []
     for index, item in enumerate((getattr(commit, "sections", {}) or {}).get("facts") or []):
         if not isinstance(item, dict):
@@ -484,6 +486,8 @@ def player_turn_fact_event_errors(events: list[dict], world: dict, scene: dict) 
     actor, people = _ordinary_fact_subjects(world, scene)
     if actor is None:
         return []
+    from context.native_authoring import attribution_sections_from_events, turn_speaker_material
+    people, _ = turn_speaker_material(world, scene, attribution_sections_from_events(events))
     errors: list[ValidationError] = []
     for index, event in enumerate(events):
         if not isinstance(event, dict) or event.get("retracted") or event.get("type") != "fact_asserted":

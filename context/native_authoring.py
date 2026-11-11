@@ -778,6 +778,46 @@ def _speaker_material(world: dict, scene: dict, *,
     return {p["id"] for p in people if isinstance(p.get("id"), str)}, supplied
 
 
+def turn_speaker_material(world, scene, sections):
+    """Shared report authority for people actually encountered in this turn.
+
+    A fresh public cast member needs an unambiguous local placement. Existing
+    people remain POV filtered, including conditional legal arrivals. The same
+    rule is evaluated again from the final materialized event payload.
+    """
+    from types import SimpleNamespace
+    from context.capabilities import player_turn_place_errors
+
+    graph = world.get('systems', {}).get('ontology')
+    moves = [m for m in sections.get('moves') or [] if isinstance(m, dict)]
+    actor_moves = [m for m in moves if m.get('who') == scene.get('protagonist')]
+    destinations = set(scene_capabilities(world, scene).allowed_move_ids)
+    if not player_turn_place_errors(SimpleNamespace(sections=sections), world, scene):
+        destinations.update(p['id'] for p in sections.get('places') or []
+                            if isinstance(p, dict) and isinstance(p.get('id'), str))
+    arrivals = frozenset(m['to'] for m in actor_moves
+                         if len(actor_moves) == 1 and isinstance(m.get('to'), str)
+                         and m['to'] in destinations)
+    present, supplied = _speaker_material(world, scene, arrival_destinations=arrivals)
+    placements = {}
+    for move in moves:
+        if isinstance(move.get('who'), str):
+            placements.setdefault(move['who'], []).append(move.get('to'))
+    casts = [c for c in sections.get('cast') or [] if isinstance(c, dict)]
+    for person in casts:
+        pid = person.get('id')
+        if (person.get('op', 'create') != 'create' or not isinstance(pid, str) or not pid
+                or graph is None or graph.get_entity(pid) is not None
+                or any(key in person for key in ('past', 'hidden'))
+                or not person.get('sketch') or not person.get('goal')
+                or sum(c.get('id') == pid for c in casts) != 1):
+            continue
+        targets = placements.get(pid, [])
+        if len(targets) == 1 and targets[0] in ({scene.get('location')} | set(arrivals)):
+            present.add(pid)
+    return present, supplied
+
+
 def npc_attribution_errors(world, scene, sections):
     """Check ordinary protagonist knowledge that names a specific NPC source.
 
@@ -813,11 +853,7 @@ def npc_attribution_errors(world, scene, sections):
                           '人物来源须用在场人物 ID；世界观察使用 observation，公开告示使用 public_notice。'))
     if not claims:
         return errors
-    moves = [row for row in sections.get('moves') or [] if isinstance(row, dict) and isinstance(row.get('to'), str)]
-    arrivals = frozenset(row['to'] for row in moves if row.get('who') == actor)
-    present, supplied = _speaker_material(world, scene, arrival_destinations=arrivals)
-    present.update(m['who'] for m in moves if isinstance(m.get('who'), str) and m['who'] in casts
-                   and (m['to'] == scene.get('location') or m['to'] in arrivals))
+    present, supplied = turn_speaker_material(world, scene, sections)
     reports = {(r.get('subject'), r.get('predicate')): r.get('value') for r in sections.get('facts') or []
                if isinstance(r, dict) and isinstance(r.get('subject'), str) and isinstance(r.get('predicate'), str)}
     for i, key, speaker, value in claims:
@@ -838,22 +874,31 @@ def npc_attribution_errors(world, scene, sections):
     return errors
 
 
-def npc_attribution_event_errors(world, scene, events):
-    """Recheck the speaker and value on the actual events about to publish."""
-    sections = {'cast': [], 'moves': [], 'facts': [], 'knowledge': []}
+def attribution_sections_from_events(events):
+    """Derive encounter declarations from payload, never trust the draft alone."""
+    sections = {'cast': [], 'moves': [], 'facts': [], 'knowledge': [], 'places': [], 'links': []}
     for event in events:
         if event.get('retracted'):
             continue
         delta = event.get('deltas') or {}
         if event['type'] == 'character_created':
             sections['cast'].append(delta)
+        elif event['type'] == 'place_created':
+            sections['places'].append(delta)
+        elif event['type'] == 'place_linked':
+            sections['links'].append(delta)
         elif event['type'] == 'entity_moved':
             sections['moves'].append(delta)
         elif event['type'] == 'fact_asserted':
             sections['facts'].append(delta)
         elif event['type'] == 'knowledge_set' and delta.get('source_kind') != 'player_statement':
             sections['knowledge'].append(delta)
-    return npc_attribution_errors(world, scene, sections)
+    return sections
+
+
+def npc_attribution_event_errors(world, scene, events):
+    """Recheck the speaker and value on the actual events about to publish."""
+    return npc_attribution_errors(world, scene, attribution_sections_from_events(events))
 
 
 def native_authoring_policy_errors(world: dict, scene: dict, commit, *,

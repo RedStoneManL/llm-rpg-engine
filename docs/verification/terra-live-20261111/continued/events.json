@@ -1,0 +1,2260 @@
+[
+  {
+    "seq": 1,
+    "id": "ev_6591966f5a6a",
+    "type": "character_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "protagonist",
+      "name": "旅人",
+      "sketch": "来柳溪探路的旅人",
+      "goal": "弄清渡船消息并继续旅行",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 2,
+    "id": "ev_3d0d6514e0c2",
+    "type": "place_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "a_square",
+      "level": 2,
+      "kind": "settlement",
+      "seed": "柳溪镇街口",
+      "label": "柳溪镇街口",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 3,
+    "id": "ev_efd5eeff13fc",
+    "type": "place_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "b_market",
+      "level": 2,
+      "kind": "settlement",
+      "seed": "枫桥镇集市",
+      "label": "枫桥镇集市",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 4,
+    "id": "ev_f40cf6c094b4",
+    "type": "place_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "c_hill",
+      "level": 2,
+      "kind": "settlement",
+      "seed": "青山驿",
+      "label": "青山驿",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 5,
+    "id": "ev_d7c0bbaa85c5",
+    "type": "place_linked",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "a": "a_square",
+      "b": "b_market",
+      "travel_cost": 1
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 6,
+    "id": "ev_56a2910f5341",
+    "type": "place_linked",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "a": "a_square",
+      "b": "c_hill",
+      "travel_cost": 1
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 7,
+    "id": "ev_3c51b9400c5c",
+    "type": "entity_moved",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "who": "protagonist",
+      "to": "a_square"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 8,
+    "id": "ev_156ac09564df",
+    "type": "character_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "alice",
+      "name": "阿岚",
+      "sketch": "柳溪杂货商，做事稳妥，说话简短",
+      "goal": "照料杂货铺",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 9,
+    "id": "ev_c960dad9d832",
+    "type": "entity_moved",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "who": "alice",
+      "to": "a_square"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 10,
+    "id": "ev_eaa883616581",
+    "type": "character_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "id": "bob",
+      "name": "白禾",
+      "sketch": "枫桥船工，对不确定的消息会留余地",
+      "goal": "照料渡船",
+      "tier": "tracked"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 11,
+    "id": "ev_c105dc02116e",
+    "type": "entity_moved",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "who": "bob",
+      "to": "b_market"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 12,
+    "id": "ev_8ebf041fb3af",
+    "type": "fact_asserted",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "subject": "a_square",
+      "predicate": "ferry_status",
+      "value": "今日公告说渡船停航",
+      "secrecy": "public"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 13,
+    "id": "ev_e0b118caa554",
+    "type": "fact_asserted",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "subject": "a_square",
+      "predicate": "hidden_cache",
+      "value": "紫晶钥匙藏在井底的双层陶罐里。",
+      "secrecy": "secret"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 14,
+    "id": "ev_bab1004ae7c8",
+    "type": "knowledge_set",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "knower": "alice",
+      "fact_key": "a_square.ferry_status",
+      "value": "旧告示说渡船全天通航",
+      "via": "旧告示"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 15,
+    "id": "ev_1f1d81161765",
+    "type": "knowledge_set",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "合成开局",
+    "deltas": {
+      "knower": "bob",
+      "fact_key": "a_square.ferry_status",
+      "value": "听说渡船只在上午通航",
+      "via": "传闻"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 16,
+    "id": "ev_c37553a75653",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:market",
+    "deltas": {
+      "id": "market",
+      "anchor": "b_market",
+      "l3_anchor": "b_market",
+      "about": "枫桥菜摊搬迁",
+      "description": "枫桥菜摊搬迁",
+      "stages": [
+        {
+          "hint": "菜贩把竹筐移到棚檐下"
+        },
+        {
+          "hint": "旧摊位留下空木架，新摊移到井边"
+        },
+        {
+          "hint": "井边新摊摆满青菜，旧棚开始拆卸"
+        }
+      ],
+      "complexity": "medium",
+      "cadence": "day",
+      "threshold": 100,
+      "lifespan_days": 30,
+      "trigger": "注意当地变化"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 17,
+    "id": "ev_6a9484dd7109",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:mail",
+    "deltas": {
+      "id": "mail",
+      "anchor": "c_hill",
+      "l3_anchor": "c_hill",
+      "about": "青山驿邮路调整",
+      "description": "青山驿邮路调整",
+      "stages": [
+        {
+          "hint": "驿站门边多了封口的信筒"
+        },
+        {
+          "hint": "驿站门前贴出临时收信时刻"
+        },
+        {
+          "hint": "驿站有人装好邮袋准备启程"
+        }
+      ],
+      "complexity": "medium",
+      "cadence": "day",
+      "threshold": 100,
+      "lifespan_days": 30,
+      "trigger": "注意当地变化"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 0,
+    "retracted": false
+  },
+  {
+    "seq": 18,
+    "id": "ev_c49ba7e8e1f9",
+    "type": "fact_asserted",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "alice.reported:渡船消息=旧告示说渡船全天通航",
+    "deltas": {
+      "subject": "alice",
+      "predicate": "reported:渡船消息",
+      "value": "旧告示说渡船全天通航",
+      "secrecy": "public"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 19,
+    "id": "ev_7ab8f9ec9c77",
+    "type": "knowledge_set",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 alice.reported:渡船消息",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "alice.reported:渡船消息",
+      "value": "旧告示说渡船全天通航",
+      "via": "alice"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 20,
+    "id": "ev_d8641550dd8c",
+    "type": "clock_advanced",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：同一段简短交谈，仍在早晨",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "同一段简短交谈，仍在早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 21,
+    "id": "ev_124667e776f4",
+    "type": "narration_recorded",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "a_square",
+      "text": "阿岚答道：「我看过旧告示，上面说渡船全天通航。消息是从那张告示来的；如今是否仍是这样，我不敢说。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 22,
+    "id": "ev_a57163ff0cad",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_a_square_d4ef0366",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_a_square_d4ef0366",
+      "complexity": "medium",
+      "anchor": "a_square",
+      "threshold": 50,
+      "about": "街口的渡船告示上有新旧不一的墨迹。",
+      "description": "追查渡船告示为何被改写。",
+      "trigger": "玩家查看街口渡船告示上的字迹。",
+      "secret": "一位船夫改写时刻以便抽空修补漏水的船底，尚未告知镇民。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "告示的时刻旁有一道较新的笔画。"
+        },
+        {
+          "hint": "纸背压着一小片沾了船漆的木屑。"
+        },
+        {
+          "hint": "船夫留下的修船清单与改写的时刻相吻合。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 23,
+    "id": "ev_fe8bb035d49b",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_a_square_f41506c0",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_a_square_f41506c0",
+      "complexity": "simple",
+      "anchor": "a_square",
+      "threshold": 50,
+      "about": "街口石阶上每日都多出一束野花。",
+      "description": "查明无名花束的来历。",
+      "trigger": "玩家留意花束或询问附近居民。",
+      "secret": "一名搬走的孩子悄悄托人给故友送花，却不知故友已经离镇。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "花束的绳结里夹着半张写有名字的纸。"
+        },
+        {
+          "hint": "送花的人保存着孩子写给故友的信。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 24,
+    "id": "ev_5b65ab96cffe",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_a_square_bf8f5176",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_a_square_bf8f5176",
+      "complexity": "simple",
+      "anchor": "a_square",
+      "threshold": 50,
+      "about": "街口的借水木桶近来总在清晨空着。",
+      "description": "调查公共水桶为何反复见底。",
+      "trigger": "玩家守候水桶或查看周围痕迹。",
+      "secret": "附近新搬来的陶工夜里取水试制陶泥，不知这是供路人饮用的水。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "桶沿留着细小的灰色泥点。"
+        },
+        {
+          "hint": "一串沾泥的水滴通向陶工工作的院门。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 25,
+    "id": "ev_47af4825ebaa",
+    "type": "lore_seeded",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "density seeded: a_square (3 lines)",
+    "deltas": {
+      "town": "a_square"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 1,
+    "retracted": false
+  },
+  {
+    "seq": 26,
+    "id": "ev_c30b5fe06066",
+    "type": "knowledge_set",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "alice 听到 protagonist 的陈述",
+    "deltas": {
+      "knower": "alice",
+      "fact_key": "protagonist.reported_player_statement:96aed3f222e2f279f220",
+      "value": "青竹铃铛明晨响四次。",
+      "via": "protagonist",
+      "source_kind": "player_statement"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 2,
+    "retracted": false
+  },
+  {
+    "seq": 27,
+    "id": "ev_fcc8210bbcb3",
+    "type": "clock_advanced",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：简短交谈仍在早晨",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "简短交谈仍在早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 2,
+    "retracted": false
+  },
+  {
+    "seq": 28,
+    "id": "ev_2554d699b034",
+    "type": "narration_recorded",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "a_square",
+      "text": "你对阿岚说：「青竹铃铛明晨响四次。」\n\n阿岚看了你一眼，停了停，问：「这是要我转告谁吗？」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 2,
+    "retracted": false
+  },
+  {
+    "seq": 29,
+    "id": "ev_fdfbd617090e",
+    "type": "entity_moved",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 移动至 b_market",
+    "deltas": {
+      "who": "protagonist",
+      "to": "b_market"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 30,
+    "id": "ev_571c013128fc",
+    "type": "clock_advanced",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "时间 +0天1段：沿路前往相邻集市，抵达时已到中午",
+    "deltas": {
+      "advance": true,
+      "days": 0,
+      "bands": 1,
+      "reason": "沿路前往相邻集市，抵达时已到中午"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 31,
+    "id": "ev_3a79f1136585",
+    "type": "narration_recorded",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "a_square",
+      "text": "你告别阿岚，沿路走向枫桥镇集市。待你走到集市，摊贩的叫卖声已在街上响起。"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 32,
+    "id": "ev_be52c78cc1ce",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_b_market_b44c0dbd",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_b_market_b44c0dbd",
+      "complexity": "medium",
+      "anchor": "b_market",
+      "threshold": 50,
+      "about": "集市的公秤旁常有人争论铜钱数目。",
+      "description": "弄清公秤为何屡屡惹出争执。",
+      "trigger": "玩家旁观称货或检查公秤。",
+      "secret": "秤砣的木塞松脱，每次移动时内部配重都会偏移。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "秤砣摇动时隐约作响。"
+        },
+        {
+          "hint": "秤砣底部木塞边有磨损。"
+        },
+        {
+          "hint": "打开木塞后，散落的配重暴露出来。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 33,
+    "id": "ev_ccfd3de76b51",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_b_market_2080ecc7",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_b_market_2080ecc7",
+      "complexity": "simple",
+      "anchor": "b_market",
+      "threshold": 50,
+      "about": "集市里一只空鸟笼每天都被擦得干干净净。",
+      "description": "寻找空鸟笼的主人。",
+      "trigger": "玩家询问鸟笼或留意谁来照看。",
+      "secret": "一名少年替受伤的邻居照看鸟笼，盼着他康复后一起放生养好的鸟。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "笼底放着折好的草叶和一张药方。"
+        },
+        {
+          "hint": "擦笼的少年说起邻居养伤的事。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 34,
+    "id": "ev_cc6e23935746",
+    "type": "lore_created",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线生成:gen_b_market_3dc0fa10",
+    "deltas": {
+      "cadence": "day",
+      "id": "gen_b_market_3dc0fa10",
+      "complexity": "simple",
+      "anchor": "b_market",
+      "threshold": 50,
+      "about": "布摊的几卷布上出现相同的蓝色印记。",
+      "description": "调查布匹上的蓝色印记。",
+      "trigger": "玩家查看印记或向布商打听。",
+      "secret": "染坊学徒用错误的印章标记了未洗净的布，担心受责一直没说。",
+      "l3_anchor": "(none specified)",
+      "stages": [
+        {
+          "hint": "印记遇水后在布面晕开。"
+        },
+        {
+          "hint": "学徒的工具包里有同样花纹的印章。"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 35,
+    "id": "ev_5e404040aa39",
+    "type": "lore_seeded",
+    "day": 1,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "density seeded: b_market (3 lines)",
+    "deltas": {
+      "town": "b_market"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 36,
+    "id": "ev_e792fbf2e92a",
+    "type": "scene_advanced",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "场景推进→s2",
+    "deltas": {
+      "scene_id": "s2",
+      "scene_no": 2,
+      "location": "b_market",
+      "day": 1
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 3,
+    "retracted": false
+  },
+  {
+    "seq": 37,
+    "id": "ev_f9e94df99b4c",
+    "type": "fact_asserted",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "bob.reported:渡船消息=听说渡船只在上午通航",
+    "deltas": {
+      "subject": "bob",
+      "predicate": "reported:渡船消息",
+      "value": "听说渡船只在上午通航",
+      "secrecy": "public"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 38,
+    "id": "ev_536f427e6e51",
+    "type": "knowledge_set",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 bob.reported:渡船消息",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "bob.reported:渡船消息",
+      "value": "听说渡船只在上午通航",
+      "via": "bob"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 39,
+    "id": "ev_5bbb8624f13f",
+    "type": "clock_advanced",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：简短交谈仍在中午",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "简短交谈仍在中午"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 40,
+    "id": "ev_cb1c13d1c34f",
+    "type": "narration_recorded",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s2",
+      "text": "白禾摇摇头：「阿岚没托我带话。渡船的事，我听说只在上午通航；也只是听说，你最好再问问。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 41,
+    "id": "ev_bf7e04ec2c7b",
+    "type": "oracle_roll",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗骰 roll=0.24 prob=0.36",
+    "deltas": {
+      "prob": 0.36,
+      "roll": 0.24,
+      "scene_ordinal": 2,
+      "campaign_seed": 0
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 42,
+    "id": "ev_f13fcfc143b8",
+    "type": "director_fired",
+    "day": 1,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "突发:人物（认错人）",
+    "deltas": {
+      "type": "front_stage",
+      "magnitude": "big",
+      "valence": null,
+      "event_type": "人物",
+      "event_hint": "偶遇NPC/旧识登场/触发支线",
+      "twist": "认错人",
+      "twist_hint": "对象其实是别人/误会"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 4,
+    "retracted": false
+  },
+  {
+    "seq": 43,
+    "id": "ev_83df1c2cbdd2",
+    "type": "entity_moved",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "courier_tang 移动至 b_market",
+    "deltas": {
+      "who": "courier_tang",
+      "to": "b_market"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 44,
+    "id": "ev_96bf4049dc71",
+    "type": "character_created",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "courier_tang 登场",
+    "deltas": {
+      "op": "create",
+      "id": "courier_tang",
+      "name": "小棠",
+      "sketch": "背着包袱的年轻信使，神色焦急",
+      "goal": "找到接船契的人"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 45,
+    "id": "ev_12e15742b3df",
+    "type": "knowledge_set",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 courier_tang.reported:船契",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "courier_tang.reported:船契",
+      "value": "她说货主们正等着船契，她在找接船契的人",
+      "via": "courier_tang"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 46,
+    "id": "ev_e0cc6f48a94b",
+    "type": "clock_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "时间 +0天3段：从第一天中午等到第二天早晨",
+    "deltas": {
+      "advance": true,
+      "days": 0,
+      "bands": 3,
+      "reason": "从第一天中午等到第二天早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 47,
+    "id": "ev_9098313e2e1d",
+    "type": "narration_recorded",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s2",
+      "text": "你在枫桥镇等过一夜。次日清晨，摊贩陆续摆开货物；一个背着包袱的女子急匆匆走来，叫住你：「你是来接船契的？货主们正等着它！」她凑近看清你的脸，蓦地一怔，连忙摇头：「抱歉，我认错人了。他也穿着一件这样的外衣。」她向人群张望，攥紧了包袱带。"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 48,
+    "id": "ev_61b8f0e90456",
+    "type": "directive_consumed",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "导演提示已呈现",
+    "deltas": {
+      "source_event_id": "ev_f13fcfc143b8"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 49,
+    "id": "ev_051e37ebfc32",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:market→stage0",
+    "deltas": {
+      "id": "market",
+      "stage_idx": 0,
+      "hint": "菜贩把竹筐移到棚檐下",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 50,
+    "id": "ev_e50d20d4a61c",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:mail→stage0",
+    "deltas": {
+      "id": "mail",
+      "stage_idx": 0,
+      "hint": "驿站门边多了封口的信筒",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 51,
+    "id": "ev_a60f79b88824",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_a_square_d4ef0366→stage0",
+    "deltas": {
+      "id": "gen_a_square_d4ef0366",
+      "stage_idx": 0,
+      "hint": "告示的时刻旁有一道较新的笔画。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 52,
+    "id": "ev_cef933144211",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_a_square_bf8f5176→stage0",
+    "deltas": {
+      "id": "gen_a_square_bf8f5176",
+      "stage_idx": 0,
+      "hint": "桶沿留着细小的灰色泥点。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 53,
+    "id": "ev_0a5a253de2b2",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_b_market_b44c0dbd→stage0",
+    "deltas": {
+      "id": "gen_b_market_b44c0dbd",
+      "stage_idx": 0,
+      "hint": "秤砣摇动时隐约作响。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 54,
+    "id": "ev_c6bebd7215e3",
+    "type": "lore_advanced",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_b_market_3dc0fa10→stage0",
+    "deltas": {
+      "id": "gen_b_market_3dc0fa10",
+      "stage_idx": 0,
+      "hint": "印记遇水后在布面晕开。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 55,
+    "id": "ev_3fa54732500c",
+    "type": "scene_advanced",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "场景推进→s3",
+    "deltas": {
+      "scene_id": "s3",
+      "scene_no": 3,
+      "location": "b_market",
+      "day": 2
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 5,
+    "retracted": false
+  },
+  {
+    "seq": 56,
+    "id": "ev_019673f92281",
+    "type": "entity_moved",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "vegetable_seller 移动至 b_market",
+    "deltas": {
+      "who": "vegetable_seller",
+      "to": "b_market"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 57,
+    "id": "ev_97c762cbfbc5",
+    "type": "character_created",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "vegetable_seller 登场",
+    "deltas": {
+      "op": "create",
+      "id": "vegetable_seller",
+      "sketch": "正在棚檐下摆放竹筐的菜贩",
+      "goal": "安置菜筐并继续卖菜"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 58,
+    "id": "ev_e16353b14fd1",
+    "type": "knowledge_set",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 vegetable_seller.reported:买菜",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "vegetable_seller.reported:买菜",
+      "value": "菜还卖，但需等菜筐摆好",
+      "via": "vegetable_seller"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 59,
+    "id": "ev_8c77d529ee3c",
+    "type": "quest_surfaced",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "surface market",
+    "deltas": {
+      "id": "market",
+      "summary": "菜贩将竹筐移到棚檐下，正在安置菜摊。"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 60,
+    "id": "ev_836ac2e6ac06",
+    "type": "clock_advanced",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：走近菜摊并简短交谈，仍是早晨",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "走近菜摊并简短交谈，仍是早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 61,
+    "id": "ev_328b3d3338c3",
+    "type": "narration_recorded",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s3",
+      "text": "你走近棚檐下的菜摊，问搬动竹筐会不会耽误今日买菜。摊主扶稳筐沿，答道：「菜还卖，只是正挪地方，得等我把筐摆好。若你不急，帮我看着这筐，别让人碰翻就好。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 62,
+    "id": "ev_e029251c9692",
+    "type": "scene_summarized",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "scene summary: a_square",
+    "deltas": {
+      "scene": "a_square",
+      "summary": "阿岚称旧告示说渡船全天通航但不确定现况，主角告诉她「青竹铃铛明晨响四次」，她询问是否要转告谁，随后主角前往枫桥镇集市。",
+      "source": {
+        "version": 1,
+        "bucket_id": "ev_124667e776f4",
+        "event_ids": [
+          "ev_124667e776f4",
+          "ev_2554d699b034",
+          "ev_3a79f1136585"
+        ],
+        "sha256": "41e60b1fe889567e595874c5c6ab7f756eb20a2fed3ab2485842fbd6ca73033a"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 63,
+    "id": "ev_1644f24c678f",
+    "type": "oracle_roll",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "暗骰 roll=0.08 prob=0.36",
+    "deltas": {
+      "prob": 0.36,
+      "roll": 0.08,
+      "scene_ordinal": 4,
+      "campaign_seed": 0
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 64,
+    "id": "ev_2365d23a8fee",
+    "type": "director_fired",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "突发:羁绊（认错人）",
+    "deltas": {
+      "type": "front_stage",
+      "magnitude": "small",
+      "valence": null,
+      "event_type": "羁绊",
+      "event_hint": "同伴的私事/关系推进/情感时刻",
+      "twist": "认错人",
+      "twist_hint": "对象其实是别人/误会"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 6,
+    "retracted": false
+  },
+  {
+    "seq": 65,
+    "id": "ev_3142212cbafc",
+    "type": "entity_moved",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 移动至 a_square",
+    "deltas": {
+      "who": "protagonist",
+      "to": "a_square"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 66,
+    "id": "ev_2535389aae1b",
+    "type": "clock_advanced",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "时间 +0天1段：沿路返回相邻街口，抵达时已近中午",
+    "deltas": {
+      "advance": true,
+      "days": 0,
+      "bands": 1,
+      "reason": "沿路返回相邻街口，抵达时已近中午"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 67,
+    "id": "ev_8be19aca026c",
+    "type": "narration_recorded",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "a_square",
+      "text": "你离开集市，沿来路返回柳溪镇街口。到时已近中午，阿岚抬头看见你，先是一喜：「你回来得正好，我还以为是——」她看清你，话音顿住，笑了笑，「抱歉，认错人了。方才想起一位旧相识。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 68,
+    "id": "ev_cf6b059e04b0",
+    "type": "scene_summarized",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "scene summary: s2",
+    "deltas": {
+      "scene": "s2",
+      "summary": "白禾说阿岚没托他带话，渡船只在上午通航只是听说；主角在枫桥镇等过一夜，次晨一名找接船契者的女子将主角认错后道歉。",
+      "source": {
+        "version": 1,
+        "bucket_id": "ev_cb1c13d1c34f",
+        "event_ids": [
+          "ev_cb1c13d1c34f",
+          "ev_9098313e2e1d"
+        ],
+        "sha256": "9f9367a024408ae238876d9fd1f58b84230d15a14f364c4ba0d5ac4e06651d69"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 69,
+    "id": "ev_c310f38d6bbf",
+    "type": "directive_consumed",
+    "day": 2,
+    "scene": "s2",
+    "arc": null,
+    "actors": [],
+    "summary": "导演提示已呈现",
+    "deltas": {
+      "source_event_id": "ev_2365d23a8fee"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 70,
+    "id": "ev_1659784b0837",
+    "type": "quest_demoted",
+    "day": 2,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "明线降格:market (离开 anchor=b_market)",
+    "deltas": {
+      "id": "market",
+      "new_stages": [
+        {
+          "hint": "棚檐下的菜筐逐渐摆齐"
+        },
+        {
+          "hint": "顾客开始在新位置挑菜"
+        },
+        {
+          "hint": "旧摊位上的杂物被收走"
+        },
+        {
+          "hint": "新摊位重新响起叫卖声"
+        }
+      ]
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 71,
+    "id": "ev_974015102822",
+    "type": "scene_advanced",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "场景推进→s4",
+    "deltas": {
+      "scene_id": "s4",
+      "scene_no": 4,
+      "location": "a_square",
+      "day": 2
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 7,
+    "retracted": false
+  },
+  {
+    "seq": 72,
+    "id": "ev_e4a1a841387f",
+    "type": "fact_asserted",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "alice.reported:是否转告=她说没有把那句话告诉别人",
+    "deltas": {
+      "subject": "alice",
+      "predicate": "reported:是否转告",
+      "value": "她说没有把那句话告诉别人",
+      "secrecy": "public"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 73,
+    "id": "ev_d04c30f7a8c1",
+    "type": "knowledge_set",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 alice.reported:是否转告",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "alice.reported:是否转告",
+      "value": "她说没有把那句话告诉别人",
+      "via": "alice"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 74,
+    "id": "ev_1614e9c0992c",
+    "type": "clock_advanced",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：简短交谈仍在中午",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "简短交谈仍在中午"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 75,
+    "id": "ev_1b68fa887170",
+    "type": "narration_recorded",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s4",
+      "text": "阿岚点头，低声重复：「青竹铃铛明晨响四次。」她摇摇头：「你没说要转告谁，我没有告诉别人。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 76,
+    "id": "ev_ed24f942a3b6",
+    "type": "scene_summarized",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "scene summary: s3",
+    "deltas": {
+      "scene": "s3",
+      "summary": "主角询问搬摊是否耽误买菜，菜贩说还卖但需摆好竹筐，并请主角帮忙看着筐。",
+      "source": {
+        "version": 1,
+        "bucket_id": "ev_328b3d3338c3",
+        "event_ids": [
+          "ev_328b3d3338c3"
+        ],
+        "sha256": "c7e8252ae38633380c9dd3a11a7afbbd2c65c3aa653961a9178a95a0f9301497"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 77,
+    "id": "ev_200b6f90a1c9",
+    "type": "oracle_roll",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "暗骰 roll=0.24 prob=0.48",
+    "deltas": {
+      "prob": 0.48,
+      "roll": 0.24,
+      "scene_ordinal": 8,
+      "campaign_seed": 0
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 78,
+    "id": "ev_d04faf4ab75a",
+    "type": "thread_open",
+    "day": 2,
+    "scene": "s3",
+    "arc": null,
+    "actors": [],
+    "summary": "休眠暗线:情之羁绊",
+    "deltas": {
+      "id": "th_1_情感线",
+      "status": "活跃",
+      "speed": "中",
+      "dormant": true,
+      "trait": "天真烂漫",
+      "archetype": "情之羁绊",
+      "event_type": "情感线",
+      "beats": [
+        "一个欲言又止的眼神",
+        "一段关系的质变"
+      ],
+      "last_advanced_scene": "s3"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 79,
+    "id": "ev_510d8dc4525d",
+    "type": "time_advanced",
+    "day": 2,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "alice currency",
+    "deltas": {
+      "id": "alice",
+      "to_day": 2,
+      "reason": "catchup-noop"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 8,
+    "retracted": false
+  },
+  {
+    "seq": 80,
+    "id": "ev_3f373d18eefa",
+    "type": "world_change",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "清晨街口渐有行人，通往青山驿方向的近处路面可见。",
+    "deltas": {
+      "place": "a_square",
+      "level": 1,
+      "summary": "清晨街口渐有行人，通往青山驿方向的近处路面可见。",
+      "source": "author_world",
+      "visibility": "public",
+      "public_observation": true,
+      "observation_kind": "single_observation",
+      "observation_range": "街口及近处路面",
+      "observer": "protagonist"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 81,
+    "id": "ev_39c2b60ebcf3",
+    "type": "clock_advanced",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "时间 +0天3段：从第二天中午休息到第三天早晨",
+    "deltas": {
+      "advance": true,
+      "days": 0,
+      "bands": 3,
+      "reason": "从第二天中午休息到第三天早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 82,
+    "id": "ev_5d5cfae368a3",
+    "type": "narration_recorded",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s4",
+      "text": "你在柳溪镇歇过一夜。次日清晨，街口渐渐有了行人；你望向通往青山驿的方向，晨光下只见近处路面，并不能从这里看清远处的情形。"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 83,
+    "id": "ev_87b4e768dad7",
+    "type": "lore_advanced",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:market→stage0",
+    "deltas": {
+      "id": "market",
+      "stage_idx": 0,
+      "hint": "棚檐下的菜筐逐渐摆齐",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 84,
+    "id": "ev_83069554704a",
+    "type": "lore_advanced",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:mail→stage1",
+    "deltas": {
+      "id": "mail",
+      "stage_idx": 1,
+      "hint": "驿站门前贴出临时收信时刻",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 85,
+    "id": "ev_8af48982db3c",
+    "type": "lore_advanced",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_a_square_f41506c0→stage0",
+    "deltas": {
+      "id": "gen_a_square_f41506c0",
+      "stage_idx": 0,
+      "hint": "花束的绳结里夹着半张写有名字的纸。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 86,
+    "id": "ev_78c47b0c8949",
+    "type": "lore_advanced",
+    "day": 3,
+    "scene": "s4",
+    "arc": null,
+    "actors": [],
+    "summary": "暗线推进:gen_b_market_2080ecc7→stage0",
+    "deltas": {
+      "id": "gen_b_market_2080ecc7",
+      "stage_idx": 0,
+      "hint": "笼底放着折好的草叶和一张药方。",
+      "cadence": "world_day"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 87,
+    "id": "ev_d4966ffa40a6",
+    "type": "scene_advanced",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "场景推进→s5",
+    "deltas": {
+      "scene_id": "s5",
+      "scene_no": 5,
+      "location": "a_square",
+      "day": 3
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 9,
+    "retracted": false
+  },
+  {
+    "seq": 88,
+    "id": "ev_c8f42ea81f5d",
+    "type": "knowledge_set",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "alice 听到 protagonist 的陈述",
+    "deltas": {
+      "knower": "alice",
+      "fact_key": "protagonist.reported_player_statement:a5ba62834e7c785ca070",
+      "value": "明晚在西钟楼见面，带上紫铜罗盘。",
+      "via": "protagonist",
+      "source_kind": "player_statement"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": true
+  },
+  {
+    "seq": 89,
+    "id": "ev_e6125e721b5c",
+    "type": "clock_advanced",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：简短交谈仍在早晨",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "简短交谈仍在早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": true
+  },
+  {
+    "seq": 90,
+    "id": "ev_0dc8caf23fd9",
+    "type": "narration_recorded",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s5",
+      "text": "你对阿岚说：「明晚在西钟楼见面，带上紫铜罗盘。」\n\n阿岚听完，抬眼看着你：「这是要我去赴约吗？」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": true
+  },
+  {
+    "seq": 91,
+    "id": "ev_c8ad5adc8115",
+    "type": "scene_summarized",
+    "day": 3,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "scene summary: a_square",
+    "deltas": {
+      "scene": "a_square",
+      "summary": "主角中午返回柳溪镇街口，阿岚起初将主角认作旧相识，随即道歉。",
+      "source": {
+        "version": 1,
+        "bucket_id": "ev_8be19aca026c",
+        "event_ids": [
+          "ev_8be19aca026c"
+        ],
+        "sha256": "ca9433b71319ed0cfdb23e9ade1df2d23c221088efe738c4f39799e7f34e6aca"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": true
+  },
+  {
+    "seq": 92,
+    "id": "ev_2e8f68c89fd2",
+    "type": "fact_asserted",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "alice.reported:见面约定=她不记得定过见面的时间和地点",
+    "deltas": {
+      "subject": "alice",
+      "predicate": "reported:见面约定",
+      "value": "她不记得定过见面的时间和地点",
+      "secrecy": "public"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": false
+  },
+  {
+    "seq": 93,
+    "id": "ev_0a88b36f66c4",
+    "type": "knowledge_set",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "protagonist 得知 alice.reported:见面约定",
+    "deltas": {
+      "knower": "protagonist",
+      "fact_key": "alice.reported:见面约定",
+      "value": "她不记得定过见面的时间和地点",
+      "via": "alice"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": false
+  },
+  {
+    "seq": 94,
+    "id": "ev_221bc25f3c53",
+    "type": "clock_advanced",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "时间未推进：简短交谈仍在早晨",
+    "deltas": {
+      "advance": false,
+      "days": 0,
+      "bands": 0,
+      "reason": "简短交谈仍在早晨"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": false
+  },
+  {
+    "seq": 95,
+    "id": "ev_383214a7ab88",
+    "type": "narration_recorded",
+    "day": 3,
+    "scene": "s5",
+    "arc": null,
+    "actors": [],
+    "summary": "narration recorded",
+    "deltas": {
+      "scene": "s5",
+      "text": "阿岚想了想，摇头道：「我记得你说过铃铛那句话，不记得我们定过见面的时辰和地方。既然你说先不约，那就先不约。」"
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": false
+  },
+  {
+    "seq": 96,
+    "id": "ev_4f78dd9b899d",
+    "type": "scene_summarized",
+    "day": 3,
+    "scene": "a_square",
+    "arc": null,
+    "actors": [],
+    "summary": "scene summary: a_square",
+    "deltas": {
+      "scene": "a_square",
+      "summary": "主角中午返回柳溪镇街口，阿岚起初将主角认作旧相识，随即道歉。",
+      "source": {
+        "version": 1,
+        "bucket_id": "ev_8be19aca026c",
+        "event_ids": [
+          "ev_8be19aca026c"
+        ],
+        "sha256": "ca9433b71319ed0cfdb23e9ade1df2d23c221088efe738c4f39799e7f34e6aca"
+      }
+    },
+    "thread_refs": [],
+    "chunk_ids": [],
+    "secrecy": null,
+    "roll": null,
+    "turn": 10,
+    "retracted": false
+  }
+]

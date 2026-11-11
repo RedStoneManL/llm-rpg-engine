@@ -1,0 +1,242 @@
+{
+  "index": 13,
+  "model": "gpt-6.1-terra",
+  "action": 9,
+  "request_sha256": "b195b46dcc3714265c4e771940fe9c120d3279ed4a90294dad61ce266c27ffa4",
+  "call_path": [
+    "<lambda>",
+    "_run_tool_loop",
+    "complete_with_tools",
+    "json_call",
+    "produce",
+    "produce_turn",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是主持人（DM），以主角视角叙事，同时记录世界变化。\n\n【narration 文风】推进为主，适度氛围；不要长篇铺陈。具体可感、不空泛；展示而非告知；推进局面但绝不替玩家决定下一步；严守保密事实，绝不在 narration 中直接揭露。\n\n【输出格式】返回**一个 JSON 对象**；下列每段都显式标了【必填】或【可选】，照此输出（文末另有一个完整范例，照抄它的结构）：\n- 【必填】narration：字符串，本回合面向玩家的叙事散文。\n- 【必填】moves：[{\"who\":移动的实体id, \"to\":目标地点id}]——主角每次行动只走一段，到达日由 clock 决定。谁移动到哪。首次在现场出现的新人物也要在这里记录出现地点，即使玩家和人物都站着没走。\n- 【必填】places：[{\"id\":..., \"level\":1|2|3, \"kind\":settlement|wilderness|dungeon|venue|region, \"seed\":一句话描述, \"visibility\":\"public\"}]——本回合**新出现**的地点；**没有 → 给 []**；普通玩家只能创建全新 public 前沿地点。若创建，必须在可选 links 段用恰好一条 public 边把它直连 action-start 当前位置；不得修改既有地点拓扑或实体化既有地点。\n- 【必填】cast：[{\"id\":..., \"op\":\"create\"|\"evolve\", \"sketch\":..., \"goal\":..., \"name\":可选}]——可创建全新的公开 NPC（不得复用任何既有 id，也不写 past/hidden）；对既有角色只可更新主角或当前公开在场人物的可观察 ``mood``/``state``。主角对当前公开人物的关系变化可用 op=relationship；**没有 → 给 []**。不得演化远方、隐藏或未发现角色，不能为普通玩家回合直接写其秘密、目标或全局关系。\n- 【必填】facts：[{\"subject\":实体id, \"predicate\":属性名, \"value\":值, \"secrecy\":\"public\"}]——普通玩家回合只可写主角自身的公开事实，或当前公开在场人物的 ``reported:主题`` 来源陈述；**没有 → 给 []**。局部地形/物理所见请用下方带 public_observation 的 world 段；不得为远方、隐藏地点、物品或 NPC 断言 canonical 真相，更不能写 restricted/secret。**同一事物用一条 fact 说清，别拆成多条近义事实灌水**。\n- 【必填】clock：[{\"advance\":true/false, \"days\":整天数, \"bands\":时段数, \"reason\":\"为什么\"}]（**恰好一个元素，永不为空**）——一天分四段（晨→中午→下午→夜晚），days=过了几整天、bands=【跨过了几个时段】（只在时段名真正切换时才计一段，可>3，引擎自动进位）；reason 必填。诀窍：先想清动作结束时落在哪个时段，再据此给 days/bands。同一时段内的细碎动作（几分钟、一次交谈、拂晓动手随即脱身）不构成推进，给 {\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"...\"}。\n- 【可选】entities / relations：普通玩家回合不要输出这两段（省略即可）；通用实体和关系图属于宿主/导演或已受约束的地点、物品系统，不能借此改写远方或隐藏拓扑。\n- 【可选】factions：普通玩家回合不要输出本段；势力创建、成员、位阶与群组会改变长期 canonical 组织关系，属于宿主/导演或导入历史权限。\n- 【可选】links / materialize：普通玩家通常省略。仅新建 places 时，links 可给一条 `{ \"a\":\"当前位置 id\", \"b\":\"新地点 id\", \"visibility\":\"public\" }`；materialize 始终不得输出。不得移动既有人物；同回合新建公开人物只能放在当前位置或主角的同回合目的地。\n- 【可选】items：普通玩家回合只可用 `[{\"op\":\"transfer\",\"item\":\"主角当前背包物品 id\",\"to\":\"当前公开人物 id 或当前位置 id\"}]` 交接已持有物品；没有物品交接就省略。按顺序核对每一步持有人；自己放在此处的物品可用 transfer 转回主角，不能取走其他人物的东西。\n- 【可选】knowledge：记录\"谁知道了什么\"——详见下【信息视野】\n- 【可选】world：主角本回合在本地公开范围内的地点观察——详见下【本地公开观察】\n- 【可选】quests：任务的开启/浮现/推进/收束——详见下【任务系统】\n\n\n【铁律】上面 6 个【必填】段每回合都必须出现：narration 给散文、clock 给恰好一个元素、moves/places/cast/facts **没有该类变化就给 []（空数组）**。条目**要么字段齐全、要么根本别放**——宁可给 [] 也别塞一个缺字段的半成品（缺字段会被打回、拖慢一整局）。【可选】段没有就直接省略、不要硬凑。\n\n【人物连续性】当前角色卡的状态、心情和有方向的关系是本次互动的起点。已经收剑、受伤或等答复的人不能无缘由恢复初见状态；只有本回合实际变化才用 cast.evolve 更新 mood/state，不要每轮重置。卡上的“主角对其态度”不等于对方信任主角。先回应玩家这次行动，再通过人物反应和可回应的后果自然推进，不必每回合制造突发事件。\n\n【信息视野·knowledge】本引擎追踪\"谁知道什么\",并据此决定下回合对主角【保密 / 可见】。普通玩家回合中，通用 told 只可写给 protagonist：凡主角刚【得知/亲历】的事(包括关于他自己的发现),只写进 facts 是不够的——必须同时在 knowledge 里给 protagonist 记一条 told;否则引擎不知道主角已经知道,下回合他等于\"失忆\"、POV 工具也查不到。NPC 获知主角的原话只能使用宿主已明确签发的 heard_player receipt；不得把玩家自由行动文字改写为 NPC 的 told、endowment、broadcast 或 knows: fact。NPC 独立来源的既有知识由宿主/导演/导入历史管理，不在普通玩家作者回合中补写。\n- 写每个 NPC 的台词时，只采用他自己的经历、现场可观察的事、归在他名下的材料和他实际收到的通信。主持人的幕后暗线、主角心念、旧旁白和别人的通信不会自动传给他。两个角色对同一事件可以有不同或过时的看法；存档中的真相改变后，先保留各人的原有认知，直到有实际消息传到。材料不足时允许询问或保留判断。\n- told:      [{\"op\":\"told\",\"knower\":\"protagonist\",\"fact_key\":\"实体.属性\",\"value\":主角所知内容,\"via\":合法来源(可选)}]\n- 明确发言由宿主按收件人和原话写入 heard_player。作者无需重复声明，请专注在场者如何回应；没有收据时不要把玩家输入当成 NPC 听过的话。\nfact_key 尽量用 \"实体.属性\" 形式（如 \"断桥.是否可通行\"、\"商队首领.真实身份\"），与世界事实同名——系统据此判断主角是否已知、并在叙事中对其未知之事保密。无人获得新信息时本段可省略（不必写 reason）。\n\n【本地公开观察·world（可选段）】普通玩家回合没有区域／全局 world 权限。只有主角在当前地点，或本回合以合法 moves 抵达的公开地点，实际看见一项可公开、局部且有范围的事物时才写本段；否则省略。唯一可发布形状是：\n- world: [{\"areas\":[\"当前或合法同回合到达的单一公开地点 id\"],\"level\":1,\"summary\":\"一句话本地观察\",\"public_observation\":true,\"visibility\":\"public\",\"observation_kind\":\"stable_layout\"|\"single_observation\",\"observation_range\":\"实际可见范围\"}]\n\n它不是地图发现、路线结论、全局真相或级联事件。不得点名远方、隐藏或未发现地点；不得使用 level 2/3；不得把 NPC 的旧证言改写为世界事实。需要超出此范围的世界推进，交给宿主／导演系统。寻常赶路、对话或没有新观察的行动直接省略 world。\n\n【任务系统·quests（可选段）】本回合若有任务变化，用 quests 段记录：[{\"op\":\"open\"|\"surface\"|\"advance\"|\"resolve\",\"id\":任务标识,\"summary\":\"一句话摘要\"}]\n- open: 玩家刚接取了一条全新的公开任务（NPC 托付/玩家决定追查）；id 必须是全新的，必须提供 summary\n- surface: 只能让上文【本地暗线】明确给出的 [id] 浮出为明账；不能 surface 未在当前地点披露的暗线，也不能借此读取其秘密\n- advance: 推进当前地点的本地明态任务，或未绑定地点的玩家公开任务；不能推进远方账目\n- resolve: 收束同样范围内的本地明态任务；不能收束远方账目\n- 明确承诺交付自己持有的一件物品时，open 还要记录 objective:{\"kind\":\"deliver\",\"item\":\"物品ID\",\"recipient\":\"在场人物或当前地点ID\",\"due\":{\"day\":1,\"band\":1}}；due 可省略，band 为0晨/1中午/2下午/3夜，截止时段含边界。条件必须来自已接受的约定，不要自行添加期限；先接取、后续回合交付。\n- NPC 的 declared 表示这人相信；告示、传闻保持原来的出处。没有目击凭据时不能让人物说自己亲眼见过。人物转述在 knowledge.via 使用人物 ID，记录该人实际相信的值。目击与公开告示分别用 observation 和 public_notice；未获证实的新说法用人物自己的 reported: 话题。\n- 调查约定可用 objective={\"kind\":\"investigate\",\"place\":\"当前地点ID\",\"feature\":\"可观察对象\"}。观察 world.feature 用同一对象名。结案引用接取后实际记录的 evidence={\"source_event_id\":\"观察的事件ID\",\"quote\":\"观察原文\"}，同范围的井和梯子是不同对象。可增加 alternatives=[{\"place\":\"公开相邻地点ID\",\"feature\":\"另一可查对象\"}]。这些是查证机会，不是预设真相。\n- 调查的公开观察在 world 行附 investigation={\"quest\":\"任务ID\",\"result\":\"miss|clue|confirmed\"}。miss 表示查空，clue 表示未证实的线索，confirmed 才能作为结案凭据。miss/clue 可以附 follow_up={\"place\":\"当前或公开相邻地点ID\",\"feature\":\"下一处具体对象\"}。从观察提供可行动的下一步，只写实际看到的材料；不把推测赋予 NPC，不编造保底线索。\n- 交付任务必须有 items transfer 到约定接收者才算完成，口头声称不算交付。实际转移会由宿主自动结算，可省略 resolve；不要自己填写 resolution。逾期仍可交付，不自动失败；玩家明确放弃时才用 resolve + outcome:\"abandoned\"，不要把放弃写成成功。\n- 【任务·近期结局】用于延续人物反应与后果，不得再次扣物品、重复发奖励或擅自完成其他任务。\n无任务变化时省略本段。\n\n【完整范例】一个“向当前公开在场人物听到其来源陈述、没移动、没新地点”的回合长这样——只复用当前上下文实际提供的 id，照抄其结构（注意：空的必填段就给 []）：\n{\"narration\":\"你压低声音问起那场大火。老者的手停在药罐上，半晌才道：「我只听说镖局的人那天出现在附近。」\",\n \"moves\":[],\n \"places\":[],\n \"cast\":[],\n \"facts\":[{\"subject\":\"npc_laozhe\",\"predicate\":\"reported:火灾传闻\",\"value\":\"我只听说镖局的人那天出现在附近\",\"secrecy\":\"public\"}],\n \"knowledge\":[{\"op\":\"told\",\"knower\":\"protagonist\",\"fact_key\":\"npc_laozhe.reported:火灾传闻\",\"value\":\"我只听说镖局的人那天出现在附近\",\"via\":\"老者亲口\"}],\n \"clock\":[{\"advance\":false,\"days\":0,\"bands\":0,\"reason\":\"同一段对话，时间未实质推进\"}]}\n——若主角移动了：moves 给 [{\"who\":\"protagonist\",\"to\":\"<地点id>\"}]。\n——若正文让主人公当面遇见一个新人，同一回合用 cast.create 记录此人，并用 moves 将同一个 id 放在实际相遇的地点（当前位置或主角本回合实际抵达处）。例如在旅店见到领路人：cast 中建 guide，moves 中给 {\"who\":\"guide\",\"to\":\"该旅店的实际地点id\"}。下一回合可据此再找到这个人。如果只是听说远方某个人，保留为转述，不为那个人填写本地位置。\n\n规则：\n1. 只在剧情真正发生该变化时才给对应段落；不要把布景细节（石板、树冠、手掌等）滥造成 entity。\n2. 输出合法 JSON 对象，必含 \"narration\" 字段；只输出 JSON，不附 markdown 代码块或其他包装。\n"
+      },
+      {
+        "role": "user",
+        "content": "[player] 我沿路返回柳溪镇街口。"
+      },
+      {
+        "role": "assistant",
+        "content": "你离开集市，沿来路返回柳溪镇街口。到时已近中午，阿岚抬头看见你，先是一喜：「你回来得正好，我还以为是——」她看清你，话音顿住，笑了笑，「抱歉，认错人了。方才想起一位旧相识。」"
+      },
+      {
+        "role": "user",
+        "content": "[player] 我问阿岚：“我出发前让你记住的那句话，你还记得吗？你有没有告诉别人？”"
+      },
+      {
+        "role": "assistant",
+        "content": "阿岚点头，低声重复：「青竹铃铛明晨响四次。」她摇摇头：「你没说要转告谁，我没有告诉别人。」"
+      },
+      {
+        "role": "user",
+        "content": "【此刻】第 2 天 · 中午 · 在 a_square\n\n【最新已提交的世界状态；若与旧对话冲突，以此为准】\n## [stable]\n【往昔概要】（更早剧情的压缩记忆）\n«a_square» 阿岚称旧告示说渡船全天通航但不确定现况，主角告诉她「青竹铃铛明晨响四次」，她询问是否要转告谁，随后主角前往枫桥镇集市。\n«s2» 白禾说阿岚没托他带话，渡船只在上午通航只是听说；主角在枫桥镇等过一夜，次晨一名找接船契者的女子将主角认错后道歉。\n«s3» 主角询问搬摊是否耽误买菜，菜贩说还卖但需摆好竹筐，并请主角帮忙看着筐。\n## [scene]\n已知实体: protagonist、a_square、b_market、c_hill、alice、bob\n当前位置：a_square（settlement）。出口：b_market（路径成本 1）、c_hill（路径成本 1）\nalice：柳溪杂货商，做事稳妥，说话简短 | 目标： | 此刻：—\n【此刻】第 2 天 · 中午\n【最近剧情·原文】（延续性，每回合必看）\n〔a_square〕你离开集市，沿来路返回柳溪镇街口。到时已近中午，阿岚抬头看见你，先是一喜：「你回来得正好，我还以为是——」她看清你，话音顿住，笑了笑，「抱歉，认错人了。方才想起一位旧相识。」\n〔s4〕阿岚点头，低声重复：「青竹铃铛明晨响四次。」她摇摇头：「你没说要转告谁，我没有告诉别人。」\n## [affordance · 本轮可声明]\n可移动目标：b_market、c_hill\nclock（每回合必填，恰好 1 个元素）：[{\"advance\":true/false,\"days\":整天数,\"bands\":时段数,\"reason\":\"理由\"}]。当前 中午（晨→中午→下午→夜晚）；bands 是推进的时段数，可大于 3，引擎自动进位。即使时间不动（连续场景）也要 advance:false 且给 reason。\n\n【事实锚点·当前有效】\nprotagonist.sketch = \"来柳溪探路的旅人\" （确立于第 1 天）\nprotagonist.goal = \"弄清渡船消息并继续旅行\" （确立于第 1 天）\n回忆必须忠于上述事实，不补写未经记录的借出人、交易优惠或发生日期。相对日期以事实确立日为基准。发生付款/获得/消耗时，按原有字段记入 facts，并同步本人 knowledge；不得用近义字段逃避原账本。未完成的行动不能描述为已完成；叙事中的数值与提交后的余额必须一致。\n\n【行动能力】主角 protagonist 当前在 a_square；本回合仅可移动到：b_market（枫桥镇集市）、c_hill（青山驿）。不要把主角直接移动到未列出的地点；若本回合发现新地点，须创建地点并声明从当前位置直连的 links。\n\n【安全交谈材料·当前场景】\n- 当前同场人物 alice 自己可陈述的材料：a_square.ferry_status = 旧告示说渡船全天通航（present_npc_declared_knowledge，保留此人的认知和出处）。\n- 当前同场人物 alice 已被可信事件验证为听过主角原话：青竹铃铛明晨响四次。（这是该角色的记录，不是世界事实；本入口不得据玩家输入自动新建 heard_player）。\n- 当前同场人物 alice 自己可陈述的材料：alice.reported:渡船消息 = 旧告示说渡船全天通航（present_npc_persisted_report，保留此人的认知和出处）。\n- 当前同场人物 alice 自己可陈述的材料：alice.reported:是否转告 = 她说没有把那句话告诉别人（present_npc_persisted_report，保留此人的认知和出处）。\n【条件化抵达材料】以下不是行动开始时主角已知/已见的内容；未提交对应合法移动时不得写成已到达、已交谈或已获得信息。\n- 若本回合 moves 同时使 protagonist 合法抵达 b_market（枫桥镇集市），抵达后可出现：bob、courier_tang、vegetable_seller。\n- 仅抵达 b_market 后，人物 bob 自己可陈述的材料：a_square.ferry_status = 听说渡船只在上午通航（arrival_npc_declared_knowledge，保留此人的认知和出处）。\n- 仅抵达 b_market 后，人物 bob 自己可陈述的材料：bob.reported:渡船消息 = 听说渡船只在上午通航（arrival_npc_persisted_report，保留此人的认知和出处）。\n## [scene]\n# [pov · 主角所知]\nalice.reported:渡船消息 = 旧告示说渡船全天通航\nbob.reported:渡船消息 = 听说渡船只在上午通航\ncourier_tang.reported:船契 = 她说货主们正等着船契，她在找接船契的人\nvegetable_seller.reported:买菜 = 菜还卖，但需等菜筐摆好\nalice.reported:是否转告 = 她说没有把那句话告诉别人\n\n〔本地暗线·环境可织入,勿点破为任务〕\n【本镇其余风声】\n·[gen_a_square_d4ef0366] 追查渡船告示为何被改写。\n·[gen_a_square_f41506c0] 查明无名花束的来历。\n·[gen_a_square_bf8f5176] 调查公共水桶为何反复见底。\n\n[player] 我在柳溪镇休息到明天早晨，留意街口和通往青山驿的方向。"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "history_locate",
+          "description": "在玩家可见原文中按字面定位。未命中可改用短词重新检索。摘要不能作为原话。",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "可选字面片段；忘记原话时可只按日期或收件人查"
+              },
+              "day": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "input",
+                  "receipt",
+                  "narration",
+                  "observation"
+                ]
+              },
+              "recipient": {
+                "type": "string",
+                "description": "收件人角色 ID，仅匹配主角实际发送的通信收据"
+              },
+              "before": {
+                "type": "string",
+                "description": "上页 next_before，继续找更早的记录"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "history_open",
+          "description": "打开上一步命中的原文与可见邻文。引用须保留来源，区分旁白和收件人实听的通信。",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "radius": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8
+              }
+            },
+            "required": [
+              "ref"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "map_query",
+          "description": "Query the map for places, exits, containment, adjacency, and known state facts. Topology (exits, parents) is always shown. Place state facts (e.g. '断桥.是否可通行') are filtered to what the POV agent knows. Optional: path_to=<place_id> returns a navigate() path. Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "Substring to search in place id or seed name."
+              },
+              "path_to": {
+                "type": "string",
+                "description": "Optional destination place id; returns navigate() path + cost."
+              },
+              "pov": {
+                "type": "string",
+                "description": "Optional POV agent id (must be protagonist or a present NPC). Defaults to protagonist."
+              }
+            },
+            "required": [
+              "q"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "recall_query",
+          "description": "Search across all systems for entities or facts matching a query string. Returns ranked hits (text + source system + score). Hits referencing knowledge-gated facts the POV agent doesn't know are dropped. Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "Substring query to search across entities and facts."
+              },
+              "pov": {
+                "type": "string",
+                "description": "Optional POV agent id (must be protagonist or a present NPC). Defaults to protagonist."
+              }
+            },
+            "required": [
+              "q"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "characters_query",
+          "description": "Look up characters by id substring. For each match, returns ONLY the facets (sketch/goal/etc.) the POV agent knows via knowledge grants. sketch and goal are gated via knows('<id>.sketch', '<id>.goal'). The 'hidden' facet is ALWAYS fog-gated (never surfaced). A never-met character (no knowledge + not co-present) returns {\"id\": \"...\", \"known\": false}. Co-present characters have their existence visible, but unknown facets remain gated. Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "Substring to search in character id."
+              },
+              "pov": {
+                "type": "string",
+                "description": "Optional POV agent id (must be protagonist or a present NPC). Defaults to protagonist."
+              }
+            },
+            "required": [
+              "q"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "factions_query",
+          "description": "Look up factions by id or name substring. Returns faction existence (always public). Membership and rank are fog-gated: only members whose rank in the faction the POV agent knows (via knows('<member>.rank:<faction>')) are surfaced. Optional: pov defaults to protagonist; shifting to a present NPC requires the DM registry.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "Substring to search in faction id or seed name."
+              },
+              "pov": {
+                "type": "string",
+                "description": "Optional POV agent id (must be protagonist or a present NPC). Defaults to protagonist."
+              }
+            },
+            "required": [
+              "q"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "ambient_query",
+          "description": "Consult LOCAL COMMON KNOWLEDGE / what a random passerby could relay (use this for 找路人打听 / 街谈巷议 — when no specific tracked NPC is being asked). Returns public place/faction seeds and ONLY facts the world has marked as public knowledge. Hard secrets are structurally excluded — you decide how much THIS passerby plausibly knows and may add deniable rumor on top. No POV/knowledge gating.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "What is being asked about (matches place/faction/fact text)."
+              }
+            },
+            "required": [
+              "q"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "codex_query",
+          "description": "Consult the WORLD SETTING CODEX (世界设定典) — the world's fixed lore: 实力等级 (power-tier system), 编年史 (history), 势力志, geography, myth, etc. Pass a kind or title (e.g. '实力等级' / '编年史'); an empty query returns the index of available entries. Public reference, no fog. Use it to keep narration consistent with how this world's power/history actually work (e.g. how strength is ranked).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "q": {
+                "type": "string",
+                "description": "Codex kind or title to look up; empty = list the index."
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    ],
+    "kwargs": {}
+  }
+}

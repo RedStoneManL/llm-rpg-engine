@@ -1,0 +1,878 @@
+{
+  "status": "complete",
+  "actions_completed": 7,
+  "model_requests": 23,
+  "snapshot": {
+    "meta": {
+      "day": 3,
+      "scene": "a_square",
+      "timeline": [
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "合成开局"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:market"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:mail"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "alice.reported:渡船消息=旧告示说渡船全天通航"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "protagonist 得知 alice.reported:渡船消息"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "时间未推进：同一段简短交谈，仍在早晨"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_a_square_d4ef0366"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_a_square_f41506c0"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_a_square_bf8f5176"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "density seeded: a_square (3 lines)"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "alice 听到 protagonist 的陈述"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "时间未推进：简短交谈仍在早晨"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "protagonist 移动至 b_market"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "时间 +0天1段：沿路前往相邻集市，抵达时已到中午"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_b_market_b44c0dbd"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_b_market_2080ecc7"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "暗线生成:gen_b_market_3dc0fa10"
+        },
+        {
+          "day": 1,
+          "scene": "a_square",
+          "summary": "density seeded: b_market (3 lines)"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "场景推进→s2"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "bob.reported:渡船消息=听说渡船只在上午通航"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "protagonist 得知 bob.reported:渡船消息"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "时间未推进：简短交谈仍在中午"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "暗骰 roll=0.24 prob=0.36"
+        },
+        {
+          "day": 1,
+          "scene": "s2",
+          "summary": "突发:人物（认错人）"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "courier_tang 移动至 b_market"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "courier_tang 登场"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "protagonist 得知 courier_tang.reported:船契"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "时间 +0天3段：从第一天中午等到第二天早晨"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "导演提示已呈现"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:market→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:mail→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:gen_a_square_d4ef0366→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:gen_a_square_bf8f5176→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:gen_b_market_b44c0dbd→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "暗线推进:gen_b_market_3dc0fa10→stage0"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "场景推进→s3"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "vegetable_seller 移动至 b_market"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "vegetable_seller 登场"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "protagonist 得知 vegetable_seller.reported:买菜"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "surface market"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "时间未推进：走近菜摊并简短交谈，仍是早晨"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "scene summary: a_square"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "暗骰 roll=0.08 prob=0.36"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "突发:羁绊（认错人）"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "protagonist 移动至 a_square"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "时间 +0天1段：沿路返回相邻街口，抵达时已近中午"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "scene summary: s2"
+        },
+        {
+          "day": 2,
+          "scene": "s2",
+          "summary": "导演提示已呈现"
+        },
+        {
+          "day": 2,
+          "scene": "a_square",
+          "summary": "明线降格:market (离开 anchor=b_market)"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "场景推进→s4"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "alice.reported:是否转告=她说没有把那句话告诉别人"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "protagonist 得知 alice.reported:是否转告"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "时间未推进：简短交谈仍在中午"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "scene summary: s3"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "暗骰 roll=0.24 prob=0.48"
+        },
+        {
+          "day": 2,
+          "scene": "s3",
+          "summary": "休眠暗线:情之羁绊"
+        },
+        {
+          "day": 2,
+          "scene": "s4",
+          "summary": "alice currency"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "清晨街口渐有行人，通往青山驿方向的近处路面可见。"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "时间 +0天3段：从第二天中午休息到第三天早晨"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "暗线推进:market→stage0"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "暗线推进:mail→stage1"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "暗线推进:gen_a_square_f41506c0→stage0"
+        },
+        {
+          "day": 3,
+          "scene": "s4",
+          "summary": "暗线推进:gen_b_market_2080ecc7→stage0"
+        },
+        {
+          "day": 3,
+          "scene": "s5",
+          "summary": "场景推进→s5"
+        },
+        {
+          "day": 3,
+          "scene": "s5",
+          "summary": "alice.reported:见面约定=她不记得定过见面的时间和地点"
+        },
+        {
+          "day": 3,
+          "scene": "s5",
+          "summary": "protagonist 得知 alice.reported:见面约定"
+        },
+        {
+          "day": 3,
+          "scene": "s5",
+          "summary": "时间未推进：简短交谈仍在早晨"
+        },
+        {
+          "day": 3,
+          "scene": "s5",
+          "summary": "narration recorded"
+        },
+        {
+          "day": 3,
+          "scene": "a_square",
+          "summary": "scene summary: a_square"
+        }
+      ],
+      "band": 0,
+      "scene_no": 5,
+      "scene_anchor": {
+        "location": "a_square",
+        "day": 3
+      }
+    },
+    "revision": 15,
+    "location": [
+      "a_square"
+    ],
+    "beliefs": {
+      "alice": "旧告示说渡船全天通航",
+      "bob": "听说渡船只在上午通航"
+    },
+    "canonical_ferry": "今日公告说渡船停航",
+    "lines": {
+      "market": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 3
+      },
+      "mail": {
+        "stage_idx": 1,
+        "status": null,
+        "last_advanced_day": 3
+      },
+      "gen_a_square_d4ef0366": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 2
+      },
+      "gen_a_square_f41506c0": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 3
+      },
+      "gen_a_square_bf8f5176": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 2
+      },
+      "gen_b_market_b44c0dbd": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 2
+      },
+      "gen_b_market_2080ecc7": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 3
+      },
+      "gen_b_market_3dc0fa10": {
+        "stage_idx": 0,
+        "status": null,
+        "last_advanced_day": 2
+      }
+    },
+    "knowledge_events": [
+      {
+        "seq": 14,
+        "id": "ev_bab1004ae7c8",
+        "type": "knowledge_set",
+        "day": 1,
+        "scene": "a_square",
+        "arc": null,
+        "actors": [],
+        "summary": "合成开局",
+        "deltas": {
+          "knower": "alice",
+          "fact_key": "a_square.ferry_status",
+          "value": "旧告示说渡船全天通航",
+          "via": "旧告示"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 0,
+        "retracted": false
+      },
+      {
+        "seq": 15,
+        "id": "ev_1f1d81161765",
+        "type": "knowledge_set",
+        "day": 1,
+        "scene": "a_square",
+        "arc": null,
+        "actors": [],
+        "summary": "合成开局",
+        "deltas": {
+          "knower": "bob",
+          "fact_key": "a_square.ferry_status",
+          "value": "听说渡船只在上午通航",
+          "via": "传闻"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 0,
+        "retracted": false
+      },
+      {
+        "seq": 19,
+        "id": "ev_7ab8f9ec9c77",
+        "type": "knowledge_set",
+        "day": 1,
+        "scene": "a_square",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 alice.reported:渡船消息",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "alice.reported:渡船消息",
+          "value": "旧告示说渡船全天通航",
+          "via": "alice"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 1,
+        "retracted": false
+      },
+      {
+        "seq": 26,
+        "id": "ev_c30b5fe06066",
+        "type": "knowledge_set",
+        "day": 1,
+        "scene": "a_square",
+        "arc": null,
+        "actors": [],
+        "summary": "alice 听到 protagonist 的陈述",
+        "deltas": {
+          "knower": "alice",
+          "fact_key": "protagonist.reported_player_statement:96aed3f222e2f279f220",
+          "value": "青竹铃铛明晨响四次。",
+          "via": "protagonist",
+          "source_kind": "player_statement"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 2,
+        "retracted": false
+      },
+      {
+        "seq": 38,
+        "id": "ev_536f427e6e51",
+        "type": "knowledge_set",
+        "day": 1,
+        "scene": "s2",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 bob.reported:渡船消息",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "bob.reported:渡船消息",
+          "value": "听说渡船只在上午通航",
+          "via": "bob"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 4,
+        "retracted": false
+      },
+      {
+        "seq": 45,
+        "id": "ev_12e15742b3df",
+        "type": "knowledge_set",
+        "day": 2,
+        "scene": "s2",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 courier_tang.reported:船契",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "courier_tang.reported:船契",
+          "value": "她说货主们正等着船契，她在找接船契的人",
+          "via": "courier_tang"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 5,
+        "retracted": false
+      },
+      {
+        "seq": 58,
+        "id": "ev_e16353b14fd1",
+        "type": "knowledge_set",
+        "day": 2,
+        "scene": "s3",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 vegetable_seller.reported:买菜",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "vegetable_seller.reported:买菜",
+          "value": "菜还卖，但需等菜筐摆好",
+          "via": "vegetable_seller"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 6,
+        "retracted": false
+      },
+      {
+        "seq": 73,
+        "id": "ev_d04c30f7a8c1",
+        "type": "knowledge_set",
+        "day": 2,
+        "scene": "s4",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 alice.reported:是否转告",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "alice.reported:是否转告",
+          "value": "她说没有把那句话告诉别人",
+          "via": "alice"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 8,
+        "retracted": false
+      },
+      {
+        "seq": 93,
+        "id": "ev_0a88b36f66c4",
+        "type": "knowledge_set",
+        "day": 3,
+        "scene": "s5",
+        "arc": null,
+        "actors": [],
+        "summary": "protagonist 得知 alice.reported:见面约定",
+        "deltas": {
+          "knower": "protagonist",
+          "fact_key": "alice.reported:见面约定",
+          "value": "她不记得定过见面的时间和地点",
+          "via": "alice"
+        },
+        "thread_refs": [],
+        "chunk_ids": [],
+        "secrecy": null,
+        "roll": null,
+        "turn": 10,
+        "retracted": false
+      }
+    ],
+    "event_types": {
+      "character_created": 5,
+      "clock_advanced": 10,
+      "directive_consumed": 2,
+      "director_fired": 2,
+      "entity_moved": 7,
+      "fact_asserted": 6,
+      "knowledge_set": 9,
+      "lore_advanced": 10,
+      "lore_created": 8,
+      "lore_seeded": 2,
+      "narration_recorded": 10,
+      "oracle_roll": 3,
+      "place_created": 3,
+      "place_linked": 2,
+      "quest_demoted": 1,
+      "quest_surfaced": 1,
+      "scene_advanced": 4,
+      "scene_summarized": 4,
+      "thread_open": 1,
+      "time_advanced": 1,
+      "world_change": 1
+    }
+  },
+  "state": {
+    "revision": 15,
+    "turn": 10,
+    "scene": {
+      "day": 3,
+      "time": {
+        "day": 3,
+        "band": "晨"
+      },
+      "location": {
+        "id": "a_square",
+        "label": "柳溪镇街口",
+        "kind": "settlement"
+      },
+      "exits": [
+        {
+          "id": "b_market",
+          "label": "枫桥镇集市",
+          "kind": "settlement"
+        },
+        {
+          "id": "c_hill",
+          "label": "青山驿",
+          "kind": "settlement"
+        }
+      ],
+      "exit_costs": {
+        "b_market": "1",
+        "c_hill": "1"
+      },
+      "discovery_available": false
+    },
+    "map": {
+      "nodes": [
+        {
+          "id": "a_square",
+          "label": "柳溪镇街口",
+          "kind": "settlement"
+        },
+        {
+          "id": "b_market",
+          "label": "枫桥镇集市",
+          "kind": "settlement"
+        },
+        {
+          "id": "c_hill",
+          "label": "青山驿",
+          "kind": "settlement"
+        }
+      ],
+      "edges": [
+        {
+          "from": "a_square",
+          "to": "b_market",
+          "cost": "1"
+        },
+        {
+          "from": "a_square",
+          "to": "c_hill",
+          "cost": "1"
+        }
+      ]
+    },
+    "character": {
+      "id": "protagonist",
+      "facts": [
+        {
+          "name": "sketch",
+          "value": "来柳溪探路的旅人"
+        },
+        {
+          "name": "goal",
+          "value": "弄清渡船消息并继续旅行"
+        }
+      ]
+    },
+    "objectives": {
+      "long_term_goal": "弄清渡船消息并继续旅行",
+      "active_quests": [],
+      "completed_quests": []
+    },
+    "inventory": [],
+    "narration": [
+      "你告别阿岚，沿路走向枫桥镇集市。待你走到集市，摊贩的叫卖声已在街上响起。",
+      "白禾摇摇头：「阿岚没托我带话。渡船的事，我听说只在上午通航；也只是听说，你最好再问问。」",
+      "你在枫桥镇等过一夜。次日清晨，摊贩陆续摆开货物；一个背着包袱的女子急匆匆走来，叫住你：「你是来接船契的？货主们正等着它！」她凑近看清你的脸，蓦地一怔，连忙摇头：「抱歉，我认错人了。他也穿着一件这样的外衣。」她向人群张望，攥紧了包袱带。",
+      "你走近棚檐下的菜摊，问搬动竹筐会不会耽误今日买菜。摊主扶稳筐沿，答道：「菜还卖，只是正挪地方，得等我把筐摆好。若你不急，帮我看着这筐，别让人碰翻就好。」",
+      "你离开集市，沿来路返回柳溪镇街口。到时已近中午，阿岚抬头看见你，先是一喜：「你回来得正好，我还以为是——」她看清你，话音顿住，笑了笑，「抱歉，认错人了。方才想起一位旧相识。」",
+      "阿岚点头，低声重复：「青竹铃铛明晨响四次。」她摇摇头：「你没说要转告谁，我没有告诉别人。」",
+      "你在柳溪镇歇过一夜。次日清晨，街口渐渐有了行人；你望向通往青山驿的方向，晨光下只见近处路面，并不能从这里看清远处的情形。",
+      "阿岚想了想，摇头道：「我记得你说过铃铛那句话，不记得我们定过见面的时辰和地方。既然你说先不约，那就先不约。」"
+    ],
+    "narration_unavailable": false,
+    "codex": [],
+    "present_people": [
+      {
+        "id": "alice",
+        "label": "柳溪杂货商，做事稳妥，说话简短",
+        "observables": []
+      }
+    ],
+    "observations": [
+      {
+        "place": "这里",
+        "is_current": true,
+        "kind": "现场观察",
+        "range": "街口及近处路面",
+        "summary": "清晨街口渐有行人，通往青山驿方向的近处路面可见。"
+      }
+    ],
+    "resource_outcome": null,
+    "latest_check": null,
+    "speech_recipients": [
+      {
+        "id": "alice",
+        "label": "柳溪杂货商，做事稳妥，说话简短"
+      }
+    ],
+    "session": {
+      "soft_direction": null,
+      "campaign_key": "96d34bbe447ad0ce04116442"
+    }
+  },
+  "disabled_hooks": []
+}

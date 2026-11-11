@@ -1,0 +1,33 @@
+{
+  "index": 22,
+  "model": "gpt-6.1-terra",
+  "action": 12,
+  "request_sha256": "abaa47414b495745dfe018c603c85b30f337d59f27ed91ebfc3c867a50be7a25",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "summarize_scene",
+    "digest_fleet",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是一名剧情摘要员。把下面这一场景的全部原文压缩成一句话中文摘要。只输出 JSON，格式：{\"summary\": \"一句话摘要\"}"
+      },
+      {
+        "role": "user",
+        "content": "场景 a_square 的原文如下：\n\n你离开集市，沿来路返回柳溪镇街口。到时已近中午，阿岚抬头看见你，先是一喜：「你回来得正好，我还以为是——」她看清你，话音顿住，笑了笑，「抱歉，认错人了。方才想起一位旧相识。」"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "index": 4,
+  "model": "gpt-6.1-terra",
+  "action": 6,
+  "request_sha256": "12c8444482df590ea62d4ba6304d176faeed5b7b450fa26da28a423c54102ae0",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "summarize_scene",
+    "digest_fleet",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是一名剧情摘要员。把下面这一场景的全部原文压缩成一句话中文摘要。只输出 JSON，格式：{\"summary\": \"一句话摘要\"}"
+      },
+      {
+        "role": "user",
+        "content": "场景 a_square 的原文如下：\n\n阿岚答道：「我看过旧告示，上面说渡船全天通航。消息是从那张告示来的；如今是否仍是这样，我不敢说。」\n你对阿岚说：「青竹铃铛明晨响四次。」\n\n阿岚看了你一眼，停了停，问：「这是要我转告谁吗？」\n你告别阿岚，沿路走向枫桥镇集市。待你走到集市，摊贩的叫卖声已在街上响起。"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

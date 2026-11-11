@@ -1,0 +1,33 @@
+{
+  "index": 11,
+  "model": "gpt-6.1-terra",
+  "action": 8,
+  "request_sha256": "400bee33d0d54552687f11bcdcbf1abe12c8a98fdb6eae1fea323669a21798c0",
+  "call_path": [
+    "complete_messages",
+    "json_call",
+    "complete_structured",
+    "summarize_scene",
+    "digest_fleet",
+    "_backstage_call",
+    "_run_turn_staged",
+    "run_turn",
+    "action",
+    "main",
+    "<module>"
+  ],
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是一名剧情摘要员。把下面这一场景的全部原文压缩成一句话中文摘要。只输出 JSON，格式：{\"summary\": \"一句话摘要\"}"
+      },
+      {
+        "role": "user",
+        "content": "场景 s3 的原文如下：\n\n你走近棚檐下的菜摊，问搬动竹筐会不会耽误今日买菜。摊主扶稳筐沿，答道：「菜还卖，只是正挪地方，得等我把筐摆好。若你不急，帮我看着这筐，别让人碰翻就好。」"
+      }
+    ],
+    "tools": null,
+    "kwargs": {}
+  }
+}

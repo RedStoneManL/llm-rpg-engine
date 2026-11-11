@@ -1,0 +1,1 @@
+{"request_sha256": "a1adf779706ed16bfd738cf5a128272ffc61c83ec5d938bf1c23640cb60c99a7", "message": {"role": "assistant", "content": null, "tool_calls": [{"id": "call_history_019", "type": "function", "function": {"name": "history_locate", "arguments": "{\"kind\": \"receipt\", \"recipient\": \"alice\"}"}}]}}
