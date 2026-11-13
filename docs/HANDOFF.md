@@ -1,5 +1,7 @@
 # 继续开发与跨环境运行
 
+> 本页是 2026-10-06 的历史运行说明。当前应拉取 `harness`，先读 [2026-11-13 交接入口](handoff/README.md)；下文“main 最新”及历史待办不是当前状态。
+
 本次交付包含完整应用源码、风格包、回归测试，以及 2026-10-03 的架构对照与真实模型实验。公开仓库沿用 [RedStoneManL/llm-rpg-engine](https://github.com/RedStoneManL/llm-rpg-engine) 的历史，最新交付在 `main`。
 
 ## 在新环境启动

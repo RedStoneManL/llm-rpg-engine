@@ -3,7 +3,9 @@
 这里统一保存当前进度、跨环境交接和后续阶段记录，随代码提交到 GitHub。
 不需要从聊天或本地手工上传文件；在云端拉取本分支即可获得代码及上下文。
 
-当前接续分支：`handoff/codex-cloud-20261025`，不要误从旧 `main` 恢复。
+当前接续分支：`harness`。先读 [2026-11-13 完整交接](../handoff/README.md)，不要误从旧 `main` 恢复。
+
+当前包含 RCV-139、DSH 消融研究 `9acb6f3` 和 Terra 短局修复 `59b4117`。新百回合真跑、第三方 runtime 接入及 DSH 宿主验收均未完成。
 
 **当前验收至 RCV-139。** [体验与架构 HTML](../reports/2026-11-07/experience-repairs.html) · [宿主发言、百回合及最新门禁](../verification/RCV-139-host-speech-and-endurance.md)
 
@@ -30,7 +32,7 @@
 
 ## 维护规则
 
-- 本目录两份正文是当前唯一维护版本；仓库根目录的同名文件只作兼容入口。
+- 本目录保留累计进度；最新接续状态由 `docs/handoff/README.md` 路由，更新时同步本目录执行清单。仓库根目录的同名文件只作兼容入口。
 - 后续阶段总结可新增 `YYYY-MM-DD-主题.md`，同时更新本索引及执行清单。
 - 设计正文继续放 `docs/designs/`，验证记录继续放 `docs/verification/`，由这里链接，不复制多份。
 - 历史报告和 `docs/HANDOFF.md` 保留历史性质，不作为当前完成状态；实际能力以源码和当前版本验证为准。

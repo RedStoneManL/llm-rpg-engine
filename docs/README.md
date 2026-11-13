@@ -1,5 +1,7 @@
 # docs/ — index
 
+**Current continuation (2026-11-13):** [harness handoff](handoff/README.md). Read this before older setup/status documents.
+
 Entry point to the engine's documentation. Consolidated 2026-07-01: live
 reference at the top level, historical build record under `archive/`, ephemeral
 build scaffolding deleted.

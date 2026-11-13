@@ -2,7 +2,7 @@
 
 **English** | [中文](README.zh-CN.md)
 
-**2026-10-25 Codex Cloud continuation:** read [the current handoff](docs/progress/CODEX_CLOUD_HANDOFF.md) first; all current progress documents are indexed in [docs/progress](docs/progress/README.md). The handoff branch is `handoff/codex-cloud-20261025`; older reports below are historical, not the current verification baseline.
+**2026-11-13 Codex handoff / 接续：** use branch `harness` and read [the current handoff / 当前交接入口](docs/handoff/README.md) and [AGENTS.md](AGENTS.md). Research, raw experiments, synthetic save, and unfinished work are included. 100 real-model turns and DSH host integration are still pending. Older reports below are historical.
 
 An LLM-driven RPG engine for exploring a persistent world. The model narrates and proposes changes; a deterministic harness maintains world facts, knowledge, time, memory, and replayable events.
 
@@ -15,7 +15,7 @@ The October 2026 implementation adds atomic player actions, full-action rewind, 
 Python 3.10+, Bash, and SQLite support are required.
 
 ```bash
-git clone https://github.com/RedStoneManL/llm-rpg-engine.git
+git clone --branch harness https://github.com/RedStoneManL/llm-rpg-engine.git
 cd llm-rpg-engine
 python3 -m venv .venv
 source .venv/bin/activate

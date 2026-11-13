@@ -1,0 +1,120 @@
+diff --git a/loop/director.py b/loop/director.py
+index 54d8ffb..2e85f0f 100644
+--- a/loop/director.py
++++ b/loop/director.py
+@@ -16,6 +16,8 @@ the caller wraps this in a tracer span + non-fatal try/except and re-projects.
+ """
+ from __future__ import annotations
+ 
++from dataclasses import dataclass
++
+ from engine.oracle import Oracle, load_table, scene_seed
+ from engine.director import compute_pacing, director_check, pick_thread_to_advance
+ from kernel.events import kernel_event
+@@ -26,6 +28,26 @@ log = get_logger("loop.director")
+ _SPEEDS = ("快", "中", "慢")
+ _MAX_THREADS = 5
+ 
++
++@dataclass(frozen=True)
++class DirectorNoveltyPolicy:
++    """Bound repeated motifs by recent directives, not elapsed wall time.
++
++    Zero windows provide the legacy selection for a controlled ablation.
++    Neutral/no-twist beats stay eligible so diversity never requires a twist.
++    """
++    twist_window: int = 3
++    event_type_window: int = 1
++
++    def __post_init__(self):
++        if any(type(value) is not int or value < 0
++               for value in (self.twist_window, self.event_type_window)):
++            raise ValueError("Director novelty windows must be nonnegative integers")
++
++
++DEFAULT_NOVELTY_POLICY = DirectorNoveltyPolicy()
++_NEUTRAL_TWISTS = frozenset({"无反转"})
++
+ _TABLES_CACHE: dict | None = None
+ 
+ 
+@@ -50,6 +72,46 @@ def _last_fire_turn(events: list[dict]) -> int:
+                default=-1)
+ 
+ 
++def _select_novel_entry(original, entries, recent, oracle, *, neutral=frozenset()):
++    """Keep an eligible original draw; otherwise redraw without retry loops.
++
++    If a custom table is smaller than the cooldown, relax to its least-recently
++    used entries. A one-entry table still fires rather than deadlocking pacing.
++    """
++    blocked = set(recent) - neutral
++    if original.get("name") not in blocked:
++        return original, False
++    eligible = [entry for entry in entries if entry.get("name") not in blocked]
++    relaxed = not eligible
++    if relaxed:
++        last_seen = {name: index for index, name in enumerate(recent)}
++        oldest = min(last_seen.get(entry.get("name"), -1) for entry in entries)
++        eligible = [entry for entry in entries if last_seen.get(entry.get("name"), -1) == oldest]
++    return oracle.draw(eligible), relaxed
++
++
++def _novel_seed(seed, events, tables, seed_int, policy):
++    """Event-sourced novelty, using separate seeded draws from pacing RNG."""
++    history = [event.get("deltas") or {} for event in events
++               if event.get("type") == "director_fired" and not event.get("retracted")]
++    result = dict(seed)
++    audit = {"version": 1, "twist_window": policy.twist_window,
++             "event_type_window": policy.event_type_window}
++    for key, table, window, neutral, salt in (
++        ("event_type", "event_types", policy.event_type_window, frozenset(), 201),
++        ("twist", "twists", policy.twist_window, _NEUTRAL_TWISTS, 202),
++    ):
++        recent = [row.get(key) for row in history[-window:]] if window else []
++        selected, relaxed = _select_novel_entry(
++            seed[key], tables[table], recent,
++            Oracle(scene_seed(seed_int, salt)), neutral=neutral,
++        )
++        result[key] = selected
++        audit[key] = {"original": seed[key]["name"], "selected": selected["name"],
++                      "recent": recent, "relaxed": relaxed}
++    return result, audit
++
++
+ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
+     """dormant_thread outcome: advance a due active thread if one is overdue,
+     else open a new dormant thread while under the 3-5 band. Returns the
+@@ -99,7 +161,8 @@ def _handle_dormant(store, world, events, oracle, *, scene, day, turn):
+     return None
+ 
+ 
+-def run_director(registry, store, world: dict, *, scene_ordinal: int | None = None) -> list[dict]:
++def run_director(registry, store, world: dict, *, scene_ordinal: int | None = None,
++                 novelty_policy: DirectorNoveltyPolicy = DEFAULT_NOVELTY_POLICY) -> list[dict]:
+     events = list(store.iter_events())
+ 
+     # A turn shows one directive. Acknowledge only that source, so another
+@@ -148,8 +211,12 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
+ 
+     scene = pacing["current_scene"] or "scene"
+     day = events[-1]["day"] if events else 1
+-    et = out["seed"]["event_type"]
+-    tw = out["seed"]["twist"]
++    selected = out["seed"]
++    selection = None
++    if out["type"] != "dormant_thread":
++        selected, selection = _novel_seed(selected, events, _tables(), seed_int, novelty_policy)
++    et = selected["event_type"]
++    tw = selected["twist"]
+ 
+     audit = kernel_event(
+         "oracle_roll", day=day, scene=scene,
+@@ -175,6 +242,7 @@ def run_director(registry, store, world: dict, *, scene_ordinal: int | None = No
+                 "valence": out["valence"],
+                 "event_type": et["name"], "event_hint": et.get("hint"),
+                 "twist": tw["name"], "twist_hint": tw.get("hint"),
++                "selection": selection,
+             },
+             turn=next_turn,
+         )

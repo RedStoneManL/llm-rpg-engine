@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPG × DSH：综合评估与整合方案</title>
+<style>
+:root{--ink:#18302e;--muted:#60726d;--line:#d8e1d9;--paper:#f5f5ee;--white:#fffefa;--teal:#17655a;--light:#e5efe8;--amber:#a95628;--shade:#fff1df}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.8 "Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif}a{color:var(--teal);text-underline-offset:3px;overflow-wrap:anywhere}a:hover{color:var(--amber)}.shell{max-width:1480px;margin:auto;display:grid;grid-template-columns:244px minmax(0,1fr)}aside{position:sticky;top:0;height:100vh;padding:34px 20px 30px 28px;border-right:1px solid var(--line);overflow:auto}.brand{font:700 13px/1.6 system-ui;letter-spacing:2px;color:var(--teal);margin-bottom:24px}nav a{display:block;text-decoration:none;font-size:13px;line-height:1.5;padding:8px 10px;border-radius:6px;margin:2px 0}nav a:hover{background:var(--light)}.side-note{font-size:11px;line-height:1.8;color:var(--muted);margin:26px 10px}main{padding:52px 58px 90px;min-width:0}.eyebrow{color:var(--teal);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase}h1{font-size:40px;line-height:1.35;letter-spacing:-1px;margin:12px 0 22px}h2{font-size:26px;line-height:1.5;margin:0 0 20px}h3{font-size:18px;line-height:1.55;margin:27px 0 11px}p{margin:12px 0}section{padding-top:40px;margin-top:34px;border-top:1px solid var(--line);scroll-margin-top:20px}.lede{font-size:20px;line-height:1.85;max-width:880px}.meta{font-size:12px;color:var(--muted)}.decision{background:var(--ink);color:#fffefa;padding:24px 28px;border-radius:12px;margin:28px 0}.decision strong{color:#bde3d0}.decision p{margin:7px 0}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0}.card{padding:21px;background:var(--white);border:1px solid var(--line);border-radius:10px}.card h3{margin:0 0 10px}.card p{font-size:14px;margin:8px 0}.card .n{font-size:11px;letter-spacing:1px;color:var(--teal);font-weight:700}.callout{padding:16px 20px;background:var(--light);border-left:4px solid var(--teal);border-radius:0 6px 6px 0;margin:20px 0}.caution{background:var(--shade);border-color:var(--amber)}.small{font-size:13px;color:var(--muted)}.table-wrap{overflow:auto;margin:18px 0;border:1px solid var(--line);border-radius:8px}table{border-collapse:collapse;width:100%;background:var(--white);font-size:14px;line-height:1.75}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--line)}th{background:var(--light);font-size:13px;white-space:nowrap}tr:last-child td{border-bottom:0}td:first-child{font-weight:600}ul,ol{padding-left:24px}li{padding-left:3px;margin:9px 0}code{font:12px/1.6 ui-monospace,Consolas,monospace;background:#e9eee8;border-radius:4px;padding:2px 5px;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#163b36;color:#e3f3e8;padding:20px;border-radius:8px;font:12px/1.8 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}pre code{background:none;color:inherit;padding:0}.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;background:var(--light);color:var(--teal);margin-right:6px;white-space:nowrap}.tag.pending{background:var(--shade);color:var(--amber)}.step{display:grid;grid-template-columns:34px minmax(0,1fr);gap:13px;margin:19px 0}.step b.num{background:var(--teal);color:white;width:29px;height:29px;border-radius:50%;font-size:13px;text-align:center;line-height:29px;margin-top:3px}.step p{margin:3px 0}.step strong{font-size:16px}.source-list{font-size:13px;line-height:1.8}.source-list li{margin:15px 0}.svg-box{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px;margin:22px 0}.svg-box svg{display:block;width:100%;height:auto}.page-foot{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:20px}
+@media(max-width:1100px){main{padding:38px 30px 70px}.shell{grid-template-columns:210px minmax(0,1fr)}aside{padding:28px 12px}.cards{grid-template-columns:1fr}h1{font-size:34px}}
+@media(max-width:760px){.shell{display:block}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:18px 20px}.brand{margin:0}nav{display:flex;overflow:auto;gap:6px;margin-top:12px}nav a{white-space:nowrap;padding:5px 8px}.side-note{display:none}main{padding:30px 20px 60px}h1{font-size:30px}h2{font-size:23px}.lede{font-size:18px}.decision{padding:20px}.table-wrap table{min-width:650px}section{padding-top:28px;margin-top:28px}th,td{padding:11px}}
+@media print{aside{display:none}.shell{display:block}body{background:white;font-size:10pt}main{padding:0}h1{font-size:28pt}h2{font-size:18pt}h3{font-size:13pt}.cards{grid-template-columns:repeat(3,1fr)}.decision{background:#e5efe8;color:#18302e}.decision strong{color:#17655a}section{margin-top:20px;padding-top:20px}table{font-size:9pt}.table-wrap{overflow:visible}tr,.card,.step{break-inside:avoid}a{color:#18302e}.svg-box{break-inside:avoid}@page{size:A4;margin:16mm}}
+</style>
+</head>
+<body><div class="shell">
+<aside><div class="brand">RPG / ENGINE REVIEW<br>DSH INTEGRATION</div>
+<nav aria-label="报告目录">
+<a href="#verdict">01 · 结论与边界</a><a href="#comparison">02 · 同类项目比较</a><a href="#ours">03 · 我们的资产与缺口</a><a href="#choice">04 · 路线选择</a><a href="#architecture">05 · 目标架构</a><a href="#model">06 · 数据模型</a><a href="#turn">07 · 回合流程</a><a href="#world">08 · 多暗线与后台世界</a><a href="#knowledge">09 · 记忆与认知隔离</a><a href="#prompts">10 · 模型职责与提示词</a><a href="#dsh">11 · DSH 接入与发布</a><a href="#experience">12 · 玩家体验</a><a href="#budget">13 · 成本与评估</a><a href="#roadmap">14 · 实施顺序</a><a href="#evidence">15 · 证据与来源</a>
+</nav><p class="side-note">基准日期 · 2026-11-10 UTC<br>自有引擎 · 91646fb<br>状态 · 评估与设计，尚未实施迁移<br><br>区分已验证的本地行为、第三方文档／源码、目标方案与待实测假设。</p></aside>
+<main>
+<header><div class="eyebrow">Architecture assessment / integrated proposal</div><h1>RPG × DSH<br>保留可信世界，补足自主角色与游玩体验</h1>
+<p class="lede">我们的引擎可以作为 DSH 插件交付。更值得做的是把 DSH 当作宿主，把现有世界内核整理成可复用服务，再吸收同类项目已经探索出的角色认知、后台行动、分支与编辑体验。</p>
+<p class="meta">评估对象：llm-rpg-engine · handoff/codex-cloud-20261025 · 91646fb6c3cfe418709ae0f869ba985c282e2003<br>第三方项目按具体提交核对；本报告未运行第三方插件，也未执行新的付费模型评测。</p></header>
+
+<section id="verdict"><h2>01 / 结论与适用边界</h2>
+<div class="decision"><p><strong>推荐路线：</strong>Python 世界内核 + 独立 NPC 决策与认知层 + DSH 宿主适配与游戏界面。</p><p>世界事实只由一个内核提交；NPC 可以误解、撒谎和改变主意；叙述依据已裁决的结果生成。模型、界面和宿主可以替换，存档语义保持稳定。</p></div>
+<p>“实现重”本身没有构成插件发布障碍。DSH 的正式扩展机制支持 bundle、服务与依赖；已有角色扮演插件也包含多 Agent、持久状态与完整前端。真正的工程门槛是依赖打包、生命周期、模型调用桥接、会话绑定以及版本兼容，而不是把所有逻辑写进一个 TypeScript 文件。<a href="#s-dsh">[1]</a></p>
+<div class="cards">
+<div class="card"><div class="n">RETAIN</div><h3>保留可核对的后果</h3><p>事实图、事件存储、原话收据、调查证据、行动去重、原子提交、撤销与重开，是现有玩法可靠性的基础。</p></div>
+<div class="card"><div class="n">ADOPT</div><h3>补上角色自主性</h3><p>借鉴独立 NPC 决策、事件／感知／信念分层、承诺与离场行动，让角色有自己的立场和连续生活。</p></div>
+<div class="card"><div class="n">DELIVER</div><h3>先交付一个完整场景</h3><p>把私聊、离场、暗线后果、重逢、查原话和撤销串起来验收，再扩展规则、导入与编辑功能。</p></div>
+</div>
+<p><strong>这是基于当前证据的推荐，不是已证明的性能或体验胜出。</strong>Agentic Roleplay 已经有不少我们计划补充的能力。如果同场景对照证明，采用它只需很小的领域扩展便能保住我们的关键语义，整体迁移应重新进入候选。代码投入多和测试数量多，都不足以单独否决这条路线。</p>
+</section>
+
+<section id="comparison"><h2>02 / 同类项目：各自可取的部分</h2>
+<p>比较以它们实际解决的问题为准。角色聊天、协同写作、跑团规则和持续世界模拟存在交集，但不能把其中一个项目的全部功能都视为我们的必需项。</p>
+<div class="table-wrap"><table><thead><tr><th>对象</th><th>核对到的能力</th><th>最值得吸收</th><th>整合边界</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/Firefox2100/dsh-agentic-roleplay">DSH Agentic Roleplay</a></td><td>GM 与一次性角色子 Agent；角色专属召回；事件、感知、信念；反思与离场行为；SQLite、记录队列和时间线分支。文档及部分核心源码／测试已读。</td><td>NPC 独立提出意图；个人证据支撑信念；前台叙述与后续整理分开；对每个子 Agent 限定工具和调用预算。</td><td>最接近整体替代候选。仍须验证我们的调查、逐字历史、任务、资源守恒及取消重试语义。许可证声明 GPL-3.0-only；本方案不直接拷贝代码。<a href="#s-agentic">[2–5]</a></td></tr>
+<tr><td><a href="https://github.com/hewzhew/dsh-agent-rp">DSH Agent RP</a></td><td>角色资料与故事工作区分离；research → character → director → sections → editor 的分工；不同角色可读内容明确；大纲／伏笔建议与用户原稿分离。</td><td>角色上下文契约；作者资产与运行中剧情分开；生成建议先作为候选，保留用户编辑；分阶段结果可诊断。</td><td>不照搬固定全流水线，否则普通回合也承担多轮延迟。其 README 的完整功能依赖冻结 patched host，是该项目的集成条件，不能推断为所有新版 DSH 的限制。<a href="#s-agentrp">[6–7]</a></td></tr>
+<tr><td><a href="https://github.com/Amakurai/dsh-liketavern">DSH LikeTavern</a></td><td>角色卡／世界书／预设；原生会话接入；长期记忆与原文归档；故事分支隔离、撤销派生状态、资产快照及延后维护。</td><td>角色资产复用、分支完整恢复、中文检索与原文回看、维护失败后的恢复策略，以及完整的产品工作流。</td><td>借鉴分支不变量，不在我们已有 SQLite 事务外再复制一套文件 WAL。带脚本的卡片兼容与完整 ST 生态放到后期。<a href="#s-tavern">[8]</a></td></tr>
+<tr><td><a href="https://github.com/SiriusWJ/dsh-rp-tools">DSH RP Tools</a></td><td>DM 专用工具作用域；随机裁决；世界书／状态；稳定 system 与动态 runtime 双通道；角色卡和右侧面板。</td><td>轻量发布方式、会话作用域、规则判定可见、稳定设定与变化状态分开注入。</td><td>作为宿主适配和工具面设计参考；README 不能证明完整持续世界与 NPC 认知保障。<a href="#s-rptools">[9]</a></td></tr>
+<tr><td><a href="https://github.com/XCNXNXNX/dsh-portable-tavern">DSH Portable Tavern</a></td><td>角色卡、队伍、冒险；展示难度与属性加成；系统判定结果，AI 描述后果；浏览器持久化。</td><td>玩家知道为何成功或失败；队伍与角色卡互通；明确行动选项与可见状态。</td><td>借鉴交互与规则展示，存档继续由服务端内核负责。其浏览器存储方案不直接替换我们的事件与证据存储。<a href="#s-portable">[10]</a></td></tr>
+</tbody></table></div>
+<div class="callout"><strong>没有充分依据说“他们都只是提示词套壳”。</strong>尤其 Agentic Roleplay 与 LikeTavern，已经把认知、持久化和恢复当作工程问题。我们的价值需要由具体规则与真实游玩表现体现，而不是靠“也有记忆／也有多 Agent”这些通用标签。</div>
+</section>
+
+<section id="ours"><h2>03 / 我们已经有的东西，和真正缺少的东西</h2>
+<div class="table-wrap"><table><thead><tr><th>领域</th><th>当前证据</th><th>评估与处理</th></tr></thead><tbody>
+<tr><td>事实与行动一致性</td><td>事件和事实投影；expected_revision；action_id 与请求指纹；事件、收据、原输入和结果元数据同事务；拒绝后不残留半个行动。</td><td>保留。这里承载“失败就是失败、买东西真的扣钱、重试不再执行一次”的可玩性。</td></tr>
+<tr><td>原话与证据追溯</td><td>显式收件人与逐字发言由宿主交付；按实际日期／回合留收据；查原文与受限邻文不调用模型、不推进时间。</td><td>保留并扩展到认知层。摘要、模型记忆和模糊召回不得伪装成逐字记录。</td></tr>
+<tr><td>调查与任务后果</td><td>调查区分 miss／lead／confirmed；必须匹配有效观察者、地点与证据特征；失败可留下可达线索；任务不能靠一句总结直接完成。</td><td>这是很适合做差异化体验的领域能力。继续统一成领域规则，而非每种叙事补一个特判。</td></tr>
+<tr><td>认知隔离</td><td>已有 POV 投影、工具读取约束和接收者隔离。作者上下文先做 pov_world；不能据此指控当前作者读到了完整世界。</td><td>已有基础。缺口是更完整的独立 NPC 意图、信念修订与私人决策过程，而非从零补“信息隔离”。</td></tr>
+<tr><td>长期世界推进</td><td>预置地区线能按游戏日推进，影响道路；本次百回合固定响应脚本验证三线各推进十阶段并支持重开、撤销。</td><td>已证明机制路径；尚不能外推为一般 NPC 日程、任意阵营计划和跨暗线因果调度都完备。</td></tr>
+<tr><td>NPC 自主行为</td><td>目前主要仍是统一作者组织叙述。解释性记忆为可选实验，默认关闭，不能当成完整生产级反思系统。</td><td>优先新增“角色私有上下文 → 意图 → 统一裁决”的小闭环，按场景逐步启用。</td></tr>
+<tr><td>规则与成长</td><td>已有显式检定入口与基础成功／部分成功／失败后果；当前不是完整属性、战斗、装备与成长规则集。</td><td>补自然行动解析、可解释加成和风险后果；将规则包版本化。平衡性需要试玩，不以复杂公式替代。</td></tr>
+<tr><td>模块与交付</td><td>已有 kernel／facts／systems 分层；但 GUI 控制、HTTP、主循环与多项 enforce_player_* 开关仍较集中；Python 依赖和安装声明需要梳理。</td><td>提取稳定应用服务与类型化上下文，减少入口差异。DSH 迁移的主要成本在这里，以及跨语言部署。</td></tr>
+</tbody></table></div>
+<p>我们较有价值的组合是：<strong>叙事与可验证行动后果绑定，记忆能回到原始记录，长期世界变化能真正改变玩家可走的路。</strong>这些并不都是独家概念；优势在于我们已有适配本项目需求的实现与回归证据。它们值得保留，但还需要 NPC 行动和游戏界面让玩家感受到。</p>
+</section>
+
+<section id="choice"><h2>04 / 迁移路线：为什么推荐保留内核</h2>
+<div class="table-wrap"><table><thead><tr><th>路线</th><th>直接收益</th><th>主要成本／风险</th><th>建议</th></tr></thead><tbody>
+<tr><td>A · 全量改写为 DSH 原生 TS</td><td>单语言打包；直接调用宿主服务；与其生命周期一致。</td><td>重写世界、事实、事务、历史与存档逻辑；需重新证明已有语义；语言迁移本身不提高剧情质量。</td><td>当前不优先。只有 Python 分发或桥接成为持续且无法合理控制的瓶颈时，再按模块迁移。</td></tr>
+<tr><td>B · 基于 Agentic Roleplay 扩展</td><td>直接获得成熟度更高的 NPC 分工与记忆设计；可能明显减少需自建的模块。</td><td>调查／任务／收据语义适配、旧存档迁移、宿主与上游演进依赖；发布方式需结合许可证确定。</td><td>保留对照分支。用相同场景验证“是否真的更省维护”，不能只看演示或功能表。</td></tr>
+<tr><td>C · 保留内核，借鉴机制，增加 DSH 适配</td><td>复用已有领域规则与验收；原 GUI／CLI 可继续使用；可逐个引入认知与界面能力。</td><td>需要维护 Python + TS 边界；自主 NPC、调度和 UI 仍需实现。</td><td><strong>当前推荐。</strong>先做小范围完整闭环，控制接口与部署复杂度。</td></tr>
+<tr><td>D · 两套 RPG 引擎同时改世界</td><td>表面上能快速拼接功能。</td><td>时间、任务、物品、记忆各有两套权威；撤销、分支和失败恢复难以一致。</td><td>不纳入目标架构。可借界面／调用组件，但只能保留一个世界事实提交者。</td></tr>
+</tbody></table></div>
+<p><strong>切换到 B 的条件：</strong>同一套关键不变量与真实模型场景通过；原存档迁移或明确的旧档只读方案可接受；领域改动规模与长期维护成本实际低于 C；可发布的许可证方案明确。这里没有预设“必须自研”的结论。</p>
+</section>
+
+<section id="architecture"><h2>05 / 目标架构：一个世界，多种视角</h2>
+<div class="svg-box"><svg viewBox="0 0 860 438" role="img" aria-labelledby="diagramTitle diagramDesc"><title id="diagramTitle">宿主、认知、裁决与世界存储的职责关系</title><desc id="diagramDesc">DSH 与独立客户端通过统一战役服务接入；认知层提出意图；裁决层和世界进程产生结果；事务提交事实、原始记录与任务；叙述和角色使用各自可见投影。</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7" fill="#63897c"/></marker></defs>
+<g fill="none" stroke="#63897c" stroke-width="2" marker-end="url(#arrow)"><path d="M226 80 L226 116 L430 116 L430 143"/><path d="M635 80 L635 116 L440 116"/><path d="M430 203 L430 250"/><path d="M248 280 L309 280"/><path d="M610 280 L551 280"/><path d="M430 310 L430 351"/></g>
+<g font-family="Noto Sans CJK SC,Microsoft YaHei,sans-serif" text-anchor="middle">
+<rect x="75" y="20" width="302" height="60" rx="10" fill="#e5efe8" stroke="#b5cfc1"/><text x="226" y="45" font-size="16" fill="#18302e">DSH 游戏界面与宿主适配</text><text x="226" y="66" font-size="12" fill="#60726d">模型连接 · 生命周期 · 展示</text>
+<rect x="484" y="20" width="302" height="60" rx="10" fill="#f4f1e7" stroke="#d8e1d9"/><text x="635" y="45" font-size="16" fill="#18302e">现有 GUI / CLI</text><text x="635" y="66" font-size="12" fill="#60726d">共享同一组领域命令</text>
+<rect x="273" y="143" width="314" height="60" rx="10" fill="#17655a"/><text x="430" y="168" font-size="16" fill="white">CampaignService</text><text x="430" y="189" font-size="12" fill="#d9eee3">身份 · 分支 · 版本 · 幂等 · 预算</text>
+<rect x="20" y="250" width="228" height="60" rx="10" fill="#fff1df" stroke="#ddc6a6"/><text x="134" y="275" font-size="16" fill="#18302e">NPC 认知与决策</text><text x="134" y="296" font-size="12" fill="#60726d">私有视角 → 意图与承诺</text>
+<rect x="309" y="250" width="242" height="60" rx="10" fill="#e5efe8" stroke="#b5cfc1"/><text x="430" y="275" font-size="16" fill="#18302e">统一规则裁决</text><text x="430" y="296" font-size="12" fill="#60726d">后果 · 冲突 · 可见性 · 叙述约束</text>
+<rect x="610" y="250" width="230" height="60" rx="10" fill="#f4f1e7" stroke="#d8e1d9"/><text x="725" y="275" font-size="16" fill="#18302e">世界进程与调度</text><text x="725" y="296" font-size="12" fill="#60726d">到期事件 · 阵营计划 · 跨线后果</text>
+<rect x="185" y="351" width="490" height="65" rx="10" fill="#18302e"/><text x="430" y="378" font-size="17" fill="white">唯一事务提交与世界存档</text><text x="430" y="401" font-size="12" fill="#cde0d5">事实／原文／感知收据／行动结果／待办任务 → 各角色可见投影</text>
+</g></svg></div>
+<p>DSH 管连接和界面；CampaignService 管本次请求属于谁、哪份存档、哪条分支；NPC 层决定“想做什么”；裁决层决定“实际发生什么”；叙述层表达玩家能够看到的结果。图中的服务名是拟议接口，不是已经存在的 DSH API。</p>
+<p>Python 内核继续拥有游戏时间、随机种子／游标、物品与资源、任务、事件与事实。DSH 会话消息是展示与交互记录，不成为第二份可随意修改世界的存档。角色卡等静态资产可以共享，运行中的认知和世界状态必须绑定战役与分支。</p>
+</section>
+
+<section id="model"><h2>06 / 数据模型：在已有事件体系上扩展</h2>
+<p>下面是逻辑对象，不要求“一对象一张新表”。优先复用现有事件、事实投影、收据和历史索引。先做必要字段与不变量，再决定存储结构。</p>
+<div class="table-wrap"><table><thead><tr><th>对象</th><th>关键内容</th><th>语义约束</th></tr></thead><tbody>
+<tr><td>ActionEnvelope<br>行动信封</td><td>action_id、请求指纹、actor、campaign、branch、expected_revision、原输入、指定收件人、规则版本。</td><td>身份与权限由宿主绑定；模型提交的 actor_id 不是授权。相同 ID 改内容必须拒绝。</td></tr>
+<tr><td>WorldEvent / Fact<br>事件与事实</td><td>事件 ID、逻辑时间、行动关联、原因链、位置、规则版本；事实保持有效期与来源。</td><td>只有裁决后才进入权威历史。角色的猜测、传言和意图不能直接成为事实。</td></tr>
+<tr><td>Perception<br>角色感知</td><td>角色、事件引用、见到／听到／获告知渠道、说话者、实际接收对象、当时措辞、时间。</td><td>角色确实收到信息才创建；“A 告诉 B 某事”与“那件事是真的”分开。显式原话收据复用现有能力。</td></tr>
+<tr><td>Belief<br>信念与解释</td><td>角色、命题、置信程度、支持／反驳感知、版本与修订原因。</td><td>允许错误信念和改观；只改变该角色的理解，不能覆盖世界事实。旧档证据缺失标记 unknown／legacy。</td></tr>
+<tr><td>Intent / Commitment<br>意图与承诺</td><td>行动者、目标、准备行动、约束、截止时间、状态、下次检查时间。</td><td>“打算交信”不会直接把信变成已送达；必须再次检查地点、物品、通路与接收者。</td></tr>
+<tr><td>WorldProcess<br>世界进程</td><td>类型、触发条件、依赖、进度、next_due、最后处理游标、预算、暂停／完成状态。</td><td>每条线按自身条件推进；可被玩家行为和其他线改变。推进理由可追踪。</td></tr>
+<tr><td>NarrativeCue<br>叙事提示</td><td>来源事件、披露对象、条件、优先级、有效期、消费标识。</td><td>只提示已成立或合法可揭示的内容；不会强行完成任务、暴露秘密或保证玩家必走某条路线。</td></tr>
+<tr><td>Branch / Job<br>分支与后台任务</td><td>分支起点、资产／规则版本、随机游标；任务类型、输入版本、幂等键、状态与错误。</td><td>撤销或分叉后，旧分支任务不得向新分支回写；摘要、别名、向量等派生内容可重建。</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>三类记录必须能分清：</strong>世界发生了什么；某个角色接收到什么；这个角色因此相信什么。这个分层吸收 Agentic Roleplay 的思路，并与我们的原话、调查和事实版本机制结合。<a href="#s-agentic">[3–5]</a></div>
+</section>
+
+<section id="turn"><h2>07 / 一回合如何完整执行</h2>
+<div class="step"><b class="num">1</b><div><strong>绑定请求与恢复已提交结果</strong><p>确定战役、分支、玩家角色、expected_revision、action_id。先查收据；已完成重试直接返回原结果。历史查证、查看任务和打开来源走只读路径。</p></div></div>
+<div class="step"><b class="num">2</b><div><strong>建立时间边界与可见快照</strong><p>把本回合应处理的世界进程纳入候选批次；涉及本次选择的到期事件必须裁决。默认采用游戏内时间，关闭网页不自动过去数天。不要为了等摘要或图片阻塞行动。</p></div></div>
+<div class="step"><b class="num">3</b><div><strong>把自然输入变成受限行动提案</strong><p>区分查询、发言、移动、调查、交易、危险行动和等待。模型只提议类型、目标与风险；内核检查可达性、资源、信息来源及指定收件人。不能以改写输入的方式替用户说出没说过的话。</p></div></div>
+<div class="step"><b class="num">4</b><div><strong>仅激活与当前事件有关的 NPC</strong><p>按直接被对话、目击事件、相关目标和到期承诺选择角色。每个角色只获得自身资料、可见场景、个人感知与信念；返回结构化行动、对白和承诺。普通路人可用确定性行为。</p></div></div>
+<div class="step"><b class="num">5</b><div><strong>统一裁决并生成感知收据</strong><p>处理资源竞争、行动冲突、检定、移动、交易和调查；同一条规则覆盖在场与离场行为。先确定实际结果，再确定谁确实看见／听见。失败、部分成功和代价进入正式结果。</p></div></div>
+<div class="step"><b class="num">6</b><div><strong>形成受约束叙述并验收</strong><p>叙述只读玩家可见结果与允许的提示；对白沿用已接受措辞。结构验证先做，语义检查按风险触发；不符合结果的正文必须重写或报告可恢复失败。此时不向玩家发布为已成立剧情。</p></div></div>
+<div class="step"><b class="num">7</b><div><strong>短事务一次提交</strong><p>所有模型等待放在数据库事务外。提交时再次比较版本，原子写入事件、原始输入／对白、必要感知、叙述、行动收据、结果元数据及后台任务。发生版本冲突就丢弃过期提案，重新取得状态。</p></div></div>
+<div class="step"><b class="num">8</b><div><strong>返回可恢复结果，延后整理</strong><p>提交成功才发布正式结果。连接断开后按 action_id 恢复；摘要、检索索引、图片等可后补。反思会影响未来角色决策，须作为带输入版本的认知写入；不能当作无须校验的缓存更新。</p></div></div>
+<p><strong>取消语义：</strong>提交前取消，不产生本回合副作用；提交后断线，返回“已提交，可恢复”的收据。异步任务输入过期或分支撤销时作废。保证的是同一行动只产生一次世界效果，不承诺网络消息只发送一次。</p>
+</section>
+
+<section id="world"><h2>08 / 多条暗线如何长期同步运转</h2>
+<p>需要从“提示词记着还有几条线”推进到<strong>可调度的世界进程</strong>。每条线保存自身时间与依赖，玩家不看它时也能推进；但不是每回合给所有 NPC 各发一次模型请求。</p>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>例子</th><th>处理方式</th></tr></thead><tbody>
+<tr><td>确定性进程</td><td>暴雨第 3 天封桥；物资两天后到达；商店每天开门。</td><td>到期直接按规则产生候选后果，0 次模型决策调用。</td></tr>
+<tr><td>条件进程</td><td>桥断使信使改道；证据公开使嫌疑人逃离；粮价上升影响阵营。</td><td>订阅相关事实变化，检查依赖，只重新计算受影响的进程。</td></tr>
+<tr><td>角色／阵营决策</td><td>NPC 决定是否履约；竞争阵营选择路线；关系破裂后另寻合作。</td><td>目标、资源或新信息发生有效变化时才激活模型；提案仍交给统一裁决。</td></tr>
+<tr><td>叙事呈现</td><td>玩家从路障、传闻、物价或某人缺席察觉变化。</td><td>根据玩家实际接触生成可见线索，不把整份幕后进度直接塞给叙述。</td></tr>
+</tbody></table></div>
+<p>调度按稳定的到期时间、优先级与进程 ID 排序；保留处理游标，避免一条热闹主线一直挤占其他线。长时间等待要处理中间事件及相互影响：如果桥在等待期间先关闭再开放，当前路况可以恢复，但历史必须保留两次变化。</p>
+<p>NPC 的目标也要持续存在：已经答应送信的人，换场景后仍有待办；遇到封路会延误或改道；目标失效会取消。计划不能无条件成功，也不能因为后台模型不可用就凭空宣告成功。重要到期行为暂不可裁决时，应明确阻塞受影响的时间推进，保留可重试状态。</p>
+<p>导演层可调节信息披露、节奏和候选事件，但不替代真实因果。需要区别“这个世界在变化”与“作者每隔几回合随机插入一段新闻”。</p>
+</section>
+
+<section id="knowledge"><h2>09 / 长期记忆、原文查询与 NPC 信息隔离</h2>
+<h3>把“查档案”和“角色回想”分开</h3>
+<p><strong>玩家查档案：</strong>按人名、别名、日期、来源和原话定位收据，打开实际记录与有权看到的上下文。查不到就说明缺少记录，不能让模型补写引号里的原文。当前已有这条路径，应继续保留。</p>
+<p><strong>NPC 回想：</strong>先按该角色的感知和信念限定候选集，再做关键词／FTS、可选向量、关系与时间重排。召回结果可包含不确定性，附来源；相关性不能越过权限。对玩家档案不做“为了拟人而遗忘原文”。</p>
+<h3>四个容易把层次混掉的例子</h3>
+<ul>
+<li><strong>传言：</strong>A 对 B 说“镇长偷了钱”，生成 B 听到该说法的感知；世界里“镇长偷钱”仍未被证明。</li>
+<li><strong>私聊：</strong>B 与 C 同处酒馆，玩家耳语只告诉 B。必须依据交付渠道和实际可听范围判定；“同场”不自动意味着 C 收到内容。</li>
+<li><strong>负面调查：</strong>“箱子里没有账本”是一次有效的未发现记录，不能成为发现账本或完成调查的证据。</li>
+<li><strong>记忆修正：</strong>B 后来见到反证，可以降低信念置信度；旧传言仍保留为过去收到的信息，不能篡改原始历史。</li>
+</ul>
+<h3>认知隔离放在检索前与接口边界</h3>
+<p>每个 ActorContext 的身份由内核签发的调用上下文固定；工具不接受模型随意切换角色来读别人的记忆。原文、邻文、实体目录、搜索数量、调试结果也遵守同一可见性策略。来源 ID 或哈希仅用来定位和校验，不能单独当作读取授权。</p>
+<p>摘要与别名扩展属于可重建索引。撤销、分支或原文改变后应失效；后台完成时再次核对输入指纹。借鉴 LikeTavern 的中文检索与分支经验，实际分词、别名权重和召回阈值用我们的中文场景集调校，不直接照搬它的数字。<a href="#s-tavern">[8]</a></p>
+</section>
+
+<section id="prompts"><h2>10 / 模型职责：每种调用有清晰输入和输出</h2>
+<p>这里的“角色”指运行时职责，不代表每回合都必须启动七个模型。能用规则确定的部分直接用代码；只有需要语言理解、个人决策或叙述时才调用模型。</p>
+<div class="table-wrap"><table><thead><tr><th>职责</th><th>允许读取</th><th>输出</th><th>硬边界</th></tr></thead><tbody>
+<tr><td>意图解析</td><td>玩家原输入、公开场景与合法候选对象。</td><td>结构化行动候选、目标、需要澄清的歧义。</td><td>不创造授权、不确认成功、不改写已指定的逐字发言。</td></tr>
+<tr><td>NPC 决策</td><td>本人设定、目标、感知、信念、可见环境与可执行动作。</td><td>意图、对白、承诺；依据用已有来源 ID。</td><td>不读全局秘密、大纲结局、其他 NPC 私人想法；不直接写事实。</td></tr>
+<tr><td>规则裁决</td><td>内核所需事实、动作约束、随机结果。</td><td>允许的结果、代价、资源与位置变化。</td><td>确定性规则优先；模型辅助的裁定提案必须通过领域验证。</td></tr>
+<tr><td>导演／节奏规划</td><td>有权限的幕后进度、玩家公开进程、未消费提示。</td><td>披露与节奏建议、合法事件候选。</td><td>不能要求 NPC 因未知秘密行动，不能替玩家决定立场。</td></tr>
+<tr><td>叙述／可选编辑</td><td>玩家视角下已裁决结果、可说对白、公开设定与风格约束。</td><td>正文与必要选项。</td><td>不能逆转检定、增加掉落、补造观察或泄露私有内心。编辑不拥有状态写权。</td></tr>
+<tr><td>反思</td><td>单个 NPC 自己的近期感知、旧信念及可核对证据。</td><td>信念新增、修订、怀疑与承诺调整建议。</td><td>不能改世界真相；不能靠从未收到的证据更新判断。</td></tr>
+<tr><td>摘要／检索维护</td><td>指定来源范围与可见性标签。</td><td>可追溯摘要与索引候选。</td><td>不替代原文；不将推测升级为事实；过期输入不得回写。</td></tr>
+</tbody></table></div>
+<p>提示词应统一包含职责、输入字段解释、允许动作、输出 schema、证据引用方式和失败格式。约束由工具与提交器执行；提示词主要帮助模型正确使用这些能力。普通回合沿用短流程，复杂谈判或重大剧情才启用额外编辑与多轮角色交互。</p>
+</section>
+
+<section id="dsh"><h2>11 / DSH 插件接入与发布方案</h2>
+<h3>交付形态</h3>
+<p>建议拆成 Python 领域包、TS 宿主适配和游戏前端三个构建部分，用户安装一个总 bundle。Python 作为本地子进程运行；首个开发版本可要求已有兼容 Python，面向普通玩家的版本再提供经过验证的管理安装或平台运行包。向量模型保持可选，不以首次启动下载大权重作为基础游玩的前提。</p>
+<p>DSH 已提供 bundle 安装与服务注入机制，LLM 协议也有工具、用量、取消等字段。我们的 sidecar 与 API 名称仍是设计，需要接入试验验证，不能写成“已兼容”。发版只声明实际测试的 DSH 范围；预构建 npm／tgz 可减少用户安装时的构建步骤。<a href="#s-dsh">[1]</a></p>
+<h3>从当前 GUI 提取应用服务</h3>
+<p>把现有 PlayerDashboard 的战役绑定、action、state、recall、open_source、undo 等能力提取到 CampaignService。GUI、CLI 与 DSH 通过相同接口接入；后台保持每份战役单写者，避免不同入口各自持有一个会改库的引擎实例。</p>
+<pre><code>拟议应用协议（示意，未实现）：
+handshake(protocol_version, capabilities)
+campaign.open / campaign.create
+campaign.state(expected_binding)
+turn.execute(action_id, expected_revision, player_input, ...)
+turn.result(action_id)
+history.search / history.open_source
+timeline.undo / timeline.branch
+
+绑定由宿主建立：
+session → campaign_id + branch_id + player_actor + capabilities
+
+回复携带：
+status + revision + public_result + action_receipt
+错误区分：
+conflict / rejected / cancelled_before_commit / committed_recoverable</code></pre>
+<h3>进程与模型桥接</h3>
+<ul>
+<li><strong>进程：</strong>采用版本化 stdio JSON-RPC 或同等明确协议；stdout 仅协议，日志走 stderr。协议握手、超时、退出恢复和插件 dispose 均可测试。子进程不是安全沙箱。</li>
+<li><strong>模型：</strong>优先通过适配层调用 DSH 已配置的模型服务；Python 发出带请求 ID 的模型请求，TS 异步处理并回传。必须避免等待行动结果时阻塞反向模型请求。</li>
+<li><strong>一致性：</strong>工具参数、结构化输出、推理配置、取消、上下文限制和用量都要映射；不支持的能力显式报错。独立 API 直连可作为配置选项，但不能悄悄换计费通道。</li>
+<li><strong>编排：</strong>由 RPG 的回合协调器控制世界行动。DSH 外层不再启动一个能改写同一回合结局的第二 DM；角色调用只通过明确的决策适配器进行。</li>
+<li><strong>存档：</strong>插件卸载、热重载或 UI 断线不删除世界记录。版本升级先备份与迁移校验；旧程序遇到更新 schema 应拒绝写入。</li>
+</ul>
+<h3>最先验证的宿主风险</h3>
+<p>在独立测试 profile 中验证：插件安装／启动／卸载、切换会话绑定、主回合与子请求并行、取消、进程重启、恢复已提交结果、界面加载。先用固定模型响应完成这些测试；这些通过后，再用同一真实模型检查实际协议与体验。</p>
+<p>MCP 可作为将来对外暴露只读查证和领域命令的一种接口，但它本身不会自动解决游戏界面、模型调用回传、发布打包和会话一致性，因此不把“包一个 MCP”当成全部迁移方案。</p>
+</section>
+
+<section id="experience"><h2>12 / 玩家应该直接感受到什么</h2>
+<div class="table-wrap"><table><thead><tr><th>界面／体验</th><th>必须体现的行为</th><th>建议阶段</th></tr></thead><tbody>
+<tr><td>游玩主屏</td><td>当前地点、游戏日期、正文、合法行动；危险行动显示代价或风险；生成中保持最近已提交状态，进度文字不冒充正式剧情。</td><td>第一条可玩闭环。</td></tr>
+<tr><td>人物与关系</td><td>角色有连续目标和承诺；会拒绝、协商、误解与改观。玩家页只展示可观察信息，不把 NPC 私有信念摊成面板。</td><td>认知层落地时同步。</td></tr>
+<tr><td>任务与线索</td><td>明确“未发现”“得到线索”“已确认”；线索可回到来源；调查失败仍有合理方向或明确代价。</td><td>保留现有能力并产品化。</td></tr>
+<tr><td>物品、地图与世界书</td><td>物品归属、可达路线与已知地区真实反映内核；未探索区域和暗线不直接泄露。</td><td>DSH 完整游戏面板阶段。</td></tr>
+<tr><td>历史与时间线</td><td>按日、人物和关键事件回看；原话与摘要有不同标识；撤销／分支恢复相关记忆、任务和后台进程。</td><td>首版具备回看与撤销，随后完善分支 UI。</td></tr>
+<tr><td>创作与 GM 视角</td><td>角色／世界资产可编辑复用；AI 对大纲和伏笔只提建议；幕后调试有独立入口与权限，数据不混在玩家返回包里。</td><td>核心游玩稳定后扩展。</td></tr>
+</tbody></table></div>
+<p>“活人感”不能只验收是否用了独立 Agent。需要看到角色承诺带来后果，关系变化影响选择，角色有自己的关注点，同时对白避免反复解释人设。规则也应创造有意义的取舍：失败不是原地卡住，成功不是无条件拿到一切。</p>
+</section>
+
+<section id="budget"><h2>13 / 调用成本、性能与评估方法</h2>
+<h3>以增量预算控制多 Agent</h3>
+<p>本次固定响应百回合脚本中，前台记录为 author 101 次、prose_review 101 次、final_prose 3 次、evidence_review 2 次；101 包含被撤销后重走的一回合。这不是生产 token／延迟测量，也不是所有后台调用的总数。</p>
+<div class="table-wrap"><table><thead><tr><th>拟议预算</th><th>默认处理</th><th>目的</th></tr></thead><tbody>
+<tr><td>查看状态／查原文</td><td>0 次生成调用；不推进游戏时间。</td><td>保持查证可信、便宜且即时。</td></tr>
+<tr><td>普通回合的 NPC 增量</td><td>在现有作者／必要验证流程上，目标为 0–2 次角色决策请求。</td><td>只激活相关角色，不全员广播。</td></tr>
+<tr><td>重大交互</td><td>暂定最多 4 个活跃角色、最多 2 轮；总 token 与修复次数另设硬预算。</td><td>这只是初始设计上限，需按实际时延调校。</td></tr>
+<tr><td>离场世界</td><td>规则先行，只有到期且需要决策的角色调用模型；去重、优先级与公平轮转。</td><td>避免每回合扫描和生成整个世界。</td></tr>
+<tr><td>反思／摘要</td><td>显著事件、场景切换或累计变化触发；批处理但保持角色隔离。</td><td>减少重复整理；不能跨人混合私有上下文。</td></tr>
+</tbody></table></div>
+<p>模型请求次数只是成本的一部分。应按阶段记录输入／输出 token、缓存命中、工具轮数、取消与重试、首个正式结果时延 p50／p95、后台积压；数据库侧关注投影重建与提交成本。现有全历史投影路径是否成为瓶颈，需要规模测试后再决定快照／增量索引，不预先宣称它已经慢。</p>
+<h3>共同场景，检验保留内核是否值得</h3>
+<p>建立一份三条实现都能复现的场景：当前内核、推荐方案的小闭环、Agentic Roleplay 扩展试验。统一世界初态、玩家行动脚本、模型与调用预算；随机规则能对齐就对齐，不能对齐则记录差异，不要求自然文本逐字一致。</p>
+<p>先用确定性替身验证机制，再安排真实模型短场景与多轮延续。建议至少三个不同初态／随机种子的机制长测，以及三组约 20 回合的真实模型对照作为起点；它们是后续评测计划，本次未执行。长篇剧情的体验需用户或盲评者判断，模型 Judge 仅作辅助。</p>
+<div class="table-wrap"><table><thead><tr><th>验收项</th><th>场景与判据</th></tr></thead><tbody>
+<tr><td>信息隔离</td><td>只告诉 A 的秘密，B 的工具、提示词、旁白与检索邻文都不能读取；同时测试同场耳语、转述和实际传播后的获知。</td></tr>
+<tr><td>事实／信念分层</td><td>谎言成为听者收到的说法，不修改真相；反证能改变信念；NPC 行动确实随信念改变。</td></tr>
+<tr><td>多线与因果</td><td>玩家持续只追一条线，其他到期线仍推进；时间跳跃保留中间变化；封路影响信使，后续恢复可追溯。</td></tr>
+<tr><td>资源与行动</td><td>失败不发奖、物品不复制、交易不欠扣；并发旧版本不能双花；调查无证据不结案。</td></tr>
+<tr><td>重试／取消／重开</td><td>提交前取消无副作用；提交后断线按 ID 恢复；重试不再次扣费于世界资源或再次推进时间；冷启动重建一致。</td></tr>
+<tr><td>撤销与分支</td><td>恢复世界、认知、随机游标和待办；旧分支异步结果无效；原分支不受子分支编辑影响。</td></tr>
+<tr><td>历史可信</td><td>跨日重复原话分别定位；旧姓名可查；不存在的说法不补造；查询前后 revision 与事件数一致。</td></tr>
+<tr><td>角色与文风</td><td>盲评连续目标、拒绝／协商合理性、记忆自然运用、节奏、重复率、失败后的可玩方向；不把“角色都说了话”当作通过。</td></tr>
+<tr><td>宿主与性能</td><td>实际 DSH 安装、切会话、取消、重启、卸载；分别测普通和重大交互延迟、token 与维护积压。</td></tr>
+</tbody></table></div>
+<div class="callout caution">关键不变量在验收集内不接受失败；这仍不等于证明任何场景都不会出错。用于调参的开发集与最终保留场景分开，避免修到测试全绿却无法迁移到新故事。</div>
+</section>
+
+<section id="roadmap"><h2>14 / 实施顺序与每阶段退出条件</h2>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>具体工作</th><th>完成标准</th></tr></thead><tbody>
+<tr><td>P0 · 冻结基线与对照</td><td>固定当前提交、存档 schema、关键回归；准备共同场景与指标；验证 DSH 安装和模型桥接；制作替代引擎最小对照。</td><td>机制与真实模型评测分开；列出哪些兼容能力已实测；不因 UI 演示好看跳过世界语义。</td></tr>
+<tr><td>P1 · 应用接口与可玩纵向闭环</td><td>从 app/gui.py 提取 CampaignService；引入版本化 DTO 与 TurnContext；在 DSH 完成开局、行动、查证、撤销；接入 A／B 两个角色的最小私有决策。</td><td>下述完整场景可以实际游玩；原 GUI／CLI 仍通过已有回归；同一份存档只有一个写入协调者。</td></tr>
+<tr><td>P2 · 角色认知与共同裁决</td><td>引入感知、信念和承诺投影；限制角色工具；统一在场／离场 Intent → Outcome；逐步开启反思。</td><td>误解、转述、证据修正、拒绝与承诺都有可观察结果；不会泄露或改写真相。</td></tr>
+<tr><td>P3 · 通用世界进程与后台恢复</td><td>将现有地区线纳入统一调度；加入依赖、时间跳跃、公平预算；任务 outbox、输入版本检查与恢复。</td><td>多线不饥饿、跨线后果成立；后台失败与重开／撤销后仍保持一致。</td></tr>
+<tr><td>P4 · 游戏界面与分支产品化</td><td>任务、地图、物品、角色、世界书和来源面板；分支管理；创作资产与运行状态分离；自然行动检定与规则说明。</td><td>玩家能看懂选择与后果；完整流程无须查看调试 JSON；GM 与玩家数据隔离。</td></tr>
+<tr><td>P5 · 发版门禁</td><td>依赖清单、平台运行包、升级迁移与卸载保档；DSH 版本矩阵；真实模型体验／延迟／token 对照；许可证与来源说明。</td><td>从干净环境可安装、启动、游玩、重开和卸载；兼容性声明与实际测试一致。</td></tr>
+</tbody></table></div>
+<h3>第一条完整可玩场景</h3>
+<p>在酒馆只把秘密告诉 A，B 同场但未获知；玩家离开调查丢失账本。暴雨封桥，A 原有承诺受阻，另一阵营按自己的目标行动。调查第一次没有找到账本，留下有依据的替代线索。玩家回来，A 能延续原话与承诺，B 只有经实际传播才知道秘密。玩家按日期查原文、撤回最近行动、重开游戏，再检查任务、路况、人物与待办是否一致。</p>
+<p>这一场景同时检验角色自主性、幕后世界、调查玩法、来源查询和恢复。它应该先于大规模编辑器、复杂卡片脚本兼容或多人平台化；否则我们可能做完很多模块，仍不知道实际玩起来是否更好。</p>
+<h3>实现时优先触及的现有位置</h3>
+<div class="table-wrap"><table><thead><tr><th>位置</th><th>重构方向</th></tr></thead><tbody>
+<tr><td>app/gui.py</td><td>抽离应用服务、战役绑定和请求上下文；界面／HTTP 只负责输入输出。</td></tr>
+<tr><td>loop/turn.py 与 strategy</td><td>拆成明确阶段；统一请求指纹、上下文能力与候选结果；保留已有原子批次提交规则。</td></tr>
+<tr><td>context/access.py、assembler.py</td><td>扩展玩家、NPC、导演、叙述不同的类型化视角；检索与工具使用同一权限来源。</td></tr>
+<tr><td>engine/store.py、history.py、facts</td><td>保留事件／事实／原文底座；逐步增加认知来源、后台任务与分支版本关联。</td></tr>
+<tr><td>systems 与 memory</td><td>用现有地区线作为调度首批实例；新增 NPC 计划与信念规则；解释性记忆先有限启用。</td></tr>
+<tr><td>新增宿主适配包</td><td>版本化 IPC、DSH 服务注入、生命周期、用量记录与前端。领域规则继续留在 Python 包内。</td></tr>
+</tbody></table></div>
+<p><strong>整体风险排序：</strong>认知／事实混淆和双写世界最高；其次是延迟与后台恢复；再其次是跨语言分发和 DSH 版本变化。卡片兼容广度与视觉精修可以后置，不应阻塞第一条可玩闭环。</p>
+</section>
+
+<section id="evidence"><h2>15 / 证据、验证范围与固定来源</h2>
+<h3>本次实际完成的验证</h3>
+<ul>
+<li>确认本地仓库分支与 HEAD；工作区干净。本报告未修改引擎源码。</li>
+<li>重跑 <strong>109 项针对性测试</strong>：显式发言、原文来源、调查路线、地区线路况后果、已裁决动作、事务与行动完整性；通过。</li>
+<li>重跑 <strong>100 回合确定性耐久脚本</strong>：第 1 天至第 11 天，508 条有效事件，三个地区线各十阶段；第 25／50／75／100 回合冷重开，第 50 回合撤销与重走；全部后台钩子启用，通过。</li>
+<li>读取 RCV-135 至 RCV-139 的相关实现／验证记录。RCV-139 文档记载的全门禁为 2267 passed、1 deselected；这是既有记录，<strong>本次没有重跑全量门禁</strong>。</li>
+<li>第三方依据为固定提交上的 README、设计文档和部分源码／测试；没有声称它们已在当前环境跑通，也没有把它们自述的效果视为独立实测。</li>
+</ul>
+<pre><code>本次测试命令：
+.venv/bin/python -m pytest -q \
+  tests/app/test_explicit_speech.py \
+  tests/app/test_history_sources.py \
+  tests/loop/test_investigation_routes.py \
+  tests/loop/test_lore_route_consequence.py \
+  tests/loop/test_settled_actions.py \
+  tests/test_action_integrity.py
+
+.venv/bin/python docs/verification/rcv139/world_endurance.py</code></pre>
+<h3>主要来源</h3>
+<ol class="source-list">
+<li id="s-dsh"><strong>DSH 官方开发文档：</strong><a href="https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish">bundle 打包与安装</a>；<a href="https://deepseek-harness.github.io/deepseek-harness/en/develop/framework/service">服务与依赖</a>；<a href="https://deepseek-harness.github.io/deepseek-harness/en/develop/practice/llm-adapter">LLM 协议</a>。它们证明扩展路径存在，不等于已经验证我们的 sidecar 方案。</li>
+<li id="s-agentic"><strong>Agentic Roleplay · 编排：</strong><a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/docs/docs/maintainers/orchestration.mdx">orchestration.mdx</a>；<a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/packages/dsh-agentic-roleplay-core/src/host/orchestration/character-runner.ts">character-runner.ts</a>。固定提交 <code>94a63f6</code>。</li>
+<li><strong>Agentic Roleplay · 记忆：</strong><a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/docs/docs/maintainers/state-memory.mdx">state-memory.mdx</a>；<a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/docs/docs/concepts/memory-knowledge.mdx">memory-knowledge.mdx</a>。</li>
+<li><strong>Agentic Roleplay · 代码与测试：</strong><a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/packages/dsh-roleplay-state/src/memory/recall.ts">按角色感知／信念召回</a>；<a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/packages/dsh-agentic-roleplay-core/tests/host/memory/reflection.spec.ts">反思证据与角色隔离测试</a>。</li>
+<li><strong>Agentic Roleplay · 发布声明：</strong><a href="https://github.com/Firefox2100/dsh-agentic-roleplay/blob/94a63f6fe658bd68ade340d9f683f4f5b5eb0efe/packages/dsh-agentic-roleplay/package.json">all bundle package.json</a>：0.12.0；DSH 范围 ≥0.2.2-rc.1、&lt;0.2.3；GPL-3.0-only。是该提交的声明，不是我们的兼容承诺。</li>
+<li id="s-agentrp"><strong>Agent RP · 工作流：</strong><a href="https://github.com/hewzhew/dsh-agent-rp/blob/f8b98d9eb4bbffa218db3a755da7a61b0c731b7c/docs/story-engine.md">story-engine.md</a>；<a href="https://github.com/hewzhew/dsh-agent-rp/blob/f8b98d9eb4bbffa218db3a755da7a61b0c731b7c/docs/multi-agent-turn-workers.md">multi-agent-turn-workers.md</a>。固定提交 <code>f8b98d9</code>。</li>
+<li><strong>Agent RP · 宿主边界：</strong><a href="https://github.com/hewzhew/dsh-agent-rp/blob/f8b98d9eb4bbffa218db3a755da7a61b0c731b7c/README.md">README</a> 声明完整 Agent／MVU 回合依赖冻结的补丁宿主；这个限制不能外推到所有其他项目。</li>
+<li id="s-tavern"><strong>LikeTavern：</strong><a href="https://github.com/Amakurai/dsh-liketavern/blob/d890a1bb79c0b0edf60b211fefdca649df17c632/docs/ARCHITECTURE.md">架构与边界文档</a>；<a href="https://github.com/Amakurai/dsh-liketavern/blob/d890a1bb79c0b0edf60b211fefdca649df17c632/README.md">README</a>。固定提交 <code>d890a1b</code>。包括分支、派生记忆、原文、维护与文件事务限制。</li>
+<li id="s-rptools"><strong>RP Tools：</strong><a href="https://github.com/SiriusWJ/dsh-rp-tools/blob/bcb9825d33af7fb8162119b6d4e9c04f0686cc7f/README.md">README</a>。固定提交 <code>bcb9825</code>。用于插件作用域、双通道提示词、工具和发布参考。</li>
+<li id="s-portable"><strong>Portable Tavern：</strong><a href="https://github.com/XCNXNXNX/dsh-portable-tavern/blob/b1b319b60680f8d16acd3499775b57ded8096304/README.md">README</a>。固定提交 <code>b1b319b</code>。用于规则展示、角色与队伍交互参考；未独立验证其全部声明。</li>
+<li><strong>我们的基线：</strong><a href="https://github.com/RedStoneManL/llm-rpg-engine/tree/91646fb6c3cfe418709ae0f869ba985c282e2003">llm-rpg-engine / 91646fb</a>；<a href="https://github.com/RedStoneManL/llm-rpg-engine/blob/91646fb6c3cfe418709ae0f869ba985c282e2003/docs/verification/RCV-139-host-speech-and-endurance.md">RCV-139 验证记录</a>；<a href="https://github.com/RedStoneManL/llm-rpg-engine/blob/91646fb6c3cfe418709ae0f869ba985c282e2003/engine/store.py">事件存储</a>；<a href="https://github.com/RedStoneManL/llm-rpg-engine/blob/91646fb6c3cfe418709ae0f869ba985c282e2003/engine/history.py">历史来源</a>；<a href="https://github.com/RedStoneManL/llm-rpg-engine/blob/91646fb6c3cfe418709ae0f869ba985c282e2003/loop/turn.py">回合流程</a>。</li>
+</ol>
+<p class="small">本文所有方案性接口、预算、阶段和验收条件均为建议设计。新增的认知、调度与 DSH 适配尚未实现；第三方功能比较不能替代实际安装和同场景体验评测。后续修改应以更晚的源码与验证记录更新结论。</p>
+</section>
+<footer class="page-foot">RPG / Integrated assessment · 2026-11-10 UTC · 阅读版可离线打开，无外部脚本、字体或数据请求。</footer>
+</main></div></body></html>

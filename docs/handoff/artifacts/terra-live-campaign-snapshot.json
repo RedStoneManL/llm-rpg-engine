@@ -1,0 +1,29 @@
+{
+  "source": "synthetic Terra live test campaign, not a private player save",
+  "format": "gzip-compressed SQLite backup; decompress to events.db in a NEW campaign directory",
+  "sqlite_version": "3.53.1",
+  "integrity_check": "ok",
+  "table_rows": {
+    "action_receipts": 11,
+    "action_result_metadata": 11,
+    "events": 96,
+    "play_history_fts": 14,
+    "play_history_fts_config": 1,
+    "play_history_fts_content": 14,
+    "play_history_fts_data": 16,
+    "play_history_fts_docsize": 14,
+    "play_history_fts_idx": 14,
+    "player_inputs": 11,
+    "speech_names": 0,
+    "sqlite_sequence": 1,
+    "store_revision": 1
+  },
+  "sqlite_sha256": "443e4d8076da59b462647c805f83204c4adb6afcd428e58e8e9ca6eed4bc1a17",
+  "archive_sha256": "92e2702f771ddefb59497d773c96776ce2696e52c9c079dce342cc08956ee8db",
+  "sqlite_bytes": 204800,
+  "archive_bytes": 32779,
+  "restored_fts_match": 0,
+  "campaign_basename": "terra-live-campaign",
+  "runtime_commit": "59b41178cd2fe6603fea972cab439dc358401c83",
+  "note": "No campaign_seeded event; preserve campaign directory basename for deterministic seed."
+}

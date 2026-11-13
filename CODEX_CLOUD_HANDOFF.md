@@ -1,6 +1,7 @@
-# Codex Cloud 交接入口
+# Codex 接手入口
 
-完整交接说明已统一移至 [docs/progress/CODEX_CLOUD_HANDOFF.md](docs/progress/CODEX_CLOUD_HANDOFF.md)。
+最新完整交接位于 [docs/handoff/README.md](docs/handoff/README.md)，目标分支为 `harness`。
 
-请完整阅读目标文件；本文件仅保留旧链接兼容，不维护第二份正文。
-所有当前进度文档见 [进度目录](docs/progress/README.md)。
+先读根目录 [AGENTS.md](AGENTS.md) 与上述入口；其中包含用户上下文、研究/消融、Terra 实测、存档恢复、未验证补丁和100回合待办。
+
+[旧交接快照](docs/progress/CODEX_CLOUD_HANDOFF.md)和[累计执行记录](docs/progress/PRODUCT_EXECUTION.md)继续保留，不能代替当前接续状态。
