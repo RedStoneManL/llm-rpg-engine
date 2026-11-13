@@ -1,0 +1,113 @@
+{
+  "date": "2026-11-13 Asia/Shanghai",
+  "handoff_commit_tested": "c065d98ec233d6d2a2e2b699d7ae077a09f37132",
+  "environment": "independent local clone, no hardlinks, Python 3.12.14",
+  "verification": {
+    "checked_files": 155,
+    "runtime_base_commit": "59b41178cd2fe6603fea972cab439dc358401c83",
+    "wip_applicable_not_applied": true,
+    "snapshot": {
+      "integrity_check": "ok",
+      "events": 96,
+      "active_events": 92,
+      "action_receipts": 11,
+      "player_inputs": 11,
+      "revision": 15,
+      "active_max_turn": 10,
+      "fts_query_executed": true
+    },
+    "model_calls": 0,
+    "runtime_changes": false,
+    "mirror_rebuilt": true
+  },
+  "historical_review": {
+    "actions": 11,
+    "model_responses": 35,
+    "checks": [
+      {
+        "id": "request_response_hashes",
+        "label": "真实请求与响应逐份对应",
+        "passed": true,
+        "evidence": "35 份请求；35 份响应"
+      },
+      {
+        "id": "cold_reopen",
+        "label": "冷重开保持被检查状态",
+        "passed": true,
+        "evidence": "比较时钟、位置、认知、暗线和事件计数"
+      },
+      {
+        "id": "undo_reopen",
+        "label": "撤销后的冷重开保持状态",
+        "passed": true,
+        "evidence": "撤销后重新构造正式 dashboard"
+      },
+      {
+        "id": "retracted_context",
+        "label": "撤销的约定未进入后续模型请求",
+        "passed": true,
+        "evidence": "最后行动的 4 份实际请求；标记为紫铜罗盘"
+      },
+      {
+        "id": "retracted_recall",
+        "label": "撤销的约定不再被玩家检索",
+        "passed": true,
+        "evidence": "具体查询回包见 recall.json；需排除查询文本本身"
+      },
+      {
+        "id": "past_recall",
+        "label": "仍可查回早先原话",
+        "passed": true,
+        "evidence": "玩家正常 recall 入口"
+      },
+      {
+        "id": "host_secret_context",
+        "label": "主持层秘密未进入前台作者请求",
+        "passed": true,
+        "evidence": "15 份实际作者／正文请求"
+      },
+      {
+        "id": "unspoken_knowledge",
+        "label": "未说出口的猜想未写入 NPC 认知",
+        "passed": true,
+        "evidence": "仅检查实际认知事件；台词由人工另行审读"
+      },
+      {
+        "id": "foreign_private_knowledge",
+        "label": "白禾未获得只告诉阿岚的原话",
+        "passed": true,
+        "evidence": "后台存储检查，不等同于正文无语义泄漏"
+      },
+      {
+        "id": "offscreen_progress",
+        "label": "玩家留在枫桥时青山驿暗线仍推进",
+        "passed": true,
+        "evidence": {
+          "stage_idx": 0,
+          "status": null,
+          "last_advanced_day": 2
+        }
+      }
+    ]
+  },
+  "recorded_failure_replay": {
+    "evidence": "untouched recorded response through ordinary dashboard; no new model generation",
+    "candidate_sha256": "9aacd00036c7eaf9815f14000422df2af5aa782420928f431ed80da9babcf9f2",
+    "before_errors": [
+      "player_fact_authority_boundary"
+    ],
+    "after_errors": [],
+    "published": true,
+    "stored_report": "她说若船契赶不上今天，整船人的货都要扣下",
+    "day": 2,
+    "stored_player_knowledge": "她说若船契赶不上今天，整船人的货都要扣下"
+  },
+  "existing_destination_refused_without_modifying_db": true,
+  "runtime_identical_to_59b4117": true,
+  "clean_clone_worktree_after_checks": true,
+  "new_model_calls": 0,
+  "full_pytest_rerun": false,
+  "hundred_turn_live_run": false,
+  "dsh_host_started": false,
+  "note": "Model responses are historical. This only verifies repository portability, archive restoration and unchanged recorded-response regression. Whitespace checking excludes the byte-preserved .patch because its blank context lines contain the required diff-space prefix."
+}
